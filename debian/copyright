@@ -1,0 +1,31 @@
+This work was packaged for Debian by:
+
+    Cleto Martin Angelina <cleto.martin@gmail.com> on Fri, 18 Dec 2009 13:49:36 +0100
+
+It was downloaded http://sourceforge.net/projects/linthesia/
+
+Upstream Author:
+
+    Óscar Aceña <oscaracena@gmail.com>
+
+Linthesia copyright:
+
+    Copyright (C) 2009 Óscar Aceña
+
+Synthesia copyright:
+
+    Copyright (C) 2007 Nicholas Piegdon
+
+License:
+
+    Linthesia is a fork of Synthesia (v0.6.1a), whose author is Nicholas
+    Piegdon and is licensed under MIT License.
+
+    Linthesia is distributed under GPL version 2.
+
+The Debian packaging is:
+
+    Copyright (C) 2009 Cleto Martin Angelina <cleto.martin@gmail.com>
+
+and is licensed under the GPL version 3,
+see `/usr/share/common-licenses/GPL-3'.

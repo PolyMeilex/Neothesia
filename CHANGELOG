@@ -1,0 +1,34 @@
+linthesia (0.4-2) unstable; urgency=low
+
+  * Fixed "Unable to load PangoFont" bug on all platforms
+  * Added autoconf build system
+
+ -- Victor Lavaud <victor.lavaud@gmail.com> Tue, 10 Sept 2013 13:16:00 +0100
+
+linthesia (0.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * Non-maintainer commit.
+  *  (Closes: #2920321).
+
+ -- Oscar Aceña <oscaracena@gmail.com>  Tue, 29 Dec 2009 17:19:38 +0100
+
+linthesia (0.3-2) unstable; urgency=low
+
+  * New upstream release
+  * Non-maintainer commit.
+  *  (Closes: #2920683).
+
+ -- Oscar Aceña <oscaracena@gmail.com>  Sat, 26 Dec 2009 14:06:28 +0100
+
+linthesia (0.3-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Cleto Martin Angelina <cleto.martin@gmail.com>  Thu, 24 Dec 2009 14:38:10 +0100
+
+linthesia (0.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #562487)
+
+ -- Cleto Martin Angelina <cleto.martin@gmail.com>  Fri, 18 Dec 2009 13:49:36 +0100

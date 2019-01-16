@@ -1,0 +1,36 @@
+
+Linthesia is a fork of the Windows/Mac game called Synthesia. It is a game
+of playing music using a MIDI keyboard (or your PC keyboard), following
+a .mid file.
+
+Synthesia up to version 0.6.1a is Open Source. This project uses the
+latest source from sourceforge.
+
+Compile
+-------
+
+To compile, you need a basic c++ toolchain, and satisfy all dependences
+which are on BUILD-DEPENDS file. Then, just:
+
+    $ autoreconf -ivf
+
+Here you must choose:
+
+ a) For developers
+
+    $ mkdir build
+    $ cd build     # Isolate compilation to speed future compilations
+    $ ../configure
+
+ b) For general public
+
+    $ ../configure --prefix=/usr
+
+Then:
+
+    $ make
+    $ sudo make install
+
+Visit https://sourceforge.net/projects/linthesia/ for more info.
+
+Join the chat at https://gitter.im/linthesia/linthesia

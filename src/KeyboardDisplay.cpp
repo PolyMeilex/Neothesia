@@ -46,7 +46,7 @@ const KeyboardDisplay::KeyTexDimensions KeyboardDisplay::BlackKeyDimensions = {
     32, 128, 8, 20, 15, 109};
 
 KeyboardDisplay::KeyboardDisplay(KeyboardSize size, int pixelWidth,
-                                 int pixelHeight)
+                                 int pixelHeight,int stateX,int stateY)
     : m_size(size), m_width(pixelWidth), m_height(pixelHeight) {
 
       program = LoadShader("test.vert", "test.frag");
@@ -61,7 +61,7 @@ KeyboardDisplay::KeyboardDisplay(KeyboardSize size, int pixelWidth,
       glBindTexture(GL_TEXTURE_2D, renderedTexture);
 
       // Give an empty image to OpenGL ( the last "0" )
-      glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, 1024, 768, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+      glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, m_width, m_height, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
 
       // Poor filtering. Needed !
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -138,45 +138,105 @@ bool nofirst;
 GLuint quad_VertexArrayID;
 GLuint quad_vertexbuffer;
 
-static const GLfloat g_quad_vertex_buffer_data[] = {
-     -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+
+std::vector<float> quadVertices{ -1.0, -1.0,  0.0,
+  1.0, -1.0,  0.0,
+  -1.0,  1.0,  0.0,
+  1.0,  1.0,  0.0
 };
+
+std::vector<unsigned int> quadIndices{0, 1, 2, 2, 1, 3};
+
+GLuint _vao;
+GLuint _ebo;
+
+	
+size_t _count;
 
 void sQuad(int stateX,int stateY){
 
 
   if (!nofirst) {
-    glGenVertexArrays(1, &quad_VertexArrayID);
-    glBindVertexArray(quad_VertexArrayID);
+    _count = quadIndices.size();
+	// Create an array buffer to host the geometry data.
+	GLuint vbo = 0;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	// Upload the data to the Array buffer.
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * quadVertices.size(), &(quadVertices[0]), GL_STATIC_DRAW);
 
-    glGenBuffers(1, &quad_vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+	// Generate a vertex array (useful when we add other attributes to the geometry).
+	_vao = 0;
+	glGenVertexArrays (1, &_vao);
+	glBindVertexArray(_vao);
+	// The first attribute will be the vertices positions.
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	
+	// We load the indices data
+	glGenBuffers(1, &_ebo);
+ 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+ 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * quadIndices.size(), &(quadIndices[0]), GL_STATIC_DRAW);
+
+	glBindVertexArray(0);
+	
+	// Link the texture of the framebuffer for this program.
+	glBindTexture(GL_TEXTURE_2D, renderedTexture);
+	GLuint texUniID = glGetUniformLocation(program, "screenTexture");
+	glUniform1i(texUniID, 0);
       
     nofirst=true;
   }
 
 
-  glUseProgram(program);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+  // glUseProgram(program);
+  //   glActiveTexture(GL_TEXTURE0);
+  //   glBindTexture(GL_TEXTURE_2D, renderedTexture);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
+  //   glEnableVertexAttribArray(0);
+  //   glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT , GL_FALSE, 5 * sizeof(float), 0); 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),  (GLvoid *)(3 * sizeof(float)));
+  //   glVertexAttribPointer(0, 3, GL_FLOAT , GL_FALSE, 5 * sizeof(float), 0); 
+  //   // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),  (GLvoid *)(3 * sizeof(float)));
 
-    glBindVertexArray(quad_VertexArrayID);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(0);
+  //   glBindVertexArray(quad_VertexArrayID);
+  //   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  //   glBindVertexArray(0);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-  glUseProgram(0);
+  //   glDisableVertexAttribArray(0);
+  //   glDisableVertexAttribArray(1);
+  // glUseProgram(0);
+
+  // Select the program (and shaders).
+	glUseProgram(program);
+  glDisable(GL_DEPTH_TEST);
+	// Inverse screen size uniform.
+
+  
+	// GLuint screenId = glGetUniformLocation(program, "inverseScreenSize");
+	// glUniform2fv(screenId, 1, &(invScreenSize[0]));
+	
+	// GLuint timeID = glGetUniformLocation(program, "time");
+	// glUniform1f(timeID, time);
+	
+	// Active screen texture.
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, renderedTexture);
+	
+
+  // glVertexAttribPointer(0, 3, GL_FLOAT , GL_FALSE, 5 * sizeof(float), 0); 
+	// Select the geometry.
+	glBindVertexArray(_vao);
+	// Draw!
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+	glDrawElements(GL_TRIANGLES, _count, GL_UNSIGNED_INT, (void*)0);
+	
+	glBindVertexArray(0);
+
+   glDisableVertexAttribArray(0);
+
+	glUseProgram(0);
 
   glViewport(0,0,stateX,stateY);
 }

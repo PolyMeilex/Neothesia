@@ -31,22 +31,44 @@ std::string readFile(const char *filePath) {
 //                     "layout(location = 0) out vec4 color; \n"
 //                     "void main(){color = vec4(0.5,0.0,1.0,1.0);}";
 
-std::string frag1 = "#version 400 \n"
+// std::string frag1 = "#version 400 \n"
+//                     "out vec4 color;"
+//                     "in vec2 TexCoords;"
+//                     "uniform sampler2D text;"
+//                     "void main(){"
+// 	                "color = texture(text, TexCoords);"
+//                     "color.a = 0.5;"
+// 	                "}";
+
+// std::string vet1 =  "#version 400 \n "
+//                     "layout(location = 0) in vec3 position;"
+//                     "layout(location = 1) in vec2 texCoords;"
+//                     "out vec2 TexCoords;"
+//                     "void main(){"
+//                     "gl_Position = vec4( position.x, position.y, 0f, 1f);"
+//                     "TexCoords = texCoords;"
+//                     "}";
+
+// texture(screenTexture,In.uv).rgb;
+std::string frag1 = "#version 330 \n"
+                    "in INTERFACE {"
+                    "   vec2 uv;"
+                    "} In ;"
+                    "uniform sampler2D screenTexture;"
                     "out vec4 color;"
-                    "in vec2 TexCoords;"
-                    "uniform sampler2D text;"
                     "void main(){"
-	                "color = texture(text, TexCoords);"
+	                "   color = texture(screenTexture,In.uv);"
                     "color.a = 0.5;"
 	                "}";
 
-std::string vet1 =  "#version 400 \n "
-                    "layout(location = 0) in vec3 position;"
-                    "layout(location = 1) in vec2 texCoords;"
-                    "out vec2 TexCoords;"
+std::string vet1 =  "#version 330 \n "
+                    "layout(location = 0) in vec3 v;"
+                    "out INTERFACE {"
+                    "   vec2 uv;"
+                    "} Out ;"
                     "void main(){"
-                    "gl_Position = vec4( position.x, position.y, 0f, 1f);"
-                    "TexCoords = texCoords;"
+                    "   gl_Position = gl_Position = vec4(v, 1.0);"
+                    "   Out.uv = v.xy * 0.5 + 0.5;"
                     "}";
 
 GLuint LoadShader(const char *vertex_path, const char *fragment_path) {

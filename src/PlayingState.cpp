@@ -118,6 +118,9 @@ void PlayingState::Init() {
   const static microseconds_t DefaultShowDurationMicroseconds = 3250000;
   m_show_duration = DefaultShowDurationMicroseconds;
 
+  int w = GetStateWidth();
+  int h = GetStateHeight();
+
   m_keyboard = new KeyboardDisplay(KeyboardSize88, GetStateWidth() - Layout::ScreenMarginX*2, CalcKeyboardHeight());
 
   // Hide the mouse cursor while we're playing
@@ -639,8 +642,7 @@ void PlayingState::Draw(Renderer &renderer) const {
                              GetTexture(PlayNotesBlackColor, true) };
   renderer.ForceTexture(0);
 
-
-  int w = GetStateWidth();
+    int w = GetStateWidth();
   int h = GetStateHeight();
 
   // Draw a keyboard, fallen keys and background for them

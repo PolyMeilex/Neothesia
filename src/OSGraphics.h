@@ -12,10 +12,18 @@
 // only for 'Ms. pepis' debugging
 #include <iostream>
 
+
+
+#include <GL/glew.h>
+
 #include <gtkmm.h>
 #include <gtkglmm.h>
-
-#include <GL/gl.h>
+// #include <GL/gl.h>
+// #include <GL/gl.h>
 #include <GL/glu.h>
 
+
+
 #endif // __OS_GRAPHICS_H
+
+

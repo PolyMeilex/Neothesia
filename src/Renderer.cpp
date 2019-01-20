@@ -26,12 +26,16 @@ void SelectTexture(unsigned int texture_id) {
   last_texture_id = texture_id;
 }
 
+unsigned int Renderer::GetLastTGAID() {
+  return last_texture_id;
+}
 
 Renderer::Renderer(GLContext glcontext, PGContext pangocontext) :
   m_xoffset(0),
   m_yoffset(0),
   m_glcontext(glcontext),
   m_pangocontext(pangocontext) {
+    glewInit();
 }
 
 Color Renderer::ToColor(int r, int g, int b, int a) {

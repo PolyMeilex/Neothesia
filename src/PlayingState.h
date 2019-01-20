@@ -44,6 +44,7 @@ struct ActiveNote {
 
 typedef std::set<ActiveNote, ActiveNote> ActiveNoteSet;
 
+
 class PlayingState : public GameState {
 public:
   PlayingState(const SharedState &state);

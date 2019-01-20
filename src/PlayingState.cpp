@@ -639,10 +639,14 @@ void PlayingState::Draw(Renderer &renderer) const {
                              GetTexture(PlayNotesBlackColor, true) };
   renderer.ForceTexture(0);
 
+
+  int w = GetStateWidth();
+  int h = GetStateHeight();
+
   // Draw a keyboard, fallen keys and background for them
   m_keyboard->Draw(renderer, key_tex, note_tex, Layout::ScreenMarginX, 0, m_notes, m_show_duration,
                    m_state.midi->GetSongPositionInMicroseconds(), m_state.track_properties,
-                   m_state.midi->GetBarLines());
+                   m_state.midi->GetBarLines(),w,h);
 
      const int time_pb_width = static_cast<int>(m_state.midi->GetSongPercentageComplete() * (GetStateWidth() - Layout::ScreenMarginX*2));
    //const int pb_x = Layout::ScreenMarginX+8;

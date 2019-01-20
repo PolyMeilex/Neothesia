@@ -21,8 +21,10 @@ struct Color {
 
 class Renderer {
 public:
-
   Renderer(GLContext glcontext, PGContext pangocontext);
+
+
+  unsigned int GetLastTGAID();
 
   static Color ToColor(int r, int g, int b, int a = 0xFF);
 

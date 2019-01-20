@@ -40,7 +40,7 @@ public:
   void Draw(Renderer &renderer, const Tga *key_tex[4], const Tga *note_tex[4],
             int x, int y, const TranslatedNoteSet &notes, microseconds_t show_duration,
             microseconds_t current_time, const std::vector<Track::Properties> &track_properties,
-            const MidiEventMicrosecondList &bar_line_usecs);
+            const MidiEventMicrosecondList &bar_line_usecs, int stateX,int stateY);
 
   void SetKeyActive(const std::string &key_name, bool active, Track::TrackColor color);
 
@@ -49,7 +49,6 @@ public:
   }
 
 private:
-
   struct NoteTexDimensions {
 
     int tex_width;

@@ -15,6 +15,9 @@
 #include "Textures.h"
 #include "Tga.h"
 
+#include "GLShader.h"
+
+
 using namespace std;
 
 const KeyboardDisplay::NoteTexDimensions KeyboardDisplay::WhiteNoteDimensions =
@@ -33,12 +36,46 @@ struct KeyTexDimensions {
   int bottom;
 };
 
+GLuint program;
+
+
+GLuint FramebufferName = 0;
+GLuint renderedTexture;
+
 const KeyboardDisplay::KeyTexDimensions KeyboardDisplay::BlackKeyDimensions = {
     32, 128, 8, 20, 15, 109};
 
 KeyboardDisplay::KeyboardDisplay(KeyboardSize size, int pixelWidth,
                                  int pixelHeight)
-    : m_size(size), m_width(pixelWidth), m_height(pixelHeight) {}
+    : m_size(size), m_width(pixelWidth), m_height(pixelHeight) {
+
+      program = LoadShader("test.vert", "test.frag");
+      
+      glGenFramebuffers(1, &FramebufferName);
+      glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+
+      
+      glGenTextures(1, &renderedTexture);
+
+      // "Bind" the newly created texture : all future texture functions will modify this texture
+      glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+      // Give an empty image to OpenGL ( the last "0" )
+      glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, 1024, 768, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+      // Poor filtering. Needed !
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+
+      // Set "renderedTexture" as our colour attachement #0
+      glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+
+      // Set the list of draw buffers.
+      GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+      glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+      
+    }
 
 class Particle {
   float x, y;
@@ -74,7 +111,6 @@ public:
 std::vector<Particle> particleArr;
 
 void Particle::update() {
-
   vx += ax;
   vy += ay;
 
@@ -95,13 +131,66 @@ void SpawnParticle(float x1, float y1, Color c1) {
   particleArr.push_back(p);
 }
 
+
+
+bool nofirst;
+
+GLuint quad_VertexArrayID;
+GLuint quad_vertexbuffer;
+
+static const GLfloat g_quad_vertex_buffer_data[] = {
+     -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+};
+
+void sQuad(int stateX,int stateY){
+
+
+  if (!nofirst) {
+    glGenVertexArrays(1, &quad_VertexArrayID);
+    glBindVertexArray(quad_VertexArrayID);
+
+    glGenBuffers(1, &quad_vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+      
+    nofirst=true;
+  }
+
+
+  glUseProgram(program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT , GL_FALSE, 5 * sizeof(float), 0); 
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),  (GLvoid *)(3 * sizeof(float)));
+
+    glBindVertexArray(quad_VertexArrayID);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+  glUseProgram(0);
+
+  glViewport(0,0,stateX,stateY);
+}
+
+
 void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
                            const Tga *note_tex[4], int x, int y,
                            const TranslatedNoteSet &notes,
                            microseconds_t show_duration,
                            microseconds_t current_time,
                            const vector<Track::Properties> &track_properties,
-                           const MidiEventMicrosecondList &bar_line_usecs) {
+                           const MidiEventMicrosecondList &bar_line_usecs,
+                           int stateX,int stateY) {
+
   // Source: Measured from Yamaha P-70
   const static double WhiteWidthHeightRatio = 6.8181818;
   const static double BlackWidthHeightRatio = 7.9166666;
@@ -140,11 +229,6 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,
              y, y_offset);
 
-  for (int i = 0; i < particleArr.size(); i++) {
-    particleArr[i].draw(renderer);
-    particleArr[i].update();
-  }
-
   // Do two passes on the notes, the first for note shadows and the second
   // for the note blocks themselves.  This is to avoid shadows being drawn
   // on top of notes.
@@ -152,11 +236,15 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   // DrawNotePass(renderer, note_tex[0], note_tex[1], white_width, white_space,
   // black_width, black_offset, x + x_offset, y, y_offset, y_roll_under, notes,
   // show_duration, current_time, track_properties);
-  DrawNotePass(renderer, note_tex[2], note_tex[3], white_width, white_space,
-               black_width, black_offset, x + x_offset, y, y_offset,
-               y_roll_under, notes, show_duration, current_time,
-               track_properties);
 
+
+  DrawNotePass(renderer, note_tex[2], note_tex[3], white_width, white_space,
+              black_width, black_offset, x + x_offset, y, y_offset,
+              y_roll_under, notes, show_duration, current_time,
+              track_properties);
+
+ 
+  
   const int ActualKeyboardWidth =
       white_width * white_key_count + white_space * (white_key_count - 1);
 
@@ -165,23 +253,39 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   renderer.DrawQuad(x + x_offset, y + y_offset, ActualKeyboardWidth,
                     white_height);
 
+
+
   DrawShadow(renderer, key_tex[Shadow], x + x_offset,
-             y + y_offset + white_height - 10, ActualKeyboardWidth);
+            y + y_offset + white_height - 10, ActualKeyboardWidth);
   DrawWhiteKeys(renderer, key_tex[3], false, white_key_count, white_width,
                 white_height, white_space, x + x_offset, y + y_offset);
   DrawBlackKeys(renderer, key_tex[BlackKey], false, white_key_count,
                 white_width, black_width, black_height, white_space,
                 x + x_offset, y + y_offset, black_offset);
   DrawShadow(renderer, key_tex[Shadow], x + x_offset, y + y_offset,
-             ActualKeyboardWidth);
+            ActualKeyboardWidth);
   DrawRail(renderer, key_tex[Rail], x + x_offset, y + y_offset,
-           ActualKeyboardWidth);
+          ActualKeyboardWidth);
 
-  // Top of the screen shadow and rail
-  // DrawShadow(renderer, key_tex[Shadow], x+x_offset, y,
-  // ActualKeyboardWidth+1); DrawRail(renderer, key_tex[Rail], x+x_offset, y,
-  // ActualKeyboardWidth+1);
+ 
+
+  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glViewport(0,0,stateX,stateY);
+
+  for (int i = 0; i < particleArr.size(); i++) {
+    particleArr[i].draw(renderer);
+    particleArr[i].update();
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0,0,stateX,stateY);
+
+  sQuad(stateX,stateY);
+ 
 }
+
+
+
 
 int KeyboardDisplay::GetStartingOctave() const {
 

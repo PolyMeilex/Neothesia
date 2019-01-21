@@ -2,7 +2,20 @@
 #define GLSHADER_H
 
 #include "OSGraphics.h"
+#include <string>
 
-GLuint LoadShader(const char *vertex_path, const char *fragment_path);
+
+struct GLShader {
+  std::string vert;
+  std::string frag;
+};
+
+
+extern struct GLShader RenderTextureGLShader;
+extern struct GLShader BlurParticleGLShader;
+
+void GLShadersInit();
+
+GLuint LoadShader(GLShader sh);
 
 #endif

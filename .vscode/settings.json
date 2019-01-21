@@ -52,5 +52,6 @@
         "__nullptr": "cpp",
         "algorithm": "cpp",
         "variant": "cpp"
-    }
+    },
+    "editor.tabSize": 2
 }

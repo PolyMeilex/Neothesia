@@ -17,6 +17,8 @@
 
 #include "GLShader.h"
 
+#include "neolib/ParticleSystem.h"
+// #include "neolib/FBO.h"
 
 using namespace std;
 
@@ -36,211 +38,101 @@ struct KeyTexDimensions {
   int bottom;
 };
 
-GLuint program;
+GLuint blurProgram;
+GLuint normalProgram;
 
+// GLuint FramebufferName = 0;
+// GLuint renderedTexture;
 
-GLuint FramebufferName = 0;
-GLuint renderedTexture;
+ParticleSystem particleSystem;
+
+std::shared_ptr<NeoFBO> particlesFBO;
+std::shared_ptr<NeoFBO> blurParticlesFBO;
 
 const KeyboardDisplay::KeyTexDimensions KeyboardDisplay::BlackKeyDimensions = {
     32, 128, 8, 20, 15, 109};
 
 KeyboardDisplay::KeyboardDisplay(KeyboardSize size, int pixelWidth,
-                                 int pixelHeight,int stateX,int stateY)
-    : m_size(size), m_width(pixelWidth), m_height(pixelHeight) {
-
-      program = LoadShader("test.vert", "test.frag");
-      
-      glGenFramebuffers(1, &FramebufferName);
-      glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-
-      
-      glGenTextures(1, &renderedTexture);
-
-      // "Bind" the newly created texture : all future texture functions will modify this texture
-      glBindTexture(GL_TEXTURE_2D, renderedTexture);
-
-      // Give an empty image to OpenGL ( the last "0" )
-      glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, m_width, m_height, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
-
-      // Poor filtering. Needed !
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                                 int pixelHeight, int stateX_, int stateY_)
+    : m_size(size), m_width(pixelWidth), m_height(pixelHeight), stateX(stateX_),
+      stateY(stateY_) {
 
 
-      // Set "renderedTexture" as our colour attachement #0
-      glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+  particlesFBO = std::shared_ptr<NeoFBO> (new NeoFBO(stateX,stateY));
+  blurParticlesFBO = std::shared_ptr<NeoFBO> (new NeoFBO(stateX,stateY));
 
-      // Set the list of draw buffers.
-      GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-      glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
-      
-    }
+  GLShadersInit();
 
-class Particle {
-  float x, y;
+  normalProgram = LoadShader(RenderTextureGLShader);
+  blurProgram = LoadShader(BlurParticleGLShader);
 
-  int alpha = 255;
-
-  float vx, vy;
-
-  float ax = 0.01;
-  float ay = -0.005;
-
-  Color c;
-
-public:
-  Particle(float x1, float y1, Color c1) {
-    x = x1;
-    y = y1;
-
-    c = c1;
-
-    vx = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 2 - 1;
-    vy = -(static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 2;
-  }
-
-  void draw(Renderer &renderer) {
-    c.a = alpha;
-    renderer.SetColor(c);
-    renderer.DrawQuad(x, y, 2, 2);
-  }
-  void update();
-};
-
-std::vector<Particle> particleArr;
-
-void Particle::update() {
-  vx += ax;
-  vy += ay;
-
-  x += vx;
-  y += vy;
-
-  alpha -= 1;
-
-  if (alpha < 0) {
-    if (particleArr.empty())
-      return;
-    particleArr.erase(particleArr.begin());
-  }
 }
-
-void SpawnParticle(float x1, float y1, Color c1) {
-  Particle p(x1, y1, c1);
-  particleArr.push_back(p);
-}
-
-
 
 bool nofirst;
 
 GLuint quad_VertexArrayID;
 GLuint quad_vertexbuffer;
 
-
-std::vector<float> quadVertices{ -1.0, -1.0,  0.0,
-  1.0, -1.0,  0.0,
-  -1.0,  1.0,  0.0,
-  1.0,  1.0,  0.0
-};
+std::vector<float> quadVertices{-1.0, -1.0, 0.0, 1.0, -1.0, 0.0,
+                                -1.0, 1.0,  0.0, 1.0, 1.0,  0.0};
 
 std::vector<unsigned int> quadIndices{0, 1, 2, 2, 1, 3};
 
 GLuint _vao;
 GLuint _ebo;
 
-	
 size_t _count;
 
-void sQuad(int stateX,int stateY){
-
+void sQuad(int stateX, int stateY, GLuint textToBlur,GLuint program) {
 
   if (!nofirst) {
     _count = quadIndices.size();
-	// Create an array buffer to host the geometry data.
-	GLuint vbo = 0;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	// Upload the data to the Array buffer.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * quadVertices.size(), &(quadVertices[0]), GL_STATIC_DRAW);
+    GLuint vbo = 0;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-	// Generate a vertex array (useful when we add other attributes to the geometry).
-	_vao = 0;
-	glGenVertexArrays (1, &_vao);
-	glBindVertexArray(_vao);
-	// The first attribute will be the vertices positions.
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	
-	// We load the indices data
-	glGenBuffers(1, &_ebo);
- 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
- 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * quadIndices.size(), &(quadIndices[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * quadVertices.size(),
+                 &(quadVertices[0]), GL_STATIC_DRAW);
 
-	glBindVertexArray(0);
-	
-	// Link the texture of the framebuffer for this program.
-	glBindTexture(GL_TEXTURE_2D, renderedTexture);
-	GLuint texUniID = glGetUniformLocation(program, "screenTexture");
-	glUniform1i(texUniID, 0);
-      
-    nofirst=true;
+    _vao = 0;
+    glGenVertexArrays(1, &_vao);
+    glBindVertexArray(_vao);
+      // The first attribute will be the vertices positions.
+      glEnableVertexAttribArray(0);
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+      // We load the indices data
+      glGenBuffers(1, &_ebo);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                  sizeof(unsigned int) * quadIndices.size(), &(quadIndices[0]),
+                  GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+
+    // glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    // GLuint texUniID = glGetUniformLocation(program, "screenTexture");
+    // glUniform1i(texUniID, 0);
+
+    nofirst = true;
   }
 
-
-  // glUseProgram(program);
-  //   glActiveTexture(GL_TEXTURE0);
-  //   glBindTexture(GL_TEXTURE_2D, renderedTexture);
-
-  //   glEnableVertexAttribArray(0);
-  //   glEnableVertexAttribArray(1);
-
-  //   glVertexAttribPointer(0, 3, GL_FLOAT , GL_FALSE, 5 * sizeof(float), 0); 
-  //   // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),  (GLvoid *)(3 * sizeof(float)));
-
-  //   glBindVertexArray(quad_VertexArrayID);
-  //   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-  //   glBindVertexArray(0);
-
-  //   glDisableVertexAttribArray(0);
-  //   glDisableVertexAttribArray(1);
-  // glUseProgram(0);
-
-  // Select the program (and shaders).
-	glUseProgram(program);
-  glDisable(GL_DEPTH_TEST);
-	// Inverse screen size uniform.
-
+  glUseProgram(program);
   
-	// GLuint screenId = glGetUniformLocation(program, "inverseScreenSize");
-	// glUniform2fv(screenId, 1, &(invScreenSize[0]));
-	
-	// GLuint timeID = glGetUniformLocation(program, "time");
-	// glUniform1f(timeID, time);
-	
-	// Active screen texture.
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, renderedTexture);
-	
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textToBlur);
 
-  // glVertexAttribPointer(0, 3, GL_FLOAT , GL_FALSE, 5 * sizeof(float), 0); 
-	// Select the geometry.
-	glBindVertexArray(_vao);
-	// Draw!
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
-	glDrawElements(GL_TRIANGLES, _count, GL_UNSIGNED_INT, (void*)0);
-	
-	glBindVertexArray(0);
+    glBindVertexArray(_vao);
 
-   glDisableVertexAttribArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+    glDrawElements(GL_TRIANGLES, _count, GL_UNSIGNED_INT, (void *)0);
 
-	glUseProgram(0);
+    glBindVertexArray(0);
 
-  glViewport(0,0,stateX,stateY);
+  glUseProgram(0);
 }
-
 
 void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
                            const Tga *note_tex[4], int x, int y,
@@ -248,8 +140,8 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
                            microseconds_t show_duration,
                            microseconds_t current_time,
                            const vector<Track::Properties> &track_properties,
-                           const MidiEventMicrosecondList &bar_line_usecs,
-                           int stateX,int stateY) {
+                           const MidiEventMicrosecondList &bar_line_usecs) {
+  glViewport(0, 0, stateX, stateY);
 
   // Source: Measured from Yamaha P-70
   const static double WhiteWidthHeightRatio = 6.8181818;
@@ -286,66 +178,68 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   // Symbolic names for the arbitrary array passed in here
   enum { Rail, Shadow, BlackKey };
 
-  DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,
-             y, y_offset);
+  DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,y, y_offset);
 
-  // Do two passes on the notes, the first for note shadows and the second
-  // for the note blocks themselves.  This is to avoid shadows being drawn
-  // on top of notes.
+  particleSystem.UpdateParticles();
+
+  particlesFBO -> Bind();
+    glViewport(0, 0, stateX, stateY);
+
+    sQuad(stateX, stateY,blurParticlesFBO -> GetTexture(),normalProgram);
+
+    particleSystem.DrawParticles(renderer);
+
+
+    renderer.SetColor(Renderer::ToColor(255, 255, 255));
+
+  particlesFBO -> Unbind();
+
+  blurParticlesFBO -> Bind();
+    glViewport(0, 0, stateX, stateY);
+
+    sQuad(stateX, stateY,particlesFBO -> GetTexture(),blurProgram);
+
+  blurParticlesFBO -> Unbind();
+  
+  
+  
+  sQuad(stateX, stateY,particlesFBO -> GetTexture(),normalProgram);
+
+  
+
   renderer.SetColor(Renderer::ToColor(255, 255, 255));
-  // DrawNotePass(renderer, note_tex[0], note_tex[1], white_width, white_space,
-  // black_width, black_offset, x + x_offset, y, y_offset, y_roll_under, notes,
-  // show_duration, current_time, track_properties);
 
 
   DrawNotePass(renderer, note_tex[2], note_tex[3], white_width, white_space,
-              black_width, black_offset, x + x_offset, y, y_offset,
-              y_roll_under, notes, show_duration, current_time,
-              track_properties);
+               black_width, black_offset, x + x_offset, y, y_offset,
+               y_roll_under, notes, show_duration, current_time,
+               track_properties);
 
- 
-  
   const int ActualKeyboardWidth =
       white_width * white_key_count + white_space * (white_key_count - 1);
 
   // Black out the background of where the keys are about to appear
+
   renderer.SetColor(Renderer::ToColor(0, 0, 0));
   renderer.DrawQuad(x + x_offset, y + y_offset, ActualKeyboardWidth,
                     white_height);
 
-
+ 
 
   DrawShadow(renderer, key_tex[Shadow], x + x_offset,
-            y + y_offset + white_height - 10, ActualKeyboardWidth);
+             y + y_offset + white_height - 10, ActualKeyboardWidth);
   DrawWhiteKeys(renderer, key_tex[3], false, white_key_count, white_width,
                 white_height, white_space, x + x_offset, y + y_offset);
   DrawBlackKeys(renderer, key_tex[BlackKey], false, white_key_count,
                 white_width, black_width, black_height, white_space,
                 x + x_offset, y + y_offset, black_offset);
-  DrawShadow(renderer, key_tex[Shadow], x + x_offset, y + y_offset,
-            ActualKeyboardWidth);
-  DrawRail(renderer, key_tex[Rail], x + x_offset, y + y_offset,
-          ActualKeyboardWidth);
+  DrawShadow(renderer, key_tex[Shadow], x + x_offset, y + y_offset,ActualKeyboardWidth);
+  DrawRail(renderer, key_tex[Rail], x + x_offset, y + y_offset,ActualKeyboardWidth);
 
- 
 
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-  glViewport(0,0,stateX,stateY);
+  
 
-  for (int i = 0; i < particleArr.size(); i++) {
-    particleArr[i].draw(renderer);
-    particleArr[i].update();
-  }
-
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glViewport(0,0,stateX,stateY);
-
-  sQuad(stateX,stateY);
- 
 }
-
-
-
 
 int KeyboardDisplay::GetStartingOctave() const {
 
@@ -441,8 +335,6 @@ void KeyboardDisplay::DrawWhiteKeys(Renderer &renderer, const Tga *tex,
 
     Color c = white;
 
-    
-
     if (active)
       c = Track::ColorNoteWhite[find_result->second];
 
@@ -453,13 +345,13 @@ void KeyboardDisplay::DrawWhiteKeys(Renderer &renderer, const Tga *tex,
 
       int press = 0;
 
-      if (active){
-        SpawnParticle(key_x + key_width / 2, y_offset, c);
-        press=3;
+      if (active) {
+        particleSystem.SpawnParticle(key_x + key_width / 2, y_offset, c);
+        press = 3;
       }
 
-      renderer.DrawStretchedTga(tex, key_x, y_offset, key_width, key_height + press, 0,
-                                0, 32, 128);
+      renderer.DrawStretchedTga(tex, key_x, y_offset, key_width,
+                                key_height + press, 0, 0, 32, 128);
     }
 
     current_white++;
@@ -540,8 +432,8 @@ void KeyboardDisplay::DrawBlackKeys(Renderer &renderer, const Tga *tex,
             i * (white_width + key_space) + x_offset + black_offset;
 
         if (active)
-          SpawnParticle(start_x + black_width / 2, y_offset,
-                        Track::ColorNoteWhite[c]);
+          particleSystem.SpawnParticle(start_x + black_width / 2, y_offset,
+                                       Track::ColorNoteWhite[c]);
         DrawBlackKey(renderer, tex, BlackKeyDimensions, start_x, y_offset,
                      black_width, black_height, c);
       }

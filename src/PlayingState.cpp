@@ -121,7 +121,7 @@ void PlayingState::Init() {
   int w = GetStateWidth();
   int h = GetStateHeight();
 
-  m_keyboard = new KeyboardDisplay(KeyboardSize88, GetStateWidth() - Layout::ScreenMarginX*2, CalcKeyboardHeight());
+  m_keyboard = new KeyboardDisplay(KeyboardSize88, GetStateWidth() - Layout::ScreenMarginX*2, CalcKeyboardHeight(),w,h);
 
   // Hide the mouse cursor while we're playing
   Compatible::HideMouseCursor();
@@ -364,7 +364,6 @@ void PlayingState::Listen() {
 }
 
 void PlayingState::Update() {
-
   // Calculate how visible the title bar should be
   const static double fade_in_ms = 350.0;
   const static double stay_ms = 2500.0;
@@ -642,13 +641,10 @@ void PlayingState::Draw(Renderer &renderer) const {
                              GetTexture(PlayNotesBlackColor, true) };
   renderer.ForceTexture(0);
 
-    int w = GetStateWidth();
-  int h = GetStateHeight();
-
   // Draw a keyboard, fallen keys and background for them
   m_keyboard->Draw(renderer, key_tex, note_tex, Layout::ScreenMarginX, 0, m_notes, m_show_duration,
                    m_state.midi->GetSongPositionInMicroseconds(), m_state.track_properties,
-                   m_state.midi->GetBarLines(),w,h);
+                   m_state.midi->GetBarLines());
 
      const int time_pb_width = static_cast<int>(m_state.midi->GetSongPercentageComplete() * (GetStateWidth() - Layout::ScreenMarginX*2));
    //const int pb_x = Layout::ScreenMarginX+8;

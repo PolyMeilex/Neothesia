@@ -19,6 +19,8 @@
 #include "libmidi/Note.h"
 #include "libmidi/MidiTypes.h"
 
+#include "neolib/NeoFBO.h"
+
 enum KeyboardSize {
 
   KeyboardSize37,
@@ -35,18 +37,21 @@ public:
 
   const static microseconds_t NoteWindowLength = 330000;
 
-  KeyboardDisplay(KeyboardSize size, int pixelWidth, int pixelHeight,int stateX,int stateY);
+  KeyboardDisplay(KeyboardSize size, int pixelWidth, int pixelHeight,int stateX_,int stateY_);
 
   void Draw(Renderer &renderer, const Tga *key_tex[4], const Tga *note_tex[4],
             int x, int y, const TranslatedNoteSet &notes, microseconds_t show_duration,
             microseconds_t current_time, const std::vector<Track::Properties> &track_properties,
-            const MidiEventMicrosecondList &bar_line_usecs,int stateX,int stateY);
+            const MidiEventMicrosecondList &bar_line_usecs);
 
   void SetKeyActive(const std::string &key_name, bool active, Track::TrackColor color);
 
   void ResetActiveKeys() {
     m_active_keys.clear();
   }
+
+  int stateX;
+  int stateY;
 
 private:
   struct NoteTexDimensions {
@@ -80,6 +85,8 @@ private:
   };
 
   const static KeyTexDimensions BlackKeyDimensions;
+
+  // std::shared_ptr<NeoFBO> particlesFBO;
 
   void DrawWhiteKeys(Renderer &renderer,const Tga *tex, bool active_only, int key_count, int key_width,
                      int key_height, int key_space, int x_offset, int y_offset) const;
@@ -132,8 +139,6 @@ private:
   int m_width;
   int m_height;
 
-  int stateW;
-  int stateH;
 };
 
 #endif // __KEYBOARDDISPLAY_H

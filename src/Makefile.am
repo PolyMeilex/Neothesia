@@ -32,7 +32,9 @@ dist_neothesia_SOURCES =	CompatibleSystem.cpp \
 				StringTile.cpp \
 				TitleState.cpp \
 				UserSettings.cpp \
-				GLShader.cpp
+				GLShader.cpp\
+				neolib/ParticleSystem.cpp \
+				neolib/NeoFBO.cpp
 noinst_HEADERS +=		CompatibleSystem.h \
 				DeviceTile.h \
 				FileSelector.h \
@@ -58,7 +60,9 @@ noinst_HEADERS +=		CompatibleSystem.h \
 				TrackTile.h \
 				UserSettings.h \
 				Version.h \
-				GLShader.h
+				GLShader.h \
+				neolib/ParticleSystem.h \
+				neolib/NeoFBO.h
 
 neothesia_LDFLAGS = @GTKMM_LIBS@ @GCONFMM_LIBS@ @GTKGLEXTMM_LIBS@ @ALSA_LIBS@
 neothesia_LDADD = libmidi.la

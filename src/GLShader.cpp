@@ -7,79 +7,64 @@
 #include <algorithm>
 
 
-std::string readFile(const char *filePath) {
-    std::string content;
-    std::ifstream fileStream(filePath, std::ios::in);
+struct GLShader BlurParticleGLShader;
+struct GLShader RenderTextureGLShader;
 
-    if(!fileStream.is_open()) {
-        std::cerr << "Could not read file " << filePath << ". File does not exist." << std::endl;
-        return "";
-    }
+void GLShadersInit(){
+    BlurParticleGLShader.frag = "#version 330 \n"
+                        "in INTERFACE {"
+	                        "vec2 uv;"
+                        "} In ;"
+                        "uniform sampler2D screenTexture;"
+                        "uniform vec2 inverseScreenSize;"
+                        "uniform vec3 backgroundColor = vec3(0.0, 0.0, 0.0);"
+                        "uniform float attenuationFactor = 0.99;"
+                        "out vec4 fragColor;"
+                        "void main(){"
+                        "   vec3 color = texture(screenTexture, In.uv).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(-2,-2)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(-2,2)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(-1,0)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(0,-1)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(0,1)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(1,0)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(2,-2)).rgb;"
+                        "   color += textureOffset(screenTexture, In.uv, 2*ivec2(2,2)).rgb;"
+                        "   fragColor = vec4(mix(backgroundColor, color/9.0, attenuationFactor),1);"
+                        "}";
+    BlurParticleGLShader.vert =  "#version 330 \n "
+                        "layout(location = 0) in vec3 v;"
+                        "out INTERFACE {"
+	                    "   vec2 uv;"
+                        "} Out ;"
+                        "void main(){"
+                        "   gl_Position = vec4(v, 1.0);"
+                        "   Out.uv = v.xy * 0.5 + 0.5;"
+                        "}";
 
-    std::string line = "";
-    while(!fileStream.eof()) {
-        std::getline(fileStream, line);
-        content.append(line + "\n");
-    }
 
-    fileStream.close();
-    return content;
+    RenderTextureGLShader.frag = "#version 330 \n"
+                        "in vec2 uv;"
+                        "uniform sampler2D screenTexture;"
+                        "out vec4 color;"
+                        "void main(){"
+                        "   color = texture(screenTexture,uv);"
+                        "}";
+    RenderTextureGLShader.vert =  "#version 330 \n "
+                        "layout(location = 0) in vec3 v;"
+                        "out vec2 uv;"
+                        "void main(){"
+                        "   gl_Position = vec4(v.x,v.y,0.0f,1.0f);"
+                        "   uv = v.xy * 0.5 + 0.5;"
+                        "}";
 }
 
-// std::string frag1 = "#version 330 \n in INTERFACE { vec2 uv; } In; uniform sampler2D screenTexture; out vec3 fragColor;void main(){ vec3 color=texture(screenTexture,In.uv).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(-2,-2)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(-2,2)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(-1,0)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(0,-1)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(0,1)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(1,0)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(2,-2)).rgb;color+=textureOffset(screenTexture,In.uv,2*ivec2(2,2)).rgb;fragColor=mix(vec3(0.0,0.0,0.0),color/9.0,0.99);}";
-// std::string frag1 = "#version 400 \n "
-//                     "layout(location = 0) out vec4 color; \n"
-//                     "void main(){color = vec4(0.5,0.0,1.0,1.0);}";
-
-// std::string frag1 = "#version 400 \n"
-//                     "out vec4 color;"
-//                     "in vec2 TexCoords;"
-//                     "uniform sampler2D text;"
-//                     "void main(){"
-// 	                "color = texture(text, TexCoords);"
-//                     "color.a = 0.5;"
-// 	                "}";
-
-// std::string vet1 =  "#version 400 \n "
-//                     "layout(location = 0) in vec3 position;"
-//                     "layout(location = 1) in vec2 texCoords;"
-//                     "out vec2 TexCoords;"
-//                     "void main(){"
-//                     "gl_Position = vec4( position.x, position.y, 0f, 1f);"
-//                     "TexCoords = texCoords;"
-//                     "}";
-
-// texture(screenTexture,In.uv).rgb;
-std::string frag1 = "#version 330 \n"
-                    "in INTERFACE {"
-                    "   vec2 uv;"
-                    "} In ;"
-                    "uniform sampler2D screenTexture;"
-                    "out vec4 color;"
-                    "void main(){"
-	                "   color = texture(screenTexture,In.uv);"
-                    "color.a = 0.5;"
-	                "}";
-
-std::string vet1 =  "#version 330 \n "
-                    "layout(location = 0) in vec3 v;"
-                    "out INTERFACE {"
-                    "   vec2 uv;"
-                    "} Out ;"
-                    "void main(){"
-                    "   gl_Position = gl_Position = vec4(v, 1.0);"
-                    "   Out.uv = v.xy * 0.5 + 0.5;"
-                    "}";
-
-GLuint LoadShader(const char *vertex_path, const char *fragment_path) {
+GLuint LoadShader(GLShader sh) {
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    // Read shaders
-    std::string vertShaderStr = vet1;
-    std::string fragShaderStr = frag1;
-    const char *vertShaderSrc = vertShaderStr.c_str();
-    const char *fragShaderSrc = fragShaderStr.c_str();
+    const char *vertShaderSrc = sh.vert.c_str();
+    const char *fragShaderSrc = sh.frag.c_str();
 
     GLint result = GL_FALSE;
     int logLength;

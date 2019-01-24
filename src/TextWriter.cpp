@@ -43,25 +43,26 @@ TextWriter::TextWriter(int in_x, int in_y, Renderer &in_renderer,
   y += renderer.m_yoffset;
   point_size = size;
 
+
   if (font_size_lookup[size] == 0) {
 
     // Get font from user settings
-    if (fontname.empty()) {
-      string key = "font_desc";
-      fontname = UserSetting::Get(key, "");
-
-      // Or set it if there is no default
-      if (fontname.empty()) {
-        fontname = get_default_font();
-        UserSetting::Set(key, fontname);
-      }
-    }
+    // if (fontname.empty()) {
+    //   string key = "font_desc";
+    //   fontname = UserSetting::Get(key, "");
+      
+    //   // Or set it if there is no default
+    //   if (fontname.empty()) {
+    //     fontname = get_default_font();
+    //     UserSetting::Set(key, fontname);
+    //   }
+    // }
 
     int list_start = glGenLists(128);
     fontname = STRING(fontname << " " << in_size);
 
     //@TODO Beter Font System!!!
-    Pango::FontDescription* font_desc = new Pango::FontDescription("arial");
+    Pango::FontDescription* font_desc = new Pango::FontDescription("Roboto Medium");
 
    Glib::RefPtr<Pango::Font> ret = Gdk::GL::Font::use_pango_font(*font_desc, 0, 128, list_start);
    if (!ret)
@@ -179,7 +180,7 @@ const std::string get_default_font()
       }
     }
   }
-
+  // raise(SIGINT);
   XFreeFontNames(allFonts);
   XCloseDisplay(display);
 

@@ -1,7 +1,17 @@
-#iChannel0 https://66.media.tumblr.com/tumblr_mcmeonhR1e1ridypxo1_500.jpg
 
 void main(){
-	vec2 uv = (gl_FragCoord.xy / vec2(100,100));
-	vec4 color = texture2D(iChannel0,uv);
+	vec2 st = gl_FragCoord.xy/iResolution.xy;
+	float pct = 0.0;
+
+	pct = 1.0 - distance(st.x,0.5)*2.0;
+
+	if(st.y>0.5){
+		pct -= distance(st.y,0.5);
+	}
+	
+
+
+	vec4 color = vec4(1,0,0,pct);
+
 	gl_FragColor = color;
 }

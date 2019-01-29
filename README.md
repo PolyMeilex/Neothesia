@@ -1,6 +1,6 @@
 ![Neothesia Baner](https://i.imgur.com/3uiwId8.png)
 # Neothesia
-Neothesia is a fork of [Legacy Synthesia](https://github.com/johndpope/pianogame)
+Neothesia is a fork of [Legacy Synthesia](https://github.com/johndpope/pianogame)  
 Opensource Synthesia was abandoned in favor of [closed source commercial project](https://www.synthesiagame.com/)
 Goal of this project is to bring back Legacy Synthesia to live, and make it look as good (or even better) than commercial Synthesia.
 

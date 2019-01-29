@@ -25,7 +25,8 @@ You will have special place in my heart if you do so 😉
 * clone [Legacy Synthesia](https://github.com/johndpope/pianogame)
 * add Neothesia commits
 * build
-
+##### Or you can try to crosscompile neothesia master branch
+I didn't try it yet, but probably you can cross compile neothesia using mingw
 
 ## Todo
 * Make it cross platform so ports are no longer needed

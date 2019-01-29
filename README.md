@@ -1,11 +1,21 @@
-# linthesia
+![Neothesia Baner](https://i.imgur.com/3uiwId8.png)
+# Neothesia
+Neothesia is a fork of [Legacy Synthesia](https://github.com/johndpope/pianogame)
+Opensource Synthesia was abandoned in favor of [closed source commercial project](https://www.synthesiagame.com/)
+Goal of this project is to bring back Legacy Synthesia to live, and make it look as good (or even better) than commercial Synthesia.
 
-[![Build Status](https://travis-ci.org/linthesia/linthesia.svg?branch=master)](https://travis-ci.org/linthesia/linthesia)
-[![Join the chat at https://gitter.im/linthesia/linthesia](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/linthesia/linthesia?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Linux build is based on [Linthesia](https://github.com/linthesia/linthesia)
 
-Linthesia is a fork of the Windows/Mac game called Synthesia. It is a game of playing music using a MIDI keyboard (or your PC keyboard), following a .mid file.
+## Goals
+* Make it look like modern software
+* Treat Linux users as first class citizens
+* Give Linux users good or even better alternative to windows Synthesia
+* Make it flashy, particles and other cool effects
+* Make it as friendly as possible for youtube piano tutorials creators (like myself)
+* (Maybe) Support Windows in future
 
-Synthesia up to version 0.6.1a is Open Source. This project uses the latest source from sourceforge.
+## Windows Build?
+--
 
 ## Compile
 
@@ -31,5 +41,6 @@ Then:
     $ sudo make install
 
 ## Credits
+Linux Build is based on master branch of [Linthesia](https://github.com/linthesia/linthesia)
+Windows Build is based on master branch of [Legacy Synthesia](https://github.com/johndpope/pianogame)
 
-Visit https://github.com/linthesia/linthesia for more info.

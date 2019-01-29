@@ -2,7 +2,7 @@
 # Neothesia
 Neothesia is a fork of [Legacy Synthesia](https://github.com/johndpope/pianogame)  
 Opensource Synthesia was abandoned in favor of [closed source commercial project](https://www.synthesiagame.com/)  
-Goal of this project is to bring back Legacy Synthesia to live, and make it look as good (or even better) than commercial Synthesia.
+Goal of this project is to bring back Legacy Synthesia to live, and make it look and work as good (or even better) than commercial Synthesia.
 
 Linux build is based on [Linthesia](https://github.com/linthesia/linthesia)
 

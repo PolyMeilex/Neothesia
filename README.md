@@ -21,6 +21,19 @@ I would realy appreciate any help in maintaining windows branch.
 If you want to become full time windows maintainer you are welcome to do so,  
 You will have special place in my heart if you do so 😉
 
+##### Noob Friendly Way To Port (not recomended)
+* clone [Legacy Synthesia](https://github.com/johndpope/pianogame)
+* add Neothesia commits
+* build
+
+
+## Todo
+* Make it cross platform so ports are no longer needed
+* Replace unnecessary sprites with shaders
+* Create proper shader loading system instead of current placeholder one
+* Modernise main screen and track selection screen
+* Consider adding song select screen, instead of native dialog
+
 ## Compile
 
 To compile, you need a basic c++ toolchain, and satisfy all dependences which are on BUILD-DEPENDS file. Then, just:

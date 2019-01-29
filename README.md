@@ -15,32 +15,35 @@ Linux build is based on [Linthesia](https://github.com/linthesia/linthesia)
 * (Maybe) Support Windows in future
 
 ## Windows Build?
---
+For now I will not support windows build 😰, it is really annoying to open VM every time I want to test something, if you are windows user and you have bare minimum c++ knowledge, you can easly port it yourself.   
+I would realy appreciate any help in maintaining windows branch. 
+
+If you want to become full time windows maintainer you are welcome to do so,  
+You will have special place in my heart if you do so 😉
 
 ## Compile
 
 To compile, you need a basic c++ toolchain, and satisfy all dependences which are on BUILD-DEPENDS file. Then, just:
 
-    $ ./autogen.sh
-
+    $ autoreconf -ivf
+    $ mkdir build
+    $ cd build     # Isolate compilation to speed future compilations
+    
 Here you must choose:
 
  a) For developers
-
-    $ mkdir build
-    $ cd build     # Isolate compilation to speed future compilations
+ 
     $ ../configure
-
  b) For general public
 
     $ ../configure --prefix=/usr
 
-Then:
+Then: (still in build directory)
 
     $ make
     $ sudo make install
 
 ## Credits
-Linux Build is based on master branch of [Linthesia](https://github.com/linthesia/linthesia)
-Windows Build is based on master branch of [Legacy Synthesia](https://github.com/johndpope/pianogame)
+* Linux Build is based on master branch of [Linthesia](https://github.com/linthesia/linthesia)
+* Windows Build is based on master branch of [Legacy Synthesia](https://github.com/johndpope/pianogame)
 

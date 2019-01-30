@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 #include <queue>
-#include <alsa/asoundlib.h>
+// #include <alsa/asoundlib.h>
 
 #include "libmidi/MidiEvent.h"
 

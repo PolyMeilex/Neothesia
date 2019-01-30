@@ -11,22 +11,22 @@ VERSION = $(shell grep NeothesiaVersionString $(SRC)/Version.h | cut -f 6 -d " "
 	dh  $@
 
 override_dh_auto_build:
-	xsltproc -o debian/linthesia.6 --param man.charmap.use.subset "0" --novalid --nonet $(DB2MAN) debian/linthesia.xml
-	$(MAKE) GRAPHDIR=/usr/share/linthesia/graphics SCRIPTDIR=/usr/bin
+	xsltproc -o debian/neothesia.6 --param man.charmap.use.subset "0" --novalid --nonet $(DB2MAN) debian/neothesia.xml
+	$(MAKE) GRAPHDIR=/usr/share/neothesia/graphics SCRIPTDIR=/usr/bin
 
 override_dh_install:
-	$(MAKE) install DESTDIR=debian/linthesia
-	cp extra/linthesia.desktop debian/linthesia/usr/share/applications
-	cp extra/linthesia.xpm debian/linthesia/usr/share/pixmaps
+	$(MAKE) install DESTDIR=debian/neothesia
+	cp extra/neothesia.desktop debian/neothesia/usr/share/applications
+	cp extra/neothesia.xpm debian/neothesia/usr/share/pixmaps
 
 override_dh_auto_clean:
-	$(RM) debian/linthesia.6
+	$(RM) debian/neothesia.6
 	$(MAKE) clean
 
 build-orig-source:
-	mkdir -p linthesia-$(VERSION)
+	mkdir -p neothesia-$(VERSION)
 	tar --exclude=debian --exclude=\*~ --exclude=.svn --exclude=\*.pyc \
-		--exclude=linthesia-$(VERSION) -cf - . \
-		| ( cd linthesia-$(VERSION) && tar xf - )
-	tar -czf ../tarballs/linthesia_$(VERSION).orig.tar.gz linthesia-$(VERSION)
-	$(RM) -r linthesia-$(VERSION)
+		--exclude=neothesia-$(VERSION) -cf - . \
+		| ( cd neothesia-$(VERSION) && tar xf - )
+	tar -czf ../tarballs/linthesia_$(VERSION).orig.tar.gz neothesia-$(VERSION)
+	$(RM) -r neothesia-$(VERSION)

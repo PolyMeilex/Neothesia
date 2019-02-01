@@ -15,12 +15,13 @@
 
 
 #include <GL/glew.h>
+#include <GL/gl.h>
 
 #include <gtkmm.h>
 #include <gtkglmm.h>
+
 // #include <GL/gl.h>
-// #include <GL/gl.h>
-#include <GL/glu.h>
+// #include <GL/glu.h>
 
 
 

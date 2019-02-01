@@ -348,8 +348,8 @@ void TrackSelectionState::Draw(Renderer &renderer) const {
   Layout::DrawHorizontalRule(renderer, GetStateWidth(), Layout::ScreenMarginY);
   Layout::DrawHorizontalRule(renderer, GetStateWidth(), GetStateHeight() - Layout::ScreenMarginY);
 
-  Layout::DrawButton(renderer, m_continue_button, GetTexture(ButtonPlaySong));
-  Layout::DrawButton(renderer, m_back_button, GetTexture(ButtonBackToTitle));
+  Layout::DrawButton(renderer, m_continue_button, "PlaySong");
+  Layout::DrawButton(renderer, m_back_button, "BackToTitle");
 
   // Write our page count on the screen
   TextWriter pagination(GetStateWidth()/2, GetStateHeight() - Layout::SmallFontSize - 30,

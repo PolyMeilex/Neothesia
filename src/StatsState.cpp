@@ -70,8 +70,8 @@ void StatsState::Draw(Renderer &renderer) const {
 
   Layout::DrawHorizontalRule(renderer, GetStateWidth(), GetStateHeight() - Layout::ScreenMarginY);
 
-  Layout::DrawButton(renderer, m_continue_button, GetTexture(ButtonRetrySong));
-  Layout::DrawButton(renderer, m_back_button, GetTexture(ButtonChooseTracks));
+  Layout::DrawButton(renderer, m_continue_button, "RetrySong");
+  Layout::DrawButton(renderer, m_back_button, "ChooseTracks");
 
   const SongStatistics &s = m_state.stats;
 

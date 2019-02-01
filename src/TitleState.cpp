@@ -417,8 +417,8 @@ void TitleState::Draw(Renderer &renderer) const {
                              GetStateWidth(),
                              GetStateHeight() - Layout::ScreenMarginY);
 
-  Layout::DrawButton(renderer, m_continue_button, GetTexture(ButtonChooseTracks));
-  Layout::DrawButton(renderer, m_back_button, GetTexture(ButtonExit));
+  Layout::DrawButton(renderer, m_continue_button, "ChooseTracks");
+  Layout::DrawButton(renderer, m_back_button, "Exit");
 
   m_output_tile->Draw(renderer);
   m_input_tile->Draw(renderer);

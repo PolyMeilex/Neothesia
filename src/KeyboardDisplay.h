@@ -19,8 +19,6 @@
 #include "libmidi/Note.h"
 #include "libmidi/MidiTypes.h"
 
-#include "neolib/NeoFBO.h"
-
 enum KeyboardSize {
 
   KeyboardSize37,

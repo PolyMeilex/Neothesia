@@ -27,13 +27,18 @@ namespace Layout {
     renderer.DrawQuad(ScreenMarginX, y - 1, state_width - 2*ScreenMarginX, 3);
   }
 
-  void DrawButton(Renderer &renderer, const ButtonState &button, const Tga *tga) {
+  void DrawButton(Renderer &renderer, const ButtonState &button, const string Title) {
 
-    const static Color color = Renderer::ToColor(0xE0,0xE0,0xE0);
-    const static Color color_hover = Renderer::ToColor(0xFF,0xFF, 0xFF);
+    const static Color color = Renderer::ToColor(32,32,32);
+    const static Color color_hover = Renderer::ToColor(42,42,42);
 
     renderer.SetColor(button.hovering ? color_hover : color);
-    renderer.DrawTga(tga, button.x, button.y);
+    // renderer.DrawTga(tga, button.x, button.y);
+    renderer.ForceTexture(0);
+    renderer.DrawQuad(button.x,button.y,button.w,button.h);
+
+    TextWriter title_writer(button.x + button.w/2 - 10, button.y + button.h/2 - 5, renderer, true, 10);
+    title_writer << Title;
   }
 
 

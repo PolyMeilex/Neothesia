@@ -32,7 +32,7 @@ dist_neothesia_SOURCES =	CompatibleSystem.cpp \
 				StringTile.cpp \
 				TitleState.cpp \
 				UserSettings.cpp \
-				GLShader.cpp\
+				neolib/GLShader.cpp\
 				neolib/ParticleSystem.cpp \
 				neolib/NeoFBO.cpp
 noinst_HEADERS +=		CompatibleSystem.h \
@@ -60,7 +60,7 @@ noinst_HEADERS +=		CompatibleSystem.h \
 				TrackTile.h \
 				UserSettings.h \
 				Version.h \
-				GLShader.h \
+				neolib/GLShader.h \
 				neolib/ParticleSystem.h \
 				neolib/NeoFBO.h
 

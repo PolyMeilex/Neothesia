@@ -15,10 +15,13 @@
 #include "Textures.h"
 #include "Tga.h"
 
-#include "GLShader.h"
+#include "neolib/GLShader.h"
 
+#include "shaders/BlurParticleGLShader.h"
+#include "shaders/RenderTextureGLShader.h"
+
+#include "neolib/NeoFBO.h"
 #include "neolib/ParticleSystem.h"
-// #include "neolib/FBO.h"
 
 using namespace std;
 
@@ -57,79 +60,67 @@ KeyboardDisplay::KeyboardDisplay(KeyboardSize size, int pixelWidth,
     : m_size(size), m_width(pixelWidth), m_height(pixelHeight), stateX(stateX_),
       stateY(stateY_) {
 
+  particlesFBO = std::shared_ptr<NeoFBO>(new NeoFBO(stateX, stateY));
+  blurParticlesFBO = std::shared_ptr<NeoFBO>(new NeoFBO(stateX, stateY));
 
-  particlesFBO = std::shared_ptr<NeoFBO> (new NeoFBO(stateX,stateY));
-  blurParticlesFBO = std::shared_ptr<NeoFBO> (new NeoFBO(stateX,stateY));
-
-  GLShadersInit();
-
-  normalProgram = LoadShader(RenderTextureGLShader);
-  blurProgram = LoadShader(BlurParticleGLShader);
-
+  normalProgram =
+      LoadShader(RenderTexture_GLShader::vert, RenderTexture_GLShader::frag);
+  blurProgram =
+      LoadShader(BlurParticle_GLShader::vert, BlurParticle_GLShader::frag);
 }
 
-bool nofirst;
-
-GLuint quad_VertexArrayID;
-GLuint quad_vertexbuffer;
-
-std::vector<float> quadVertices{-1.0, -1.0, 0.0, 1.0, -1.0, 0.0,
-                                -1.0, 1.0,  0.0, 1.0, 1.0,  0.0};
-
-std::vector<unsigned int> quadIndices{0, 1, 2, 2, 1, 3};
+bool FullScreanQuadInited;
 
 GLuint _vao;
 GLuint _ebo;
 
-size_t _count;
+void FullScreanQuad(int stateX, int stateY, GLuint textureToBlur,
+                    GLuint program) {
 
-void sQuad(int stateX, int stateY, GLuint textToBlur,GLuint program) {
+  if (!FullScreanQuadInited) {
+    float quadVertices[8] = {
+        -1.0, -1.0,
+         1.0, -1.0,
+        -1.0, 1.0, 
+         1.0, 1.0
+    };
 
-  if (!nofirst) {
-    _count = quadIndices.size();
+    std::vector<unsigned int> quadIndices{0, 1, 2, 2, 1, 3};
+
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * quadVertices.size(),
-                 &(quadVertices[0]), GL_STATIC_DRAW);
-
-    _vao = 0;
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 8, quadVertices,
+                 GL_STATIC_DRAW);
     glGenVertexArrays(1, &_vao);
     glBindVertexArray(_vao);
-      // The first attribute will be the vertices positions.
-      glEnableVertexAttribArray(0);
-      glBindBuffer(GL_ARRAY_BUFFER, vbo);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
-      // We load the indices data
-      glGenBuffers(1, &_ebo);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                  sizeof(unsigned int) * quadIndices.size(), &(quadIndices[0]),
-                  GL_STATIC_DRAW);
+    glGenBuffers(1, &_ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 sizeof(unsigned int) * quadIndices.size(), &(quadIndices[0]),
+                 GL_STATIC_DRAW);
 
     glBindVertexArray(0);
 
-
-    // glBindTexture(GL_TEXTURE_2D, renderedTexture);
-    // GLuint texUniID = glGetUniformLocation(program, "screenTexture");
-    // glUniform1i(texUniID, 0);
-
-    nofirst = true;
+    FullScreanQuadInited = true;
   }
 
   glUseProgram(program);
-  
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textToBlur);
 
-    glBindVertexArray(_vao);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textureToBlur);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
-    glDrawElements(GL_TRIANGLES, _count, GL_UNSIGNED_INT, (void *)0);
+  glBindVertexArray(_vao);
 
-    glBindVertexArray(0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);
+
+  glBindVertexArray(0);
 
   glUseProgram(0);
 }
@@ -178,37 +169,32 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   // Symbolic names for the arbitrary array passed in here
   enum { Rail, Shadow, BlackKey };
 
-  DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,y, y_offset);
+  DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,
+             y, y_offset);
 
   particleSystem.UpdateParticles();
 
-  particlesFBO -> Bind();
-    glViewport(0, 0, stateX, stateY);
+  particlesFBO->Bind();
+  glViewport(0, 0, stateX, stateY);
 
-    sQuad(stateX, stateY,blurParticlesFBO -> GetTexture(),normalProgram);
+  FullScreanQuad(stateX, stateY, blurParticlesFBO->GetTexture(), normalProgram);
 
-    particleSystem.DrawParticles(renderer);
-
-
-    renderer.SetColor(Renderer::ToColor(255, 255, 255));
-
-  particlesFBO -> Unbind();
-
-  blurParticlesFBO -> Bind();
-    glViewport(0, 0, stateX, stateY);
-
-    sQuad(stateX, stateY,particlesFBO -> GetTexture(),blurProgram);
-
-  blurParticlesFBO -> Unbind();
-  
-  
-  
-  sQuad(stateX, stateY,particlesFBO -> GetTexture(),normalProgram);
-
-  
+  particleSystem.DrawParticles(renderer);
 
   renderer.SetColor(Renderer::ToColor(255, 255, 255));
 
+  particlesFBO->Unbind();
+
+  blurParticlesFBO->Bind();
+  glViewport(0, 0, stateX, stateY);
+
+  FullScreanQuad(stateX, stateY, particlesFBO->GetTexture(), blurProgram);
+
+  blurParticlesFBO->Unbind();
+
+  FullScreanQuad(stateX, stateY, particlesFBO->GetTexture(), normalProgram);
+
+  renderer.SetColor(Renderer::ToColor(255, 255, 255));
 
   DrawNotePass(renderer, note_tex[2], note_tex[3], white_width, white_space,
                black_width, black_offset, x + x_offset, y, y_offset,
@@ -224,8 +210,6 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   renderer.DrawQuad(x + x_offset, y + y_offset, ActualKeyboardWidth,
                     white_height);
 
- 
-
   DrawShadow(renderer, key_tex[Shadow], x + x_offset,
              y + y_offset + white_height - 10, ActualKeyboardWidth);
   DrawWhiteKeys(renderer, key_tex[3], false, white_key_count, white_width,
@@ -233,12 +217,10 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   DrawBlackKeys(renderer, key_tex[BlackKey], false, white_key_count,
                 white_width, black_width, black_height, white_space,
                 x + x_offset, y + y_offset, black_offset);
-  DrawShadow(renderer, key_tex[Shadow], x + x_offset, y + y_offset,ActualKeyboardWidth);
-  DrawRail(renderer, key_tex[Rail], x + x_offset, y + y_offset,ActualKeyboardWidth);
-
-
-  
-
+  DrawShadow(renderer, key_tex[Shadow], x + x_offset, y + y_offset,
+             ActualKeyboardWidth);
+  DrawRail(renderer, key_tex[Rail], x + x_offset, y + y_offset,
+           ActualKeyboardWidth);
 }
 
 int KeyboardDisplay::GetStartingOctave() const {

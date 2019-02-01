@@ -25,8 +25,7 @@ struct ButtonState {
   ButtonState(int x, int y, int w, int h) :
     hovering(false),
     depressed(false),
-    x(x), y(y), w(w), h(h) {
-  }
+    x(x), y(y), w(w), h(h) {}
 
   void Update(const MouseInfo &mouse) {
     hovering = mouse.x > x && mouse.x < x+w && mouse.y > y && mouse.y < y+h;
@@ -56,7 +55,7 @@ namespace Layout {
   void DrawHorizontalRule(Renderer &renderer, int state_width, int y);
   void DrawButton(Renderer &renderer,
                   const ButtonState &button,
-                  const Tga *tga);
+                  const string Title);
 
   // Pixel margin forced at edges of screen
   const static int ScreenMarginX = 16;

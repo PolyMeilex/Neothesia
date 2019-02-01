@@ -27,6 +27,7 @@ private:
 public:
     ParticleSystem();
     void UpdateParticles();
+    void RemoveParticles();
     void DrawParticles(Renderer &renderer);
     void SpawnParticle(float x1, float y1, Color c1);
 };

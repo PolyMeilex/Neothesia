@@ -3,6 +3,10 @@
 
 ParticleSystem::ParticleSystem() {}
 
+void ParticleSystem::RemoveParticles(){
+  particleArr.clear();
+};
+
 void ParticleSystem::SpawnParticle(float x1, float y1, Color c1) {
   Particle p(x1, y1, c1);
   particleArr.push_back(p);

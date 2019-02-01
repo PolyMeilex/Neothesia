@@ -67,6 +67,8 @@ KeyboardDisplay::KeyboardDisplay(KeyboardSize size, int pixelWidth,
       LoadShader(RenderTexture_GLShader::vert, RenderTexture_GLShader::frag);
   blurProgram =
       LoadShader(BlurParticle_GLShader::vert, BlurParticle_GLShader::frag);
+
+  particleSystem.RemoveParticles();
 }
 
 bool FullScreanQuadInited;
@@ -85,7 +87,10 @@ void FullScreanQuad(int stateX, int stateY, GLuint textureToBlur,
          1.0, 1.0
     };
 
-    std::vector<unsigned int> quadIndices{0, 1, 2, 2, 1, 3};
+    unsigned int quadIndices[6]={
+        0, 1, 2,
+        2, 1, 3
+    };
 
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
@@ -102,7 +107,7 @@ void FullScreanQuad(int stateX, int stateY, GLuint textureToBlur,
     glGenBuffers(1, &_ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(unsigned int) * quadIndices.size(), &(quadIndices[0]),
+                 sizeof(unsigned int) * 6, quadIndices,
                  GL_STATIC_DRAW);
 
     glBindVertexArray(0);
@@ -113,14 +118,16 @@ void FullScreanQuad(int stateX, int stateY, GLuint textureToBlur,
   glUseProgram(program);
 
   glActiveTexture(GL_TEXTURE0);
+  
   glBindTexture(GL_TEXTURE_2D, textureToBlur);
-
   glBindVertexArray(_vao);
-
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void *)0);
 
   glBindVertexArray(0);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
 
   glUseProgram(0);
 }
@@ -169,33 +176,35 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   // Symbolic names for the arbitrary array passed in here
   enum { Rail, Shadow, BlackKey };
 
-  DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,
-             y, y_offset);
+  
+  // Particles Blur {
+    particleSystem.UpdateParticles();
 
-  particleSystem.UpdateParticles();
+    particlesFBO->Bind();
+    glViewport(0, 0, stateX, stateY);
 
-  particlesFBO->Bind();
-  glViewport(0, 0, stateX, stateY);
+    FullScreanQuad(stateX, stateY, blurParticlesFBO->GetTexture(), normalProgram);
 
-  FullScreanQuad(stateX, stateY, blurParticlesFBO->GetTexture(), normalProgram);
+    particleSystem.DrawParticles(renderer);
 
-  particleSystem.DrawParticles(renderer);
+    renderer.SetColor(Renderer::ToColor(255, 255, 255));
+
+    particlesFBO->Unbind();
+
+    blurParticlesFBO->Bind();
+    glViewport(0, 0, stateX, stateY);
+
+    FullScreanQuad(stateX, stateY, particlesFBO->GetTexture(), blurProgram);
+
+    blurParticlesFBO->Unbind();
+
+    FullScreanQuad(stateX, stateY, particlesFBO->GetTexture(), normalProgram);
+  // } Particles Blur
+
+  
+  DrawGuides(renderer, white_key_count, white_width, white_space, x + x_offset,y, y_offset);  
 
   renderer.SetColor(Renderer::ToColor(255, 255, 255));
-
-  particlesFBO->Unbind();
-
-  blurParticlesFBO->Bind();
-  glViewport(0, 0, stateX, stateY);
-
-  FullScreanQuad(stateX, stateY, particlesFBO->GetTexture(), blurProgram);
-
-  blurParticlesFBO->Unbind();
-
-  FullScreanQuad(stateX, stateY, particlesFBO->GetTexture(), normalProgram);
-
-  renderer.SetColor(Renderer::ToColor(255, 255, 255));
-
   DrawNotePass(renderer, note_tex[2], note_tex[3], white_width, white_space,
                black_width, black_offset, x + x_offset, y, y_offset,
                y_roll_under, notes, show_duration, current_time,

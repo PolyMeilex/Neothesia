@@ -9,9 +9,6 @@ std::string frag =
     "#version 330 \n"
     "in vec2 uv;"
     "uniform sampler2D screenTexture;"
-    "uniform vec2 inverseScreenSize;"
-    "uniform vec3 backgroundColor = vec3(0.0, 0.0, 0.0);"
-    "uniform float attenuationFactor = 0.99;"
     "out vec4 fragColor;"
     "void main(){"
     "   vec3 color = texture(screenTexture, uv).rgb;"
@@ -23,7 +20,7 @@ std::string frag =
     "   color += textureOffset(screenTexture, uv, 2*ivec2(1,0)).rgb;"
     "   color += textureOffset(screenTexture, uv, 2*ivec2(2,-2)).rgb;"
     "   color += textureOffset(screenTexture, uv, 2*ivec2(2,2)).rgb;"
-    "   fragColor = vec4(mix(backgroundColor, color/9.0, attenuationFactor),1);"
+    "   fragColor = vec4(mix(vec3(0.0, 0.0, 0.0), color/9.0, 0.99),1);"
     "}";
 std::string vert = "#version 330 \n "
                    "layout(location = 0) in vec2 v;"

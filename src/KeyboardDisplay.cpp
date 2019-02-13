@@ -176,7 +176,7 @@ void KeyboardDisplay::Draw(Renderer &renderer, const Tga *key_tex[4],
   // Symbolic names for the arbitrary array passed in here
   enum { Rail, Shadow, BlackKey };
 
-  
+
   // Particles Blur {
     particleSystem.UpdateParticles();
 
@@ -468,8 +468,8 @@ void KeyboardDisplay::DrawGuides(Renderer &renderer, int key_count,
   const static int PixelsOffKeyboard = 2;
   int keyboard_width = key_width * key_count + key_space * (key_count - 1);
 
-  const Color thick(Renderer::ToColor(0x47, 0x47, 0x47));
-  const Color thin(Renderer::ToColor(0x47, 0x47, 0x47));
+  const Color thick(Renderer::ToColor(0x47, 0x47, 0x47,100));
+  const Color thin(Renderer::ToColor(0x47, 0x47, 0x47,100));
 
   char current_white = GetStartingNote() - 1;
   int current_octave = GetStartingOctave() + 1;

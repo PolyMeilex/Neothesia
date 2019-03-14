@@ -6,6 +6,8 @@ Goal of this project is to bring back Legacy Synthesia to live, and make it look
 
 Linux build is based on [Linthesia](https://github.com/linthesia/linthesia)
 
+![Prev](https://i.imgur.com/ljz6kjF.png)
+
 ## Goals
 * Make it look like modern software
 * Treat Linux users as first class citizens

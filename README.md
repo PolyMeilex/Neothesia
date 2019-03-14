@@ -28,7 +28,9 @@ You will have special place in my heart if you do so 😉
 * add Neothesia commits
 * build
 ##### Or you can try to crosscompile neothesia master branch
-I didn't try it yet, but probably you can cross compile neothesia using mingw
+I didn't try it yet, but probably you can cross compile neothesia using mingw.  
+Remember that master branch of Neothesia uses AlsaLib, there is no way to crosscompile it, you'll have to replace some of the functions in Neothesia [libmidi](https://github.com/PolyMagic/Neothesia/tree/master/src/libmidi)  
+I recomend using original Windows version of [libmidi](https://github.com/johndpope/pianogame/tree/master/src/libmidi) for this
 
 ## Todo
 * Make it cross platform so ports are no longer needed

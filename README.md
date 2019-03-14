@@ -41,8 +41,10 @@ I recomend using original Windows version of [libmidi](https://github.com/johndp
 
 ## Compile
 
-To compile, you need a basic c++ toolchain, and satisfy all dependences which are on BUILD-DEPENDS file. Then, just:
-You alsow need [Roboto font](https://www.archlinux.org/packages/community/any/ttf-roboto/) and [glew](https://www.archlinux.org/packages/extra/x86_64/glew/) installed on your system
+To compile, you need a basic c++ toolchain, and satisfy all dependences which are on BUILD-DEPENDS file.   
+You also need [Roboto font](https://www.archlinux.org/packages/community/any/ttf-roboto/) and [glew](https://www.archlinux.org/packages/extra/x86_64/glew/) installed on your system  
+Then, just:  
+
 
     $ autoreconf -ivf
     $ mkdir build

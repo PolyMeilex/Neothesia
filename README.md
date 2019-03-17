@@ -1,7 +1,7 @@
 ![Neothesia Baner](https://i.imgur.com/3uiwId8.png)
 # Neothesia
 Neothesia is a fork of [Legacy Synthesia](https://github.com/johndpope/pianogame)  
-Opensource Synthesia was abandoned in favor of [closed source commercial project](https://www.synthesiagame.com/)  
+Opensource Synthesia was abandoned in favour of [closed source commercial project](https://www.synthesiagame.com/)  
 Goal of this project is to bring back Legacy Synthesia to live, and make it look and work as good (or even better) than commercial Synthesia.
 
 Linux build is based on [Linthesia](https://github.com/linthesia/linthesia)
@@ -17,8 +17,8 @@ Linux build is based on [Linthesia](https://github.com/linthesia/linthesia)
 * (Maybe) Support Windows in future
 
 ## Windows Build?
-For now I will not support windows build 😰, it is really annoying to open VM every time I want to test something, if you are windows user and you have bare minimum c++ knowledge, you can easly port it yourself.   
-I would realy appreciate any help in maintaining windows branch. 
+For now I will not support windows build 😰, it is really annoying to open VM every time I want to test something, if you are windows user and you have bare minimum c++ knowledge, you can easily port it yourself.   
+I would really appreciate any help in maintaining windows branch. 
 
 If you want to become full time windows maintainer you are welcome to do so,  
 You will have special place in my heart if you do so 😉
@@ -30,14 +30,14 @@ You will have special place in my heart if you do so 😉
 ##### Or you can try to crosscompile neothesia master branch
 I didn't try it yet, but probably you can cross compile neothesia using mingw.  
 Remember that master branch of Neothesia uses AlsaLib, there is no way to crosscompile it, you'll have to replace some of the functions in Neothesia [libmidi](https://github.com/PolyMagic/Neothesia/tree/master/src/libmidi)  
-I recomend using original Windows version of [libmidi](https://github.com/johndpope/pianogame/tree/master/src/libmidi) for this
+I recommend using original Windows version of [libmidi](https://github.com/johndpope/pianogame/tree/master/src/libmidi) for this
 
 ## Todo
 * Make it cross platform so ports are no longer needed
 * Replace unnecessary sprites with shaders
 * Create proper shader loading system instead of current placeholder one
 * Modernise main screen and track selection screen
-* Consider adding song select screen, instead of native dialog
+* Consider adding song select screen, instead of native dialogue
 
 ## Compile
 

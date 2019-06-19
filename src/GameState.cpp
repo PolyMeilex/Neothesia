@@ -279,7 +279,7 @@ void GameStateManager::Draw(Renderer &renderer) {
   // would be really easy.
 
   // const static float gray = 32.0f / 255.0f;
-  const static float gray = 0.0f / 255.0f;
+  const static float gray = 32.0f / 255.0f;
   glClearColor(gray, gray, gray, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

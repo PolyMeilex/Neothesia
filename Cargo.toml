@@ -1,0 +1,10 @@
+[package]
+name = "midilib"
+version = "0.1.0"
+authors = ["Poly <bartek.marynczak@op.pl>"]
+edition = "2018"
+
+[dependencies]
+lib_midi = { path = "./src/lib_midi" }
+midir = "*"
+colored = "1.8"

@@ -1,11 +1,22 @@
-// use rimd::Status;
-// use std::collections::HashMap;
-use crate::event_parser::MidiNote;
+// use crate::event_parser::MidiNote;
+use crate::tracks_parser::TracksParser;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
     pub time_in_units: f64,
     pub tempo: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct MidiNote {
+    pub start: f64,
+    pub duration: f64,
+    pub note: u8,
+    pub vel: u8,
+    pub ch: u8,
+    pub track_id: usize,
+    pub id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -39,15 +50,11 @@ impl MidiTrack {
         for event in track.iter() {
             // time_in_units += event.delta.as_int() as f64;
             match &event.kind {
-                EventKind::Midi { channel, message } => {
+                EventKind::Midi {
+                    channel: _,
+                    message: _,
+                } => {
                     time_in_units += event.delta.as_int() as f64;
-                    // time_in_units += event.delta.as_int() as f64;
-                    // match &message {
-                    //     midly::MidiMessage::ProgramChange(_data0) => {
-                    //         // time_in_units -= event.delta.as_int() as f64;
-                    //     }
-                    //     _ => {}
-                    // };
                 }
                 EventKind::Meta(meta) => match &meta {
                     MetaMessage::Tempo(t) => {
@@ -60,7 +67,7 @@ impl MidiTrack {
                             tempo: t.as_int(),
                         });
                     }
-                    MetaMessage::TimeSignature(data0, data1, _, _) => {
+                    MetaMessage::TimeSignature(_data0, _data1, _, _) => {
                         //time_signature =data0.to_owned() as f64 / u32::pow(2, data1.to_owned() as u32) as f64;
                     }
                     _ => {}
@@ -88,24 +95,109 @@ impl MidiTrack {
         }
     }
 
-    fn measure_duration(tempo: u32, time_signature: f64) -> f64 {
-        return tempo as f64 * 4.0 * time_signature / 1000000.0;
-    }
-
-
-    pub fn update_metrics(&mut self, tempo: u32, time_signature: f64) {
-        // self.tempo = tempo;
-        // self.u_time = tempo as f64 / self.u_per_quarter_note;
-
-        // self.seconds_per_measure = MidiTrack::measure_duration(self.tempo, self.time_signature);
-        // self.seconds_per_measure /= self.time_signature;
-        // self.time_signature = time_signature;
-        // self.seconds_per_measure *= self.time_signature;
-    }
-
-    pub fn extract_notes(&mut self, events: &Vec<midly::Event>, lower_bound: u8, higher_bound: u8) {
-        /*
+    pub fn extract_notes(&mut self, events: &Vec<midly::Event>, parent_parser: &mut TracksParser) {
         self.notes.clear();
+
+        let mut time_in_units = 0.0;
+
+        struct Note {
+            time_in_units: f64,
+            vel: u8,
+            channel: u8,
+        };
+        let mut current_notes: HashMap<u8, Note> = HashMap::new();
+
+        let mut index = 0;
+        for event in events.iter() {
+            use midly::EventKind;
+            use midly::MidiMessage;
+
+            match &event.kind {
+                EventKind::Midi { channel, message } => {
+                    time_in_units += event.delta.as_int() as f64;
+
+                    match &message {
+                        MidiMessage::NoteOn(data0, data1) => {
+                            let data0 = data0.as_int();
+                            let data1 = data1.as_int();
+                            if data1 > 0 {
+                                let k = data0;
+                                current_notes.insert(
+                                    k,
+                                    Note {
+                                        time_in_units: time_in_units,
+                                        vel: data1,
+                                        channel: channel.as_int(),
+                                    },
+                                );
+                            } else if data1 == 0 {
+                                let k = data0;
+
+                                if current_notes.contains_key(&k) {
+                                    let n = current_notes.get(&k).unwrap();
+
+                                    let start =
+                                        parent_parser.pulses_to_ms(n.time_in_units) / 1000.0;
+                                    let duration =
+                                        parent_parser.pulses_to_ms(time_in_units) / 1000.0 - start;
+
+                                    let mn = MidiNote {
+                                        start: start,
+                                        duration: duration,
+                                        note: k,
+                                        vel: n.vel,
+                                        ch: n.channel,
+                                        track_id: self.track_id, // Placeholder
+                                        id: index,
+                                    };
+                                    self.notes.push(mn);
+                                }
+                            }
+
+                        }
+                        MidiMessage::NoteOff(data0, _data1) => {
+                            let data0 = data0.as_int();
+
+                            let k = data0;
+
+                            if current_notes.contains_key(&k) {
+                                let n = current_notes.get(&k).unwrap();
+
+                                let start = parent_parser.pulses_to_ms(n.time_in_units) / 1000.0;
+                                let duration =
+                                    parent_parser.pulses_to_ms(time_in_units) / 1000.0 - start;
+
+                                let mn = MidiNote {
+                                    start: start,
+                                    duration: duration,
+                                    note: k,
+                                    vel: n.vel,
+                                    ch: channel.as_int(),
+                                    track_id: self.track_id, // Placeholder
+                                    id: index,
+                                };
+                                self.notes.push(mn);
+                            }
+
+                        }
+                        MidiMessage::ProgramChange(_data0) => {
+                            // time_in_units -= event.delta.as_int() as f64;
+                            // println!("{} ProgramChange", index);
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+            index += 1;
+        }
+
+        self.notes
+            .sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
+
+
+        /*
+
 
         let mut time_in_units = 0.0;
 

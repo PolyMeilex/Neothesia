@@ -1,16 +1,12 @@
-pub mod event_parser;
+pub mod track;
 
-mod track;
 mod tracks_parser;
 use track::MidiTrack;
 
 
 pub struct Midi {
     pub tracks_count: u16,
-    format: midly::Format,
-    pub u_per_frame: u8,
-    pub u_per_quarter_note: u16,
-    frames_per_seconds: f32,
+    pub format: midly::Format,
     pub tracks: Vec<MidiTrack>,
     pub merged_track: MidiTrack,
 }
@@ -19,15 +15,15 @@ pub fn read_file(path: &str) -> Midi {
     let smf_buffer = midly::SmfBuffer::open(path).unwrap();
     let smf = smf_buffer.parse_collect().unwrap();
 
-    let mut u_per_frame: u8 = 0;
-    let mut u_per_quarter_note: u16 = 0;
-    let mut frames_per_seconds: f32 = 0.0;
+    // let mut u_per_quarter_note: u16 = 480;
+    let u_per_quarter_note: u16;
 
     match smf.header.timing {
         midly::Timing::Metrical(t) => u_per_quarter_note = t.as_int(),
-        midly::Timing::Timecode(fps, u) => {
-            u_per_frame = u;
-            frames_per_seconds = fps.as_f32();
+        midly::Timing::Timecode(_fps, _u) => {
+            panic!("Midi With Timecode Timing, not supported!");
+            // u_per_frame = u;
+            // frames_per_seconds = fps.as_f32();
         }
     };
 
@@ -45,9 +41,7 @@ pub fn read_file(path: &str) -> Midi {
     use midly::Format;
     match smf.header.format {
         Format::SingleTrack => {
-            for (i, track) in tracks.iter_mut().enumerate() {
-                track.extract_notes(&smf.tracks[i], 21, 108);
-            }
+            tp.parse(&mut tracks, &smf.tracks);
         }
         Format::Parallel => {
             tp.parse(&mut tracks, &smf.tracks);
@@ -76,9 +70,6 @@ pub fn read_file(path: &str) -> Midi {
     Midi {
         tracks_count: tracks.len() as u16,
         format: smf.header.format,
-        u_per_frame,
-        u_per_quarter_note,
-        frames_per_seconds,
         tracks: tracks,
         merged_track: merged_track,
     }

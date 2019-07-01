@@ -1,14 +1,13 @@
 extern crate lib_midi;
 extern crate midir;
-use midir::{Ignore, MidiInput, MidiOutput};
+use midir::MidiOutput;
 
 
 extern crate colored;
 use colored::*;
 
 fn main() {
-    let midi =
-        lib_midi::read_file("/home/poly/Documents/Midi/Billy Joel - We Didn`t Start The Fire.mid");
+    let midi = lib_midi::read_file("/home/poly/Documents/Midi/WhatDoYouWantFromMe.mid");
     // let midi = lib_midi::read_file("/home/poly/timeing.mid");
 
 
@@ -21,7 +20,7 @@ fn main() {
     let mut index = 0;
     let mut note = &midi.merged_track.notes[index];
 
-    let mut notes_on: Vec<&lib_midi::event_parser::MidiNote> = Vec::new();
+    let mut notes_on: Vec<&lib_midi::track::MidiNote> = Vec::new();
     loop {
         let time = std::time::SystemTime::now()
             .duration_since(start_time)

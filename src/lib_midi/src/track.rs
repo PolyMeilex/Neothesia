@@ -80,13 +80,13 @@ impl MidiTrack {
         let mut current_notes: HashMap<u8, Note> = HashMap::new();
 
         let mut index = 0;
-        println!("New Track");
+
         for event in events.iter() {
             use midly::EventKind;
             use midly::MidiMessage;
 
             time_in_units += event.delta.as_int() as f64;
-            println!("{}", time_in_units);
+
             match &event.kind {
                 EventKind::Midi { channel, message } => {
                     match &message {

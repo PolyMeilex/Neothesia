@@ -181,7 +181,8 @@ impl MidiTrack {
 
                         }
                         MidiMessage::ProgramChange(_data0) => {
-                            // time_in_units -= event.delta.as_int() as f64;
+                            // TODO Find Out Why Ignoring This Event Gives Better Resoults
+                            time_in_units -= event.delta.as_int() as f64;
                             // println!("{} ProgramChange", index);
                         }
                         _ => {}

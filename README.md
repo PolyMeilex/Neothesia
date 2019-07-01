@@ -1,5 +1,10 @@
 # Full Rewrite Of Neothesia In Rust
 
+![Neothesia Baner](https://i.imgur.com/3uiwId8.png)
+
+## This version of Neothesia is not functional yet, Use: [c++ version](https://github.com/PolyMeilex/Neothesia/tree/master)
+
+
 So I decided to drop old c++ codebase of synthesia in favour of my own (hopefully) cleaner implementation.
 
 Cross platform support in current version of Neothesia is nearly non existent because of the way original synthesia was written, and instead of trying to patch cross platform support with hack'y code, I decided to rewrite it from ground up with cross platform in mind.

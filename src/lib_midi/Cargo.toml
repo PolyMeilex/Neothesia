@@ -5,5 +5,4 @@ authors = ["Poly <bartek.marynczak@op.pl>"]
 edition = "2018"
 
 [dependencies]
-rimd = "*"
 midly = "*"

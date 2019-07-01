@@ -12,7 +12,7 @@ It is also occasion to rewrite whole Neothesia to Rust (language that I'am more 
   - [x] Calculate Note Start Times And Duration
   - [x] Temporary Midi Player
   - [ ] Proper Midi Player
-  - [ ] Fix Desynchronization Of Tracks When Tempo Is Changing In The Middle Of Song (/tests/ExampleOfBrokenTempo.mid)
+  - [x] Fix Desynchronization Of Tracks When Tempo Is Changing In The Middle Of Song (/tests/ExampleOfBrokenTempo.mid)
 - [ ] Midi Connection
   - [ ] Create Midi Connection Wrapper
 - [ ] Rendering

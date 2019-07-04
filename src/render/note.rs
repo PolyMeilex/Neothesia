@@ -4,6 +4,7 @@ pub struct NoteRenderer<'a> {
   display: &'a glium::Display,
   program: glium::Program,
   vertex_buffer: glium::VertexBuffer<Vertex>,
+  per_instance: glium::VertexBuffer<InstanceAttr>,
   indices: glium::IndexBuffer<u16>,
 }
 
@@ -13,8 +14,18 @@ struct Vertex {
 }
 implement_vertex!(Vertex, pos);
 
+#[derive(Copy, Clone)]
+struct InstanceAttr {
+  noteIn: (f32, f32, f32),
+}
+implement_vertex!(InstanceAttr, noteIn);
+
+
 impl<'a> NoteRenderer<'a> {
-  pub fn new(display: &'a glium::Display) -> NoteRenderer<'a> {
+  pub fn new(
+    display: &'a glium::Display,
+    notes: &Vec<crate::lib_midi::track::MidiNote>,
+  ) -> NoteRenderer<'a> {
     let vertex1 = Vertex { pos: [-0.5, -0.5] };
     let vertex2 = Vertex { pos: [0.5, -0.5] };
     let vertex3 = Vertex { pos: [0.5, 0.5] };
@@ -31,54 +42,19 @@ impl<'a> NoteRenderer<'a> {
     )
     .unwrap();
 
-    let vertex_shader_src = r#"
-        #version 330
+    let per_instance = {
+      let data: Vec<InstanceAttr> = notes
+        .iter()
+        .map(|n| InstanceAttr {
+          noteIn: (n.note as f32, n.start as f32, n.duration as f32),
+        })
+        .collect();
 
-        in vec2 pos;
+      glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()
+    };
 
-        #define notesCount 52.0
-
-        uniform vec2 m;
-
-        out INTERFACE {
-            vec2 uv;
-            vec2 size;
-        } Out;
-
-        void main() {
-            Out.size = vec2(0.9*2.0/notesCount, 1.0); 
-            Out.uv = Out.size * pos;
-
-            gl_Position = vec4(pos*Out.size+m, 0.0, 1.0);
-            //gl_Position = vec4(pos*2, 0.0, 1.0);
-        }
-    "#;
-
-    let fragment_shader_src = r#"
-        #version 330        
-
-        out vec4 fragColor;
-
-        in INTERFACE {
-            vec2 uv;
-            vec2 size;
-        } In;
-
-        void main() {
-            float radiusPosition = 
-              pow(abs(In.uv.x/(0.5*In.size.x)), In.size.x/0.01) + 
-              pow(abs(In.uv.y/(0.5*In.size.y)), In.size.y/0.01);
-
-            if(	radiusPosition > 1.0){
-                discard;
-            }
-
-            vec2 st = (In.uv + 1.0) / 2.0;
-            vec3 color = vec3(st.x,st.y,0.7);
-
-            fragColor = vec4(color,1.0);
-        }
-    "#;
+    let vertex_shader_src = include_str!("./shaders/note.vert");
+    let fragment_shader_src = include_str!("./shaders/note.frag");
 
     let program = glium::Program::new(
       display,
@@ -99,24 +75,27 @@ impl<'a> NoteRenderer<'a> {
       display,
       program,
       vertex_buffer,
+      per_instance,
       indices,
     }
   }
   pub fn draw(
     &self,
     target: &mut glium::Frame,
-    rendered: &crate::render::GameRenderer,
-    x: f64,
-    y: f64,
+    game_renderer: &crate::render::GameRenderer,
+    time: f32,
   ) {
     target
       .draw(
-        &self.vertex_buffer,
+        (
+          &self.vertex_buffer,
+          self.per_instance.per_instance().unwrap(),
+        ),
         &self.indices,
         &self.program,
-        &uniform! {m: [x as f32,y as f32]},
+        &uniform! {time:time},
         &glium::DrawParameters {
-          viewport: Some(rendered.viewport.to_owned()),
+          viewport: Some(game_renderer.viewport.to_owned()),
           ..Default::default()
         },
       )

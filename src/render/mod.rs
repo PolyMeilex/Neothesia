@@ -5,8 +5,9 @@ use glium::Surface;
 
 pub struct GameRenderer<'a> {
   display: &'a glium::Display,
-  note_renderer: note::NoteRenderer<'a>,
+  note_renderer: Option<note::NoteRenderer<'a>>,
   keyboard_renderer: keyboard::KeyboardRenderer<'a>,
+  notes: Vec<crate::lib_midi::track::MidiNote>,
 
   pub viewport: glium::Rect,
   pub update_size: bool,
@@ -28,8 +29,10 @@ impl<'a> GameRenderer<'a> {
     GameRenderer {
       display,
       viewport,
-      note_renderer: note::NoteRenderer::new(display),
+      note_renderer: None,
       keyboard_renderer: keyboard::KeyboardRenderer::new(display),
+      notes: Vec::new(),
+
       update_size: true,
       m_pos_x: 0.0,
       m_pos_y: 0.0,
@@ -37,7 +40,23 @@ impl<'a> GameRenderer<'a> {
       window_h: 1,
     }
   }
-  pub fn draw(&mut self) {
+  pub fn load_song(&mut self, track: crate::lib_midi::track::MidiTrack) {
+    let mut notes: Vec<crate::lib_midi::track::MidiNote> = Vec::new();
+
+    for n in track.notes.iter() {
+      if n.note > 21 && n.note < 109 {
+        if n.ch != 9 {
+          notes.push(n.clone());
+        }
+      }
+    }
+
+    self.notes = notes;
+    self.note_renderer = Some(note::NoteRenderer::new(self.display, &self.notes));
+  }
+  pub fn draw(&mut self, time: u128) {
+    let time = time as f64 / 1000.0;
+
     let mut target = self.display.draw();
 
     if self.update_size {
@@ -58,12 +77,26 @@ impl<'a> GameRenderer<'a> {
     }
 
     target.clear_color_srgb(0.1, 0.1, 0.1, 1.0);
-    self
-      .keyboard_renderer
-      .draw(&mut target, self, self.m_pos_x, self.m_pos_y);
-    self
-      .note_renderer
-      .draw(&mut target, self, self.m_pos_x, self.m_pos_y);
+
+    match &self.note_renderer {
+      Some(note_renderer) => note_renderer.draw(&mut target, self, time as f32),
+      None => {}
+    }
+
+
+    let mut active_notes: [bool; 88] = [false; 88];
+
+    // Causes a lot of lag when plaing Black Midi;
+    for n in self.notes.iter() {
+      if n.start < time + 3.0 && n.start - time > -0.1 {
+        if n.start - time < 0.0 {
+          active_notes[(n.note - 21) as usize] = true;
+        }
+      }
+    }
+
+    self.keyboard_renderer.draw(&mut target, self, active_notes);
+
     target.finish().unwrap();
   }
 }

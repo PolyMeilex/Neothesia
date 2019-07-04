@@ -6,6 +6,12 @@ use midir::MidiOutput;
 extern crate colored;
 use colored::*;
 
+
+mod render;
+
+#[macro_use]
+extern crate glium;
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -22,6 +28,12 @@ fn main() {
         midi = lib_midi::read_file("./tests/Simple Timeing.mid");
     }
 
+    if midi.merged_track.notes.len() == 0 {
+        panic!(
+            "No Notes In Track For Some Reason \n {:?}",
+            midi.merged_track
+        )
+    }
 
     let midi_out = MidiOutput::new("midi").unwrap();
 
@@ -42,64 +54,130 @@ fn main() {
 
     let mut conn_out = midi_out.connect(out_port, "out").unwrap();
 
-    let start_time = std::time::SystemTime::now();
+    //
+    // Render
+    //
 
-    let mut index = 0;
-    if midi.merged_track.notes.len() == 0 {
-        panic!(
-            "No Notes In Track For Some Reason \n {:?}",
-            midi.merged_track
-        )
-    }
-    let mut note = &midi.merged_track.notes[index];
+    use glium::glutin;
 
-    let mut notes_on: Vec<&lib_midi::track::MidiNote> = Vec::new();
-    loop {
-        let time = std::time::SystemTime::now()
-            .duration_since(start_time)
-            .unwrap()
-            .as_millis() as f64
-            / 1000.0;
+    let mut events_loop = glutin::EventsLoop::new();
+    let wb = glutin::WindowBuilder::new()
+        .with_title("Neothesia!")
+        .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0));
+
+    let cb = glutin::ContextBuilder::new();
+    let display = glium::Display::new(wb, cb, &events_loop).unwrap();
+
+    let mut game_renderer = render::GameRenderer::new(&display);
+
+    let notes = midi.merged_track.notes.clone();
+    game_renderer.load_song(midi.merged_track);
+
+    let start_time = std::time::Instant::now();
+    let mut closed = false;
+
+    std::thread::spawn(move || {
+        let mut last_time = 0;
+        let mut delta_time;
+        let mut time_elapsed: u128 = 0;
+
+        let mut index = 0;
+        let mut note = &notes[index];
+        let mut notes_on: Vec<&lib_midi::track::MidiNote> = Vec::new();
+
+        while !closed {
+            let current_time = start_time.elapsed().as_millis();
+            delta_time = current_time - last_time;
+            last_time = current_time;
+
+            time_elapsed += delta_time;
+
+            notes_on.retain(|no| {
+                let delete = {
+                    if time_elapsed as f64 / 1000.0 >= no.start + no.duration {
+                        conn_out.send(&[0x80, no.note, no.vel]).unwrap();
+                        true
+                    } else {
+                        false
+                    }
+                };
+                !delete
+            });
 
 
-        notes_on.retain(|no| {
-            let delete = {
-                if time >= no.start + no.duration {
-                    conn_out.send(&[0x80, no.note, no.vel]).unwrap();
-                    println!("{}{}", " ".repeat(no.note as usize), "#".red().bold());
-                    true
-                } else {
-                    false
+            if time_elapsed as f32 / 1000.0 >= note.start as f32 {
+                if note.ch != 9 {
+                    conn_out.send(&[0x90, note.note, note.vel]); //.unwrap();
+                    notes_on.push(note);
                 }
-            };
-            !delete
-        });
 
-
-        if time >= note.start {
-            // println!("{} \t T:{} \t {}", note.note, note.track_id, time);
-            println!(
-                "{}{}{:.2}",
-                " ".repeat(note.note as usize),
-                "#".green().bold(),
-                note.start
-            );
-            if note.ch != 9 {
-                conn_out.send(&[0x90, note.note, note.vel]).unwrap();
-                notes_on.push(note);
+                index += 1;
+                if index >= notes.len() {
+                    // TODO: Break After all notes are off in notes_on vec;
+                    // Temporary solution, stop all notes befor break
+                    for no in notes_on.iter() {
+                        conn_out.send(&[0x80, no.note, no.vel]); //.unwrap();
+                    }
+                    break;
+                }
+                note = &notes[index];
             }
 
-            index += 1;
-            if index >= midi.merged_track.notes.len() {
-                // TODO: Break After all notes are off in notes_on vec;
-                // Temporary solution, stop all notes befor break
-                for no in notes_on {
-                    conn_out.send(&[0x80, no.note, no.vel]).unwrap();
-                }
-                break;
-            }
-            note = &midi.merged_track.notes[index];
         }
-    }
+        return true;
+    });
 
+
+    let mut fps = 0.0;
+    let mut last_time_fps = 0;
+
+    //Delta Time
+    let mut last_time = 0;
+    let mut delta_time;
+
+    let mut time_elapsed: u128 = 0;
+
+    while !closed {
+        let current_time = start_time.elapsed().as_millis();
+        delta_time = current_time - last_time;
+        last_time = current_time;
+        time_elapsed += delta_time;
+
+        // FPS
+        fps += 1.0;
+        if time_elapsed - last_time_fps > 1000 {
+            last_time_fps = start_time.elapsed().as_millis();
+            println!("{}", fps);
+            fps = 0.0;
+        }
+
+        game_renderer.draw(time_elapsed);
+
+        events_loop.poll_events(|ev| match ev {
+            glutin::Event::WindowEvent { event, .. } => match event {
+                glutin::WindowEvent::Resized(_size) => {
+                    // We can't use glutin size becouse of winit problem
+                    // Probably this one
+                    // https://github.com/rust-windowing/glutin/issues/1087
+
+                    // So we request size updated by glium
+                    // It will be updated on next frame
+                    game_renderer.update_size = true;
+                }
+                glutin::WindowEvent::CursorMoved { position, .. } => {
+                    let pox_x = position.x;
+                    let pox_y = position.y - game_renderer.viewport.bottom as f64;
+
+                    let pox_x = pox_x / (game_renderer.viewport.width as f64 / 2.0) - 1.0;
+                    let pox_y = -(pox_y / (game_renderer.viewport.height as f64 / 2.0) - 1.0);
+
+                    game_renderer.m_pos_x = pox_x;
+                    game_renderer.m_pos_y = pox_y;
+                }
+                glutin::WindowEvent::CloseRequested => closed = true,
+                _ => (),
+            },
+            _ => (),
+        });
+    }
 }

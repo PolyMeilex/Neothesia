@@ -18,7 +18,7 @@ out INTERFACE {
 Out;
 
 #define notesCount 52.0
-#define speed 5.0
+#define speed 0.5
 
 void main() {
   float n = noteIn.x - 24;

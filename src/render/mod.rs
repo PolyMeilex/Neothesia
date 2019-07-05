@@ -1,21 +1,22 @@
 mod keyboard;
 mod note;
+mod text;
 
 use glium::Surface;
+use crate::utils::Vec2;
 
 pub struct GameRenderer<'a> {
   display: &'a glium::Display,
+  text_writer: text::TextWriter<'a>,
   note_renderer: Option<note::NoteRenderer<'a>>,
   keyboard_renderer: keyboard::KeyboardRenderer<'a>,
   notes: Vec<crate::lib_midi::track::MidiNote>,
 
+  pub fps: u64,
+
   pub viewport: glium::Rect,
   pub update_size: bool,
-  pub m_pos_x: f64,
-  pub m_pos_y: f64,
-
-  pub window_w: u32,
-  pub window_h: u32,
+  pub m_pos: Vec2,
 }
 
 impl<'a> GameRenderer<'a> {
@@ -29,15 +30,15 @@ impl<'a> GameRenderer<'a> {
     GameRenderer {
       display,
       viewport,
+      text_writer: text::TextWriter::new(display),
       note_renderer: None,
       keyboard_renderer: keyboard::KeyboardRenderer::new(display),
       notes: Vec::new(),
 
+      fps: 0,
+
       update_size: true,
-      m_pos_x: 0.0,
-      m_pos_y: 0.0,
-      window_w: 1,
-      window_h: 1,
+      m_pos: Vec2{x:0.0,y:0.0}
     }
   }
   pub fn load_song(&mut self, track: crate::lib_midi::track::MidiTrack) {
@@ -61,9 +62,6 @@ impl<'a> GameRenderer<'a> {
 
     if self.update_size {
       let (width, height) = target.get_dimensions();
-      self.window_w = width;
-      self.window_h = height;
-
       let ar = 16.0 / 9.0;
       self.viewport.width = width;
       self.viewport.height = (width as f64 / ar) as u32;
@@ -77,6 +75,9 @@ impl<'a> GameRenderer<'a> {
     }
 
     target.clear_color_srgb(0.1, 0.1, 0.1, 1.0);
+
+    self.text_writer.add(&self.fps.to_string(), 0.0, 0.0);
+    self.text_writer.draw(&mut target);
 
     match &self.note_renderer {
       Some(note_renderer) => note_renderer.draw(&mut target, self, time as f32),

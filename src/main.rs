@@ -7,7 +7,9 @@ extern crate colored;
 use colored::*;
 
 
+mod utils;
 mod render;
+
 
 #[macro_use]
 extern crate glium;
@@ -47,7 +49,7 @@ fn main() {
     if args.len() > 2 {
         out_port = args[2].parse::<usize>().unwrap();
     } else {
-        out_port = 1;
+        out_port = 0;
     }
 
     println!("Using Port Number {}", out_port);
@@ -147,7 +149,9 @@ fn main() {
         fps += 1.0;
         if time_elapsed - last_time_fps > 1000 {
             last_time_fps = start_time.elapsed().as_millis();
-            println!("{}", fps);
+
+            game_renderer.fps = fps as u64;
+            
             fps = 0.0;
         }
 
@@ -171,8 +175,7 @@ fn main() {
                     let pox_x = pox_x / (game_renderer.viewport.width as f64 / 2.0) - 1.0;
                     let pox_y = -(pox_y / (game_renderer.viewport.height as f64 / 2.0) - 1.0);
 
-                    game_renderer.m_pos_x = pox_x;
-                    game_renderer.m_pos_y = pox_y;
+                    game_renderer.m_pos =  utils::Vec2{x:pox_x as f32,y:pox_y as f32};
                 }
                 glutin::WindowEvent::CloseRequested => closed = true,
                 _ => (),

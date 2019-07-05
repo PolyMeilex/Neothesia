@@ -1,15 +1,15 @@
 extern crate lib_midi;
 extern crate midir;
 use midir::MidiOutput;
+extern crate nfd;
 
 
 extern crate colored;
 use colored::*;
 
 
-mod utils;
 mod render;
-
+mod utils;
 
 #[macro_use]
 extern crate glium;
@@ -19,16 +19,21 @@ fn main() {
 
     println!("Example Command: neothesia ~/my_midi_file.mid 1 (Id of midi output)");
 
-    let midi: lib_midi::Midi;
-    if args.len() > 1 {
-        println!("Playing {}", args[1]);
-        midi = lib_midi::read_file(&args[1]);
-    } else {
-        println!("Playing /tests/Simple Timeing.mid");
-        println!("It should take 12.00s");
-        println!("Gap between notes should be around 1s");
-        midi = lib_midi::read_file("./tests/Simple Timeing.mid");
-    }
+    let result = nfd::dialog().filter("mid").open().unwrap();
+
+    let path = match result {
+        nfd::Response::Okay(file_path) => file_path,
+        nfd::Response::OkayMultiple(files) => {
+            if files.len() > 0 {
+                files[0].to_owned()
+            } else {
+                "./tests/Simple Timeing.mid".to_owned()
+            }
+        }
+        nfd::Response::Cancel => "./tests/Simple Timeing.mid".to_owned(),
+    };
+
+    let midi = lib_midi::read_file(&path);
 
     if midi.merged_track.notes.len() == 0 {
         panic!(
@@ -46,8 +51,8 @@ fn main() {
 
     let out_port: usize;
 
-    if args.len() > 2 {
-        out_port = args[2].parse::<usize>().unwrap();
+    if args.len() > 1 {
+        out_port = args[1].parse::<usize>().unwrap();
     } else {
         out_port = 0;
     }
@@ -151,7 +156,7 @@ fn main() {
             last_time_fps = start_time.elapsed().as_millis();
 
             game_renderer.fps = fps as u64;
-            
+
             fps = 0.0;
         }
 
@@ -175,7 +180,10 @@ fn main() {
                     let pox_x = pox_x / (game_renderer.viewport.width as f64 / 2.0) - 1.0;
                     let pox_y = -(pox_y / (game_renderer.viewport.height as f64 / 2.0) - 1.0);
 
-                    game_renderer.m_pos =  utils::Vec2{x:pox_x as f32,y:pox_y as f32};
+                    game_renderer.m_pos = utils::Vec2 {
+                        x: pox_x as f32,
+                        y: pox_y as f32,
+                    };
                 }
                 glutin::WindowEvent::CloseRequested => closed = true,
                 _ => (),

@@ -8,5 +8,6 @@ edition = "2018"
 lib_midi = { path = "./src/lib_midi" }
 midir = "0.5.0"
 colored = "1.8"
+nfd = "0.0.4"
 glium = "0.25.0"
 glium-glyph = "0.5.0"

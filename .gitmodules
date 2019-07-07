@@ -1,0 +1,3 @@
+[submodule "lib/file_dialog/osdialog"]
+	path = lib/file_dialog/osdialog
+	url = https://github.com/AndrewBelt/osdialog.git

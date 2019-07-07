@@ -1,10 +1,10 @@
+use crate::utils;
 use glium::Surface;
 
-pub struct NoteRenderer<'a> {
+pub struct ButtonsRenderer<'a> {
   display: &'a glium::Display,
   program: glium::Program,
   vertex_buffer: glium::VertexBuffer<Vertex>,
-  per_instance: glium::VertexBuffer<InstanceAttr>,
   indices: glium::IndexBuffer<u16>,
 }
 
@@ -14,22 +14,12 @@ struct Vertex {
 }
 implement_vertex!(Vertex, pos);
 
-#[derive(Copy, Clone)]
-struct InstanceAttr {
-  noteIn: (f32, f32, f32),
-}
-implement_vertex!(InstanceAttr, noteIn);
-
-
-impl<'a> NoteRenderer<'a> {
-  pub fn new(
-    display: &'a glium::Display,
-    notes: &Vec<crate::lib_midi::track::MidiNote>,
-  ) -> NoteRenderer<'a> {
-    let vertex1 = Vertex { pos: [-0.5, -0.5] };
-    let vertex2 = Vertex { pos: [0.5, -0.5] };
-    let vertex3 = Vertex { pos: [0.5, 0.5] };
-    let vertex4 = Vertex { pos: [-0.5, 0.5] };
+impl<'a> ButtonsRenderer<'a> {
+  pub fn new(display: &'a glium::Display) -> Self {
+    let vertex1 = Vertex { pos: [-1.0, -1.0] };
+    let vertex2 = Vertex { pos: [1.0, -1.0] };
+    let vertex3 = Vertex { pos: [1.0, 1.0] };
+    let vertex4 = Vertex { pos: [-1.0, 1.0] };
 
     let shape: [Vertex; 4] = [vertex1, vertex2, vertex3, vertex4];
     let indices_vec: [u16; 6] = [0, 1, 3, 3, 1, 2];
@@ -42,19 +32,8 @@ impl<'a> NoteRenderer<'a> {
     )
     .unwrap();
 
-    let per_instance = {
-      let data: Vec<InstanceAttr> = notes
-        .iter()
-        .map(|n| InstanceAttr {
-          noteIn: (n.note as f32, n.start as f32, n.duration as f32),
-        })
-        .collect();
-
-      glium::vertex::VertexBuffer::dynamic(display, &data).unwrap()
-    };
-
-    let vertex_shader_src = include_str!("./shaders/note.vert");
-    let fragment_shader_src = include_str!("./shaders/note.frag");
+    let vertex_shader_src = include_str!("../../shaders/ui/button.vert");
+    let fragment_shader_src = include_str!("../../shaders/ui/button.frag");
 
     let program = glium::Program::new(
       display,
@@ -71,11 +50,10 @@ impl<'a> NoteRenderer<'a> {
     )
     .unwrap();
 
-    NoteRenderer {
+    ButtonsRenderer {
       display,
       program,
       vertex_buffer,
-      per_instance,
       indices,
     }
   }
@@ -83,22 +61,34 @@ impl<'a> NoteRenderer<'a> {
     &self,
     target: &mut glium::Frame,
     game_renderer: &crate::render::GameRenderer,
-    time: f32,
+    btn: Button,
   ) {
     target
       .draw(
-        (
-          &self.vertex_buffer,
-          self.per_instance.per_instance().unwrap(),
-        ),
+        &self.vertex_buffer,
         &self.indices,
         &self.program,
-        &uniform! {time:time},
+        &uniform! {btnPos:btn.pos.to_array(), btnSize:btn.size.to_array(),btnHover:btn.hover as i8},
         &glium::DrawParameters {
           viewport: Some(game_renderer.viewport.to_owned()),
           ..Default::default()
         },
       )
       .unwrap();
+  }
+}
+
+pub struct Button {
+  pub pos: utils::Vec2, 
+  pub size: utils::Vec2,
+  pub hover: bool,
+}
+
+impl Button {
+  pub fn hover_check(&mut self, m_pos: &utils::Vec2) {
+    self.hover = m_pos.x > self.pos.x
+      && m_pos.x < self.pos.x + self.size.x * 2.0
+      && m_pos.y < self.pos.y
+      && m_pos.y > self.pos.y - self.size.y * 2.0;
   }
 }

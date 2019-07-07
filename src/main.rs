@@ -1,13 +1,10 @@
 extern crate lib_midi;
 extern crate midir;
 use midir::MidiOutput;
-extern crate nfd;
 
+extern crate file_dialog;
 
-extern crate colored;
-use colored::*;
-
-
+mod game_states;
 mod render;
 mod utils;
 
@@ -19,18 +16,14 @@ fn main() {
 
     println!("Example Command: neothesia ~/my_midi_file.mid 1 (Id of midi output)");
 
-    let result = nfd::dialog().filter("mid").open().unwrap();
+    let path = file_dialog::FileDialog::new()
+        .path("./")
+        .filters(vec!["mid", "midi"])
+        .open();
 
-    let path = match result {
-        nfd::Response::Okay(file_path) => file_path,
-        nfd::Response::OkayMultiple(files) => {
-            if files.len() > 0 {
-                files[0].to_owned()
-            } else {
-                "./tests/Simple Timeing.mid".to_owned()
-            }
-        }
-        nfd::Response::Cancel => "./tests/Simple Timeing.mid".to_owned(),
+    let path = match path {
+        Ok(path) => path,
+        Err(e) => panic!("{}", e),
     };
 
     let midi = lib_midi::read_file(&path);
@@ -72,27 +65,36 @@ fn main() {
         .with_title("Neothesia!")
         .with_dimensions(glutin::dpi::LogicalSize::new(1280.0, 720.0));
 
-    let cb = glutin::ContextBuilder::new();
+    let cb = glutin::ContextBuilder::new().with_vsync(true);
     let display = glium::Display::new(wb, cb, &events_loop).unwrap();
 
     let mut game_renderer = render::GameRenderer::new(&display);
 
     let notes = midi.merged_track.notes.clone();
+
     game_renderer.load_song(midi.merged_track);
 
     let start_time = std::time::Instant::now();
     let mut closed = false;
 
-    std::thread::spawn(move || {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use std::sync::Arc;
+    let plaing = Arc::new(AtomicBool::new(true));
+
+    let to_thr = plaing.clone();
+    let player = std::thread::spawn(move || {
         let mut last_time = 0;
         let mut delta_time;
         let mut time_elapsed: u128 = 0;
 
+        //Debug
         let mut index = 0;
         let mut note = &notes[index];
+
         let mut notes_on: Vec<&lib_midi::track::MidiNote> = Vec::new();
 
-        while !closed {
+        while to_thr.load(Ordering::Relaxed) {
             let current_time = start_time.elapsed().as_millis();
             delta_time = current_time - last_time;
             last_time = current_time;
@@ -133,7 +135,7 @@ fn main() {
         }
         return true;
     });
-
+    // plaing.store(false, Ordering::Relaxed);
 
     let mut fps = 0.0;
     let mut last_time_fps = 0;
@@ -185,6 +187,10 @@ fn main() {
                         y: pox_y as f32,
                     };
                 }
+                glutin::WindowEvent::MouseInput { state, .. } => match state {
+                    glutin::ElementState::Pressed => game_renderer.m_pressed = true,
+                    glutin::ElementState::Released => game_renderer.m_pressed = false,
+                },
                 glutin::WindowEvent::CloseRequested => closed = true,
                 _ => (),
             },

@@ -14,7 +14,7 @@ struct Vertex {
 implement_vertex!(Vertex, pos);
 
 impl<'a> KeyboardRenderer<'a> {
-  pub fn new(display: &'a glium::Display) -> KeyboardRenderer<'a> {
+  pub fn new(display: &'a glium::Display) -> Self {
     let vertex1 = Vertex { pos: [-1.0, -1.0] };
     let vertex2 = Vertex { pos: [1.0, -1.0] };
     let vertex3 = Vertex { pos: [1.0, 1.0] };
@@ -31,8 +31,8 @@ impl<'a> KeyboardRenderer<'a> {
     )
     .unwrap();
 
-    let vertex_shader_src = include_str!("./shaders/keyboard.vert");
-    let fragment_shader_src = include_str!("./shaders/keyboard.frag");
+    let vertex_shader_src = include_str!("../../shaders/keyboard.vert");
+    let fragment_shader_src = include_str!("../../shaders/keyboard.frag");
 
     let program = glium::Program::new(
       display,
@@ -59,16 +59,16 @@ impl<'a> KeyboardRenderer<'a> {
   pub fn draw(
     &self,
     target: &mut glium::Frame,
-    rendered: &crate::render::GameRenderer,
-    active_notes: [bool;88]
+    game_renderer: &crate::render::GameRenderer,
+    active_notes: [bool; 88],
   ) {
     let notes: glium::uniforms::UniformBuffer<[u32; 128]> =
       glium::uniforms::UniformBuffer::empty_dynamic(self.display).unwrap();
 
     let mut notes_data = [128; 128];
 
-    for (i,n) in active_notes.iter().enumerate() {
-      if n.to_owned() == true{
+    for (i, n) in active_notes.iter().enumerate() {
+      if n.to_owned() == true {
         notes_data[i] = i as u32;
       }
     }
@@ -82,7 +82,7 @@ impl<'a> KeyboardRenderer<'a> {
         &self.program,
         &uniform! {ActiveNotes: &notes},
         &glium::DrawParameters {
-          viewport: Some(rendered.viewport.to_owned()),
+          viewport: Some(game_renderer.viewport.to_owned()),
           ..Default::default()
         },
       )

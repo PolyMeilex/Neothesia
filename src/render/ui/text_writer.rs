@@ -9,8 +9,8 @@ pub struct TextWriter<'a> {
 }
 
 impl<'a> TextWriter<'a> {
-  pub fn new(display: &glium::Display) -> TextWriter {
-    let roboto: &[u8] = include_bytes!("../../res/Roboto-Regular.ttf");
+  pub fn new(display: &'a glium::Display) -> Self {
+    let roboto: &[u8] = include_bytes!("../../../res/Roboto-Regular.ttf");
     let fonts = vec![Font::from_bytes(roboto).unwrap()];
     let glyph_brush = glium_glyph::GlyphBrush::new(display, fonts);
 
@@ -19,11 +19,11 @@ impl<'a> TextWriter<'a> {
       brush: glyph_brush,
     }
   }
-  pub fn add(&mut self, test: &str, x: f32, y: f32) {
+  pub fn add(&mut self, text: &str, x: f32, y: f32) {
     self.brush.queue(Section {
-      text: test,
+      text: text,
       color: [1.0, 1.0, 1.0, 1.0],
-      screen_position: (x,y),
+      screen_position: (x, y),
       scale: glium_glyph::glyph_brush::rusttype::Scale::uniform(26.0),
       ..Section::default()
     });

@@ -5,9 +5,6 @@ in vec3 noteIn; // id,start,dur
 
 #define notesCount 52.0
 
-// uniform float n;
-// uniform float startTime;
-// uniform float duration;
 uniform float time;
 
 out INTERFACE {

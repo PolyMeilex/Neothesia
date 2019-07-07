@@ -17,14 +17,14 @@ void black_key_render(bool drawBase, vec2 uv, float pos, float pitch_offset,
   float div_x = floor((uv.x + 4. * 59. / 725.) / (413. / 725.));
 
   vec3 col = vec3(0.0);
-  bool active = false;
+  bool isActive = false;
 
   if (!drawBase) {
     col = key_color / 1.5;
-    active = !(curr_pitch != pitch_offset + div_x * 12. - 12.);
+    isActive = !(curr_pitch != pitch_offset + div_x * 12. - 12.);
   }
 
-  if (active || drawBase) {
+  if (isActive || drawBase) {
     color = mix(
         color, col,
         smoothstep(-border, 0., 5. / 29. - abs(uv.y - .25 + 5. / 29.)) *

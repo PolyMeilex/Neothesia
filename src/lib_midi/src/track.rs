@@ -81,6 +81,30 @@ impl MidiTrack {
 
         let mut index = 0;
 
+        macro_rules! end_note {
+            (k => $e:expr) => {
+                let k = $e;
+                if current_notes.contains_key(&k) {
+                    let n = current_notes.get(&k).unwrap();
+
+                    let start = parent_parser.pulses_to_ms(n.time_in_units) / 1000.0;
+                    let duration = parent_parser.pulses_to_ms(time_in_units) / 1000.0 - start;
+
+                    let mn = MidiNote {
+                        start: start,
+                        duration: duration,
+                        note: k,
+                        vel: n.vel,
+                        ch: n.channel,
+                        track_id: self.track_id, // Placeholder
+                        id: index,
+                    };
+                    self.notes.push(mn);
+                    current_notes.remove(&k);
+                }
+            };
+        }
+
         for event in events.iter() {
             use midly::EventKind;
             use midly::MidiMessage;
@@ -88,13 +112,16 @@ impl MidiTrack {
             time_in_units += event.delta.as_int() as f64;
 
             match &event.kind {
-                EventKind::Midi { channel, message } => {
-                    match &message {
-                        MidiMessage::NoteOn(data0, data1) => {
-                            let data0 = data0.as_int();
-                            let data1 = data1.as_int();
-                            if data1 > 0 {
-                                let k = data0;
+                EventKind::Midi { channel, message } => match &message {
+                    MidiMessage::NoteOn(data0, data1) => {
+                        let data0 = data0.as_int();
+                        let data1 = data1.as_int();
+                        if data1 > 0 {
+                            let k = data0;
+
+                            if current_notes.contains_key(&k) {
+                                end_note!(k=>k);
+                            } else {
                                 current_notes.insert(
                                     k,
                                     Note {
@@ -103,59 +130,20 @@ impl MidiTrack {
                                         channel: channel.as_int(),
                                     },
                                 );
-                            } else if data1 == 0 {
-                                let k = data0;
-
-                                if current_notes.contains_key(&k) {
-                                    let n = current_notes.get(&k).unwrap();
-
-                                    let start =
-                                        parent_parser.pulses_to_ms(n.time_in_units) / 1000.0;
-                                    let duration =
-                                        parent_parser.pulses_to_ms(time_in_units) / 1000.0 - start;
-
-                                    let mn = MidiNote {
-                                        start: start,
-                                        duration: duration,
-                                        note: k,
-                                        vel: n.vel,
-                                        ch: n.channel,
-                                        track_id: self.track_id, // Placeholder
-                                        id: index,
-                                    };
-                                    self.notes.push(mn);
-                                }
                             }
 
+                        } else if data1 == 0 {
+                            end_note!(k=>data0);
                         }
-                        MidiMessage::NoteOff(data0, _data1) => {
-                            let data0 = data0.as_int();
 
-                            let k = data0;
-
-                            if current_notes.contains_key(&k) {
-                                let n = current_notes.get(&k).unwrap();
-
-                                let start = parent_parser.pulses_to_ms(n.time_in_units) / 1000.0;
-                                let duration =
-                                    parent_parser.pulses_to_ms(time_in_units) / 1000.0 - start;
-
-                                let mn = MidiNote {
-                                    start: start,
-                                    duration: duration,
-                                    note: k,
-                                    vel: n.vel,
-                                    ch: channel.as_int(),
-                                    track_id: self.track_id, // Placeholder
-                                    id: index,
-                                };
-                                self.notes.push(mn);
-                            }
-
-                        }
-                        _ => {}
                     }
-                }
+                    MidiMessage::NoteOff(data0, _data1) => {
+                        let data0 = data0.as_int();
+
+                        end_note!(k=>data0);
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
             index += 1;

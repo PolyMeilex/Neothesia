@@ -59,7 +59,7 @@ impl<'a> KeyboardRenderer<'a> {
   pub fn draw(
     &self,
     target: &mut glium::Frame,
-    game_renderer: &crate::render::GameRenderer,
+    viewport: &glium::Rect,
     active_notes: [bool; 88],
   ) {
     let notes: glium::uniforms::UniformBuffer<[u32; 128]> =
@@ -82,7 +82,7 @@ impl<'a> KeyboardRenderer<'a> {
         &self.program,
         &uniform! {ActiveNotes: &notes},
         &glium::DrawParameters {
-          viewport: Some(game_renderer.viewport.to_owned()),
+          viewport: Some(viewport.to_owned()),
           ..Default::default()
         },
       )

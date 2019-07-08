@@ -60,7 +60,7 @@ impl<'a> ButtonsRenderer<'a> {
   pub fn draw(
     &self,
     target: &mut glium::Frame,
-    game_renderer: &crate::render::GameRenderer,
+    public_state: &crate::render::PublicState,
     btn: Button,
   ) {
     target
@@ -70,7 +70,7 @@ impl<'a> ButtonsRenderer<'a> {
         &self.program,
         &uniform! {btnPos:btn.pos.to_array(), btnSize:btn.size.to_array(),btnHover:btn.hover as i8},
         &glium::DrawParameters {
-          viewport: Some(game_renderer.viewport.to_owned()),
+          viewport: Some(public_state.viewport.to_owned()),
           ..Default::default()
         },
       )

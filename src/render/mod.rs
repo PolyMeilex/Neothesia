@@ -1,5 +1,5 @@
 mod game_renderer;
 pub use game_renderer::GameRenderer;
+pub use game_renderer::PublicState;
 
-mod ui;
-pub use ui::ui_renderer::UiRenderer;
+pub mod ui;

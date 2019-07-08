@@ -79,7 +79,7 @@ impl<'a> NoteRenderer<'a> {
   pub fn draw(
     &self,
     target: &mut glium::Frame,
-    game_renderer: &crate::render::GameRenderer,
+    viewport: &glium::Rect,
     time: f32,
   ) {
     target
@@ -92,7 +92,7 @@ impl<'a> NoteRenderer<'a> {
         &self.program,
         &uniform! {time:time},
         &glium::DrawParameters {
-          viewport: Some(game_renderer.viewport.to_owned()),
+          viewport: Some(viewport.to_owned()),
           ..Default::default()
         },
       )

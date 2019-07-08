@@ -1,6 +1,6 @@
 extern crate lib_midi;
 extern crate midir;
-use midir::MidiOutput;
+
 
 extern crate file_dialog;
 
@@ -16,43 +16,26 @@ fn main() {
 
     println!("Example Command: neothesia ~/my_midi_file.mid 1 (Id of midi output)");
 
-    let path = file_dialog::FileDialog::new()
-        .path("./")
-        .filters(vec!["mid", "midi"])
-        .open();
+  
 
-    let path = match path {
-        Ok(path) => path,
-        Err(e) => panic!("{}", e),
-    };
+    // let midi_out = MidiOutput::new("midi").unwrap();
 
-    let midi = lib_midi::read_file(&path);
+    // println!("\nAvailable output ports:");
+    // for i in 0..midi_out.port_count() {
+    //     println!("{}: {}", i, midi_out.port_name(i).unwrap());
+    // }
 
-    if midi.merged_track.notes.len() == 0 {
-        panic!(
-            "No Notes In Track For Some Reason \n {:?}",
-            midi.merged_track
-        )
-    }
+    // let out_port: usize;
 
-    let midi_out = MidiOutput::new("midi").unwrap();
+    // if args.len() > 1 {
+    //     out_port = args[1].parse::<usize>().unwrap();
+    // } else {
+    //     out_port = 0;
+    // }
 
-    println!("\nAvailable output ports:");
-    for i in 0..midi_out.port_count() {
-        println!("{}: {}", i, midi_out.port_name(i).unwrap());
-    }
+    // println!("Using Port Number {}", out_port);
 
-    let out_port: usize;
-
-    if args.len() > 1 {
-        out_port = args[1].parse::<usize>().unwrap();
-    } else {
-        out_port = 0;
-    }
-
-    println!("Using Port Number {}", out_port);
-
-    let mut conn_out = midi_out.connect(out_port, "out").unwrap();
+    // let mut conn_out = midi_out.connect(out_port, "out").unwrap();
 
     //
     // Render
@@ -70,13 +53,15 @@ fn main() {
 
     let mut game_renderer = render::GameRenderer::new(&display);
 
-    let notes = midi.merged_track.notes.clone();
+    //let notes = midi.merged_track.notes.clone();
 
-    game_renderer.load_song(midi.merged_track);
+    // !!!
+    // game_renderer.load_song(midi.merged_track);
 
     let start_time = std::time::Instant::now();
     let mut closed = false;
 
+    /*
     use std::sync::atomic::{AtomicBool, Ordering};
 
     use std::sync::Arc;
@@ -136,6 +121,7 @@ fn main() {
         return true;
     });
     // plaing.store(false, Ordering::Relaxed);
+    */
 
     let mut fps = 0.0;
     let mut last_time_fps = 0;
@@ -177,19 +163,22 @@ fn main() {
                 }
                 glutin::WindowEvent::CursorMoved { position, .. } => {
                     let pox_x = position.x;
-                    let pox_y = position.y - game_renderer.viewport.bottom as f64;
+                    let pox_y = position.y - game_renderer.public_state.viewport.bottom as f64;
 
-                    let pox_x = pox_x / (game_renderer.viewport.width as f64 / 2.0) - 1.0;
-                    let pox_y = -(pox_y / (game_renderer.viewport.height as f64 / 2.0) - 1.0);
+                    let pox_x = pox_x / (game_renderer.public_state.viewport.width as f64 / 2.0) - 1.0;
+                    let pox_y = -(pox_y / (game_renderer.public_state.viewport.height as f64 / 2.0) - 1.0);
 
-                    game_renderer.m_pos = utils::Vec2 {
+                    game_renderer.public_state.m_pos = utils::Vec2 {
                         x: pox_x as f32,
                         y: pox_y as f32,
                     };
                 }
                 glutin::WindowEvent::MouseInput { state, .. } => match state {
-                    glutin::ElementState::Pressed => game_renderer.m_pressed = true,
-                    glutin::ElementState::Released => game_renderer.m_pressed = false,
+                    glutin::ElementState::Pressed => {
+                        game_renderer.public_state.m_pressed = true;
+                        game_renderer.public_state.m_was_pressed = true;
+                    }
+                    glutin::ElementState::Released => game_renderer.public_state.m_pressed = false,
                 },
                 glutin::WindowEvent::CloseRequested => closed = true,
                 _ => (),

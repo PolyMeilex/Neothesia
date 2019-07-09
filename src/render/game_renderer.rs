@@ -74,24 +74,6 @@ impl<'a> GameRenderer<'a> {
 
     }
   }
-  pub fn set_state(&mut self, state: Box<GameState<'a> + 'a>) {
-    self.game_state = state;
-  }
-  pub fn load_song(&mut self, track: crate::lib_midi::track::MidiTrack) {
-    let mut notes: Vec<crate::lib_midi::track::MidiNote> = Vec::new();
-
-    for n in track.notes.iter() {
-      if n.note > 21 && n.note < 109 {
-        if n.ch != 9 {
-          notes.push(n.clone());
-        }
-      }
-    }
-
-    self
-      .game_state
-      .update(crate::game_states::StateUpdateMessage::PlayingState(notes))
-  }
   pub fn draw(&mut self, time: u128) {
     let time = time as f64 / 1000.0;
 
@@ -114,6 +96,7 @@ impl<'a> GameRenderer<'a> {
     }
 
     target.clear_color_srgb(0.1, 0.1, 0.1, 1.0);
+    target.clear_depth(1.0);
 
 
     let new_state = self.game_state.draw(&mut target, &self.public_state);

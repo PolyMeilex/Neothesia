@@ -5,6 +5,7 @@ out vec4 fragColor;
 in INTERFACE {
   vec2 uv;
   vec2 size;
+  float ch;
   float isBlack;
 }
 In;
@@ -20,11 +21,32 @@ void main() {
     discard;
   }
 
-  vec2 st = (In.uv + 1.0) / 2.0;
-  // vec3 color = vec3(0.4, (sin(time / 10.0)), 0.7);
-  vec3 color = vec3(115.0 / 255.0, 65.0 / 255.0, 166.0 / 255.0);
+  // Pink & Purple
 
-  color *= 1.0 - In.isBlack / 3.0;
+  // vec3 color = vec3(235.0 / 255.0, 33.0 / 255.0, 136.0 / 255.0);
+
+  // int track = int(mod(In.ch, 2));
+  // if (track != 0) {
+  //   color = vec3(115.0 / 255.0, 65.0 / 255.0, 166.0 / 255.0);
+  // }
+
+  // Syntwave
+  vec3 color = vec3(210.0 / 255.0, 89.0 / 255.0, 222.0 / 255.0);
+
+  if (In.isBlack == 1.0) {
+    color = vec3(125.0 / 255.0, 69.0 / 255.0, 134.0 / 255.0);
+  }
+
+  int track = int(mod(In.ch, 2));
+  if (track != 0) {
+    if (In.isBlack != 1.0) {
+      color = vec3(93.0 / 255.0, 188.0 / 255.0, 255.0 / 255.0);
+    } else {
+      color = vec3(48.0 / 255.0, 124.0 / 255.0, 255.0 / 255.0);
+    }
+  }
+
+  // color *= 1.0 - In.isBlack / 2.0;
 
   fragColor = vec4(color, 1.0);
 }

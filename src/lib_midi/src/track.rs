@@ -79,8 +79,6 @@ impl MidiTrack {
         };
         let mut current_notes: HashMap<u8, Note> = HashMap::new();
 
-        let mut index = 0;
-
         macro_rules! end_note {
             (k => $e:expr) => {
                 let k = $e;
@@ -96,8 +94,8 @@ impl MidiTrack {
                         note: k,
                         vel: n.vel,
                         ch: n.channel,
-                        track_id: self.track_id, // Placeholder
-                        id: index,
+                        track_id: self.track_id,
+                        id: 0, // Placeholder
                     };
                     self.notes.push(mn);
                     current_notes.remove(&k);
@@ -146,7 +144,6 @@ impl MidiTrack {
                 },
                 _ => {}
             }
-            index += 1;
         }
 
         self.notes

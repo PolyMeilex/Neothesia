@@ -1,4 +1,5 @@
 use crate::game_states::GameState;
+use std::collections::HashMap;
 
 mod keyboard;
 mod note;
@@ -8,7 +9,7 @@ use midir::MidiOutput;
 pub struct PlayingState<'a> {
   display: &'a glium::Display,
   notes: Vec<lib_midi::track::MidiNote>,
-  notes_on: Vec<lib_midi::track::MidiNote>,
+  notes_on: HashMap<usize, bool>,
 
   keyboard: keyboard::KeyboardRenderer<'a>,
   note_renderer: Option<note::NoteRenderer<'a>>,
@@ -35,30 +36,33 @@ impl<'a> PlayingState<'a> {
       }
     }
 
+    let mut song_start_time = 0.0;
+    if filtered_notes.len() > 0 {
+      song_start_time = filtered_notes[0].start;
+    }
+
+
     let mut ps = PlayingState {
       display,
       notes: filtered_notes,
       keyboard: keyboard::KeyboardRenderer::new(display),
       note_renderer: None,
-      start_time: start_time,
+      start_time: start_time - song_start_time + 5.0,
       midi_out: conn_out,
-      notes_on: Vec::new(),
+      notes_on: HashMap::new(),
     };
     ps.note_renderer = Some(note::NoteRenderer::new(ps.display, &ps.notes));
     ps
   }
 }
 
-use crate::game_states::StateUpdateMessage;
-
 impl<'a> GameState<'a> for PlayingState<'a> {
-  fn update(&mut self, msg: StateUpdateMessage) {}
   fn draw(
     &mut self,
     target: &mut glium::Frame,
     public_state: &crate::render::PublicState,
   ) -> Option<Box<GameState<'a> + 'a>> {
-    let time = public_state.time - self.start_time - 5.0;
+    let time = public_state.time - self.start_time;
 
     match &self.note_renderer {
       Some(note_renderer) => note_renderer.draw(target, &public_state.viewport, time as f32),
@@ -67,35 +71,33 @@ impl<'a> GameState<'a> for PlayingState<'a> {
 
     let mut active_notes: [bool; 88] = [false; 88];
 
-    // for n in self.notes.iter() {
-    //   if n.start < time + 3.0 && n.start - time > -0.1 {
-    //     if n.start - time < 0.0 {
-    //       active_notes[(n.note - 21) as usize] = true;
-    //     }
-    //   }
-    // }
     let midi_out = &mut self.midi_out;
-    self.notes_on.retain(|no| {
-      let delete = {
-        if time >= no.start + no.duration {
-          midi_out.send(&[0x80, no.note, no.vel]).unwrap();
-          true
-        } else {
-          false
-        }
-      };
-      !delete
-    });
-    println!("N:{}", "=".repeat(self.notes_on.len()));
+    let notes_on = &mut self.notes_on;
 
-    for n in self.notes.iter() {
-      if n.start < time && n.start - time > -0.1 {
-        if n.start - time < 0.0 {
+    self.notes.retain(|n| {
+      if n.start <= time {
+        if n.start + n.duration >= time {
           active_notes[(n.note - 21) as usize] = true;
-          self.notes_on.push(n.clone());
-          midi_out.send(&[0x90, n.note, n.vel]);
+          if !notes_on.contains_key(&n.id) {
+            notes_on.insert(n.id, true);
+            midi_out.send(&[0x90, n.note, n.vel]).ok();
+          }
+        } else {
+          if notes_on.contains_key(&n.id) {
+            notes_on.remove(&n.id);
+            midi_out.send(&[0x80, n.note, n.vel]).ok();
+          }
+          // No need to keep note in vec after it was played
+          return false;
         }
       }
+      return true;
+    });
+    println!("Left:{}", self.notes.len());
+
+    if self.notes.len() == 0 {
+      let menu = Box::new(crate::game_states::MenuState::new(self.display));
+      return Some(menu);
     }
 
     self

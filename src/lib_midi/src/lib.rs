@@ -57,7 +57,6 @@ pub fn read_file(path: &str) -> Midi {
         if i > 0 {
             for n in trk.notes.iter() {
                 let mut n = n.clone();
-                n.track_id = i;
                 merged_track.notes.push(n);
             }
         }
@@ -66,6 +65,11 @@ pub fn read_file(path: &str) -> Midi {
     merged_track
         .notes
         .sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
+
+    // Asign Unique Id
+    for (i, note) in merged_track.notes.iter_mut().enumerate() {
+        note.id = i;
+    }
 
     Midi {
         tracks_count: tracks.len() as u16,

@@ -16,9 +16,9 @@ implement_vertex!(Vertex, pos);
 
 #[derive(Copy, Clone)]
 struct InstanceAttr {
-  noteIn: (f32, f32, f32),
+  note_in: (f32, f32, f32, f32),
 }
-implement_vertex!(InstanceAttr, noteIn);
+implement_vertex!(InstanceAttr, note_in);
 
 
 impl<'a> NoteRenderer<'a> {
@@ -43,7 +43,12 @@ impl<'a> NoteRenderer<'a> {
       let data: Vec<InstanceAttr> = notes
         .iter()
         .map(|n| InstanceAttr {
-          noteIn: (n.note as f32, n.start as f32, n.duration as f32),
+          note_in: (
+            n.note as f32,
+            n.start as f32,
+            n.duration as f32,
+            n.ch as f32,
+          ),
         })
         .collect();
 
@@ -76,12 +81,7 @@ impl<'a> NoteRenderer<'a> {
       indices,
     }
   }
-  pub fn draw(
-    &self,
-    target: &mut glium::Frame,
-    viewport: &glium::Rect,
-    time: f32,
-  ) {
+  pub fn draw(&self, target: &mut glium::Frame, viewport: &glium::Rect, time: f32) {
     target
       .draw(
         (
@@ -93,6 +93,11 @@ impl<'a> NoteRenderer<'a> {
         &uniform! {time:time},
         &glium::DrawParameters {
           viewport: Some(viewport.to_owned()),
+          depth: glium::Depth {
+            test: glium::DepthTest::IfLessOrEqual,
+            write: true,
+            ..Default::default()
+          },
           ..Default::default()
         },
       )

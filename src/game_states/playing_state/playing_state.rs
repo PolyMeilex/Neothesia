@@ -12,9 +12,8 @@ pub struct PlayingState<'a> {
   notes_on: HashMap<usize, bool>,
 
   keyboard: keyboard::KeyboardRenderer<'a>,
-  note_renderer: Option<note::NoteRenderer<'a>>,
+  note_renderer: Option<note::NoteRenderer>,
   start_time: f64,
-  midi_out: midir::MidiOutputConnection,
 }
 
 impl<'a> PlayingState<'a> {
@@ -24,8 +23,6 @@ impl<'a> PlayingState<'a> {
     start_time: f64,
   ) -> Self {
 
-    let midi_out = MidiOutput::new("midi").unwrap();
-    let conn_out = midi_out.connect(1, "out").unwrap();
 
     let mut filtered_notes: Vec<crate::lib_midi::track::MidiNote> = Vec::new();
     for n in notes.iter() {
@@ -41,14 +38,12 @@ impl<'a> PlayingState<'a> {
       song_start_time = filtered_notes[0].start;
     }
 
-
     let mut ps = PlayingState {
       display,
       notes: filtered_notes,
       keyboard: keyboard::KeyboardRenderer::new(display),
       note_renderer: None,
       start_time: start_time - song_start_time + 5.0,
-      midi_out: conn_out,
       notes_on: HashMap::new(),
     };
     ps.note_renderer = Some(note::NoteRenderer::new(ps.display, &ps.notes));
@@ -60,8 +55,8 @@ impl<'a> GameState<'a> for PlayingState<'a> {
   fn draw(
     &mut self,
     target: &mut glium::Frame,
-    public_state: &crate::render::PublicState,
-  ) -> Option<Box<GameState<'a> + 'a>> {
+    public_state: &mut crate::render::PublicState,
+  ) -> Option<Box<dyn GameState<'a> + 'a>> {
     let time = public_state.time - self.start_time;
 
     match &self.note_renderer {
@@ -71,7 +66,7 @@ impl<'a> GameState<'a> for PlayingState<'a> {
 
     let mut active_notes: [bool; 88] = [false; 88];
 
-    let midi_out = &mut self.midi_out;
+    let midi_out = &mut public_state.midi_device;
     let notes_on = &mut self.notes_on;
 
     self.notes.retain(|n| {
@@ -80,12 +75,12 @@ impl<'a> GameState<'a> for PlayingState<'a> {
           active_notes[(n.note - 21) as usize] = true;
           if !notes_on.contains_key(&n.id) {
             notes_on.insert(n.id, true);
-            midi_out.send(&[0x90, n.note, n.vel]).ok();
+            midi_out.send(&[0x90, n.note, n.vel]);
           }
         } else {
           if notes_on.contains_key(&n.id) {
             notes_on.remove(&n.id);
-            midi_out.send(&[0x80, n.note, n.vel]).ok();
+            midi_out.send(&[0x80, n.note, n.vel]);
           }
           // No need to keep note in vec after it was played
           return false;

@@ -1,7 +1,6 @@
 use glium::Surface;
 
-pub struct NoteRenderer<'a> {
-  display: &'a glium::Display,
+pub struct NoteRenderer {
   program: glium::Program,
   vertex_buffer: glium::VertexBuffer<Vertex>,
   per_instance: glium::VertexBuffer<InstanceAttr>,
@@ -20,9 +19,8 @@ struct InstanceAttr {
 }
 implement_vertex!(InstanceAttr, note_in);
 
-
-impl<'a> NoteRenderer<'a> {
-  pub fn new(display: &'a glium::Display, notes: &Vec<crate::lib_midi::track::MidiNote>) -> Self {
+impl NoteRenderer {
+  pub fn new(display: &glium::Display, notes: &Vec<crate::lib_midi::track::MidiNote>) -> Self {
     let vertex1 = Vertex { pos: [-0.5, -0.5] };
     let vertex2 = Vertex { pos: [0.5, -0.5] };
     let vertex3 = Vertex { pos: [0.5, 0.5] };
@@ -74,7 +72,6 @@ impl<'a> NoteRenderer<'a> {
     .unwrap();
 
     NoteRenderer {
-      display,
       program,
       vertex_buffer,
       per_instance,

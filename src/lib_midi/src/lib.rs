@@ -3,7 +3,6 @@ pub mod track;
 mod tracks_parser;
 use track::MidiTrack;
 
-
 pub struct Midi {
     pub tracks_count: u16,
     pub format: midly::Format,
@@ -56,7 +55,7 @@ pub fn read_file(path: &str) -> Midi {
     for (i, trk) in tracks.iter().enumerate() {
         if i > 0 {
             for n in trk.notes.iter() {
-                let mut n = n.clone();
+                let n = n.clone();
                 merged_track.notes.push(n);
             }
         }

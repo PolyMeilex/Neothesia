@@ -6,7 +6,10 @@ pub use playing_state::PlayingState;
 mod menu_state;
 pub use menu_state::MenuState;
 
-
 pub trait GameState<'a> {
-  fn draw(&mut self, target: &mut glium::Frame, public_state: &crate::render::PublicState) -> Option<Box<GameState<'a> + 'a>>;
+  fn draw(
+    &mut self,
+    target: &mut glium::Frame,
+    public_state: &mut crate::render::PublicState,
+  ) -> Option<Box<dyn GameState<'a> + 'a>>;
 }

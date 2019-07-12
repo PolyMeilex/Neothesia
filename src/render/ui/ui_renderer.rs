@@ -3,7 +3,7 @@ use crate::render::ui::text_writer::TextWriter;
 
 pub struct UiRenderer<'a> {
   pub text_writer: TextWriter<'a>,
-  pub buttons_renderer: ButtonsRenderer<'a>,
+  pub buttons_renderer: ButtonsRenderer,
 }
 
 impl<'a> UiRenderer<'a> {

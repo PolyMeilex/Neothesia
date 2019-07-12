@@ -1,8 +1,7 @@
 use crate::utils;
 use glium::Surface;
 
-pub struct ButtonsRenderer<'a> {
-  display: &'a glium::Display,
+pub struct ButtonsRenderer{
   program: glium::Program,
   vertex_buffer: glium::VertexBuffer<Vertex>,
   indices: glium::IndexBuffer<u16>,
@@ -14,8 +13,8 @@ struct Vertex {
 }
 implement_vertex!(Vertex, pos);
 
-impl<'a> ButtonsRenderer<'a> {
-  pub fn new(display: &'a glium::Display) -> Self {
+impl ButtonsRenderer {
+  pub fn new(display: &glium::Display) -> Self {
     let vertex1 = Vertex { pos: [-1.0, -1.0] };
     let vertex2 = Vertex { pos: [1.0, -1.0] };
     let vertex3 = Vertex { pos: [1.0, 1.0] };
@@ -51,7 +50,6 @@ impl<'a> ButtonsRenderer<'a> {
     .unwrap();
 
     ButtonsRenderer {
-      display,
       program,
       vertex_buffer,
       indices,
@@ -85,10 +83,11 @@ pub struct Button {
 }
 
 impl Button {
-  pub fn hover_check(&mut self, m_pos: &utils::Vec2) {
+  pub fn hover_check(&mut self, m_pos: &utils::Vec2) -> bool {
     self.hover = m_pos.x > self.pos.x
       && m_pos.x < self.pos.x + self.size.x * 2.0
       && m_pos.y < self.pos.y
       && m_pos.y > self.pos.y - self.size.y * 2.0;
+    self.hover
   }
 }

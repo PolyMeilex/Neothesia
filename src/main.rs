@@ -12,33 +12,6 @@ mod utils;
 extern crate glium;
 
 fn main() {
-    //let args: Vec<String> = std::env::args().collect();
-
-    println!("Example Command: neothesia ~/my_midi_file.mid 1 (Id of midi output)");
-
-    // let midi_out = MidiOutput::new("midi").unwrap();
-
-    // println!("\nAvailable output ports:");
-    // for i in 0..midi_out.port_count() {
-    //     println!("{}: {}", i, midi_out.port_name(i).unwrap());
-    // }
-
-    // let out_port: usize;
-
-    // if args.len() > 1 {
-    //     out_port = args[1].parse::<usize>().unwrap();
-    // } else {
-    //     out_port = 0;
-    // }
-
-    // println!("Using Port Number {}", out_port);
-
-    // let mut conn_out = midi_out.connect(out_port, "out").unwrap();
-
-    //
-    // Render
-    //
-
     use glium::glutin;
 
     let mut events_loop = glutin::EventsLoop::new();

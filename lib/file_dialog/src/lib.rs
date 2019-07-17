@@ -31,7 +31,12 @@ impl<'a> FileDialog<'a> {
     }
     pub fn open(&self) -> Result<String, Error> {
         let path = match self.path {
-            Some(p) => CString::new(p).unwrap().as_ptr(),
+            Some(p) => CString::new(p).ok(),
+            None => None,
+        };
+
+        let path_ptr = match path {
+            Some(p) => p.as_ptr(),
             None => std::ptr::null(),
         };
 
@@ -47,7 +52,7 @@ impl<'a> FileDialog<'a> {
 
 
         unsafe {
-            let c_buf = ffi::osdialog_file(ffi::FileAction::OPEN, path, std::ptr::null(), filter);
+            let c_buf = ffi::osdialog_file(ffi::FileAction::OPEN, path_ptr, std::ptr::null(), filter);
 
             ffi::osdialog_filters_free(filter);
 

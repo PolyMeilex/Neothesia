@@ -1,3 +1,6 @@
+mod downcast;
+pub use downcast::SuperUnsafeDowncaster;
+
 #[derive(Clone, Copy)]
 pub struct Vec2 {
   pub x: f32,

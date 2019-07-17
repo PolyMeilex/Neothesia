@@ -1,10 +1,12 @@
 use crate::game_states::GameState;
+use crate::game_states::GameStateType;
 use std::collections::HashMap;
 
 mod keyboard;
 mod note;
 
 pub struct PlayingState<'a> {
+  state_type: GameStateType,
   display: &'a glium::Display,
   notes: Vec<lib_midi::track::MidiNote>,
   notes_on: HashMap<usize, bool>,
@@ -37,6 +39,7 @@ impl<'a> PlayingState<'a> {
     };
 
     let mut ps = PlayingState {
+      state_type: GameStateType::playing_state,
       display,
       notes: filtered_notes,
       keyboard: keyboard::KeyboardRenderer::new(display),
@@ -50,6 +53,9 @@ impl<'a> PlayingState<'a> {
 }
 
 impl<'a> GameState<'a> for PlayingState<'a> {
+  fn get_type(&self) -> GameStateType{
+    self.state_type
+  }
   fn draw(
     &mut self,
     target: &mut glium::Frame,
@@ -66,7 +72,7 @@ impl<'a> GameState<'a> for PlayingState<'a> {
     let midi_out = &mut public_state.midi_device;
     let notes_on = &mut self.notes_on;
 
-    self.notes.retain(|n| {
+    for n in self.notes.iter() {
       if n.start <= time {
         if n.start + n.duration >= time {
           active_notes[(n.note - 21) as usize] = true;
@@ -80,12 +86,9 @@ impl<'a> GameState<'a> for PlayingState<'a> {
             notes_on.remove(&n.id);
             midi_out.send(&[0x80, n.note, n.vel]);
           }
-          // No need to keep note in vec after it was played
-          return false;
         }
       }
-      true
-    });
+    }
     // println!("Left:{}", self.notes.len());
 
     if self.notes.is_empty() {

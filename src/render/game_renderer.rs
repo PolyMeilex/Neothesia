@@ -24,15 +24,8 @@ pub struct GameRenderer<'a> {
   display: &'a glium::Display,
   game_state: Box<dyn GameState<'a> + 'a>,
 
-  // note_renderer: Option<NoteRenderer<'a>>,
-  // keyboard_renderer: KeyboardRenderer<'a>,
-
-  // notes: Vec<crate::lib_midi::track::MidiNote>,
   pub fps: u64,
-  // pub time: f64,
   ar: f32,
-
-  // pub viewport: glium::Rect,
   pub update_size: bool,
 }
 
@@ -56,19 +49,16 @@ impl<'a> GameRenderer<'a> {
       },
 
       display,
-      // viewport,
       game_state: Box::new(game_states::MenuState::new(display)),
 
-      // note_renderer: None,
-      // keyboard_renderer: KeyboardRenderer::new(display),
-
-      // notes: Vec::new(),
       fps: 0,
-      // time: 0.0,
       ar: 16.0 / 9.0,
 
       update_size: true,
     }
+  }
+  pub fn get_state_type(&self) -> game_states::GameStateType {
+    self.game_state.get_type()
   }
   pub fn draw(&mut self, time: u128) {
     let time = time as f64 / 1000.0;

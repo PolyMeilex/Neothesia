@@ -1,8 +1,10 @@
 use crate::game_states::GameState;
+use crate::game_states::GameStateType;
 use crate::render::ui::Button;
 use crate::utils;
 
 pub struct MenuState<'a> {
+  state_type: GameStateType,
   display: &'a glium::Display,
   out_index: usize,
 }
@@ -10,6 +12,7 @@ pub struct MenuState<'a> {
 impl<'a> MenuState<'a> {
   pub fn new(display: &'a glium::Display) -> Self {
     MenuState {
+      state_type: GameStateType::menu_state,
       display,
       out_index: 0,
     }
@@ -52,6 +55,9 @@ impl<'a> MenuState<'a> {
 }
 
 impl<'a> GameState<'a> for MenuState<'a> {
+  fn get_type(&self) -> GameStateType{
+    self.state_type
+  }
   fn draw(
     &mut self,
     target: &mut glium::Frame,

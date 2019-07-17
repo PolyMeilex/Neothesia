@@ -110,11 +110,8 @@ impl<'a> GameRenderer<'a> {
 
     target.finish().unwrap();
 
-    match new_state {
-      Some(state_box) => {
-        self.game_state = state_box;
-      }
-      None => {}
+    if let Some(state_box) = new_state {
+      self.game_state = state_box;
     }
 
     // m_was_pressed is true when mouse was clicked this frame

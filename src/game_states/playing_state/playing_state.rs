@@ -4,8 +4,6 @@ use std::collections::HashMap;
 mod keyboard;
 mod note;
 
-use midir::MidiOutput;
-
 pub struct PlayingState<'a> {
   display: &'a glium::Display,
   notes: Vec<lib_midi::track::MidiNote>,
@@ -23,7 +21,6 @@ impl<'a> PlayingState<'a> {
     start_time: f64,
   ) -> Self {
 
-
     let mut filtered_notes: Vec<crate::lib_midi::track::MidiNote> = Vec::new();
     for n in notes.iter() {
       if n.note > 21 && n.note < 109 {
@@ -33,17 +30,18 @@ impl<'a> PlayingState<'a> {
       }
     }
 
-    let mut song_start_time = 0.0;
-    if filtered_notes.len() > 0 {
-      song_start_time = filtered_notes[0].start;
-    }
+    let song_start_time = if !filtered_notes.is_empty() {
+      filtered_notes[0].start
+    } else {
+      0.0
+    };
 
     let mut ps = PlayingState {
       display,
       notes: filtered_notes,
       keyboard: keyboard::KeyboardRenderer::new(display),
       note_renderer: None,
-      start_time: start_time - song_start_time + 5.0,
+      start_time: start_time - f64::from(song_start_time) + 5.0,
       notes_on: HashMap::new(),
     };
     ps.note_renderer = Some(note::NoteRenderer::new(ps.display, &ps.notes));
@@ -57,11 +55,10 @@ impl<'a> GameState<'a> for PlayingState<'a> {
     target: &mut glium::Frame,
     public_state: &mut crate::render::PublicState,
   ) -> Option<Box<dyn GameState<'a> + 'a>> {
-    let time = public_state.time - self.start_time;
+    let time: f32 = (public_state.time - self.start_time) as f32;
 
-    match &self.note_renderer {
-      Some(note_renderer) => note_renderer.draw(target, &public_state.viewport, time as f32),
-      None => {}
+    if let Some(note_renderer) = &self.note_renderer {
+      note_renderer.draw(target, &public_state.viewport, time);
     }
 
     let mut active_notes: [bool; 88] = [false; 88];
@@ -73,12 +70,13 @@ impl<'a> GameState<'a> for PlayingState<'a> {
       if n.start <= time {
         if n.start + n.duration >= time {
           active_notes[(n.note - 21) as usize] = true;
-          if !notes_on.contains_key(&n.id) {
+
+          if let std::collections::hash_map::Entry::Vacant(_e) = notes_on.entry(n.id) {
             notes_on.insert(n.id, true);
             midi_out.send(&[0x90, n.note, n.vel]);
           }
         } else {
-          if notes_on.contains_key(&n.id) {
+          if let std::collections::hash_map::Entry::Occupied(_e) = notes_on.entry(n.id) {
             notes_on.remove(&n.id);
             midi_out.send(&[0x80, n.note, n.vel]);
           }
@@ -86,11 +84,11 @@ impl<'a> GameState<'a> for PlayingState<'a> {
           return false;
         }
       }
-      return true;
+      true
     });
-    println!("Left:{}", self.notes.len());
+    // println!("Left:{}", self.notes.len());
 
-    if self.notes.len() == 0 {
+    if self.notes.is_empty() {
       let menu = Box::new(crate::game_states::MenuState::new(self.display));
       return Some(menu);
     }

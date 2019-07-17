@@ -56,19 +56,14 @@ impl<'a> KeyboardRenderer<'a> {
       indices,
     }
   }
-  pub fn draw(
-    &self,
-    target: &mut glium::Frame,
-    viewport: &glium::Rect,
-    active_notes: [bool; 88],
-  ) {
+  pub fn draw(&self, target: &mut glium::Frame, viewport: &glium::Rect, active_notes: [bool; 88]) {
     let notes: glium::uniforms::UniformBuffer<[u32; 128]> =
       glium::uniforms::UniformBuffer::empty_dynamic(self.display).unwrap();
 
     let mut notes_data = [128; 128];
 
     for (i, n) in active_notes.iter().enumerate() {
-      if n.to_owned() == true {
+      if *n {
         notes_data[i] = i as u32;
       }
     }

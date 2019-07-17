@@ -18,7 +18,7 @@ impl MidiDevice {
     }
   }
   pub fn get_outs(&self) -> Vec<MidiCInfo> {
-    let outs = match &self.midi_out {
+    match &self.midi_out {
       Some(midi_out) => {
         let mut outs = Vec::new();
         for i in 0..midi_out.port_count() {
@@ -28,17 +28,16 @@ impl MidiDevice {
           };
           outs.push(MidiCInfo {
             id: i as usize,
-            name: name,
+            name,
           })
         }
         outs
       }
       None => Vec::new(),
-    };
-    outs
+    }
   }
   pub fn get_ins(&self) -> Vec<MidiCInfo> {
-    let ins = match &self.midi_in {
+    match &self.midi_in {
       Some(midi_in) => {
         let mut ins = Vec::new();
         for i in 0..midi_in.port_count() {
@@ -48,24 +47,20 @@ impl MidiDevice {
           };
           ins.push(MidiCInfo {
             id: i as usize,
-            name: name,
+            name,
           })
         }
         ins
       }
       None => Vec::new(),
-    };
-    ins
+    }
   }
   pub fn connect_out(&mut self, id: usize) {
     let midi_out = midir::MidiOutput::new("midi_out").ok();
-    match midi_out {
-      Some(midi_out) => {
-        self.midi_out_c = midi_out.connect(id, "out").ok();
-      }
-      None => {}
-    }
 
+    if let Some(midi_out) = midi_out {
+      self.midi_out_c = midi_out.connect(id, "out").ok();
+    }
   }
   pub fn send(&mut self, message: &[u8]) {
     let _res = match &mut self.midi_out_c {

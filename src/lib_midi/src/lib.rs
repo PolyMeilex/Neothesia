@@ -14,21 +14,19 @@ pub fn read_file(path: &str) -> Midi {
     let smf_buffer = midly::SmfBuffer::open(path).unwrap();
     let smf = smf_buffer.parse_collect().unwrap();
 
-    // let mut u_per_quarter_note: u16 = 480;
     let u_per_quarter_note: u16;
 
     match smf.header.timing {
         midly::Timing::Metrical(t) => u_per_quarter_note = t.as_int(),
         midly::Timing::Timecode(_fps, _u) => {
             panic!("Midi With Timecode Timing, not supported!");
-            // u_per_frame = u;
-            // frames_per_seconds = fps.as_f32();
         }
     };
 
-    if smf.tracks.len() == 0 {
-        panic!("No Tracks!");
-    }
+    // ? There is (probably) no need to panic if midi is empty
+    // if smf.tracks.is_empty() {
+    // panic!("No Tracks!");
+    // }
 
     let mut tracks: Vec<MidiTrack> = Vec::new();
     for (i, trk) in smf.tracks.iter().enumerate() {
@@ -73,7 +71,7 @@ pub fn read_file(path: &str) -> Midi {
     Midi {
         tracks_count: tracks.len() as u16,
         format: smf.header.format,
-        tracks: tracks,
-        merged_track: merged_track,
+        tracks,
+        merged_track,
     }
 }

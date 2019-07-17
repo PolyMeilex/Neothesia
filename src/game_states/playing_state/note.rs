@@ -20,7 +20,7 @@ struct InstanceAttr {
 implement_vertex!(InstanceAttr, note_in);
 
 impl NoteRenderer {
-  pub fn new(display: &glium::Display, notes: &Vec<crate::lib_midi::track::MidiNote>) -> Self {
+  pub fn new(display: &glium::Display, notes: &[crate::lib_midi::track::MidiNote]) -> Self {
     let vertex1 = Vertex { pos: [-0.5, -0.5] };
     let vertex2 = Vertex { pos: [0.5, -0.5] };
     let vertex3 = Vertex { pos: [0.5, 0.5] };
@@ -42,10 +42,10 @@ impl NoteRenderer {
         .iter()
         .map(|n| InstanceAttr {
           note_in: (
-            n.note as f32,
+            f32::from(n.note),
             n.start as f32,
             n.duration as f32,
-            n.ch as f32,
+            f32::from(n.ch),
           ),
         })
         .collect();

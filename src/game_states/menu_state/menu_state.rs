@@ -33,7 +33,8 @@ impl<'a> MenuState<'a> {
     let offset_time = offset_time.elapsed().as_millis() as f64 / 1000.0;
     let time = time + offset_time;
 
-    if midi.merged_track.notes.len() == 0 {
+    if midi.merged_track.notes.is_empty() {
+      // ? Probably no reason to panic here
       panic!(
         "No Notes In Track For Some Reason \n {:?}",
         midi.merged_track
@@ -64,11 +65,11 @@ impl<'a> GameState<'a> for MenuState<'a> {
           x: 0.0 - size.x,
           y: 0.4 + size.y,
         },
-        size: size,
+        size,
         hover: false,
       };
 
-      let hover = btn.hover_check(&public_state.m_pos);
+      let hover = btn.hover_check(public_state.m_pos);
 
       if hover {
         if public_state.m_was_pressed {
@@ -115,7 +116,7 @@ impl<'a> GameState<'a> for MenuState<'a> {
         };
 
         if self.out_index > 0 {
-          if left_btn.hover_check(&public_state.m_pos) {
+          if left_btn.hover_check(public_state.m_pos) {
             if public_state.m_was_pressed {
               self.out_index -= 1;
             }
@@ -142,7 +143,7 @@ impl<'a> GameState<'a> for MenuState<'a> {
         };
 
         if self.out_index < max_outs - 1 {
-          if right_btn.hover_check(&public_state.m_pos) {
+          if right_btn.hover_check(public_state.m_pos) {
             if public_state.m_was_pressed {
               self.out_index += 1;
             }

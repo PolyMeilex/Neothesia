@@ -27,26 +27,28 @@ impl<'a> MenuState<'a> {
 
     let path = match path {
       Ok(path) => path,
-      Err(_e) => return None,
+      Err(_e) => return None, // Dialog (Probably) Got Canceled
     };
 
     // We Put Midi Load Before Calculating Time Offset Becouse Black Midis Cand Take Long Time To Load
-    let midi = match lib_midi::read_file(&path){
+    let midi = match lib_midi::read_file(&path) {
       Ok(midi) => midi,
-      Err(e) => panic!(e),
+      Err(e) => {
+        println!("MIDI Reading Error: {}", e);
+        return None;
+      }
     };
 
-    let offset_time = offset_time.elapsed().as_millis() as f64 / 1000.0;
-    let time = time + offset_time;
-
     if midi.merged_track.notes.is_empty() {
-      // ? Probably no reason to panic here
-      panic!(
-        "No Notes In Track For Some Reason \n {:?}",
-        midi.merged_track
-      )
+      println!("No Notes In MIDI");
+      return None;
     }
 
+    // We Calculate How Long It Took For "Dialog" And "Midi Load" To compleate
+    // And Add It To Start Time Of Plaing State
+    // Becouse Those Functions Are Thread Blocking And Time Is Not Calculated While They Run
+    let offset_time = offset_time.elapsed().as_millis() as f64 / 1000.0;
+    let time = time + offset_time;
 
     let notes = midi.merged_track.notes.clone();
     Some(Box::new(crate::game_states::PlayingState::new(
@@ -58,7 +60,7 @@ impl<'a> MenuState<'a> {
 }
 
 impl<'a> GameState<'a> for MenuState<'a> {
-  fn get_type(&self) -> GameStateType{
+  fn get_type(&self) -> GameStateType {
     self.state_type
   }
   fn draw(
@@ -176,5 +178,5 @@ impl<'a> GameState<'a> for MenuState<'a> {
     None
   }
 
-  fn prepare_drop(&mut self,public_state: &mut crate::render::PublicState){}
+  fn prepare_drop(&mut self, public_state: &mut crate::render::PublicState) {}
 }

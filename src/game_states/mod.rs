@@ -8,10 +8,10 @@ pub use menu_state::MenuState;
 
 use std::ffi::c_void;
 
-#[derive(Clone,Copy)]
-pub enum GameStateType{
-  menu_state,
-  playing_state
+#[derive(Clone, Copy)]
+pub enum GameStateType {
+  MenuState,
+  PlayingState,
 }
 
 pub trait GameState<'a> {
@@ -21,6 +21,7 @@ pub trait GameState<'a> {
     target: &mut glium::Frame,
     public_state: &mut crate::render::PublicState,
   ) -> Option<Box<dyn GameState<'a> + 'a>>;
+  fn prepare_drop(&mut self,public_state: &mut crate::render::PublicState);
   fn get_void_pointer(&mut self) -> *mut c_void {
     self as *mut _ as *mut std::ffi::c_void
   }

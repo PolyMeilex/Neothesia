@@ -24,21 +24,22 @@ fn main() {
 
     let mut game_renderer = render::GameRenderer::new(&display);
 
-    let start_time = std::time::Instant::now();
+    // let start_time = std::time::Instant::now();
     let mut closed = false;
+    let mut paused = false;
 
     let mut fps = 0.0;
     let mut last_time_fps = std::time::Instant::now();
 
     //Delta Time
     let mut last_time = std::time::Instant::now();
-    let mut delta_time = 0;
-
     let mut time_elapsed: u128 = 0;
 
 
     while !closed {
-        time_elapsed += last_time.elapsed().as_millis();
+        if !paused {
+            time_elapsed += last_time.elapsed().as_millis();
+        }
         last_time = std::time::Instant::now();
 
 
@@ -77,8 +78,8 @@ fn main() {
                     };
                 }
                 glutin::WindowEvent::MouseWheel { delta, .. } => {
-                    if let glutin::MouseScrollDelta::LineDelta(x, y) = delta {
-                        if let game_states::GameStateType::playing_state =
+                    if let glutin::MouseScrollDelta::LineDelta(_x, y) = delta {
+                        if let game_states::GameStateType::PlayingState =
                             &game_renderer.get_state_type()
                         {
                             let val = y as i32 * 100;
@@ -107,7 +108,22 @@ fn main() {
                 },
                 glutin::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                     Some(key) => match key {
-                        glutin::VirtualKeyCode::Escape => closed = true,
+                        glutin::VirtualKeyCode::Escape => {
+                            if let glutin::ElementState::Released = input.state {
+                                if game_renderer.state_go_back() {
+                                    closed = true;
+                                }
+                            }
+                        }
+                        glutin::VirtualKeyCode::Space => {
+                            if let game_states::GameStateType::PlayingState =
+                                &game_renderer.get_state_type()
+                            {
+                                if let glutin::ElementState::Released = input.state {
+                                    paused = !paused;
+                                }
+                            }
+                        }
                         _ => {}
                     },
                     None => {}

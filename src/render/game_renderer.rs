@@ -60,6 +60,25 @@ impl<'a> GameRenderer<'a> {
   pub fn get_state_type(&self) -> game_states::GameStateType {
     self.game_state.get_type()
   }
+  pub fn set_state(&mut self, new_state: Box<dyn GameState<'a> + 'a>) {
+    self.game_state.prepare_drop(&mut self.public_state);
+    self.game_state = new_state;
+  }
+  pub fn state_go_back(&mut self) -> bool {
+    let state_type = self.get_state_type();
+    let mut closed = false;
+
+    match state_type {
+      game_states::GameStateType::PlayingState => {
+        self.set_state(Box::new(game_states::MenuState::new(self.display)));
+      }
+      game_states::GameStateType::MenuState => {
+        closed = true;
+      }
+    };
+
+    closed
+  }
   pub fn draw(&mut self, time: u128) {
     let time = time as f64 / 1000.0;
 
@@ -101,7 +120,7 @@ impl<'a> GameRenderer<'a> {
     target.finish().unwrap();
 
     if let Some(state_box) = new_state {
-      self.game_state = state_box;
+       self.set_state(state_box);
     }
 
     // m_was_pressed is true when mouse was clicked this frame

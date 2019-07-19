@@ -12,7 +12,7 @@ pub struct MenuState<'a> {
 impl<'a> MenuState<'a> {
   pub fn new(display: &'a glium::Display) -> Self {
     MenuState {
-      state_type: GameStateType::menu_state,
+      state_type: GameStateType::MenuState,
       display,
       out_index: 0,
     }
@@ -172,4 +172,6 @@ impl<'a> GameState<'a> for MenuState<'a> {
     }
     None
   }
+
+  fn prepare_drop(&mut self,public_state: &mut crate::render::PublicState){}
 }

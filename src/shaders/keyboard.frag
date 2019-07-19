@@ -37,7 +37,9 @@ void main() {
   // key_color = vec3(131.0 / 255.0, 23.0 / 255.0, 181.0 / 255.0);
   key_color = vec3(0.8);
 
-  if (In.uv.y < .24) {
+  if (In.uv.y > .23 && In.uv.y < .24) {
+    color = vec3(0.2, 0.2, 0.2);
+  } else if (In.uv.y < .24) {
     float key_loc = floor(725. / 59. * (In.uv.x + 531. / 1450.)) - 7.0;
 
     float pitch =
@@ -50,9 +52,9 @@ void main() {
         smoothstep(0., border, abs(mod(In.uv.x, 59. / 725.) - 59. / 1450.)));
 
     for (int i = 0; i < 88; ++i) {
-      float mouse_pitch = float(notes[i]) - 3.0;
+      float c_pitch = float(notes[i]) - 3.0;
 
-      if (mouse_pitch == pitch) {
+      if (c_pitch == pitch) {
         color = key_color;
       }
     }
@@ -68,14 +70,14 @@ void main() {
 
     // Draw Highlights
     for (int i = 0; i < 88; ++i) {
-      float mouse_pitch = float(notes[i]) - 3.0;
+      float c_pitch = float(notes[i]) - 3.0;
 
       if (In.uv.y > .08) {
-        black_key_render(false, In.uv, 183., 1., mouse_pitch, color);
-        black_key_render(false, In.uv, 743., 3., mouse_pitch, color);
-        black_key_render(false, In.uv, 1577., 6., mouse_pitch, color);
-        black_key_render(false, In.uv, 2115., 8., mouse_pitch, color);
-        black_key_render(false, In.uv, 2653., 10., mouse_pitch, color);
+        black_key_render(false, In.uv, 183., 1., c_pitch, color);
+        black_key_render(false, In.uv, 743., 3., c_pitch, color);
+        black_key_render(false, In.uv, 1577., 6., c_pitch, color);
+        black_key_render(false, In.uv, 2115., 8., c_pitch, color);
+        black_key_render(false, In.uv, 2653., 10., c_pitch, color);
       }
     }
 

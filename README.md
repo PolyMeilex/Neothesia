@@ -1,6 +1,6 @@
 # Full Rewrite Of Neothesia In Rust
 
-![Neothesia Baner](https://i.imgur.com/3uiwId8.png)
+![Neothesia Baner](https://i.imgur.com/QfdMwMI.png)
 
 ## This version of Neothesia is not functional yet, Use: [c++ version](https://github.com/PolyMeilex/Neothesia/tree/master)
 

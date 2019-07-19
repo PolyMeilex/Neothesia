@@ -87,7 +87,8 @@ impl<'a> GameState<'a> for PlayingState<'a> {
     let mut active_notes: [bool; 88] = [false; 88];
 
     for n in self.notes.iter() {
-      if n.start <= time {
+      // Will Play In future Or Was Played Max 0.5s Ago
+      if n.start <= time && n.start + n.duration + 0.5 > time {
         if n.start + n.duration >= time {
           active_notes[(n.note - 21) as usize] = true;
 
@@ -103,7 +104,6 @@ impl<'a> GameState<'a> for PlayingState<'a> {
         }
       }
     }
-    // println!("Left:{}", self.notes.len());
 
     if self.notes.is_empty() {
       let menu = Box::new(crate::game_states::MenuState::new(self.display));

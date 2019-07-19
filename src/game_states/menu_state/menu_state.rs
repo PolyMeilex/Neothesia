@@ -31,7 +31,10 @@ impl<'a> MenuState<'a> {
     };
 
     // We Put Midi Load Before Calculating Time Offset Becouse Black Midis Cand Take Long Time To Load
-    let midi = lib_midi::read_file(&path);
+    let midi = match lib_midi::read_file(&path){
+      Ok(midi) => midi,
+      Err(e) => panic!(e),
+    };
 
     let offset_time = offset_time.elapsed().as_millis() as f64 / 1000.0;
     let time = time + offset_time;

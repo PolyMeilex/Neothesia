@@ -27,9 +27,10 @@ impl TracksParser {
         if tracks[tempo_track].has_tempo {
             self.tempo_events = tracks[tempo_track].tempo_events.clone();
         } else {
+            // TODO: Return to caller to inform user that fallback bpm is used
             println!("There is no tempo track! Useing 120 bpm as fallback");
 
-            panic!("There is no track with tempo info"); // ! For Debug Only
+            //panic!("There is no track with tempo info"); // ! For Debug Only
         }
 
         for trk in tracks.iter_mut() {

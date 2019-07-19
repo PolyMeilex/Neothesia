@@ -10,23 +10,28 @@ pub struct Midi {
     pub merged_track: MidiTrack,
 }
 
-pub fn read_file(path: &str) -> Midi {
-    let smf_buffer = midly::SmfBuffer::open(path).unwrap();
-    let smf = smf_buffer.parse_collect().unwrap();
+pub fn read_file(path: &str) -> Result<Midi, String> {
+    let smf_buffer = match midly::SmfBuffer::open(path) {
+        Ok(buff) => buff,
+        Err(_) => return Err(String::from("Could Not Open File")),
+    };
+    let smf = match smf_buffer.parse_collect() {
+        Ok(smf) => smf,
+        Err(_) => return Err(String::from("Midi Parsing Error (midly lib)")),
+    };
 
     let u_per_quarter_note: u16;
 
     match smf.header.timing {
         midly::Timing::Metrical(t) => u_per_quarter_note = t.as_int(),
         midly::Timing::Timecode(_fps, _u) => {
-            panic!("Midi With Timecode Timing, not supported!");
+            return Err(String::from("Midi With Timecode Timing, Not Supported!"));
         }
     };
 
-    // ? There is (probably) no need to panic if midi is empty
-    // if smf.tracks.is_empty() {
-    // panic!("No Tracks!");
-    // }
+    if smf.tracks.is_empty() {
+        return Err(String::from("Midi File Has No Tracks"));
+    }
 
     let mut tracks: Vec<MidiTrack> = Vec::new();
     for (i, trk) in smf.tracks.iter().enumerate() {
@@ -44,7 +49,7 @@ pub fn read_file(path: &str) -> Midi {
             tp.parse(&mut tracks, &smf.tracks);
         }
         Format::Sequential => {
-            panic!("MultiSong Midi Not Supported");
+            return Err(String::from("MultiSong Midi Not Supported"));
         }
     }
 
@@ -68,10 +73,10 @@ pub fn read_file(path: &str) -> Midi {
         note.id = i;
     }
 
-    Midi {
+    Ok(Midi {
         tracks_count: tracks.len() as u16,
         format: smf.header.format,
         tracks,
         merged_track,
-    }
+    })
 }

@@ -2,8 +2,6 @@
 
 in vec2 pos;
 
-#define notesCount 52.0
-
 out INTERFACE { vec2 uv; }
 Out;
 

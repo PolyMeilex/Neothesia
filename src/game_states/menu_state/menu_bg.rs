@@ -1,7 +1,6 @@
-use crate::utils;
 use glium::Surface;
 
-pub struct ButtonsRenderer {
+pub struct MenuBg {
   program: glium::Program,
   vertex_buffer: glium::VertexBuffer<Vertex>,
   indices: glium::IndexBuffer<u16>,
@@ -13,7 +12,7 @@ struct Vertex {
 }
 implement_vertex!(Vertex, pos);
 
-impl ButtonsRenderer {
+impl MenuBg {
   pub fn new(display: &glium::Display) -> Self {
     let vertex1 = Vertex { pos: [-1.0, -1.0] };
     let vertex2 = Vertex { pos: [1.0, -1.0] };
@@ -31,8 +30,8 @@ impl ButtonsRenderer {
     )
     .unwrap();
 
-    let vertex_shader_src = include_str!("../../shaders/ui/button.vert");
-    let fragment_shader_src = include_str!("../../shaders/ui/button.frag");
+    let vertex_shader_src = include_str!("../../shaders/menu/bg.vert");
+    let fragment_shader_src = include_str!("../../shaders/menu/bg.frag");
 
     let program = glium::Program::new(
       display,
@@ -49,46 +48,24 @@ impl ButtonsRenderer {
     )
     .unwrap();
 
-    ButtonsRenderer {
+    MenuBg {
       program,
       vertex_buffer,
       indices,
     }
   }
-  pub fn draw(
-    &self,
-    target: &mut glium::Frame,
-    public_state: &crate::render::PublicState,
-    btn: Button,
-  ) {
+  pub fn draw(&self, target: &mut glium::Frame, viewport: &glium::Rect, time: f32) {
     target
       .draw(
         &self.vertex_buffer,
         &self.indices,
         &self.program,
-        &uniform! {btnPos:btn.pos.to_array(), btnSize:btn.size.to_array(),btnHover:btn.hover as i8},
+        &uniform! {u_time: time},
         &glium::DrawParameters {
-          viewport: Some(public_state.viewport.to_owned()),
-          blend: glium::Blend::alpha_blending(),
+          viewport: Some(viewport.to_owned()),
           ..Default::default()
         },
       )
       .unwrap();
-  }
-}
-
-pub struct Button {
-  pub pos: utils::Vec2,
-  pub size: utils::Vec2,
-  pub hover: bool,
-}
-
-impl Button {
-  pub fn hover_check(&mut self, m_pos: utils::Vec2) -> bool {
-    self.hover = m_pos.x > self.pos.x
-      && m_pos.x < self.pos.x + self.size.x * 2.0
-      && m_pos.y < self.pos.y
-      && m_pos.y > self.pos.y - self.size.y * 2.0;
-    self.hover
   }
 }

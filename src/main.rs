@@ -37,7 +37,7 @@ fn main() {
 
 
     while !closed {
-        if !paused {
+        if !game_renderer.public_state.paused {
             time_elapsed += last_time.elapsed().as_millis();
         }
         last_time = std::time::Instant::now();
@@ -120,7 +120,8 @@ fn main() {
                                 &game_renderer.get_state_type()
                             {
                                 if let glutin::ElementState::Released = input.state {
-                                    paused = !paused;
+                                    game_renderer.public_state.paused =
+                                        !game_renderer.public_state.paused;
                                 }
                             }
                         }

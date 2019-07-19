@@ -16,6 +16,7 @@ pub struct PublicState<'a> {
   pub m_pressed: bool,
   pub m_was_pressed: bool,
   pub midi_device: MidiDevice,
+  pub paused: bool,
 }
 
 pub struct GameRenderer<'a> {
@@ -46,6 +47,7 @@ impl<'a> GameRenderer<'a> {
         m_pressed: false,
         m_was_pressed: false,
         midi_device: MidiDevice::new(),
+        paused: false,
       },
 
       display,
@@ -61,6 +63,7 @@ impl<'a> GameRenderer<'a> {
     self.game_state.get_type()
   }
   pub fn set_state(&mut self, new_state: Box<dyn GameState<'a> + 'a>) {
+    self.public_state.paused = false;
     self.game_state.prepare_drop(&mut self.public_state);
     self.game_state = new_state;
   }
@@ -102,7 +105,7 @@ impl<'a> GameRenderer<'a> {
       self.update_size = false;
     }
 
-    target.clear_color_srgb(0.1, 0.1, 0.1, 1.0);
+    target.clear_color_srgb(22.0 / 255.0, 15.0 / 255.0, 22.0 / 255.0, 1.0);
     target.clear_depth(1.0);
 
     let new_state = self.game_state.draw(&mut target, &mut self.public_state);
@@ -120,7 +123,7 @@ impl<'a> GameRenderer<'a> {
     target.finish().unwrap();
 
     if let Some(state_box) = new_state {
-       self.set_state(state_box);
+      self.set_state(state_box);
     }
 
     // m_was_pressed is true when mouse was clicked this frame

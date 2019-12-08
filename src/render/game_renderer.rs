@@ -38,7 +38,7 @@ impl<'a> GameRenderer<'a> {
       width: 1280,
       height: 720,
     };
-    GameRenderer {
+    Self {
       public_state: PublicState {
         viewport,
         time: 0.0,

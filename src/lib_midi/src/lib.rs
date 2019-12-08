@@ -10,6 +10,12 @@ pub struct Midi {
     pub merged_track: MidiTrack,
 }
 
+impl Midi {
+    pub fn new(path: &str) -> Result<Self, String> {
+        read_file(path)
+    }
+}
+
 pub fn read_file(path: &str) -> Result<Midi, String> {
     let smf_buffer = match midly::SmfBuffer::open(path) {
         Ok(buff) => buff,

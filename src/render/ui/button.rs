@@ -49,7 +49,7 @@ impl ButtonsRenderer {
     )
     .unwrap();
 
-    ButtonsRenderer {
+    Self {
       program,
       vertex_buffer,
       indices,

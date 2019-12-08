@@ -28,7 +28,7 @@ pub struct MidiTrack {
 }
 
 impl MidiTrack {
-    pub fn new(track: &[midly::Event], track_id: usize) -> MidiTrack {
+    pub fn new(track: &[midly::Event], track_id: usize) -> Self {
         let mut tempo = 500_000; // 120 bpm
 
         use midly::EventKind;
@@ -56,7 +56,7 @@ impl MidiTrack {
 
         }
 
-        MidiTrack {
+        Self {
             tempo,
             tempo_events,
             has_tempo,

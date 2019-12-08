@@ -2,6 +2,8 @@
 
 uniform float u_time;
 
+out vec4 fragColor;
+
 in INTERFACE { vec2 st; }
 In;
 
@@ -94,5 +96,5 @@ void main() {
     note_render(pos, 0.1 * 5.0, color);
   }
 
-  gl_FragColor = vec4(color / 2.5, 1.0);
+  fragColor = vec4(color / 2.5, 1.0);
 }

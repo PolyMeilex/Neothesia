@@ -15,7 +15,7 @@ impl MidiDevice {
     let midi_out = MidiOutput::new("midi_out").ok();
     let midi_in = MidiOutput::new("midi_in").ok();
 
-    MidiDevice {
+    Self {
       midi_out,
       midi_in,
       midi_out_c: None,

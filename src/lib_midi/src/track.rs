@@ -1,5 +1,13 @@
-use crate::tracks_parser::TracksParser;
-use std::collections::HashMap;
+use {
+    crate::TracksParser,
+    std::collections::HashMap,
+    midly::{
+        Event,
+        EventKind,
+        MetaMessage,
+        MidiMessage
+    }
+};
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
@@ -28,11 +36,9 @@ pub struct MidiTrack {
 }
 
 impl MidiTrack {
-    pub fn new(track: &[midly::Event], track_id: usize) -> Self {
+    pub fn new(track: &[Event], track_id: usize) -> Self {
         let mut tempo = 500_000; // 120 bpm
 
-        use midly::EventKind;
-        use midly::MetaMessage;
 
         let mut has_tempo = false;
         let mut tempo_events = Vec::new();
@@ -65,7 +71,7 @@ impl MidiTrack {
         }
     }
 
-    pub fn extract_notes(&mut self, events: &[midly::Event], parent_parser: &mut TracksParser) {
+    pub fn extract_notes(&mut self, events: &[Event], parent_parser: &mut TracksParser) {
         self.notes.clear();
 
         let mut time_in_units = 0.0;
@@ -102,8 +108,6 @@ impl MidiTrack {
         }
 
         for event in events.iter() {
-            use midly::EventKind;
-            use midly::MidiMessage;
 
             time_in_units += event.delta.as_int() as f32;
 

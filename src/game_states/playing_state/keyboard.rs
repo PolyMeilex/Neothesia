@@ -49,7 +49,7 @@ impl<'a> KeyboardRenderer<'a> {
     )
     .unwrap();
 
-    KeyboardRenderer {
+    Self {
       display,
       program,
       vertex_buffer,

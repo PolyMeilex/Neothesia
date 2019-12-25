@@ -1,20 +1,23 @@
-use crate::track::MidiTrack;
+use {
+    crate::{TempoEvent, MidiTrack},
+    midly::Event
+};
 
 pub struct TracksParser {
-    tempo_events: Vec<crate::track::TempoEvent>,
+    tempo_events: Vec<TempoEvent>,
     u_per_quarter_note: f32,
 }
 
 impl TracksParser {
-    pub fn new(u_per_quarter_note: u16) -> TracksParser {
+    pub fn new(u_per_quarter_note: u16) -> Self {
         let u_per_quarter_note = f32::from(u_per_quarter_note);
 
-        TracksParser {
+        Self {
             tempo_events: Vec::new(),
             u_per_quarter_note,
         }
     }
-    pub fn parse(&mut self, tracks: &mut Vec<MidiTrack>, midly_tracks: &[Vec<midly::Event>]) {
+    pub fn parse(&mut self, tracks: &mut Vec<MidiTrack>, midly_tracks: &[Vec<Event>]) {
         let mut tempo_track = 0;
         for (i, trk) in tracks.iter().enumerate() {
             if trk.has_tempo {

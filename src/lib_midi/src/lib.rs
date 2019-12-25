@@ -1,10 +1,13 @@
-pub mod track;
-
+mod track;
 mod tracks_parser;
-use track::MidiTrack;
+
+pub use {
+    track::*,
+    tracks_parser::*
+};
 
 pub struct Midi {
-    pub tracks_count: u16,
+    // pub tracks_count: u16,
     pub format: midly::Format,
     pub tracks: Vec<MidiTrack>,
     pub merged_track: MidiTrack,
@@ -16,11 +19,13 @@ impl Midi {
     }
 }
 
-pub fn read_file(path: &str) -> Result<Midi, String> {
+
+fn read_file(path: &str) -> Result<Midi, String> {
     let smf_buffer = match midly::SmfBuffer::open(path) {
         Ok(buff) => buff,
         Err(_) => return Err(String::from("Could Not Open File")),
     };
+
     let smf = match smf_buffer.parse_collect() {
         Ok(smf) => smf,
         Err(_) => return Err(String::from("Midi Parsing Error (midly lib)")),
@@ -80,7 +85,7 @@ pub fn read_file(path: &str) -> Result<Midi, String> {
     }
 
     Ok(Midi {
-        tracks_count: tracks.len() as u16,
+        // tracks_count: tracks.len() as u16,
         format: smf.header.format,
         tracks,
         merged_track,

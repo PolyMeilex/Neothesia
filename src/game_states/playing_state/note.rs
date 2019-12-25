@@ -1,4 +1,7 @@
-use glium::Surface;
+use {
+  glium::Surface,
+  lib_midi::{MidiNote}
+};
 
 pub struct NoteRenderer {
   program: glium::Program,
@@ -20,7 +23,7 @@ struct InstanceAttr {
 implement_vertex!(InstanceAttr, note_in);
 
 impl NoteRenderer {
-  pub fn new(display: &glium::Display, notes: &[crate::lib_midi::track::MidiNote]) -> Self {
+  pub fn new(display: &glium::Display, notes: &[MidiNote]) -> Self {
     let vertex1 = Vertex { pos: [-0.5, -0.5] };
     let vertex2 = Vertex { pos: [0.5, -0.5] };
     let vertex3 = Vertex { pos: [0.5, 0.5] };

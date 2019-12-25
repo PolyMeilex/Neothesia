@@ -113,11 +113,11 @@ impl MidiTrack {
 
             if let EventKind::Midi { channel, message } = &event.kind {
                 match &message {
-                    MidiMessage::NoteOn(data0, data1) => {
-                        let data0 = data0.as_int();
-                        let data1 = data1.as_int();
-                        if data1 > 0 {
-                            let k = data0;
+                    MidiMessage::NoteOn { key, vel } => {
+                        let key = key.as_int();
+                        let vel = vel.as_int();
+                        if vel > 0 {
+                            let k = key;
 
                             match current_notes.entry(k) {
                                 std::collections::hash_map::Entry::Occupied(_e) => {
@@ -128,22 +128,22 @@ impl MidiTrack {
                                         k,
                                         Note {
                                             time_in_units,
-                                            vel: data1,
+                                            vel: vel,
                                             channel: channel.as_int(),
                                         },
                                     );
                                 }
                             }
 
-                        } else if data1 == 0 {
-                            end_note!(k=>data0);
+                        } else if vel == 0 {
+                            end_note!(k=>key);
                         }
 
                     }
-                    MidiMessage::NoteOff(data0, _data1) => {
-                        let data0 = data0.as_int();
+                    MidiMessage::NoteOff { key, vel } => {
+                        let key = key.as_int();
 
-                        end_note!(k=>data0);
+                        end_note!(k=>key);
                     }
                     _ => {}
                 }

@@ -2,9 +2,10 @@
 use {
     midly::{
         Format,
-        SmfBuffer,
+        Smf,
         Timing
     },
+    std::fs,
     crate::{
         MidiTrack, TracksParser
     }
@@ -19,12 +20,13 @@ pub struct Midi {
 
 impl Midi {
     pub fn new(path: &str) -> Result<Self, String> {
-        let smf_buffer = match SmfBuffer::open(path) {
+
+        let data = match fs::read(path) {
             Ok(buff) => buff,
             Err(_) => return Err(String::from("Could Not Open File")),
         };
 
-        let smf = match smf_buffer.parse_collect() {
+        let smf = match Smf::parse(&data) {
             Ok(smf) => smf,
             Err(_) => return Err(String::from("Midi Parsing Error (midly lib)")),
         };

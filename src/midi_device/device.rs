@@ -1,14 +1,19 @@
+use midir::{
+  MidiOutput,
+  MidiOutputConnection
+};
+
 pub struct MidiDevice {
-  midi_out: Option<midir::MidiOutput>,
-  midi_in: Option<midir::MidiOutput>,
-  midi_out_c: Option<midir::MidiOutputConnection>,
-  midi_in_c: Option<midir::MidiOutputConnection>,
+  midi_out: Option<MidiOutput>,
+  midi_in: Option<MidiOutput>,
+  midi_out_c: Option<MidiOutputConnection>,
+  midi_in_c: Option<MidiOutputConnection>,
 }
 
 impl MidiDevice {
   pub fn new() -> Self {
-    let midi_out = midir::MidiOutput::new("midi_out").ok();
-    let midi_in = midir::MidiOutput::new("midi_in").ok();
+    let midi_out = MidiOutput::new("midi_out").ok();
+    let midi_in = MidiOutput::new("midi_in").ok();
 
     MidiDevice {
       midi_out,
@@ -56,7 +61,7 @@ impl MidiDevice {
     }
   }
   pub fn connect_out(&mut self, id: usize) {
-    let midi_out = midir::MidiOutput::new("midi_out").ok();
+    let midi_out = MidiOutput::new("midi_out").ok();
 
     if let Some(midi_out) = midi_out {
       self.midi_out_c = midi_out.connect(id, "out").ok();

@@ -81,9 +81,7 @@ impl<'a> GameState<'a> for MenuState<'a> {
       .menu_bg
       .draw(target, &public_state.viewport, public_state.time as f32);
 
-    self
-      .menu_logo
-      .draw(target, &public_state.viewport);
+    self.menu_logo.draw(target, &public_state.viewport);
 
     // File Select
     {
@@ -119,9 +117,9 @@ impl<'a> GameState<'a> for MenuState<'a> {
         .add("Select File", text_pos.x, text_pos.y, true, None);
     }
     // Out Select
-    {
-      let outs_info = public_state.midi_device.get_outs();
-      let max_outs = outs_info.len();
+    let outs_info = public_state.midi_device.get_outs();
+    let max_outs = outs_info.len();
+    if max_outs > 0 {
       let mut out_text = &String::from("No Outputs");
 
       // Midi Device Range Check
@@ -141,7 +139,6 @@ impl<'a> GameState<'a> for MenuState<'a> {
         .ui_renderer
         .text_writer
         .add(out_text, text_pos.x, text_pos.y, true, None);
-
 
       //
       // LEFT BTN

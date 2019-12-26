@@ -2,13 +2,15 @@ use crate::game_states::GameState;
 use crate::game_states::GameStateType;
 use std::collections::HashMap;
 
+use lib_midi::{MidiNote};
+
 mod keyboard;
 mod note;
 
 pub struct PlayingState<'a> {
   state_type: GameStateType,
   display: &'a glium::Display,
-  notes: Vec<lib_midi::track::MidiNote>,
+  notes: Vec<MidiNote>,
   notes_on: HashMap<usize, bool>,
 
   keyboard: keyboard::KeyboardRenderer<'a>,
@@ -20,11 +22,11 @@ pub struct PlayingState<'a> {
 impl<'a> PlayingState<'a> {
   pub fn new(
     display: &'a glium::Display,
-    notes: Vec<crate::lib_midi::track::MidiNote>,
+    notes: Vec<MidiNote>,
     start_time: f64,
   ) -> Self {
 
-    let mut filtered_notes: Vec<crate::lib_midi::track::MidiNote> = Vec::new();
+    let mut filtered_notes: Vec<MidiNote> = Vec::new();
     for n in notes.iter() {
       if n.note > 21 && n.note < 109 {
         if n.ch != 9 {

@@ -6,6 +6,8 @@ use crate::utils;
 mod menu_bg;
 mod menu_logo;
 
+use lib_midi::Midi;
+
 pub struct MenuState<'a> {
   state_type: GameStateType,
   display: &'a glium::Display,
@@ -38,7 +40,7 @@ impl<'a> MenuState<'a> {
     };
 
     // We Put Midi Load Before Calculating Time Offset Becouse Black Midis Cand Take Long Time To Load
-    let midi = match lib_midi::read_file(&path) {
+    let midi = match Midi::new(&path) {
       Ok(midi) => midi,
       Err(e) => {
         println!("MIDI Reading Error: {}", e);

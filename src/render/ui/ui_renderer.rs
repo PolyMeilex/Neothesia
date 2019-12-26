@@ -8,7 +8,7 @@ pub struct UiRenderer<'a> {
 
 impl<'a> UiRenderer<'a> {
   pub fn new(display: &'a glium::Display) -> Self {
-    UiRenderer {
+    Self {
       text_writer: TextWriter::new(display),
       buttons_renderer: ButtonsRenderer::new(display),
     }

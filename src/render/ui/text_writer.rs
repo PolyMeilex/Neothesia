@@ -14,7 +14,7 @@ impl<'a> TextWriter<'a> {
     let fonts = vec![Font::from_bytes(roboto).unwrap()];
     let glyph_brush = glium_glyph::GlyphBrush::new(display, fonts);
 
-    TextWriter {
+    Self {
       display,
       brush: glyph_brush,
     }

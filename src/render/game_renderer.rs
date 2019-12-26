@@ -1,12 +1,13 @@
-use crate::utils;
-use glium::Surface;
-
-use crate::game_states;
-use crate::game_states::GameState;
-
-use crate::midi_device::MidiDevice;
-
-use crate::render::ui::UiRenderer;
+use {
+  glium::Surface,
+  crate::{
+    utils,
+    game_states,
+    game_states::GameState,
+    midi_device::MidiDevice,
+    render::ui::UiRenderer
+  }
+};
 
 pub struct PublicState<'a> {
   pub viewport: glium::Rect,
@@ -38,7 +39,7 @@ impl<'a> GameRenderer<'a> {
       width: 1280,
       height: 720,
     };
-    GameRenderer {
+    Self {
       public_state: PublicState {
         viewport,
         time: 0.0,

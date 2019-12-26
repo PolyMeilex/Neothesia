@@ -1,5 +1,13 @@
-use crate::tracks_parser::TracksParser;
-use std::collections::HashMap;
+use {
+    crate::TracksParser,
+    std::collections::HashMap,
+    midly::{
+        Event,
+        EventKind,
+        MetaMessage,
+        MidiMessage
+    }
+};
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
@@ -28,11 +36,9 @@ pub struct MidiTrack {
 }
 
 impl MidiTrack {
-    pub fn new(track: &[midly::Event], track_id: usize) -> MidiTrack {
+    pub fn new(track: &[Event], track_id: usize) -> Self {
         let mut tempo = 500_000; // 120 bpm
 
-        use midly::EventKind;
-        use midly::MetaMessage;
 
         let mut has_tempo = false;
         let mut tempo_events = Vec::new();
@@ -56,7 +62,7 @@ impl MidiTrack {
 
         }
 
-        MidiTrack {
+        Self {
             tempo,
             tempo_events,
             has_tempo,
@@ -65,7 +71,7 @@ impl MidiTrack {
         }
     }
 
-    pub fn extract_notes(&mut self, events: &[midly::Event], parent_parser: &mut TracksParser) {
+    pub fn extract_notes(&mut self, events: &[Event], parent_parser: &mut TracksParser) {
         self.notes.clear();
 
         let mut time_in_units = 0.0;
@@ -102,18 +108,16 @@ impl MidiTrack {
         }
 
         for event in events.iter() {
-            use midly::EventKind;
-            use midly::MidiMessage;
 
             time_in_units += event.delta.as_int() as f32;
 
             if let EventKind::Midi { channel, message } = &event.kind {
                 match &message {
-                    MidiMessage::NoteOn(data0, data1) => {
-                        let data0 = data0.as_int();
-                        let data1 = data1.as_int();
-                        if data1 > 0 {
-                            let k = data0;
+                    MidiMessage::NoteOn { key, vel } => {
+                        let key = key.as_int();
+                        let vel = vel.as_int();
+                        if vel > 0 {
+                            let k = key;
 
                             match current_notes.entry(k) {
                                 std::collections::hash_map::Entry::Occupied(_e) => {
@@ -124,22 +128,22 @@ impl MidiTrack {
                                         k,
                                         Note {
                                             time_in_units,
-                                            vel: data1,
+                                            vel: vel,
                                             channel: channel.as_int(),
                                         },
                                     );
                                 }
                             }
 
-                        } else if data1 == 0 {
-                            end_note!(k=>data0);
+                        } else if vel == 0 {
+                            end_note!(k=>key);
                         }
 
                     }
-                    MidiMessage::NoteOff(data0, _data1) => {
-                        let data0 = data0.as_int();
+                    MidiMessage::NoteOff { key, vel } => {
+                        let key = key.as_int();
 
-                        end_note!(k=>data0);
+                        end_note!(k=>key);
                     }
                     _ => {}
                 }

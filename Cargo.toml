@@ -1,5 +1,5 @@
 [package]
-name = "wgpu-tests"
+name = "neothesia"
 version = "0.1.0"
 authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 winit = "0.22.0"
-# glsl-to-spirv = "0.1"
 zerocopy = "0.3.0"
 futures = "0.3.4"
 wgpu = "0.5.0"

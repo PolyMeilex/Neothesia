@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "gtk.h": "c",
-        "gtkfilechooserdialog.h": "c",
-        "gtkfilechooser.h": "c"
-    }
-}

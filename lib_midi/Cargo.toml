@@ -1,0 +1,8 @@
+[package]
+name = "lib_midi"
+version = "0.1.0"
+authors = ["Poly <bartek.marynczak@op.pl>"]
+edition = "2018"
+
+[dependencies]
+midly = "0.3"

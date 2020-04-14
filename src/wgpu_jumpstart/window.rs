@@ -45,7 +45,8 @@ impl Window {
             gpu,
         )
     }
-    pub fn resize(&mut self, gpu: &mut Gpu, new_size: winit::dpi::PhysicalSize<u32>) {
+    pub fn resize(&mut self, gpu: &mut Gpu) {
+        let new_size = self.winit_window.inner_size();
         self.surface.resize(gpu, new_size);
 
         self.width = new_size.width as f32;

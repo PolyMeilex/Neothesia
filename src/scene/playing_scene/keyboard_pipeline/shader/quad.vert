@@ -16,16 +16,17 @@ layout(location=3) out float radius;
 layout(set=0, binding=0) 
 uniform Uniforms {
     mat4 u_Transform;
+    vec2 u_size;
 };
 
 void main() {
 
     if(i_on==1){
-                if (i_is_black==1) {
-                    color = vec3( 91.0 / 255.0, 55.0 / 255.0, 165.0 / 255.0 );
-                } else {
-                    color = vec3( 121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0 );
-                };
+        if (i_is_black==1) {
+            color = vec3( 91.0 / 255.0, 55.0 / 255.0, 165.0 / 255.0 );
+        } else {
+            color = vec3( 121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0 );
+        };
         // if (i_is_black==1){
         //     color=vec3(0.5,0.5,0.5);
         // }

@@ -2,6 +2,7 @@ use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use super::quad_pipeline::{QuadInstance, QuadPipeline};
 use crate::wgpu_jumpstart::gpu::Gpu;
+use crate::MainState;
 
 pub struct Ui<'a> {
     rectangle_pipeline: QuadPipeline,
@@ -10,9 +11,8 @@ pub struct Ui<'a> {
 }
 
 impl<'a> Ui<'a> {
-    pub fn new(gpu: &Gpu) -> Self {
-        let device = &gpu.device;
-        let rectangle_pipeline = QuadPipeline::new(&gpu.device);
+    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
+        let rectangle_pipeline = QuadPipeline::new(state, &gpu.device);
         let font: &[u8] = include_bytes!("./Roboto-Regular.ttf");
         let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
             .expect("Load font")
@@ -29,13 +29,7 @@ impl<'a> Ui<'a> {
     pub fn queue_text(&mut self, section: Section) {
         self.glyph_brush.queue(section);
     }
-    pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {
-        self.rectangle_pipeline.resize(
-            &mut gpu.encoder,
-            &gpu.device,
-            (state.window_size.0, state.window_size.1),
-        );
-    }
+    pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {}
     fn update(&mut self, gpu: &mut Gpu) {
         self.rectangle_pipeline.update_instance_buffer(
             &mut gpu.encoder,
@@ -43,12 +37,7 @@ impl<'a> Ui<'a> {
             self.queue.clear_rectangles(),
         );
     }
-    pub fn render(
-        &mut self,
-        state: &crate::MainState,
-        gpu: &mut Gpu,
-        frame: &wgpu::SwapChainOutput,
-    ) {
+    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {
@@ -67,7 +56,7 @@ impl<'a> Ui<'a> {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.rectangle_pipeline.render(&mut render_pass);
+            self.rectangle_pipeline.render(state, &mut render_pass);
         }
         self.glyph_brush
             .draw_queued(

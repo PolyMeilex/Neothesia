@@ -15,8 +15,7 @@ layout(location=3) out float o_radius;
 layout(set=0, binding=0) 
 uniform Uniforms {
     mat4 u_Transform;
-    float u_w;
-    float u_h;
+    vec2 u_size;
 };
 layout(set=1, binding=0) 
 uniform Uniforms2 {
@@ -30,7 +29,7 @@ void main() {
 
     vec2 pos = i_pos;
     float start = pos.y;
-    pos.y = u_h - 120.0 * u_w/u_h;
+    pos.y = u_size.y - 120.0 * u_size.x/u_size.y;
 
     vec2 size = i_size;
     size.y = size.y * speed;

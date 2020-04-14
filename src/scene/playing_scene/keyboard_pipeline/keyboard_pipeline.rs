@@ -1,10 +1,8 @@
-use zerocopy::AsBytes;
-
 use super::{KeyInstance, KeyStateInstance};
 
 use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
 
-use crate::orthographic::orthographic_projection;
+use crate::MainState;
 
 pub struct KeyboardPipeline {
     render_pipeline: wgpu::RenderPipeline,
@@ -12,20 +10,16 @@ pub struct KeyboardPipeline {
 
     instances: Instances<KeyInstance>,
     instances_state: Instances<KeyStateInstance>,
-
-    uniform: Uniform<TransformUniform>,
 }
 
 impl<'a> KeyboardPipeline {
-    pub fn new(device: &wgpu::Device) -> Self {
+    pub fn new(state: &MainState, device: &wgpu::Device) -> Self {
         let vs_module = shader::create_module(device, include_bytes!("shader/quad.vert.spv"));
         let fs_module = shader::create_module(device, include_bytes!("shader/quad.frag.spv"));
 
-        let uniform = Uniform::new(device, TransformUniform::default());
-
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                bind_group_layouts: &[&uniform.bind_group_layout],
+                bind_group_layouts: &[&state.transform_uniform.bind_group_layout],
             });
 
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
@@ -46,12 +40,11 @@ impl<'a> KeyboardPipeline {
             simple_quad,
             instances,
             instances_state,
-            uniform,
         }
     }
-    pub fn render(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+    pub fn render(&'a self, state: &'a MainState, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &self.uniform.bind_group, &[]);
+        render_pass.set_bind_group(0, &state.transform_uniform.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, &self.simple_quad.vertex_buffer, 0, 0);
         render_pass.set_vertex_buffer(1, &self.instances.buffer, 0, 0);
@@ -79,28 +72,6 @@ impl<'a> KeyboardPipeline {
         if self.instances_state.data != instances_state {
             self.instances_state.data = instances_state;
             self.instances_state.update(command_encoder, device);
-        }
-    }
-    pub fn resize(
-        &mut self,
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        window_size: (f32, f32),
-    ) {
-        self.uniform.data.transform = orthographic_projection(window_size.0, window_size.1);
-        self.uniform.update(command_encoder, device);
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, AsBytes)]
-pub struct TransformUniform {
-    pub transform: [f32; 16],
-}
-impl Default for TransformUniform {
-    fn default() -> Self {
-        Self {
-            transform: orthographic_projection(1080.0, 720.0),
         }
     }
 }

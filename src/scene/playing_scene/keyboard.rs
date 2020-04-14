@@ -1,5 +1,6 @@
 use super::keyboard_pipeline::{KeyInstance, KeyStateInstance, KeyboardPipeline};
 use crate::wgpu_jumpstart::gpu::Gpu;
+use crate::MainState;
 
 // const KEY_C: u8 = 0;
 const KEY_CIS: u8 = 1;
@@ -26,20 +27,14 @@ pub struct PianoKeyboard {
 }
 
 impl PianoKeyboard {
-    pub fn new(gpu: &Gpu) -> Self {
-        let keyboard_pipeline = KeyboardPipeline::new(&gpu.device);
+    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
+        let keyboard_pipeline = KeyboardPipeline::new(state, &gpu.device);
         Self {
             keyboard_pipeline,
             all_keys: Vec::new(),
         }
     }
     pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {
-        self.keyboard_pipeline.resize(
-            &mut gpu.encoder,
-            &gpu.device,
-            (state.window_size.0, state.window_size.1),
-        );
-
         let w = state.window_size.0 / 52.0;
         let h = 120.0 * state.window_size.0 / state.window_size.1;
 
@@ -145,7 +140,7 @@ impl PianoKeyboard {
         self.keyboard_pipeline
             .update_notes_state(&mut gpu.encoder, &gpu.device, notes_out);
     }
-    pub fn render(&mut self, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -163,7 +158,7 @@ impl PianoKeyboard {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.keyboard_pipeline.render(&mut render_pass);
+            self.keyboard_pipeline.render(state, &mut render_pass);
         }
     }
 }

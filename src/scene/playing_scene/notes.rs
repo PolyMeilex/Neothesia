@@ -1,13 +1,14 @@
 use super::notes_pipeline::{NoteInstance, NotesPipeline};
 use crate::wgpu_jumpstart::gpu::Gpu;
+use crate::MainState;
 
 pub struct Notes {
     notes_pipeline: NotesPipeline,
 }
 
 impl Notes {
-    pub fn new(gpu: &Gpu) -> Self {
-        let notes_pipeline = NotesPipeline::new(&gpu.device);
+    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
+        let notes_pipeline = NotesPipeline::new(state, &gpu.device);
         Self { notes_pipeline }
     }
     pub fn resize(
@@ -17,12 +18,6 @@ impl Notes {
         keys: &Vec<super::keyboard::Key>,
         midi: &lib_midi::Midi,
     ) {
-        self.notes_pipeline.resize(
-            &mut gpu.encoder,
-            &gpu.device,
-            (state.window_size.0, state.window_size.1),
-        );
-
         let mut instances = Vec::new();
 
         let mut longer_than_88 = false;
@@ -37,9 +32,15 @@ impl Notes {
                     [121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0]
                 };
 
+                let h = if note.duration >= 0.1 {
+                    note.duration
+                } else {
+                    0.1
+                };
+
                 instances.push(NoteInstance {
                     position: [key.x, note.start],
-                    size: [key.w - 1.0, note.duration],
+                    size: [key.w - 1.0, h],
                     color,
                     radius: 5.0 * ar,
                 });
@@ -59,7 +60,7 @@ impl Notes {
         self.notes_pipeline
             .update_time(&mut gpu.encoder, &gpu.device, time);
     }
-    pub fn render(&mut self, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -77,7 +78,7 @@ impl Notes {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.notes_pipeline.render(&mut render_pass);
+            self.notes_pipeline.render(state, &mut render_pass);
         }
     }
 }

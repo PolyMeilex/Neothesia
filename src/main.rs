@@ -1,5 +1,5 @@
 mod wgpu_jumpstart;
-use wgpu_jumpstart::{gpu::Gpu, window::Window};
+use wgpu_jumpstart::{gpu::Gpu, window::Window, Uniform};
 
 mod ui;
 use ui::Ui;
@@ -13,6 +13,8 @@ use time_menager::TimeMenager;
 mod midi_device;
 
 mod orthographic;
+mod transform_uniform;
+use transform_uniform::TransformUniform;
 
 use wgpu_glyph::Section;
 use winit::{
@@ -23,23 +25,29 @@ use winit::{
 pub struct MainState {
     pub window_size: (f32, f32),
     pub mouse_pos: (f32, f32),
+    /// Mouse Was Clicked This Frame
     pub mouse_clicked: bool,
+    /// Mouse Is Pressed This Frame
     pub mouse_pressed: bool,
     pub time_menager: TimeMenager,
+    pub transform_uniform: Uniform<TransformUniform>,
 }
 
 impl MainState {
-    fn new() -> Self {
+    fn new(gpu: &Gpu) -> Self {
         Self {
             window_size: (0.0, 0.0),
             mouse_pos: (0.0, 0.0),
             mouse_clicked: false,
             mouse_pressed: false,
             time_menager: TimeMenager::new(),
+            transform_uniform: Uniform::new(&gpu.device, TransformUniform::default()),
         }
     }
-    fn resize(&mut self, x: f32, y: f32) {
-        self.window_size = (x, y);
+    fn resize(&mut self, gpu: &mut Gpu, w: f32, h: f32) {
+        self.window_size = (w, h);
+        self.transform_uniform.data.update(w, h);
+        self.transform_uniform.update(&mut gpu.encoder, &gpu.device);
     }
     fn update_mouse_pos(&mut self, x: f32, y: f32) {
         self.mouse_pos = (x, y);
@@ -65,8 +73,8 @@ struct App<'a> {
 
 impl<'a> App<'a> {
     fn new(mut gpu: Gpu) -> Self {
-        let ui = Ui::new(&mut gpu);
-        let main_state = MainState::new();
+        let main_state = MainState::new(&gpu);
+        let ui = Ui::new(&main_state, &mut gpu);
         let game_scene: Box<dyn Scene> = Box::new(scene::menu_scene::MenuScene::new(&mut gpu));
 
         Self {
@@ -77,7 +85,7 @@ impl<'a> App<'a> {
         }
     }
     fn resize(&mut self, w: f32, h: f32) {
-        self.main_state.resize(w, h);
+        self.main_state.resize(&mut self.gpu, w, h);
         self.game_scene.resize(&mut self.main_state, &mut self.gpu);
         self.ui.resize(&self.main_state, &mut self.gpu);
     }
@@ -175,22 +183,21 @@ async fn main_async() {
     let (mut window, gpu) = Window::new(builder, (1080, 720), &event_loop).await;
     let mut app = App::new(gpu);
     app.resize(window.width, window.height);
+    app.gpu.submit();
 
     event_loop.run(move |event, _, mut control_flow| match event {
         Event::MainEventsCleared => window.request_redraw(),
         Event::WindowEvent { event, .. } => match event {
-            WindowEvent::Resized(new_size) => {
-                window.resize(&mut app.gpu, new_size);
+            WindowEvent::Resized(_) => {
+                window.resize(&mut app.gpu);
                 app.resize(window.width, window.height);
                 app.gpu.submit();
             }
             WindowEvent::CursorMoved { position, .. } => {
                 let dpi = &window.dpi;
 
-                let x = position.x;
-                let y = position.y;
-                let x = (x as f64 / dpi).round();
-                let y = (y as f64 / dpi).round();
+                let x = (position.x / dpi).round();
+                let y = (position.y / dpi).round();
 
                 app.main_state.update_mouse_pos(x as f32, y as f32);
             }

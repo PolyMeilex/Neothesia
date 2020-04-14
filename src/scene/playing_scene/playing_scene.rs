@@ -16,8 +16,8 @@ pub struct PlayingScene {
 impl PlayingScene {
     pub fn new(gpu: &mut Gpu, state: &mut MainState, midi: lib_midi::Midi) -> Self {
         log::warn!("Plaing Scene");
-        let piano_keyboard = PianoKeyboard::new(&gpu);
-        let notes = Notes::new(&gpu);
+        let piano_keyboard = PianoKeyboard::new(state, &gpu);
+        let notes = Notes::new(state, &gpu);
 
         state.time_menager.start_timer();
 
@@ -52,9 +52,9 @@ impl Scene for PlayingScene {
 
         SceneEvent::None
     }
-    fn render(&mut self, _state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
-        self.notes.render(gpu, frame);
-        self.piano_keyboard.render(gpu, frame);
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+        self.notes.render(state, gpu, frame);
+        self.piano_keyboard.render(state, gpu, frame);
     }
 }
 

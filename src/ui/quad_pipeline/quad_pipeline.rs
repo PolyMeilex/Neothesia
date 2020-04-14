@@ -28,7 +28,7 @@ impl<'a> QuadPipeline {
             .build(device);
 
         let simple_quad = SimpleQuad::new(device);
-        let instances = Instances::new(device);
+        let instances = Instances::new(device, 100000);
 
         Self {
             render_pipeline,

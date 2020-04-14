@@ -32,8 +32,8 @@ impl<'a> KeyboardPipeline {
             .build(device);
 
         let simple_quad = SimpleQuad::new(device);
-        let instances = Instances::new(device);
-        let instances_state = Instances::new(device);
+        let instances = Instances::new(device, 88);
+        let instances_state = Instances::new(device, 88);
 
         Self {
             render_pipeline,

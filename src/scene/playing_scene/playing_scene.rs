@@ -15,13 +15,10 @@ pub struct PlayingScene {
 
 impl PlayingScene {
     pub fn new(gpu: &mut Gpu, state: &mut MainState, midi: lib_midi::Midi) -> Self {
-        log::warn!("Plaing Scene");
         let piano_keyboard = PianoKeyboard::new(state, &gpu);
-        let notes = Notes::new(state, &gpu);
+        let notes = Notes::new(state, &gpu, &midi);
 
         state.time_menager.start_timer();
-
-        log::warn!("Plaing Scene Done");
 
         Self {
             piano_keyboard,

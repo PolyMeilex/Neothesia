@@ -7,8 +7,8 @@ pub struct Notes {
 }
 
 impl Notes {
-    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
-        let notes_pipeline = NotesPipeline::new(state, &gpu.device);
+    pub fn new(state: &MainState, gpu: &Gpu, midi: &lib_midi::Midi) -> Self {
+        let notes_pipeline = NotesPipeline::new(state, &gpu.device, midi);
         Self { notes_pipeline }
     }
     pub fn resize(

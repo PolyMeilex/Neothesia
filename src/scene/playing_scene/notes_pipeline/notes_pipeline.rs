@@ -16,7 +16,7 @@ pub struct NotesPipeline {
 }
 
 impl<'a> NotesPipeline {
-    pub fn new(state: &MainState, device: &wgpu::Device) -> Self {
+    pub fn new(state: &MainState, device: &wgpu::Device, midi: &lib_midi::Midi) -> Self {
         let vs_module = shader::create_module(device, include_bytes!("shader/quad.vert.spv"));
         let fs_module = shader::create_module(device, include_bytes!("shader/quad.frag.spv"));
 
@@ -40,7 +40,7 @@ impl<'a> NotesPipeline {
 
         let simple_quad = SimpleQuad::new(device);
 
-        let instances = Instances::new(device);
+        let instances = Instances::new(device, midi.merged_track.notes.len());
 
         Self {
             render_pipeline,

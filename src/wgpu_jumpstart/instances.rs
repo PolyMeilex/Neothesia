@@ -11,11 +11,11 @@ impl<I> Instances<I>
 where
     I: 'static + Copy + AsBytes,
 {
-    pub fn new(device: &wgpu::Device) -> Self {
+    pub fn new(device: &wgpu::Device, max_size: usize) -> Self {
         let instance_size = std::mem::size_of::<I>();
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: (instance_size * 100000) as u64,
+            size: (instance_size * max_size) as u64,
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
 

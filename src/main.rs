@@ -12,7 +12,6 @@ use time_menager::TimeMenager;
 
 mod midi_device;
 
-mod orthographic;
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 

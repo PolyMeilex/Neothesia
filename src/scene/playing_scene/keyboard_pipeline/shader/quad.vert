@@ -22,17 +22,17 @@ uniform Uniforms {
 void main() {
 
     if(i_on==1){
-        if (i_is_black==1) {
-            color = vec3( 91.0 / 255.0, 55.0 / 255.0, 165.0 / 255.0 );
-        } else {
-            color = vec3( 121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0 );
-        };
-        // if (i_is_black==1){
-        //     color=vec3(0.5,0.5,0.5);
-        // }
-        // else{
-        //     color=vec3(0.7,0.7,0.7);    
-        // }
+        // if (i_is_black==1) {
+        //     color = vec3( 91.0 / 255.0, 55.0 / 255.0, 165.0 / 255.0 );
+        // } else {
+        //     color = vec3( 121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0 );
+        // };
+        if (i_is_black==1){
+            color=vec3(0.5,0.5,0.5);
+        }
+        else{
+            color=vec3(0.7,0.7,0.7);    
+        }
     }
     else{
         if (i_is_black==1){

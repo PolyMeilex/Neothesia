@@ -23,7 +23,7 @@ uniform Uniforms2 {
 };
 
 
-#define speed 200.0
+#define speed 150.0
 void main() {
 
 

@@ -95,6 +95,7 @@ impl<'a> App<'a> {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
+                self.main_state.time_menager.clear_timer();
                 let mut state = scene::menu_scene::MenuScene::new(&mut self.gpu);
                 state.resize(&mut self.main_state, &mut self.gpu);
 

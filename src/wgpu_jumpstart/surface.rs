@@ -1,6 +1,7 @@
 pub struct Surface {
     surface: wgpu::Surface,
     swap_chain: wgpu::SwapChain,
+    swap_chain_descriptor: wgpu::SwapChainDescriptor,
 }
 
 impl Surface {
@@ -11,33 +12,29 @@ impl Surface {
     ) -> Self {
         let size = window.inner_size();
 
-        let swap_chain = device.create_swap_chain(
-            &surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8Unorm,
-                width: size.width,
-                height: size.height,
-                present_mode: wgpu::PresentMode::Fifo,
-            },
-        );
+        let swap_chain_descriptor = wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            format: wgpu::TextureFormat::Bgra8Unorm,
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::Fifo,
+        };
+
+        let swap_chain = device.create_swap_chain(&surface, &swap_chain_descriptor);
 
         Self {
             surface,
             swap_chain,
+            swap_chain_descriptor,
         }
     }
     pub fn resize(&mut self, gpu: &mut super::gpu::Gpu, size: winit::dpi::PhysicalSize<u32>) {
-        self.swap_chain = gpu.device.create_swap_chain(
-            &self.surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8Unorm,
-                width: size.width,
-                height: size.height,
-                present_mode: wgpu::PresentMode::Fifo,
-            },
-        );
+        self.swap_chain_descriptor.width = size.width;
+        self.swap_chain_descriptor.height = size.height;
+
+        self.swap_chain = gpu
+            .device
+            .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
     }
     pub fn get_next_texture(&mut self) -> wgpu::SwapChainOutput {
         self.swap_chain

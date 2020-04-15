@@ -22,9 +22,9 @@ impl TimeMenager {
             timer.paused = false;
         }
     }
-    pub fn timer_get_elapsed(&mut self) -> Option<u128> {
+    pub fn timer_get_elapsed(&mut self) -> Option<f32> {
         if let Some(timer) = &mut self.timer {
-            Some(timer.time_elapsed)
+            Some(timer.time_elapsed as f32 / 1000000.0)
         } else {
             None
         }
@@ -58,9 +58,12 @@ impl Timer {
     }
     fn update(&mut self) {
         if !self.paused {
-            self.time_elapsed = self.last_time.elapsed().as_millis();
+            // We use nanos only because when using secs timing error quickly piles up
+            // It is not visible when running 60FPS
+            // but on higher refresh rate it is important
+            self.time_elapsed += self.last_time.elapsed().as_nanos();
         }
-        // self.last_time = std::time::Instant::now();
+        self.last_time = std::time::Instant::now();
     }
 }
 

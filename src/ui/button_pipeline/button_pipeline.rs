@@ -1,18 +1,18 @@
-use super::QuadInstance;
+use super::ButtonInstance;
 
 use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
 
 use crate::MainState;
 
-pub struct QuadPipeline {
+pub struct ButtonPipeline {
     render_pipeline: wgpu::RenderPipeline,
 
     simple_quad: SimpleQuad,
 
-    instances: Instances<QuadInstance>,
+    instances: Instances<ButtonInstance>,
 }
 
-impl<'a> QuadPipeline {
+impl<'a> ButtonPipeline {
     pub fn new(state: &MainState, device: &wgpu::Device) -> Self {
         let vs_module = shader::create_module(device, include_bytes!("shader/quad.vert.spv"));
         let fs_module = shader::create_module(device, include_bytes!("shader/quad.frag.spv"));
@@ -24,7 +24,10 @@ impl<'a> QuadPipeline {
 
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
             .fragment_stage(&fs_module)
-            .vertex_buffers(&[SimpleQuad::vertex_buffer_descriptor(), QuadInstance::desc()])
+            .vertex_buffers(&[
+                SimpleQuad::vertex_buffer_descriptor(),
+                ButtonInstance::desc(),
+            ])
             .build(device);
 
         let simple_quad = SimpleQuad::new(device);
@@ -53,7 +56,7 @@ impl<'a> QuadPipeline {
         &mut self,
         command_encoder: &mut wgpu::CommandEncoder,
         device: &wgpu::Device,
-        instances: Vec<QuadInstance>,
+        instances: Vec<ButtonInstance>,
     ) {
         if self.instances.data != instances {
             self.instances.data = instances;

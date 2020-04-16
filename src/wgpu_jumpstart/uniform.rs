@@ -13,12 +13,12 @@ impl<U> Uniform<U>
 where
     U: 'static + Copy + AsBytes,
 {
-    pub fn new(device: &wgpu::Device, data: U) -> Self {
+    pub fn new(device: &wgpu::Device, data: U, visibility: wgpu::ShaderStage) -> Self {
         let bind_group_layout_descriptor = wgpu::BindGroupLayoutDescriptor {
             label: None,
             bindings: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStage::VERTEX,
+                visibility,
                 ty: wgpu::BindingType::UniformBuffer { dynamic: false },
             }],
         };

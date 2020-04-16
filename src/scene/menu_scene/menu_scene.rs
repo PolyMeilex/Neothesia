@@ -5,6 +5,7 @@ use crate::{
     MainState,
 };
 
+use super::bg_pipeline::BgPipeline;
 use std::sync::mpsc;
 use std::thread;
 
@@ -14,14 +15,18 @@ pub enum Event {
 
 pub struct MenuScene {
     aysnc_job: async_job::Job<async_job::Event>,
+    bg_pipeline: BgPipeline,
 }
 
 impl MenuScene {
-    pub fn new(_gpu: &mut Gpu) -> Self {
+    pub fn new(gpu: &mut Gpu, state: &mut MainState) -> Self {
         let (sender, receiver) = mpsc::channel();
+
+        state.time_menager.start_timer();
 
         Self {
             aysnc_job: async_job::Job::new(receiver, sender),
+            bg_pipeline: BgPipeline::new(&gpu.device),
         }
     }
 }
@@ -30,7 +35,13 @@ impl Scene for MenuScene {
     fn state_type(&self) -> SceneType {
         SceneType::MainMenu
     }
-    fn update(&mut self, state: &mut MainState, _gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {
+    fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {
+        if let Some(time) = state.time_menager.timer_get_elapsed() {
+            let time = time as f32 / 1000.0;
+
+            self.bg_pipeline
+                .update_time(&mut gpu.encoder, &gpu.device, time);
+        }
         // Listen To Async Job Finish Event
         if self.aysnc_job.working {
             if let Ok(event) = self.aysnc_job.receiver.try_recv() {
@@ -40,6 +51,7 @@ impl Scene for MenuScene {
                     async_job::Event::MidiLoaded(midi) => {
                         return SceneEvent::MainMenu(Event::MidiOpen(midi));
                     }
+                    async_job::Event::Err(e) => log::error!("Midi Load: {}", e),
                 }
             }
         }
@@ -56,15 +68,48 @@ impl Scene for MenuScene {
 
             self.aysnc_job.working = true;
             thread::spawn(move || {
-                let midi = lib_midi::Midi::new("./test.mid").unwrap();
-                tx.send(async_job::Event::MidiLoaded(midi))
-                    .expect("tx send failed in midi loader");
+                let path = tinyfiledialogs::open_file_dialog("Select Midi", "", None);
+
+                if let Some(path) = path {
+                    let midi = lib_midi::Midi::new(&path);
+
+                    if let Ok(midi) = midi {
+                        tx.send(async_job::Event::MidiLoaded(midi))
+                            .expect("tx send failed in midi loader");
+                    } else if let Err(e) = midi {
+                        tx.send(async_job::Event::Err(format!("{}", e)))
+                            .expect("tx send failed in midi loader");
+                    }
+                } else {
+                    tx.send(async_job::Event::Err("File dialog returned None".into()))
+                        .expect("tx send failed in midi loader");
+                }
             });
         }
 
         SceneEvent::None
     }
-    fn render(&mut self, _state: &mut MainState, _gpu: &mut Gpu, _frame: &wgpu::SwapChainOutput) {}
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+        let encoder = &mut gpu.encoder;
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                    attachment: &frame.view,
+                    resolve_target: None,
+                    load_op: wgpu::LoadOp::Load,
+                    store_op: wgpu::StoreOp::Store,
+                    clear_color: wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    },
+                }],
+                depth_stencil_attachment: None,
+            });
+            self.bg_pipeline.render(&mut render_pass);
+        }
+    }
 }
 
 mod async_job {
@@ -72,6 +117,7 @@ mod async_job {
 
     pub enum Event {
         MidiLoaded(lib_midi::Midi),
+        Err(String),
     }
 
     pub struct Job<Event> {
@@ -92,7 +138,7 @@ mod async_job {
 }
 
 mod button {
-    use crate::ui::QuadInstance;
+    use crate::ui::ButtonInstance;
     pub fn queue(
         state: &super::MainState,
         ui: &mut super::Ui,
@@ -103,8 +149,8 @@ mod button {
         let (x, y) = pos;
         let (w, h) = size;
 
-        let coll_x = x - 500.0 / 2.0;
-        let coll_y = y - 100.0 / 2.0;
+        let coll_x = x - w / 2.0;
+        let coll_y = y - h / 2.0;
 
         let is_hover = state.mouse_pos.0 > coll_x
             && state.mouse_pos.0 < coll_x + w
@@ -112,16 +158,19 @@ mod button {
             && state.mouse_pos.1 < coll_y + h;
 
         let color = if is_hover {
-            [121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0]
+            // [121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0]
+            [56.0 / 255.0, 145.0 / 255.0, 255.0 / 255.0]
         } else {
-            [111.0 / 255.0, 75.0 / 255.0, 185.0 / 255.0]
+            // [111.0 / 255.0, 75.0 / 255.0, 185.0 / 255.0]
+            [160.0 / 255.0, 81.0 / 255.0, 232558.0 / 255.0]
         };
 
-        ui.queue_rectangle(QuadInstance {
+        ui.queue_rectangle(ButtonInstance {
             position: [x, y],
             size: [w, h],
             color,
             radius: 15.0,
+            is_hovered: if is_hover { 1 } else { 0 },
         });
 
         ui.queue_text(wgpu_glyph::Section {

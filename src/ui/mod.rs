@@ -1,5 +1,5 @@
-mod quad_pipeline;
+mod button_pipeline;
 mod ui;
 
-pub use quad_pipeline::QuadInstance;
+pub use button_pipeline::ButtonInstance;
 pub use ui::Ui;

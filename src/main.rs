@@ -40,7 +40,11 @@ impl MainState {
             mouse_clicked: false,
             mouse_pressed: false,
             time_menager: TimeMenager::new(),
-            transform_uniform: Uniform::new(&gpu.device, TransformUniform::default()),
+            transform_uniform: Uniform::new(
+                &gpu.device,
+                TransformUniform::default(),
+                wgpu::ShaderStage::VERTEX,
+            ),
         }
     }
     fn resize(&mut self, gpu: &mut Gpu, w: f32, h: f32) {
@@ -72,9 +76,10 @@ struct App<'a> {
 
 impl<'a> App<'a> {
     fn new(mut gpu: Gpu) -> Self {
-        let main_state = MainState::new(&gpu);
+        let mut main_state = MainState::new(&gpu);
         let ui = Ui::new(&main_state, &mut gpu);
-        let game_scene: Box<dyn Scene> = Box::new(scene::menu_scene::MenuScene::new(&mut gpu));
+        let game_scene: Box<dyn Scene> =
+            Box::new(scene::menu_scene::MenuScene::new(&mut gpu, &mut main_state));
 
         Self {
             gpu,
@@ -95,7 +100,8 @@ impl<'a> App<'a> {
             }
             SceneType::Playing => {
                 self.main_state.time_menager.clear_timer();
-                let mut state = scene::menu_scene::MenuScene::new(&mut self.gpu);
+                let mut state =
+                    scene::menu_scene::MenuScene::new(&mut self.gpu, &mut self.main_state);
                 state.resize(&mut self.main_state, &mut self.gpu);
 
                 self.game_scene = Box::new(state);

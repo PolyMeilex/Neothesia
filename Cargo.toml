@@ -17,7 +17,7 @@ wgpu_glyph = "0.8.0"
 log = "0.4"
 env_logger = "0.7.1"
 
-# tinyfiledialogs = "3.3.9"
+tinyfiledialogs = "3.3.9"
 
 # generational-arena = "0.2.7"
 

@@ -1,5 +1,5 @@
 use super::keyboard_pipeline::{KeyInstance, KeyStateInstance, KeyboardPipeline};
-use crate::wgpu_jumpstart::gpu::Gpu;
+use crate::wgpu_jumpstart::Gpu;
 use crate::MainState;
 
 // const KEY_C: u8 = 0;
@@ -28,7 +28,7 @@ pub struct PianoKeyboard {
 
 impl PianoKeyboard {
     pub fn new(state: &MainState, gpu: &Gpu) -> Self {
-        let keyboard_pipeline = KeyboardPipeline::new(state, &gpu.device);
+        let keyboard_pipeline = KeyboardPipeline::new(state, gpu);
         Self {
             keyboard_pipeline,
             all_keys: Vec::new(),
@@ -106,7 +106,7 @@ impl PianoKeyboard {
         }
 
         self.keyboard_pipeline
-            .update_instance_buffer(&mut gpu.encoder, &gpu.device, rectangles);
+            .update_instance_buffer(gpu, rectangles);
     }
     pub fn update_notes(&mut self, gpu: &mut Gpu, notes: [bool; 88]) {
         let mut white_keys = Vec::new();

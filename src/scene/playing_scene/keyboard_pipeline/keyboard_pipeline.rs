@@ -1,6 +1,6 @@
 use super::{KeyInstance, KeyStateInstance};
 
-use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
 
 use crate::MainState;
 
@@ -13,14 +13,15 @@ pub struct KeyboardPipeline {
 }
 
 impl<'a> KeyboardPipeline {
-    pub fn new(state: &MainState, device: &wgpu::Device) -> Self {
-        let vs_module = shader::create_module(device, include_bytes!("shader/quad.vert.spv"));
-        let fs_module = shader::create_module(device, include_bytes!("shader/quad.frag.spv"));
+    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
+        let vs_module = shader::create_module(&gpu.device, include_bytes!("shader/quad.vert.spv"));
+        let fs_module = shader::create_module(&gpu.device, include_bytes!("shader/quad.frag.spv"));
 
         let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                bind_group_layouts: &[&state.transform_uniform.bind_group_layout],
-            });
+            &gpu.device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    bind_group_layouts: &[&state.transform_uniform.bind_group_layout],
+                });
 
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
             .fragment_stage(&fs_module)
@@ -29,11 +30,11 @@ impl<'a> KeyboardPipeline {
                 KeyInstance::vertex_buffer_descriptor(),
                 KeyStateInstance::vertex_buffer_descriptor(),
             ])
-            .build(device);
+            .build(&gpu.device);
 
-        let simple_quad = SimpleQuad::new(device);
-        let instances = Instances::new(device, 88);
-        let instances_state = Instances::new(device, 88);
+        let simple_quad = SimpleQuad::new(&gpu.device);
+        let instances = Instances::new(&gpu.device, 88);
+        let instances_state = Instances::new(&gpu.device, 88);
 
         Self {
             render_pipeline,
@@ -54,14 +55,9 @@ impl<'a> KeyboardPipeline {
 
         render_pass.draw_indexed(0..SimpleQuad::indices_len(), 0, 0..self.instances.len());
     }
-    pub fn update_instance_buffer(
-        &mut self,
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        instances: Vec<KeyInstance>,
-    ) {
+    pub fn update_instance_buffer(&mut self, gpu: &mut Gpu, instances: Vec<KeyInstance>) {
         self.instances.data = instances;
-        self.instances.update(command_encoder, device);
+        self.instances.update(&mut gpu.encoder, &gpu.device);
     }
     pub fn update_notes_state(
         &mut self,

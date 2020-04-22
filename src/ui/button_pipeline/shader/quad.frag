@@ -30,7 +30,7 @@ void main() {
         col = vec3(0.05);
     }
 
-    if(pos.y > size.y - 10.0){
+    if(pos.y > size.y - 8.0){
         col = color;
         alpha = 1.0;
     }

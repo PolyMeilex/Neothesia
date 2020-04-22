@@ -1,6 +1,6 @@
 use super::NoteInstance;
 
-use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
 
 use crate::MainState;
 
@@ -16,19 +16,24 @@ pub struct NotesPipeline {
 }
 
 impl<'a> NotesPipeline {
-    pub fn new(state: &MainState, device: &wgpu::Device, midi: &lib_midi::Midi) -> Self {
-        let vs_module = shader::create_module(device, include_bytes!("shader/quad.vert.spv"));
-        let fs_module = shader::create_module(device, include_bytes!("shader/quad.frag.spv"));
+    pub fn new(state: &MainState, gpu: &Gpu, midi: &lib_midi::Midi) -> Self {
+        let vs_module = shader::create_module(&gpu.device, include_bytes!("shader/quad.vert.spv"));
+        let fs_module = shader::create_module(&gpu.device, include_bytes!("shader/quad.frag.spv"));
 
-        let time_uniform = Uniform::new(device, TimeUniform::default(), wgpu::ShaderStage::VERTEX);
+        let time_uniform = Uniform::new(
+            &gpu.device,
+            TimeUniform::default(),
+            wgpu::ShaderStage::VERTEX,
+        );
 
         let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                bind_group_layouts: &[
-                    &state.transform_uniform.bind_group_layout,
-                    &time_uniform.bind_group_layout,
-                ],
-            });
+            &gpu.device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    bind_group_layouts: &[
+                        &state.transform_uniform.bind_group_layout,
+                        &time_uniform.bind_group_layout,
+                    ],
+                });
 
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
             .fragment_stage(&fs_module)
@@ -36,11 +41,11 @@ impl<'a> NotesPipeline {
                 SimpleQuad::vertex_buffer_descriptor(),
                 NoteInstance::vertex_buffer_descriptor(),
             ])
-            .build(device);
+            .build(&gpu.device);
 
-        let simple_quad = SimpleQuad::new(device);
+        let simple_quad = SimpleQuad::new(&gpu.device);
 
-        let instances = Instances::new(device, midi.merged_track.notes.len());
+        let instances = Instances::new(&gpu.device, midi.merged_track.notes.len());
 
         Self {
             render_pipeline,
@@ -64,23 +69,13 @@ impl<'a> NotesPipeline {
 
         render_pass.draw_indexed(0..SimpleQuad::indices_len(), 0, 0..self.instances.len());
     }
-    pub fn update_instance_buffer(
-        &mut self,
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        instances: Vec<NoteInstance>,
-    ) {
+    pub fn update_instance_buffer(&mut self, gpu: &mut Gpu, instances: Vec<NoteInstance>) {
         self.instances.data = instances;
-        self.instances.update(command_encoder, device);
+        self.instances.update(&mut gpu.encoder, &gpu.device);
     }
-    pub fn update_time(
-        &mut self,
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        time: f32,
-    ) {
+    pub fn update_time(&mut self, gpu: &mut Gpu, time: f32) {
         self.time_uniform.data.time = time;
-        self.time_uniform.update(command_encoder, device);
+        self.time_uniform.update(&mut gpu.encoder, &gpu.device);
     }
 }
 

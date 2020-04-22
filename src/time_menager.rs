@@ -1,12 +1,14 @@
 pub struct TimeMenager {
     fps: Fps,
     timer: Option<Timer>,
+    pub last_time: std::time::Instant,
 }
 impl TimeMenager {
     pub fn new() -> Self {
         Self {
             fps: Fps::new(),
             timer: None,
+            last_time: std::time::Instant::now(),
         }
     }
     pub fn start_timer(&mut self) {
@@ -22,6 +24,15 @@ impl TimeMenager {
             timer.paused = false;
         }
     }
+    pub fn pause_resume_timer(&mut self) {
+        if let Some(timer) = &mut self.timer {
+            if timer.paused {
+                timer.paused = false;
+            } else {
+                timer.paused = true;
+            }
+        }
+    }
     pub fn timer_get_elapsed(&mut self) -> Option<f32> {
         if let Some(timer) = &mut self.timer {
             Some(timer.time_elapsed as f32 / 1000000.0)
@@ -33,6 +44,7 @@ impl TimeMenager {
         self.timer = None;
     }
     pub fn update(&mut self) {
+        self.last_time = std::time::Instant::now();
         self.fps.update();
         if let Some(timer) = &mut self.timer {
             timer.update();

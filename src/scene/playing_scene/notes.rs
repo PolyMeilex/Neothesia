@@ -1,5 +1,5 @@
 use super::notes_pipeline::{NoteInstance, NotesPipeline};
-use crate::wgpu_jumpstart::gpu::Gpu;
+use crate::wgpu_jumpstart::Gpu;
 use crate::MainState;
 
 pub struct Notes {
@@ -8,7 +8,7 @@ pub struct Notes {
 
 impl Notes {
     pub fn new(state: &MainState, gpu: &Gpu, midi: &lib_midi::Midi) -> Self {
-        let notes_pipeline = NotesPipeline::new(state, &gpu.device, midi);
+        let notes_pipeline = NotesPipeline::new(state, gpu, midi);
         Self { notes_pipeline }
     }
     pub fn resize(
@@ -75,12 +75,10 @@ impl Notes {
             log::warn!("Midi Wider Than 88 Keys!");
         }
 
-        self.notes_pipeline
-            .update_instance_buffer(&mut gpu.encoder, &gpu.device, instances);
+        self.notes_pipeline.update_instance_buffer(gpu, instances);
     }
     pub fn update(&mut self, gpu: &mut Gpu, time: f32) {
-        self.notes_pipeline
-            .update_time(&mut gpu.encoder, &gpu.device, time);
+        self.notes_pipeline.update_time(gpu, time);
     }
     pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         let encoder = &mut gpu.encoder;

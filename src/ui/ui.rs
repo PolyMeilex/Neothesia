@@ -1,7 +1,7 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use super::button_pipeline::{ButtonInstance, ButtonPipeline};
-use crate::wgpu_jumpstart::gpu::Gpu;
+use crate::wgpu_jumpstart::{Gpu, Window};
 use crate::MainState;
 
 pub struct Ui<'a> {
@@ -11,12 +11,13 @@ pub struct Ui<'a> {
 }
 
 impl<'a> Ui<'a> {
-    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
+    pub fn new(state: &MainState, gpu: &mut Gpu, window: &Window) -> Self {
         let rectangle_pipeline = ButtonPipeline::new(state, &gpu.device);
         let font: &[u8] = include_bytes!("./Roboto-Regular.ttf");
         let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
             .expect("Load font")
             .build(&gpu.device, wgpu::TextureFormat::Bgra8Unorm);
+
         Self {
             rectangle_pipeline,
             glyph_brush,
@@ -37,7 +38,13 @@ impl<'a> Ui<'a> {
             self.queue.clear_rectangles(),
         );
     }
-    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(
+        &mut self,
+        state: &mut MainState,
+        gpu: &mut Gpu,
+        window: &Window,
+        frame: &wgpu::SwapChainOutput,
+    ) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {

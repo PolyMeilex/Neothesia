@@ -1,7 +1,8 @@
 use crate::{
+    midi_device::{MidiCInfo, MidiDevicesMenager},
     scene::{Scene, SceneEvent, SceneType},
     ui::Ui,
-    wgpu_jumpstart::gpu::Gpu,
+    wgpu_jumpstart::Gpu,
     MainState,
 };
 
@@ -10,23 +11,28 @@ use std::sync::mpsc;
 use std::thread;
 
 pub enum Event {
-    MidiOpen(lib_midi::Midi),
+    MidiOpen(lib_midi::Midi, usize),
 }
 
 pub struct MenuScene {
     aysnc_job: async_job::Job<async_job::Event>,
     bg_pipeline: BgPipeline,
+    midi_device_select: MidiDeviceSelect,
+    file: Option<lib_midi::Midi>,
 }
 
 impl MenuScene {
     pub fn new(gpu: &mut Gpu, state: &mut MainState) -> Self {
         let (sender, receiver) = mpsc::channel();
 
+        let midi_device_select = MidiDeviceSelect::new();
         state.time_menager.start_timer();
 
         Self {
             aysnc_job: async_job::Job::new(receiver, sender),
-            bg_pipeline: BgPipeline::new(&gpu.device),
+            bg_pipeline: BgPipeline::new(&gpu),
+            midi_device_select,
+            file: None,
         }
     }
 }
@@ -39,8 +45,7 @@ impl Scene for MenuScene {
         if let Some(time) = state.time_menager.timer_get_elapsed() {
             let time = time as f32 / 1000.0;
 
-            self.bg_pipeline
-                .update_time(&mut gpu.encoder, &gpu.device, time);
+            self.bg_pipeline.update_time(gpu, time);
         }
         // Listen To Async Job Finish Event
         if self.aysnc_job.working {
@@ -48,8 +53,14 @@ impl Scene for MenuScene {
                 self.aysnc_job.working = false;
 
                 match event {
-                    async_job::Event::MidiLoaded(midi) => {
-                        return SceneEvent::MainMenu(Event::MidiOpen(midi));
+                    async_job::Event::MidiLoaded(mut midi) => {
+                        midi.merged_track.notes = midi
+                            .merged_track
+                            .notes
+                            .into_iter()
+                            .filter(|n| n.ch != 9)
+                            .collect();
+                        self.file = Some(midi);
                     }
                     async_job::Event::Err(e) => log::error!("Midi Load: {}", e),
                 }
@@ -63,6 +74,7 @@ impl Scene for MenuScene {
             "Select File",
             (state.window_size.0 / 2.0, state.window_size.1 / 2.0 - 100.0),
             (500.0, 100.0),
+            false,
         ) {
             let tx = self.aysnc_job.sender.clone();
 
@@ -87,9 +99,31 @@ impl Scene for MenuScene {
             });
         }
 
+        self.midi_device_select.queue(ui, &state);
+
+        if self.file.is_some() {
+            if button::queue(
+                state,
+                ui,
+                "Play",
+                (
+                    state.window_size.0 - 250.0 / 2.0 - 10.0,
+                    state.window_size.1 - 80.0 / 2.0 - 10.0,
+                ),
+                (250.0, 80.0),
+                false,
+            ) {
+                let file = std::mem::replace(&mut self.file, None);
+                return SceneEvent::MainMenu(Event::MidiOpen(
+                    file.unwrap(),
+                    self.midi_device_select.selected_id,
+                ));
+            }
+        }
+
         SceneEvent::None
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    fn render(&mut self, _state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -108,6 +142,81 @@ impl Scene for MenuScene {
                 depth_stencil_attachment: None,
             });
             self.bg_pipeline.render(&mut render_pass);
+        }
+    }
+}
+
+struct MidiDeviceSelect {
+    midi_device_menager: MidiDevicesMenager,
+    midi_outs: Vec<MidiCInfo>,
+    pub selected_id: usize,
+}
+impl MidiDeviceSelect {
+    fn new() -> Self {
+        let midi_device_menager = MidiDevicesMenager::new();
+        Self {
+            midi_outs: midi_device_menager.get_outs(),
+            midi_device_menager,
+            selected_id: 0,
+        }
+    }
+    fn next(&mut self) {
+        self.selected_id += 1;
+    }
+    fn prev(&mut self) {
+        self.selected_id -= 1;
+    }
+    fn update_outs_list(&mut self) {
+        self.midi_outs = self.midi_device_menager.get_outs();
+    }
+    fn queue(&mut self, ui: &mut Ui, state: &MainState) {
+        self.update_outs_list();
+
+        let text = if self.midi_outs.len() > self.selected_id {
+            &self.midi_outs[self.selected_id].name
+        } else {
+            "No Midi Devices"
+        };
+
+        ui.queue_text(wgpu_glyph::Section {
+            text,
+            color: [1.0, 1.0, 1.0, 1.0],
+            screen_position: (state.window_size.0 / 2.0, state.window_size.1 / 2.0 + 25.0),
+            scale: wgpu_glyph::Scale::uniform(40.0),
+            layout: wgpu_glyph::Layout::Wrap {
+                line_breaker: Default::default(),
+                h_align: wgpu_glyph::HorizontalAlign::Center,
+                v_align: wgpu_glyph::VerticalAlign::Center,
+            },
+            ..Default::default()
+        });
+
+        if button::queue(
+            state,
+            ui,
+            "<",
+            (
+                state.window_size.0 / 2.0 - 250.0 / 2.0,
+                state.window_size.1 / 2.0 + 100.0,
+            ),
+            (250.0, 50.0),
+            !(self.selected_id > 0),
+        ) {
+            self.prev();
+        }
+
+        if button::queue(
+            state,
+            ui,
+            ">",
+            (
+                state.window_size.0 / 2.0 + 250.0 / 2.01,
+                state.window_size.1 / 2.0 + 100.0,
+            ),
+            (250.0, 50.0),
+            !(self.selected_id + 1 < self.midi_outs.len()),
+        ) {
+            self.next();
         }
     }
 }
@@ -145,6 +254,7 @@ mod button {
         text: &str,
         pos: (f32, f32),
         size: (f32, f32),
+        disabled: bool,
     ) -> bool {
         let (x, y) = pos;
         let (w, h) = size;
@@ -175,7 +285,11 @@ mod button {
 
         ui.queue_text(wgpu_glyph::Section {
             text: text,
-            color: [1.0, 1.0, 1.0, 1.0],
+            color: if !disabled {
+                [1.0, 1.0, 1.0, 1.0]
+            } else {
+                [0.3, 0.3, 0.3, 1.0]
+            },
             screen_position: (x, y),
             scale: wgpu_glyph::Scale::uniform(40.0),
             layout: wgpu_glyph::Layout::Wrap {
@@ -186,7 +300,7 @@ mod button {
             ..Default::default()
         });
 
-        if is_hover && state.mouse_clicked {
+        if is_hover && state.mouse_clicked && !disabled {
             true
         } else {
             false

@@ -14,7 +14,7 @@ impl Surface {
 
         let swap_chain_descriptor = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-            format: wgpu::TextureFormat::Bgra8Unorm,
+            format: super::TEXTURE_FORMAT,
             width: size.width,
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,

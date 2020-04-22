@@ -1,5 +1,5 @@
 mod wgpu_jumpstart;
-use wgpu_jumpstart::{gpu::Gpu, window::Window, Uniform};
+use wgpu_jumpstart::{Gpu, Uniform, Window};
 
 mod ui;
 use ui::Ui;
@@ -17,7 +17,7 @@ use transform_uniform::TransformUniform;
 
 use wgpu_glyph::Section;
 use winit::{
-    event::{Event, WindowEvent},
+    event::{Event, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
@@ -68,6 +68,7 @@ impl MainState {
 }
 
 struct App<'a> {
+    pub window: Window,
     pub gpu: Gpu,
     pub ui: Ui<'a>,
     pub main_state: MainState,
@@ -75,20 +76,28 @@ struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    fn new(mut gpu: Gpu) -> Self {
+    fn new(mut gpu: Gpu, window: Window) -> Self {
         let mut main_state = MainState::new(&gpu);
-        let ui = Ui::new(&main_state, &mut gpu);
+
+        let ui = Ui::new(&main_state, &mut gpu, &window);
         let game_scene: Box<dyn Scene> =
             Box::new(scene::menu_scene::MenuScene::new(&mut gpu, &mut main_state));
 
         Self {
+            window,
             gpu,
             ui,
             main_state,
             game_scene,
         }
     }
-    fn resize(&mut self, w: f32, h: f32) {
+    fn resize(&mut self) {
+        self.window
+            .surface
+            .resize(&mut self.gpu, self.window.physical_size());
+
+        let (w, h) = self.window.size();
+
         self.main_state.resize(&mut self.gpu, w, h);
         self.game_scene.resize(&mut self.main_state, &mut self.gpu);
         self.ui.resize(&self.main_state, &mut self.gpu);
@@ -107,6 +116,9 @@ impl<'a> App<'a> {
                 self.game_scene = Box::new(state);
             }
         }
+    }
+    fn key_released(&mut self, key: VirtualKeyCode) {
+        self.game_scene.key_released(&mut self.main_state, key);
     }
     fn render_fps(&mut self) {
         self.ui.queue_text(Section {
@@ -141,10 +153,10 @@ impl<'a> App<'a> {
                 depth_stencil_attachment: None,
             });
     }
-    fn render(&mut self, window: &mut Window) {
+    fn render(&mut self) {
         self.main_state.time_menager.update();
 
-        let frame = window.surface.get_next_texture();
+        let frame = self.window.surface.get_next_texture();
 
         self.clear(&frame);
 
@@ -154,11 +166,12 @@ impl<'a> App<'a> {
 
         match event {
             scene::SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::MidiOpen(midi) => {
+                scene::menu_scene::Event::MidiOpen(midi, device_id) => {
                     let mut state = scene::playing_scene::PlayingScene::new(
                         &mut self.gpu,
                         &mut self.main_state,
                         midi,
+                        device_id,
                     );
                     state.resize(&mut self.main_state, &mut self.gpu);
 
@@ -172,7 +185,9 @@ impl<'a> App<'a> {
             .render(&mut self.main_state, &mut self.gpu, &frame);
 
         self.render_fps();
-        self.ui.render(&self.main_state, &mut self.gpu, &frame);
+
+        self.ui
+            .render(&mut self.main_state, &mut self.gpu, &self.window, &frame);
 
         self.gpu.submit();
 
@@ -186,22 +201,20 @@ async fn main_async() {
     let event_loop = EventLoop::new();
 
     let builder = winit::window::WindowBuilder::new().with_title("Neothesia");
-    let (mut window, gpu) = Window::new(builder, (1080, 720), &event_loop).await;
-    let mut app = App::new(gpu);
-    app.resize(window.width, window.height);
+    let (window, gpu) = Window::new(builder, (1080, 720), &event_loop).await;
+    let mut app = App::new(gpu, window);
+    app.resize();
     app.gpu.submit();
 
-    event_loop.run(move |event, _, mut control_flow| match event {
-        Event::MainEventsCleared => window.request_redraw(),
+    event_loop.run(move |event, _, mut control_flow| match &event {
+        Event::MainEventsCleared => app.window.request_redraw(),
         Event::WindowEvent { event, .. } => match event {
             WindowEvent::Resized(_) => {
-                window.resize(&mut app.gpu);
-                app.resize(window.width, window.height);
+                app.resize();
                 app.gpu.submit();
             }
             WindowEvent::CursorMoved { position, .. } => {
-                let dpi = &window.dpi;
-
+                let dpi = &app.window.dpi;
                 let x = (position.x / dpi).round();
                 let y = (position.y / dpi).round();
 
@@ -220,6 +233,9 @@ async fn main_async() {
                         Some(winit::event::VirtualKeyCode::Escape) => {
                             app.go_back(&mut control_flow);
                         }
+                        Some(key) => {
+                            app.key_released(key);
+                        }
                         _ => {}
                     }
                 }
@@ -228,7 +244,7 @@ async fn main_async() {
             _ => {}
         },
         Event::RedrawRequested(_) => {
-            app.render(&mut window);
+            app.render();
         }
         _ => {}
     });

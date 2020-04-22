@@ -1,13 +1,13 @@
 use midir::{MidiOutput, MidiOutputConnection};
 
-pub struct MidiDevice {
+pub struct MidiDevicesMenager {
   midi_out: Option<MidiOutput>,
   midi_in: Option<MidiOutput>,
   midi_out_c: Option<MidiOutputConnection>,
   midi_in_c: Option<MidiOutputConnection>,
 }
 
-impl MidiDevice {
+impl MidiDevicesMenager {
   pub fn new() -> Self {
     let midi_out = MidiOutput::new("midi_out").ok();
     let midi_in = MidiOutput::new("midi_in").ok();

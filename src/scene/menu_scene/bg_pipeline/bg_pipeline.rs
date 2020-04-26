@@ -1,4 +1,4 @@
-use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{shader, Gpu, RenderPipelineBuilder, SimpleQuad, Uniform};
 use zerocopy::AsBytes;
 
 pub struct BgPipeline {

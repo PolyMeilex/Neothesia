@@ -9,7 +9,7 @@ pub trait Scene {
     fn resize(&mut self, _state: &mut MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
     fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
-    fn key_released(&mut self, _state: &mut MainState, key: VirtualKeyCode) {}
+    fn key_released(&mut self, _state: &mut MainState, _key: VirtualKeyCode) {}
 }
 
 pub enum SceneType {

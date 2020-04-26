@@ -30,6 +30,19 @@ impl Window {
             .build(event_loop)
             .unwrap();
 
+        #[cfg(target_arch = "wasm32")]
+        {
+            use winit::platform::web::WindowExtWebSys;
+            web_sys::window()
+                .and_then(|win| win.document())
+                .and_then(|doc| doc.body())
+                .and_then(|body| {
+                    body.append_child(&web_sys::Element::from(winit_window.canvas()))
+                        .ok()
+                })
+                .expect("couldn't append canvas to document body");
+        }
+
         let (gpu, surface) = Gpu::for_window(&winit_window).await;
 
         let size = winit_window.inner_size();
@@ -51,13 +64,6 @@ impl Window {
     }
     pub fn physical_size(&self) -> winit::dpi::PhysicalSize<u32> {
         self.winit_window.inner_size()
-    }
-    pub fn resize(&mut self, gpu: &mut Gpu) {
-        let new_size = self.winit_window.inner_size();
-        self.surface.resize(gpu, new_size);
-
-        self.width = new_size.width as f32;
-        self.height = new_size.height as f32;
     }
     pub fn request_redraw(&self) {
         self.winit_window.request_redraw();

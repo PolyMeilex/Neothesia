@@ -89,7 +89,7 @@ impl Scene for MenuScene {
                         tx.send(async_job::Event::MidiLoaded(midi))
                             .expect("tx send failed in midi loader");
                     } else if let Err(e) = midi {
-                        tx.send(async_job::Event::Err(format!("{}", e)))
+                        tx.send(async_job::Event::Err(e))
                             .expect("tx send failed in midi loader");
                     }
                 } else {
@@ -101,8 +101,8 @@ impl Scene for MenuScene {
 
         self.midi_device_select.queue(ui, &state);
 
-        if self.file.is_some() {
-            if button::queue(
+        if self.file.is_some()
+            && button::queue(
                 state,
                 ui,
                 "Play",
@@ -112,13 +112,13 @@ impl Scene for MenuScene {
                 ),
                 (250.0, 80.0),
                 false,
-            ) {
-                let file = std::mem::replace(&mut self.file, None);
-                return SceneEvent::MainMenu(Event::MidiOpen(
-                    file.unwrap(),
-                    self.midi_device_select.selected_id,
-                ));
-            }
+            )
+        {
+            let file = std::mem::replace(&mut self.file, None);
+            return SceneEvent::MainMenu(Event::MidiOpen(
+                file.unwrap(),
+                self.midi_device_select.selected_id,
+            ));
         }
 
         SceneEvent::None
@@ -200,7 +200,7 @@ impl MidiDeviceSelect {
                 state.window_size.1 / 2.0 + 100.0,
             ),
             (250.0, 50.0),
-            !(self.selected_id > 0),
+            self.selected_id == 0,
         ) {
             self.prev();
         }
@@ -214,7 +214,7 @@ impl MidiDeviceSelect {
                 state.window_size.1 / 2.0 + 100.0,
             ),
             (250.0, 50.0),
-            !(self.selected_id + 1 < self.midi_outs.len()),
+            self.selected_id + 1 >= self.midi_outs.len(),
         ) {
             self.next();
         }
@@ -269,10 +269,10 @@ mod button {
 
         let color = if is_hover {
             // [121.0 / 255.0, 85.0 / 255.0, 195.0 / 255.0]
-            [56.0 / 255.0, 145.0 / 255.0, 255.0 / 255.0]
+            [56.0 / 255.0, 145.0 / 255.0, 1.0]
         } else {
             // [111.0 / 255.0, 75.0 / 255.0, 185.0 / 255.0]
-            [160.0 / 255.0, 81.0 / 255.0, 232558.0 / 255.0]
+            [160.0 / 255.0, 81.0 / 255.0, 232_558.0 / 255.0]
         };
 
         ui.queue_rectangle(ButtonInstance {
@@ -284,7 +284,7 @@ mod button {
         });
 
         ui.queue_text(wgpu_glyph::Section {
-            text: text,
+            text,
             color: if !disabled {
                 [1.0, 1.0, 1.0, 1.0]
             } else {
@@ -300,10 +300,6 @@ mod button {
             ..Default::default()
         });
 
-        if is_hover && state.mouse_clicked && !disabled {
-            true
-        } else {
-            false
-        }
+        is_hover && state.mouse_clicked && !disabled
     }
 }

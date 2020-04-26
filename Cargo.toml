@@ -8,8 +8,7 @@ edition = "2018"
 zerocopy = "0.3.0"
 futures = "0.3.4"
 
-# TODO: Update to 0.22 after https://github.com/Gekkio/imgui-rs/pull/309
-winit = "0.21.0"
+winit = "0.22.1"
 
 wgpu = "0.5.0"
 wgpu_glyph = "0.8.0"

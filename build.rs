@@ -1,5 +1,4 @@
-use std::fs::{self, DirEntry, File};
-use std::io;
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::path::Path;
 

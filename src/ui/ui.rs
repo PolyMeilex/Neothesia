@@ -1,7 +1,7 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use super::button_pipeline::{ButtonInstance, ButtonPipeline};
-use crate::wgpu_jumpstart::{Gpu, Window};
+use crate::wgpu_jumpstart::Gpu;
 use crate::MainState;
 
 pub struct Ui<'a> {
@@ -11,7 +11,7 @@ pub struct Ui<'a> {
 }
 
 impl<'a> Ui<'a> {
-    pub fn new(state: &MainState, gpu: &mut Gpu, window: &Window) -> Self {
+    pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
         let rectangle_pipeline = ButtonPipeline::new(state, &gpu.device);
         let font: &[u8] = include_bytes!("./Roboto-Regular.ttf");
         let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
@@ -30,7 +30,7 @@ impl<'a> Ui<'a> {
     pub fn queue_text(&mut self, section: Section) {
         self.glyph_brush.queue(section);
     }
-    pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {}
+    pub fn resize(&mut self, _state: &crate::MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, gpu: &mut Gpu) {
         self.rectangle_pipeline.update_instance_buffer(
             &mut gpu.encoder,
@@ -38,13 +38,7 @@ impl<'a> Ui<'a> {
             self.queue.clear_rectangles(),
         );
     }
-    pub fn render(
-        &mut self,
-        state: &mut MainState,
-        gpu: &mut Gpu,
-        window: &Window,
-        frame: &wgpu::SwapChainOutput,
-    ) {
+    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {

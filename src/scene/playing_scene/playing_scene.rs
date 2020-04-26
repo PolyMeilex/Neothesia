@@ -110,11 +110,9 @@ impl Player {
                     self.active_notes.insert(n.id, n.note);
                     midi_out.send(&[0x90, n.note, n.vel]);
                 }
-            } else {
-                if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
-                    self.active_notes.remove(&n.id);
-                    midi_out.send(&[0x80, n.note, n.vel]);
-                }
+            } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
+                self.active_notes.remove(&n.id);
+                midi_out.send(&[0x80, n.note, n.vel]);
             }
         }
 

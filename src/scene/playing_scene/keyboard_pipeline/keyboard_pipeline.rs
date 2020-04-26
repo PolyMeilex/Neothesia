@@ -1,6 +1,6 @@
 use super::{KeyInstance, KeyStateInstance};
 
-use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad};
 
 use crate::MainState;
 

@@ -15,6 +15,9 @@ mod midi_device;
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 
+#[cfg(target_arch = "wasm32")]
+mod web_wrappers;
+
 use wgpu_glyph::Section;
 use winit::{
     event::{Event, VirtualKeyCode, WindowEvent},
@@ -79,7 +82,7 @@ impl<'a> App<'a> {
     fn new(mut gpu: Gpu, window: Window) -> Self {
         let mut main_state = MainState::new(&gpu);
 
-        let ui = Ui::new(&main_state, &mut gpu, &window);
+        let ui = Ui::new(&main_state, &mut gpu);
         let game_scene: Box<dyn Scene> =
             Box::new(scene::menu_scene::MenuScene::new(&mut gpu, &mut main_state));
 
@@ -186,8 +189,7 @@ impl<'a> App<'a> {
 
         self.render_fps();
 
-        self.ui
-            .render(&mut self.main_state, &mut self.gpu, &self.window, &frame);
+        self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
         self.gpu.submit();
 
@@ -196,8 +198,6 @@ impl<'a> App<'a> {
 }
 
 async fn main_async() {
-    env_logger::init();
-
     let event_loop = EventLoop::new();
 
     let builder = winit::window::WindowBuilder::new().with_title("Neothesia");
@@ -251,5 +251,17 @@ async fn main_async() {
 }
 
 fn main() {
-    futures::executor::block_on(main_async());
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        env_logger::init();
+        futures::executor::block_on(main_async());
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_log::init().expect("could not initialize logger");
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+        wasm_bindgen_futures::spawn_local(main_async());
+    }
 }

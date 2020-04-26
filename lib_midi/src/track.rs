@@ -1,12 +1,7 @@
 use {
     crate::TracksParser,
+    midly::{Event, EventKind, MetaMessage, MidiMessage},
     std::collections::HashMap,
-    midly::{
-        Event,
-        EventKind,
-        MetaMessage,
-        MidiMessage
-    }
 };
 
 #[derive(Debug, Clone)]
@@ -39,7 +34,6 @@ impl MidiTrack {
     pub fn new(track: &[Event], track_id: usize) -> Self {
         let mut tempo = 500_000; // 120 bpm
 
-
         let mut has_tempo = false;
         let mut tempo_events = Vec::new();
 
@@ -59,7 +53,6 @@ impl MidiTrack {
                     });
                 }
             };
-
         }
 
         Self {
@@ -108,7 +101,6 @@ impl MidiTrack {
         }
 
         for event in events.iter() {
-
             time_in_units += event.delta.as_int() as f32;
 
             if let EventKind::Midi { channel, message } = &event.kind {
@@ -116,31 +108,34 @@ impl MidiTrack {
                     MidiMessage::NoteOn { key, vel } => {
                         let key = key.as_int();
                         let vel = vel.as_int();
-                        if vel > 0 {
-                            let k = key;
 
-                            match current_notes.entry(k) {
-                                std::collections::hash_map::Entry::Occupied(_e) => {
-                                    end_note!(k=>k);
-                                }
-                                std::collections::hash_map::Entry::Vacant(_e) => {
-                                    current_notes.insert(
-                                        k,
-                                        Note {
-                                            time_in_units,
-                                            vel: vel,
-                                            channel: channel.as_int(),
-                                        },
-                                    );
+                        match vel.cmp(&0) {
+                            std::cmp::Ordering::Greater => {
+                                let k = key;
+
+                                match current_notes.entry(k) {
+                                    std::collections::hash_map::Entry::Occupied(_e) => {
+                                        end_note!(k=>k);
+                                    }
+                                    std::collections::hash_map::Entry::Vacant(_e) => {
+                                        current_notes.insert(
+                                            k,
+                                            Note {
+                                                time_in_units,
+                                                vel,
+                                                channel: channel.as_int(),
+                                            },
+                                        );
+                                    }
                                 }
                             }
-
-                        } else if vel == 0 {
-                            end_note!(k=>key);
+                            std::cmp::Ordering::Equal => {
+                                end_note!(k=>key);
+                            }
+                            _ => {}
                         }
-
                     }
-                    MidiMessage::NoteOff { key, vel } => {
+                    MidiMessage::NoteOff { key, .. } => {
                         let key = key.as_int();
 
                         end_note!(k=>key);

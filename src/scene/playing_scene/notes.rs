@@ -15,7 +15,7 @@ impl Notes {
         &mut self,
         state: &crate::MainState,
         gpu: &mut Gpu,
-        keys: &Vec<super::keyboard::Key>,
+        keys: &[super::keyboard::Key],
         midi: &lib_midi::Midi,
     ) {
         let mut instances = Vec::new();
@@ -38,8 +38,8 @@ impl Notes {
                 // ];
                 let colors: [[[f32; 3]; 2]; 2] = [
                     [
-                        [93.0 / 255.0, 188.0 / 255.0, 255.0 / 255.0],
-                        [48.0 / 255.0, 124.0 / 255.0, 255.0 / 255.0],
+                        [93.0 / 255.0, 188.0 / 255.0, 1.0],
+                        [48.0 / 255.0, 124.0 / 255.0, 1.0],
                         // [49.0 / 255.0, 151.0 / 255.0, 255.0 / 255.0],
                         // [5.0 / 255.0, 92.0 / 255.0, 182.0 / 255.0],
                     ],

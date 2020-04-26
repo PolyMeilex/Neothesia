@@ -1,6 +1,6 @@
 use super::ButtonInstance;
 
-use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad};
 
 use crate::MainState;
 
@@ -31,7 +31,7 @@ impl<'a> ButtonPipeline {
             .build(device);
 
         let simple_quad = SimpleQuad::new(device);
-        let instances = Instances::new(device, 100000);
+        let instances = Instances::new(device, 100_000);
 
         Self {
             render_pipeline,

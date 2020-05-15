@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install alsa
+        run: sudo apt-get install libasound2-dev
       - name: Build
         run: cargo build --release --verbose
       - name: Run tests
@@ -27,3 +29,7 @@ jobs:
         run: cargo build --release --verbose
       - name: Run tests
         run: cargo test --verbose
+      - uses: actions/upload-artifact@v2
+        with:
+          name: macos-artifact
+          path: target/release/neothesia

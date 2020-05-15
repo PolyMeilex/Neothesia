@@ -28,7 +28,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: windows-artifact
-          path: target/release/neothesia
+          path: target/release/neothesia.exe
   build_macos:
     runs-on: macos-latest
     steps:

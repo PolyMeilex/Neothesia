@@ -1,5 +1,5 @@
 use crate::{
-    midi_device::{MidiCInfo, MidiDevicesMenager},
+    midi_device::{MidiDevicesMenager, MidiPortInfo},
     scene::{Scene, SceneEvent, SceneType},
     ui::Ui,
     wgpu_jumpstart::Gpu,
@@ -11,7 +11,7 @@ use std::sync::mpsc;
 use std::thread;
 
 pub enum Event {
-    MidiOpen(lib_midi::Midi, usize),
+    MidiOpen(lib_midi::Midi, MidiPortInfo),
 }
 
 pub struct MenuScene {
@@ -115,10 +115,8 @@ impl Scene for MenuScene {
             )
         {
             let file = std::mem::replace(&mut self.file, None);
-            return SceneEvent::MainMenu(Event::MidiOpen(
-                file.unwrap(),
-                self.midi_device_select.selected_id,
-            ));
+            let select = std::mem::replace(&mut self.midi_device_select, MidiDeviceSelect::new());
+            return SceneEvent::MainMenu(Event::MidiOpen(file.unwrap(), select.get_selected()));
         }
 
         SceneEvent::None
@@ -148,7 +146,7 @@ impl Scene for MenuScene {
 
 struct MidiDeviceSelect {
     midi_device_menager: MidiDevicesMenager,
-    midi_outs: Vec<MidiCInfo>,
+    midi_outs: Vec<MidiPortInfo>,
     pub selected_id: usize,
 }
 impl MidiDeviceSelect {
@@ -160,6 +158,9 @@ impl MidiDeviceSelect {
             selected_id: 0,
         }
     }
+    fn get_selected(mut self) -> MidiPortInfo {
+        self.midi_outs.remove(self.selected_id)
+    }
     fn next(&mut self) {
         self.selected_id += 1;
     }
@@ -168,6 +169,7 @@ impl MidiDeviceSelect {
     }
     fn update_outs_list(&mut self) {
         self.midi_outs = self.midi_device_menager.get_outs();
+        log::info!("{:?}", self.midi_outs);
     }
     fn queue(&mut self, ui: &mut Ui, state: &MainState) {
         self.update_outs_list();

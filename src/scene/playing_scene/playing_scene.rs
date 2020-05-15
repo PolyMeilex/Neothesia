@@ -20,7 +20,7 @@ impl PlayingScene {
         gpu: &mut Gpu,
         state: &mut MainState,
         midi: lib_midi::Midi,
-        device_id: usize,
+        port: MidiPortInfo,
     ) -> Self {
         let piano_keyboard = PianoKeyboard::new(state, &gpu);
         let notes = Notes::new(state, &gpu, &midi);
@@ -31,7 +31,7 @@ impl PlayingScene {
             piano_keyboard,
             notes,
             midi,
-            player: Player::new(device_id),
+            player: Player::new(port),
         }
     }
 }
@@ -70,6 +70,7 @@ impl Scene for PlayingScene {
     }
 }
 
+use crate::midi_device::MidiPortInfo;
 use std::collections::HashMap;
 struct Player {
     midi_device: crate::midi_device::MidiDevicesMenager,
@@ -77,12 +78,12 @@ struct Player {
 }
 
 impl Player {
-    fn new(device_id: usize) -> Self {
+    fn new(port: MidiPortInfo) -> Self {
         let mut midi_device = crate::midi_device::MidiDevicesMenager::new();
 
         log::info!("{:?}", midi_device.get_outs());
 
-        midi_device.connect_out(device_id);
+        midi_device.connect_out(port);
         Self {
             midi_device,
             active_notes: HashMap::new(),

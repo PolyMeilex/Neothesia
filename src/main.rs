@@ -169,12 +169,12 @@ impl<'a> App<'a> {
 
         match event {
             scene::SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::MidiOpen(midi, device_id) => {
+                scene::menu_scene::Event::MidiOpen(midi, port) => {
                     let mut state = scene::playing_scene::PlayingScene::new(
                         &mut self.gpu,
                         &mut self.main_state,
                         midi,
-                        device_id,
+                        port,
                     );
                     state.resize(&mut self.main_state, &mut self.gpu);
 

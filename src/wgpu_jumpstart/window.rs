@@ -60,7 +60,7 @@ impl Window {
     }
     pub fn size(&self) -> (f32, f32) {
         let size = self.winit_window.inner_size();
-        (size.width as f32, size.height as f32)
+        (size.width as f32 / self.dpi as f32, size.height as f32 / self.dpi as f32)
     }
     pub fn physical_size(&self) -> winit::dpi::PhysicalSize<u32> {
         self.winit_window.inner_size()

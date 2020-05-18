@@ -114,7 +114,7 @@ impl Scene for MenuScene {
                     state.window_size.1 - 80.0 / 2.0 - 10.0,
                 ),
                 (250.0, 80.0),
-                false,
+                self.midi_device_select.midi_outs.is_empty(),
             )
         {
             let file = std::mem::replace(&mut self.file, None);

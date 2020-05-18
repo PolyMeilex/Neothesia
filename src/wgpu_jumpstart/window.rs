@@ -7,8 +7,8 @@ use winit::window::WindowBuilder;
 pub struct Window {
     pub surface: Surface,
     pub winit_window: winit::window::Window,
-    pub width: f32,
-    pub height: f32,
+    pub width: u32,
+    pub height: u32,
     pub dpi: f64,
 }
 
@@ -51,19 +51,30 @@ impl Window {
             Self {
                 surface,
                 winit_window,
-                width: size.width as f32,
-                height: size.height as f32,
+                width: size.width,
+                height: size.height,
                 dpi,
             },
             gpu,
         )
     }
     pub fn size(&self) -> (f32, f32) {
-        let size = self.winit_window.inner_size();
-        (size.width as f32 / self.dpi as f32, size.height as f32 / self.dpi as f32)
+        (
+            self.width as f32 / self.dpi as f32,
+            self.height as f32 / self.dpi as f32,
+        )
     }
     pub fn physical_size(&self) -> winit::dpi::PhysicalSize<u32> {
         self.winit_window.inner_size()
+    }
+    pub fn on_resize(&mut self, gpu: &mut Gpu) {
+        self.surface.resize(gpu, self.physical_size());
+        let size = self.winit_window.inner_size();
+        self.width = size.width;
+        self.height = size.height;
+    }
+    pub fn on_dpi(&mut self, dpi: f64) {
+        self.dpi = dpi;
     }
     pub fn request_redraw(&self) {
         self.winit_window.request_redraw();

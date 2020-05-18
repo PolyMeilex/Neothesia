@@ -97,10 +97,7 @@ impl<'a> App<'a> {
         }
     }
     fn resize(&mut self) {
-        self.window
-            .surface
-            .resize(&mut self.gpu, self.window.physical_size());
-
+        self.window.on_resize(&mut self.gpu);
         let (w, h) = self.window.size();
 
         self.main_state.resize(&mut self.gpu, w, h);
@@ -226,6 +223,11 @@ async fn main_async() {
             WindowEvent::Resized(_) => {
                 app.resize();
                 app.gpu.submit();
+            }
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                app.window.on_dpi(*scale_factor);
+                // TODO: Check if this update is needed;
+                app.resize();
             }
             WindowEvent::CursorMoved { position, .. } => {
                 let dpi = &app.window.dpi;

@@ -13,6 +13,8 @@ jobs:
         run: cargo build --release --verbose
       - name: Run tests
         run: cargo test --verbose
+      - name: Chmod +x
+        run: chmod +x target/release/neothesia
       - uses: actions/upload-artifact@v2
         with:
           name: ubuntu-artifact
@@ -37,6 +39,8 @@ jobs:
         run: cargo build --release --verbose
       - name: Run tests
         run: cargo test --verbose
+      - name: Chmod +x
+        run: chmod +x target/release/neothesia
       - uses: actions/upload-artifact@v2
         with:
           name: macos-artifact

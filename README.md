@@ -9,6 +9,6 @@ If you have any questions, feel free to join my Discord
 <img alt="Discord" src="https://img.shields.io/discord/273176778946641920?logo=discord&style=for-the-badge">
 
 ## First Working Prototype
-[![IMG](https://i.snag.gy/F8SCbv.jpg)](https://youtu.be/1fsii7kQDw0)
-[Video](https://youtu.be/1fsii7kQDw0)
-[![Video](https://i.imgur.com/t0IaVA1.png)](https://youtu.be/1fsii7kQDw0)
+[![IMG](https://i.snag.gy/F8SCbv.jpg)](https://youtu.be/ReE9nVuMCSE)
+[Video](https://youtu.be/ReE9nVuMCSE)
+[![Video](https://i.imgur.com/t0IaVA1.png)](https://youtu.be/ReE9nVuMCSE)

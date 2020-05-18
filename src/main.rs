@@ -121,6 +121,19 @@ impl<'a> App<'a> {
             }
         }
     }
+    fn mouse_input(
+        &mut self,
+        state: &winit::event::ElementState,
+        button: &winit::event::MouseButton,
+    ) {
+        if let winit::event::ElementState::Pressed = state {
+            self.main_state.update_mouse_pressed(true);
+        } else {
+            self.main_state.update_mouse_pressed(false);
+        }
+        self.game_scene.mouse_input(state, button);
+        log::info!("{:#?} {:#?}", state, button);
+    }
     fn key_released(&mut self, key: VirtualKeyCode) {
         self.game_scene.key_released(&mut self.main_state, key);
     }
@@ -221,13 +234,7 @@ async fn main_async() {
 
                 app.main_state.update_mouse_pos(x as f32, y as f32);
             }
-            WindowEvent::MouseInput { state, .. } => {
-                if let winit::event::ElementState::Pressed = state {
-                    app.main_state.update_mouse_pressed(true);
-                } else {
-                    app.main_state.update_mouse_pressed(false);
-                }
-            }
+            WindowEvent::MouseInput { state, button, .. } => app.mouse_input(state, button),
             WindowEvent::KeyboardInput { input, .. } => {
                 if input.state == winit::event::ElementState::Released {
                     match input.virtual_keycode {

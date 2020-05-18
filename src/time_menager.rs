@@ -53,6 +53,11 @@ impl Timer {
         }
         self.last_time = Instant::now();
     }
+    pub fn set_time(&mut self, time: f32) {
+        if time > 0.0 {
+            self.time_elapsed = (time * 1_000_000.0).round() as u128;
+        }
+    }
     pub fn get_elapsed(&self) -> f32 {
         self.time_elapsed as f32 / 1_000_000.0
     }

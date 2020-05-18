@@ -14,6 +14,8 @@ use crate::{
 
 use winit::event::VirtualKeyCode;
 
+use winit::event::{ElementState, MouseButton};
+
 pub struct PlayingScene {
     piano_keyboard: PianoKeyboard,
     notes: Notes,
@@ -59,6 +61,13 @@ impl Scene for PlayingScene {
             color: [56.0 / 255.0, 145.0 / 255.0, 1.0, 1.0],
         });
 
+        if state.mouse_pos.1 < 20.0 && state.mouse_pressed {
+            let x = state.mouse_pos.0;
+            let p = x / state.window_size.0;
+            log::info!("Progressbar Clicked: x:{},p:{}", x, p);
+            self.player.set_time(p * self.player.midi_last_note_end)
+        }
+
         self.piano_keyboard.update_notes(gpu, notes_on);
         self.notes.update(gpu, self.player.time);
 
@@ -88,6 +97,7 @@ impl Scene for PlayingScene {
             self.rectangle_pipeline.render(state, &mut render_pass)
         }
     }
+    // fn mouse_input(&mut self, _state: &ElementState, _button: &MouseButton) {}
     fn key_released(&mut self, _state: &mut MainState, key: VirtualKeyCode) {
         match key {
             VirtualKeyCode::Space => {
@@ -182,6 +192,10 @@ impl Player {
     fn pause_resume(&mut self) {
         self.clear();
         self.timer.pause_resume();
+    }
+    fn set_time(&mut self, time: f32) {
+        self.timer.set_time(time * 1000.0);
+        self.clear();
     }
     fn clear(&mut self) {
         for (_id, n) in self.active_notes.iter() {

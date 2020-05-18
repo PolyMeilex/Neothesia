@@ -6,7 +6,6 @@ use crate::web_wrappers::time::Instant;
 
 pub struct TimeMenager {
     fps: Fps,
-    timer: Option<Timer>,
     pub last_time: Instant,
 }
 
@@ -14,7 +13,6 @@ impl Default for TimeMenager {
     fn default() -> Self {
         Self {
             fps: Fps::new(),
-            timer: None,
             last_time: Instant::now(),
         }
     }
@@ -24,64 +22,29 @@ impl TimeMenager {
     pub fn new() -> Self {
         TimeMenager::default()
     }
-    pub fn start_timer(&mut self) {
-        self.timer = Some(Timer::new());
-    }
-    pub fn pause_timer(&mut self) {
-        if let Some(timer) = &mut self.timer {
-            timer.paused = true;
-        }
-    }
-    pub fn resume_timer(&mut self) {
-        if let Some(timer) = &mut self.timer {
-            timer.paused = false;
-        }
-    }
-    pub fn pause_resume_timer(&mut self) {
-        if let Some(timer) = &mut self.timer {
-            if timer.paused {
-                timer.paused = false;
-            } else {
-                timer.paused = true;
-            }
-        }
-    }
-    pub fn timer_get_elapsed(&mut self) -> Option<f32> {
-        if let Some(timer) = &mut self.timer {
-            Some(timer.time_elapsed as f32 / 1_000_000.0)
-        } else {
-            None
-        }
-    }
-    pub fn clear_timer(&mut self) {
-        self.timer = None;
-    }
     pub fn update(&mut self) {
         self.last_time = Instant::now();
         self.fps.update();
-        if let Some(timer) = &mut self.timer {
-            timer.update();
-        }
     }
     pub fn fps(&self) -> i32 {
         self.fps.fps
     }
 }
 
-struct Timer {
+pub struct Timer {
     pub time_elapsed: u128,
     last_time: Instant,
     pub paused: bool,
 }
 impl Timer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             time_elapsed: 0,
             last_time: Instant::now(),
             paused: false,
         }
     }
-    fn update(&mut self) {
+    pub fn update(&mut self) {
         if !self.paused {
             // We use nanos only because when using secs timing error quickly piles up
             // It is not visible when running 60FPS
@@ -89,6 +52,22 @@ impl Timer {
             self.time_elapsed += self.last_time.elapsed().as_nanos();
         }
         self.last_time = Instant::now();
+    }
+    pub fn get_elapsed(&self) -> f32 {
+        self.time_elapsed as f32 / 1_000_000.0
+    }
+    pub fn pause(&mut self) {
+        self.paused = true;
+    }
+    pub fn resume(&mut self) {
+        self.paused = false;
+    }
+    pub fn pause_resume(&mut self) {
+        if self.paused {
+            self.paused = false;
+        } else {
+            self.paused = true;
+        }
     }
 }
 

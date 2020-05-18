@@ -1,18 +1,21 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use super::button_pipeline::{ButtonInstance, ButtonPipeline};
+use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
 use crate::wgpu_jumpstart::Gpu;
 use crate::MainState;
 
 pub struct Ui<'a> {
-    rectangle_pipeline: ButtonPipeline,
+    rectangle_pipeline: RectanglePipeline,
+    button_pipeline: ButtonPipeline,
     glyph_brush: GlyphBrush<'a, ()>,
     queue: UiQueue,
 }
 
 impl<'a> Ui<'a> {
     pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
-        let rectangle_pipeline = ButtonPipeline::new(state, &gpu.device);
+        let button_pipeline = ButtonPipeline::new(state, &gpu.device);
+        let rectangle_pipeline = RectanglePipeline::new(state, &gpu.device);
         let font: &[u8] = include_bytes!("./Roboto-Regular.ttf");
         let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
             .expect("Load font")
@@ -20,11 +23,15 @@ impl<'a> Ui<'a> {
 
         Self {
             rectangle_pipeline,
+            button_pipeline,
             glyph_brush,
             queue: UiQueue::new(),
         }
     }
-    pub fn queue_rectangle(&mut self, rectangle: ButtonInstance) {
+    pub fn queue_button(&mut self, button: ButtonInstance) {
+        self.queue.add_button(button);
+    }
+    pub fn queue_rectangle(&mut self, rectangle: RectangleInstance) {
         self.queue.add_rectangle(rectangle);
     }
     pub fn queue_text(&mut self, section: Section) {
@@ -36,6 +43,11 @@ impl<'a> Ui<'a> {
             &mut gpu.encoder,
             &gpu.device,
             self.queue.clear_rectangles(),
+        );
+        self.button_pipeline.update_instance_buffer(
+            &mut gpu.encoder,
+            &gpu.device,
+            self.queue.clear_buttons(),
         );
     }
     pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
@@ -58,6 +70,7 @@ impl<'a> Ui<'a> {
                 depth_stencil_attachment: None,
             });
             self.rectangle_pipeline.render(state, &mut render_pass);
+            self.button_pipeline.render(state, &mut render_pass);
         }
         self.glyph_brush
             .draw_queued(
@@ -72,19 +85,27 @@ impl<'a> Ui<'a> {
 }
 
 struct UiQueue {
-    rectangles: Vec<ButtonInstance>,
+    buttons: Vec<ButtonInstance>,
+    rectangles: Vec<RectangleInstance>,
 }
 
 impl UiQueue {
     pub fn new() -> Self {
         Self {
+            buttons: Vec::new(),
             rectangles: Vec::new(),
         }
     }
-    pub fn add_rectangle(&mut self, rectangle: ButtonInstance) {
+    pub fn add_button(&mut self, button: ButtonInstance) {
+        self.buttons.push(button);
+    }
+    pub fn add_rectangle(&mut self, rectangle: RectangleInstance) {
         self.rectangles.push(rectangle);
     }
-    pub fn clear_rectangles(&mut self) -> Vec<ButtonInstance> {
+    pub fn clear_buttons(&mut self) -> Vec<ButtonInstance> {
+        std::mem::replace(&mut self.buttons, Vec::new())
+    }
+    pub fn clear_rectangles(&mut self) -> Vec<RectangleInstance> {
         std::mem::replace(&mut self.rectangles, Vec::new())
     }
 }

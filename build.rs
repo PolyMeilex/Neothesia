@@ -43,9 +43,9 @@ fn compile(path: &Path) {
 }
 
 fn main() {
-    let path = Path::new("./src");
-
-    compile(&path);
-
-    println!("cargo:warning=MESSAGE");
+    if cfg!(feature = "compile_shader") {
+        println!("cargo:warning=COMPILING_SHADERS");
+        let path = Path::new("./src");
+        compile(&path);
+    }
 }

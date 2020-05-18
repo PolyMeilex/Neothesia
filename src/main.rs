@@ -24,6 +24,8 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+mod rectangle_pipeline;
+
 pub struct MainState {
     pub window_size: (f32, f32),
     pub mouse_pos: (f32, f32),
@@ -111,7 +113,6 @@ impl<'a> App<'a> {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
-                self.main_state.time_menager.clear_timer();
                 let mut state =
                     scene::menu_scene::MenuScene::new(&mut self.gpu, &mut self.main_state);
                 state.resize(&mut self.main_state, &mut self.gpu);
@@ -127,7 +128,7 @@ impl<'a> App<'a> {
         self.ui.queue_text(Section {
             text: &format!("FPS: {}", self.main_state.time_menager.fps()),
             color: [1.0, 1.0, 1.0, 1.0],
-            screen_position: (0.0, 0.0),
+            screen_position: (0.0, 5.0),
             scale: wgpu_glyph::Scale::uniform(20.0),
             layout: wgpu_glyph::Layout::Wrap {
                 line_breaker: Default::default(),

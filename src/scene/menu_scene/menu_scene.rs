@@ -1,6 +1,7 @@
 use crate::{
     midi_device::{MidiDevicesMenager, MidiPortInfo},
     scene::{Scene, SceneEvent, SceneType},
+    time_menager::Timer,
     ui::Ui,
     wgpu_jumpstart::Gpu,
     MainState,
@@ -19,20 +20,23 @@ pub struct MenuScene {
     bg_pipeline: BgPipeline,
     midi_device_select: MidiDeviceSelect,
     file: Option<lib_midi::Midi>,
+    timer: Timer,
 }
 
 impl MenuScene {
-    pub fn new(gpu: &mut Gpu, state: &mut MainState) -> Self {
+    pub fn new(gpu: &mut Gpu, _state: &mut MainState) -> Self {
         let (sender, receiver) = mpsc::channel();
 
         let midi_device_select = MidiDeviceSelect::new();
-        state.time_menager.start_timer();
+
+        let timer = Timer::new();
 
         Self {
             aysnc_job: async_job::Job::new(receiver, sender),
             bg_pipeline: BgPipeline::new(&gpu),
             midi_device_select,
             file: None,
+            timer,
         }
     }
 }
@@ -42,11 +46,10 @@ impl Scene for MenuScene {
         SceneType::MainMenu
     }
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {
-        if let Some(time) = state.time_menager.timer_get_elapsed() {
-            let time = time as f32 / 1000.0;
+        self.timer.update();
+        let time = self.timer.get_elapsed() / 1000.0;
 
-            self.bg_pipeline.update_time(gpu, time);
-        }
+        self.bg_pipeline.update_time(gpu, time);
         // Listen To Async Job Finish Event
         if self.aysnc_job.working {
             if let Ok(event) = self.aysnc_job.receiver.try_recv() {
@@ -62,7 +65,7 @@ impl Scene for MenuScene {
                             .collect();
                         self.file = Some(midi);
                     }
-                    async_job::Event::Err(e) => log::error!("Midi Load: {}", e),
+                    async_job::Event::Err(e) => log::warn!("Midi Load: {}", e),
                 }
             }
         }
@@ -277,7 +280,7 @@ mod button {
             [160.0 / 255.0, 81.0 / 255.0, 232_558.0 / 255.0]
         };
 
-        ui.queue_rectangle(ButtonInstance {
+        ui.queue_button(ButtonInstance {
             position: [x, y],
             size: [w, h],
             color,

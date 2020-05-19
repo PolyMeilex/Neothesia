@@ -6,8 +6,7 @@ Goal of this project is to bring back Opensource Synthesia to live, and make it 
 
 If you have any questions, feel free to join my Discord
 
-<img alt="Discord" src="https://img.shields.io/discord/273176778946641920?logo=discord&style=for-the-badge">
-
+[<img alt="Discord" src="https://img.shields.io/discord/273176778946641920?logo=discord&style=for-the-badge">](https://discord.gg/sgeZuVA)
 ## First Working Prototype
 [![IMG](https://i.snag.gy/F8SCbv.jpg)](https://youtu.be/ReE9nVuMCSE)
 [Video](https://youtu.be/ReE9nVuMCSE)

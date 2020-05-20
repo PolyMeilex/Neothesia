@@ -27,7 +27,7 @@ uniform Uniforms2 {
 void main() {
     vec2 pos = i_pos;
     float start = pos.y;
-    pos.y = u_size.y - 120.0 * u_size.x/u_size.y;
+    pos.y = u_size.y - u_size.y / 5.0;
 
     vec2 size = i_size;
     size.y = size.y * speed;

@@ -39,7 +39,7 @@ impl PianoKeyboard {
     }
     pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {
         let w = state.window_size.0 / 52.0;
-        let h = 120.0 * state.window_size.0 / state.window_size.1;
+        let h = state.window_size.1 / 5.0;
 
         let mut x_offset = 0.0;
 

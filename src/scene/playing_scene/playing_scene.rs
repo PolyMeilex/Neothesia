@@ -117,7 +117,6 @@ struct Player {
     midi_device: crate::midi_device::MidiDevicesMenager,
     active_notes: HashMap<usize, u8>,
     timer: Timer,
-    /// Time from start of the song without offsets
     percentage: f32,
     time: f32,
 }

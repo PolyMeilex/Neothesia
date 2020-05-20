@@ -110,9 +110,7 @@ impl<'a> App<'a> {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
-                let mut state =
-                    scene::menu_scene::MenuScene::new(&mut self.gpu, &mut self.main_state);
-                state.resize(&mut self.main_state, &mut self.gpu);
+                let state = scene::menu_scene::MenuScene::new(&mut self.gpu, &mut self.main_state);
 
                 self.game_scene = Box::new(state);
             }
@@ -134,7 +132,45 @@ impl<'a> App<'a> {
     fn key_released(&mut self, key: VirtualKeyCode) {
         self.game_scene.key_released(&mut self.main_state, key);
     }
-    fn render_fps(&mut self) {
+    fn update(&mut self) {
+        self.main_state.time_menager.update();
+
+        let event = self
+            .game_scene
+            .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
+
+        match event {
+            scene::SceneEvent::MainMenu(event) => match event {
+                scene::menu_scene::Event::MidiOpen(midi, port) => {
+                    let state = scene::playing_scene::PlayingScene::new(
+                        &mut self.gpu,
+                        &mut self.main_state,
+                        midi,
+                        port,
+                    );
+
+                    self.game_scene = Box::new(state);
+                }
+            },
+            _ => {}
+        }
+    }
+    fn render(&mut self) {
+        let frame = self.window.surface.get_next_texture();
+
+        self.clear(&frame);
+
+        self.game_scene
+            .render(&mut self.main_state, &mut self.gpu, &frame);
+
+        self.queue_fps();
+        self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
+
+        self.gpu.submit();
+
+        self.main_state.update_mouse_clicked(false);
+    }
+    fn queue_fps(&mut self) {
         self.ui.queue_text(Section {
             text: &format!("FPS: {}", self.main_state.time_menager.fps()),
             color: [1.0, 1.0, 1.0, 1.0],
@@ -166,45 +202,6 @@ impl<'a> App<'a> {
                 }],
                 depth_stencil_attachment: None,
             });
-    }
-    fn render(&mut self) {
-        self.main_state.time_menager.update();
-
-        let frame = self.window.surface.get_next_texture();
-
-        self.clear(&frame);
-
-        let event = self
-            .game_scene
-            .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
-
-        match event {
-            scene::SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::MidiOpen(midi, port) => {
-                    let mut state = scene::playing_scene::PlayingScene::new(
-                        &mut self.gpu,
-                        &mut self.main_state,
-                        midi,
-                        port,
-                    );
-                    state.resize(&mut self.main_state, &mut self.gpu);
-
-                    self.game_scene = Box::new(state);
-                }
-            },
-            _ => {}
-        }
-
-        self.game_scene
-            .render(&mut self.main_state, &mut self.gpu, &frame);
-
-        self.render_fps();
-
-        self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
-
-        self.gpu.submit();
-
-        self.main_state.update_mouse_clicked(false);
     }
 }
 
@@ -254,6 +251,7 @@ async fn main_async() {
             _ => {}
         },
         Event::RedrawRequested(_) => {
+            app.update();
             app.render();
         }
         _ => {}

@@ -7,9 +7,16 @@ pub struct Notes {
 }
 
 impl Notes {
-    pub fn new(state: &MainState, gpu: &Gpu, midi: &lib_midi::Midi) -> Self {
+    pub fn new(
+        state: &MainState,
+        gpu: &mut Gpu,
+        keys: &[super::keyboard::Key],
+        midi: &lib_midi::Midi,
+    ) -> Self {
         let notes_pipeline = NotesPipeline::new(state, gpu, midi);
-        Self { notes_pipeline }
+        let mut notes = Self { notes_pipeline };
+        notes.resize(state, gpu, keys, midi);
+        notes
     }
     pub fn resize(
         &mut self,

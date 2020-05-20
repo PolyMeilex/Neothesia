@@ -30,8 +30,8 @@ impl PlayingScene {
         midi: lib_midi::Midi,
         port: MidiPortInfo,
     ) -> Self {
-        let piano_keyboard = PianoKeyboard::new(state, &gpu);
-        let notes = Notes::new(state, &gpu, &midi);
+        let piano_keyboard = PianoKeyboard::new(state, gpu);
+        let notes = Notes::new(state, gpu, &piano_keyboard.all_keys, &midi);
 
         Self {
             piano_keyboard,

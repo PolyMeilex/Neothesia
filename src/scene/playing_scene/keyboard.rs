@@ -27,12 +27,15 @@ pub struct PianoKeyboard {
 }
 
 impl PianoKeyboard {
-    pub fn new(state: &MainState, gpu: &Gpu) -> Self {
+    pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
         let keyboard_pipeline = KeyboardPipeline::new(state, gpu);
-        Self {
+        let mut piano_keyboard = Self {
             keyboard_pipeline,
             all_keys: Vec::new(),
-        }
+        };
+        piano_keyboard.resize(state, gpu);
+
+        piano_keyboard
     }
     pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {
         let w = state.window_size.0 / 52.0;

@@ -13,8 +13,7 @@ use crate::{
 };
 
 use winit::event::VirtualKeyCode;
-
-use winit::event::{ElementState, MouseButton};
+// use winit::event::{ElementState, MouseButton};
 
 pub struct PlayingScene {
     piano_keyboard: PianoKeyboard,
@@ -31,20 +30,26 @@ impl PlayingScene {
         port: MidiPortInfo,
     ) -> Self {
         let piano_keyboard = PianoKeyboard::new(state, gpu);
-        let notes = Notes::new(state, gpu, &piano_keyboard.all_keys, &midi);
+        let mut notes = Notes::new(state, gpu, &piano_keyboard.all_keys, &midi);
+
+        let player = Player::new(midi, port);
+        notes.update(gpu, player.time);
 
         Self {
             piano_keyboard,
             notes,
-            player: Player::new(midi, port),
+            player,
             rectangle_pipeline: RectanglePipeline::new(&state, &gpu.device),
         }
     }
 }
 
 impl Scene for PlayingScene {
-    fn state_type(&self) -> SceneType {
+    fn scene_type(&self) -> SceneType {
         SceneType::Playing
+    }
+    fn start(&mut self) {
+        self.player.start();
     }
     fn resize(&mut self, state: &mut MainState, gpu: &mut Gpu) {
         self.piano_keyboard.resize(state, gpu);
@@ -119,6 +124,7 @@ struct Player {
     timer: Timer,
     percentage: f32,
     time: f32,
+    active: bool,
 }
 
 impl Player {
@@ -140,7 +146,7 @@ impl Player {
             0.0
         };
 
-        Self {
+        let mut player = Self {
             midi,
             midi_first_note_start,
             midi_last_note_end,
@@ -149,9 +155,21 @@ impl Player {
             timer: Timer::new(),
             percentage: 0.0,
             time: 0.0,
-        }
+            active: true,
+        };
+        player.update();
+        player.active = false;
+
+        player
+    }
+    fn start(&mut self) {
+        self.timer.start();
+        self.active = true;
     }
     fn update(&mut self) -> [bool; 88] {
+        if !self.active {
+            return [false; 88];
+        };
         self.timer.update();
         let raw_time = self.timer.get_elapsed() / 1000.0;
         self.percentage = raw_time / self.midi_last_note_end;

@@ -42,7 +42,7 @@ impl MenuScene {
 }
 
 impl Scene for MenuScene {
-    fn state_type(&self) -> SceneType {
+    fn scene_type(&self) -> SceneType {
         SceneType::MainMenu
     }
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {

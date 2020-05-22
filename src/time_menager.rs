@@ -44,6 +44,10 @@ impl Timer {
             paused: false,
         }
     }
+    pub fn start(&mut self) {
+        self.last_time = Instant::now();
+        self.time_elapsed = 0;
+    }
     pub fn update(&mut self) {
         if !self.paused {
             // We use nanos only because when using secs timing error quickly piles up

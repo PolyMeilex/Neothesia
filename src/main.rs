@@ -77,7 +77,7 @@ struct App<'a> {
     pub gpu: Gpu,
     pub ui: Ui<'a>,
     pub main_state: MainState,
-    game_scene: Box<dyn Scene>,
+    game_scene: Box<scene::scene_transition::SceneTransition>,
 }
 
 impl<'a> App<'a> {
@@ -85,8 +85,10 @@ impl<'a> App<'a> {
         let mut main_state = MainState::new(&gpu);
 
         let ui = Ui::new(&main_state, &mut gpu);
-        let game_scene: Box<dyn Scene> =
-            Box::new(scene::menu_scene::MenuScene::new(&mut gpu, &mut main_state));
+        let game_scene = scene::menu_scene::MenuScene::new(&mut gpu, &mut main_state);
+        let game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
+            game_scene,
+        )));
 
         Self {
             window,
@@ -105,15 +107,15 @@ impl<'a> App<'a> {
         self.ui.resize(&self.main_state, &mut self.gpu);
     }
     fn go_back(&mut self, control_flow: &mut ControlFlow) {
-        match self.game_scene.state_type() {
+        match self.game_scene.scene_type() {
             SceneType::MainMenu => {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
                 let state = scene::menu_scene::MenuScene::new(&mut self.gpu, &mut self.main_state);
-
-                self.game_scene = Box::new(state);
+                self.game_scene.transition_to(Box::new(state));
             }
+            SceneType::Transition => {}
         }
     }
     fn mouse_input(
@@ -148,12 +150,17 @@ impl<'a> App<'a> {
                         midi,
                         port,
                     );
+                    self.game_scene.transition_to(Box::new(state));
 
-                    self.game_scene = Box::new(state);
+                    // Self::render() is called right after this so we need to update scene here to prevent transition from not being visible for the first frame
+                    self.game_scene
+                        .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
                 }
             },
             _ => {}
         }
+
+        self.queue_fps();
     }
     fn render(&mut self) {
         let frame = self.window.surface.get_next_texture();
@@ -163,7 +170,6 @@ impl<'a> App<'a> {
         self.game_scene
             .render(&mut self.main_state, &mut self.gpu, &frame);
 
-        self.queue_fps();
         self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
         self.gpu.submit();

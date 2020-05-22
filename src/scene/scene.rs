@@ -5,7 +5,8 @@ use crate::MainState;
 use winit::event::{ElementState, MouseButton, VirtualKeyCode};
 
 pub trait Scene {
-    fn state_type(&self) -> SceneType;
+    fn scene_type(&self) -> SceneType;
+    fn start(&mut self) {}
     fn resize(&mut self, _state: &mut MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
     fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
@@ -16,6 +17,7 @@ pub trait Scene {
 pub enum SceneType {
     MainMenu,
     Playing,
+    Transition,
 }
 
 pub enum SceneEvent {

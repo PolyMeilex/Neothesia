@@ -99,7 +99,6 @@ impl<'a> Ui<'a> {
 
         // Transition
         if self.transition_rect_a != 0.0 {
-            println!("RENDER");
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: &frame.view,

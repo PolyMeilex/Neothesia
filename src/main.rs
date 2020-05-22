@@ -214,47 +214,78 @@ async fn main_async() {
     app.resize();
     app.gpu.submit();
 
-    event_loop.run(move |event, _, mut control_flow| match &event {
-        Event::MainEventsCleared => app.window.request_redraw(),
-        Event::WindowEvent { event, .. } => match event {
-            WindowEvent::Resized(_) => {
-                app.resize();
-                app.gpu.submit();
-            }
-            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                app.window.on_dpi(*scale_factor);
-                // TODO: Check if this update is needed;
-                app.resize();
-            }
-            WindowEvent::CursorMoved { position, .. } => {
-                let dpi = &app.window.dpi;
-                let x = (position.x / dpi).round();
-                let y = (position.y / dpi).round();
+    // Commented out control_flow stuff is related to:
+    // https://github.com/gfx-rs/wgpu-rs/pull/306
+    // I think it messes with my framerate so for now it's commented out, needs more testing
 
-                app.main_state.update_mouse_pos(x as f32, y as f32);
+    // #[cfg(not(target_arch = "wasm32"))]
+    // let mut last_update_inst = std::time::Instant::now();
+    event_loop.run(move |event, _, mut control_flow| {
+        // *control_flow = {
+        //     #[cfg(not(target_arch = "wasm32"))]
+        //     {
+        //         ControlFlow::WaitUntil(
+        //             std::time::Instant::now() + std::time::Duration::from_millis(10),
+        //         )
+        //     }
+        //     #[cfg(target_arch = "wasm32")]
+        //     {
+        //         ControlFlow::Poll
+        //     }
+        // };
+        match &event {
+            Event::MainEventsCleared => {
+                // #[cfg(not(target_arch = "wasm32"))]
+                // {
+                //     if last_update_inst.elapsed() > std::time::Duration::from_millis(20) {
+                //         app.window.request_redraw();
+                //         last_update_inst = std::time::Instant::now();
+                //     }
+                // }
+
+                // #[cfg(target_arch = "wasm32")]
+                app.window.request_redraw();
             }
-            WindowEvent::MouseInput { state, button, .. } => app.mouse_input(state, button),
-            WindowEvent::KeyboardInput { input, .. } => {
-                if input.state == winit::event::ElementState::Released {
-                    match input.virtual_keycode {
-                        Some(winit::event::VirtualKeyCode::Escape) => {
-                            app.go_back(&mut control_flow);
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(_) => {
+                    app.resize();
+                    app.gpu.submit();
+                }
+                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                    app.window.on_dpi(*scale_factor);
+                    // TODO: Check if this update is needed;
+                    app.resize();
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    let dpi = &app.window.dpi;
+                    let x = (position.x / dpi).round();
+                    let y = (position.y / dpi).round();
+
+                    app.main_state.update_mouse_pos(x as f32, y as f32);
+                }
+                WindowEvent::MouseInput { state, button, .. } => app.mouse_input(state, button),
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if input.state == winit::event::ElementState::Released {
+                        match input.virtual_keycode {
+                            Some(winit::event::VirtualKeyCode::Escape) => {
+                                app.go_back(&mut control_flow);
+                            }
+                            Some(key) => {
+                                app.key_released(key);
+                            }
+                            _ => {}
                         }
-                        Some(key) => {
-                            app.key_released(key);
-                        }
-                        _ => {}
                     }
                 }
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                _ => {}
+            },
+            Event::RedrawRequested(_) => {
+                app.update();
+                app.render();
             }
-            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             _ => {}
-        },
-        Event::RedrawRequested(_) => {
-            app.update();
-            app.render();
         }
-        _ => {}
     });
 }
 

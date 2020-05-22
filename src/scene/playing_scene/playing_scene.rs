@@ -12,6 +12,8 @@ use crate::{
     MainState,
 };
 
+use std::rc::Rc;
+
 use winit::event::VirtualKeyCode;
 // use winit::event::{ElementState, MouseButton};
 
@@ -23,16 +25,19 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(
-        gpu: &mut Gpu,
-        state: &mut MainState,
-        midi: lib_midi::Midi,
-        port: MidiPortInfo,
-    ) -> Self {
+    pub fn new(gpu: &mut Gpu, state: &mut MainState, port: MidiPortInfo) -> Self {
         let piano_keyboard = PianoKeyboard::new(state, gpu);
-        let mut notes = Notes::new(state, gpu, &piano_keyboard.all_keys, &midi);
+        let mut notes = Notes::new(
+            state,
+            gpu,
+            &piano_keyboard.all_keys,
+            &state
+                .midi_file
+                .clone()
+                .expect("Expeced Midi File, no mifi file selected"),
+        );
 
-        let player = Player::new(midi, port);
+        let player = Player::new(state.midi_file.clone().unwrap(), port);
         notes.update(gpu, player.time);
 
         Self {
@@ -116,7 +121,7 @@ impl Scene for PlayingScene {
 use crate::midi_device::MidiPortInfo;
 use std::collections::HashMap;
 struct Player {
-    midi: lib_midi::Midi,
+    midi: Rc<lib_midi::Midi>,
     midi_first_note_start: f32,
     midi_last_note_end: f32,
     midi_device: crate::midi_device::MidiDevicesMenager,
@@ -128,7 +133,7 @@ struct Player {
 }
 
 impl Player {
-    fn new(midi: lib_midi::Midi, port: MidiPortInfo) -> Self {
+    fn new(midi: Rc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
         let mut midi_device = crate::midi_device::MidiDevicesMenager::new();
 
         log::info!("{:?}", midi_device.get_outs());

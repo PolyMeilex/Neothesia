@@ -24,6 +24,8 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+use std::rc::Rc;
+
 mod rectangle_pipeline;
 
 pub struct MainState {
@@ -35,6 +37,8 @@ pub struct MainState {
     pub mouse_pressed: bool,
     pub time_menager: TimeMenager,
     pub transform_uniform: Uniform<TransformUniform>,
+
+    pub midi_file: Option<Rc<lib_midi::Midi>>,
 }
 
 impl MainState {
@@ -50,6 +54,7 @@ impl MainState {
                 TransformUniform::default(),
                 wgpu::ShaderStage::VERTEX,
             ),
+            midi_file: None,
         }
     }
     fn resize(&mut self, gpu: &mut Gpu, w: f32, h: f32) {
@@ -82,10 +87,10 @@ struct App<'a> {
 
 impl<'a> App<'a> {
     fn new(mut gpu: Gpu, window: Window) -> Self {
-        let mut main_state = MainState::new(&gpu);
+        let main_state = MainState::new(&gpu);
 
         let ui = Ui::new(&main_state, &mut gpu);
-        let game_scene = scene::menu_scene::MenuScene::new(&mut gpu, &mut main_state);
+        let game_scene = scene::menu_scene::MenuScene::new(None, &mut gpu);
         let game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
             game_scene,
         )));
@@ -112,7 +117,7 @@ impl<'a> App<'a> {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
-                let state = scene::menu_scene::MenuScene::new(&mut self.gpu, &mut self.main_state);
+                let state = scene::menu_scene::MenuScene::new(None, &mut self.gpu);
                 self.game_scene.transition_to(Box::new(state));
             }
             SceneType::Transition => {}
@@ -143,11 +148,10 @@ impl<'a> App<'a> {
 
         match event {
             scene::SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::MidiOpen(midi, port) => {
+                scene::menu_scene::Event::MidiOpen(port) => {
                     let state = scene::playing_scene::PlayingScene::new(
                         &mut self.gpu,
                         &mut self.main_state,
-                        midi,
                         port,
                     );
                     self.game_scene.transition_to(Box::new(state));

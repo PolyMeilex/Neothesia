@@ -11,20 +11,21 @@ use super::bg_pipeline::BgPipeline;
 use std::sync::mpsc;
 use std::thread;
 
+use std::rc::Rc;
+
 pub enum Event {
-    MidiOpen(lib_midi::Midi, MidiPortInfo),
+    MidiOpen(MidiPortInfo),
 }
 
 pub struct MenuScene {
     aysnc_job: async_job::Job<async_job::Event>,
     bg_pipeline: BgPipeline,
     midi_device_select: MidiDeviceSelect,
-    file: Option<lib_midi::Midi>,
     timer: Timer,
 }
 
 impl MenuScene {
-    pub fn new(gpu: &mut Gpu, _state: &mut MainState) -> Self {
+    pub fn new(midi: Option<lib_midi::Midi>, gpu: &mut Gpu) -> Self {
         let (sender, receiver) = mpsc::channel();
 
         let midi_device_select = MidiDeviceSelect::new();
@@ -35,7 +36,6 @@ impl MenuScene {
             aysnc_job: async_job::Job::new(receiver, sender),
             bg_pipeline: BgPipeline::new(&gpu),
             midi_device_select,
-            file: None,
             timer,
         }
     }
@@ -63,7 +63,7 @@ impl Scene for MenuScene {
                             .into_iter()
                             .filter(|n| n.ch != 9)
                             .collect();
-                        self.file = Some(midi);
+                        state.midi_file = Some(Rc::new(midi));
                     }
                     async_job::Event::Err(e) => log::warn!("Midi Load: {}", e),
                 }
@@ -104,7 +104,7 @@ impl Scene for MenuScene {
 
         self.midi_device_select.queue(ui, &state);
 
-        if self.file.is_some()
+        if state.midi_file.is_some()
             && button::queue(
                 state,
                 ui,
@@ -117,9 +117,8 @@ impl Scene for MenuScene {
                 self.midi_device_select.midi_outs.is_empty(),
             )
         {
-            let file = std::mem::replace(&mut self.file, None);
             let select = std::mem::replace(&mut self.midi_device_select, MidiDeviceSelect::new());
-            return SceneEvent::MainMenu(Event::MidiOpen(file.unwrap(), select.get_selected()));
+            return SceneEvent::MainMenu(Event::MidiOpen(select.get_selected()));
         }
 
         SceneEvent::None

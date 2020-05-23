@@ -11,19 +11,24 @@ pub trait Scene {
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
     fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
     fn mouse_input(&mut self, _state: &ElementState, _button: &MouseButton) {}
-    fn input_event(&mut self, _state: &mut MainState, _event: InputEvent) {}
+    fn input_event(&mut self, _state: &mut MainState, _event: InputEvent) -> SceneEvent {
+        SceneEvent::None
+    }
 }
 
+#[derive(Debug)]
 pub enum InputEvent {
     KeyReleased(VirtualKeyCode),
 }
 
+#[derive(Debug)]
 pub enum SceneType {
     MainMenu,
     Playing,
     Transition,
 }
 
+#[derive(Debug)]
 pub enum SceneEvent {
     MainMenu(super::menu_scene::Event),
     None,

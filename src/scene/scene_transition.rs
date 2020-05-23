@@ -129,10 +129,10 @@ impl Scene for SceneTransition {
             _ => {}
         }
     }
-    fn input_event(&mut self, state: &mut MainState, event: InputEvent) {
+    fn input_event(&mut self, state: &mut MainState, event: InputEvent) -> SceneEvent {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.input_event(state, event),
-            _ => {}
+            _ => SceneEvent::None,
         }
     }
 }

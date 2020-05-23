@@ -1,6 +1,6 @@
 use crate::{
     midi_device::{MidiDevicesMenager, MidiPortInfo},
-    scene::{Scene, SceneEvent, SceneType},
+    scene::{InputEvent, Scene, SceneEvent, SceneType},
     time_menager::Timer,
     ui::Ui,
     wgpu_jumpstart::Gpu,
@@ -8,11 +8,13 @@ use crate::{
 };
 
 use super::bg_pipeline::BgPipeline;
+use std::rc::Rc;
 use std::sync::mpsc;
 use std::thread;
 
-use std::rc::Rc;
+use winit::event::VirtualKeyCode;
 
+#[derive(Debug)]
 pub enum Event {
     MidiOpen(MidiPortInfo),
 }
@@ -25,7 +27,7 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub fn new(midi: Option<lib_midi::Midi>, gpu: &mut Gpu) -> Self {
+    pub fn new(gpu: &mut Gpu) -> Self {
         let (sender, receiver) = mpsc::channel();
 
         let midi_device_select = MidiDeviceSelect::new();
@@ -142,6 +144,24 @@ impl Scene for MenuScene {
                 depth_stencil_attachment: None,
             });
             self.bg_pipeline.render(&mut render_pass);
+        }
+    }
+    fn input_event(&mut self, state: &mut MainState, event: InputEvent) -> SceneEvent {
+        match event {
+            InputEvent::KeyReleased(key) => match key {
+                VirtualKeyCode::Return => {
+                    if state.midi_file.is_some() && !self.midi_device_select.midi_outs.is_empty() {
+                        let select = std::mem::replace(
+                            &mut self.midi_device_select,
+                            MidiDeviceSelect::new(),
+                        );
+                        SceneEvent::MainMenu(Event::MidiOpen(select.get_selected()))
+                    } else {
+                        SceneEvent::None
+                    }
+                }
+                _ => SceneEvent::None,
+            },
         }
     }
 }

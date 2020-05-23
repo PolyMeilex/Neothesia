@@ -17,7 +17,7 @@ use transform_uniform::TransformUniform;
 
 use wgpu_glyph::Section;
 use winit::{
-    event::{Event, VirtualKeyCode, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
@@ -92,7 +92,7 @@ impl<'a> App<'a> {
         let main_state = MainState::new(&gpu);
 
         let ui = Ui::new(&main_state, &mut gpu);
-        let game_scene = scene::menu_scene::MenuScene::new(None, &mut gpu);
+        let game_scene = scene::menu_scene::MenuScene::new(&mut gpu);
         let game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
             game_scene,
         )));
@@ -107,50 +107,53 @@ impl<'a> App<'a> {
     }
     fn event(&mut self, event: AppEvent) {
         match event {
-            AppEvent::WindowEvent(event, control_flow) => match event {
-                WindowEvent::Resized(_) => {
-                    self.resize();
-                    self.gpu.submit();
-                }
-                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                    self.window.on_dpi(*scale_factor);
-                    // TODO: Check if this update is needed;
-                    self.resize();
-                }
-                WindowEvent::CursorMoved { position, .. } => {
-                    let dpi = &self.window.dpi;
-                    let x = (position.x / dpi).round();
-                    let y = (position.y / dpi).round();
-
-                    self.main_state.update_mouse_pos(x as f32, y as f32);
-                }
-                WindowEvent::MouseInput { state, button, .. } => {
-                    if let winit::event::ElementState::Pressed = state {
-                        self.main_state.update_mouse_pressed(true);
-                    } else {
-                        self.main_state.update_mouse_pressed(false);
+            AppEvent::WindowEvent(event, control_flow) => {
+                match event {
+                    WindowEvent::Resized(_) => {
+                        self.resize();
+                        self.gpu.submit();
                     }
-                    self.game_scene.mouse_input(state, button);
-                }
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if input.state == winit::event::ElementState::Released {
-                        match input.virtual_keycode {
-                            Some(winit::event::VirtualKeyCode::Escape) => {
-                                self.go_back(control_flow);
+                    WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                        self.window.on_dpi(*scale_factor);
+                        // TODO: Check if this update is needed;
+                        self.resize();
+                    }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        let dpi = &self.window.dpi;
+                        let x = (position.x / dpi).round();
+                        let y = (position.y / dpi).round();
+
+                        self.main_state.update_mouse_pos(x as f32, y as f32);
+                    }
+                    WindowEvent::MouseInput { state, button, .. } => {
+                        if let winit::event::ElementState::Pressed = state {
+                            self.main_state.update_mouse_pressed(true);
+                        } else {
+                            self.main_state.update_mouse_pressed(false);
+                        }
+                        self.game_scene.mouse_input(state, button);
+                    }
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if input.state == winit::event::ElementState::Released {
+                            match input.virtual_keycode {
+                                Some(winit::event::VirtualKeyCode::Escape) => {
+                                    self.go_back(control_flow);
+                                }
+                                Some(key) => {
+                                    let ae = AppEvent::SceneEvent(self.game_scene.input_event(
+                                        &mut self.main_state,
+                                        InputEvent::KeyReleased(key),
+                                    ));
+                                    self.event(ae);
+                                }
+                                _ => {}
                             }
-                            Some(key) => {
-                                self.game_scene.input_event(
-                                    &mut self.main_state,
-                                    InputEvent::KeyReleased(key),
-                                );
-                            }
-                            _ => {}
                         }
                     }
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    _ => {}
                 }
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => {}
-            },
+            }
             AppEvent::SceneEvent(event) => match event {
                 SceneEvent::MainMenu(event) => match event {
                     scene::menu_scene::Event::MidiOpen(port) => {
@@ -184,7 +187,7 @@ impl<'a> App<'a> {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
-                let state = scene::menu_scene::MenuScene::new(None, &mut self.gpu);
+                let state = scene::menu_scene::MenuScene::new(&mut self.gpu);
                 self.game_scene.transition_to(Box::new(state));
             }
             SceneType::Transition => {}

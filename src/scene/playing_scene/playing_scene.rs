@@ -107,8 +107,7 @@ impl Scene for PlayingScene {
             self.rectangle_pipeline.render(state, &mut render_pass)
         }
     }
-    // fn mouse_input(&mut self, _state: &ElementState, _button: &MouseButton) {}
-    fn input_event(&mut self, _state: &mut MainState, event: InputEvent) {
+    fn input_event(&mut self, _state: &mut MainState, event: InputEvent) -> SceneEvent {
         match event {
             InputEvent::KeyReleased(key) => match key {
                 VirtualKeyCode::Space => {
@@ -117,6 +116,7 @@ impl Scene for PlayingScene {
                 _ => {}
             },
         }
+        SceneEvent::None
     }
 }
 

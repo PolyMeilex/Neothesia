@@ -5,7 +5,7 @@ mod ui;
 use ui::Ui;
 
 mod scene;
-use scene::{Scene, SceneType};
+use scene::{Scene, SceneEvent, SceneType};
 
 mod time_menager;
 use time_menager::TimeMenager;
@@ -74,6 +74,11 @@ impl MainState {
     }
 }
 
+enum AppEvent<'a> {
+    WindowEvent(&'a WindowEvent<'a>, &'a mut ControlFlow),
+    SceneEvent(SceneEvent),
+}
+
 struct App<'a> {
     pub window: Window,
     pub gpu: Gpu,
@@ -100,6 +105,68 @@ impl<'a> App<'a> {
             game_scene,
         }
     }
+    fn event(&mut self, event: AppEvent) {
+        match event {
+            AppEvent::WindowEvent(event, control_flow) => match event {
+                WindowEvent::Resized(_) => {
+                    self.resize();
+                    self.gpu.submit();
+                }
+                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                    self.window.on_dpi(*scale_factor);
+                    // TODO: Check if this update is needed;
+                    self.resize();
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    let dpi = &self.window.dpi;
+                    let x = (position.x / dpi).round();
+                    let y = (position.y / dpi).round();
+
+                    self.main_state.update_mouse_pos(x as f32, y as f32);
+                }
+                WindowEvent::MouseInput { state, button, .. } => {
+                    if let winit::event::ElementState::Pressed = state {
+                        self.main_state.update_mouse_pressed(true);
+                    } else {
+                        self.main_state.update_mouse_pressed(false);
+                    }
+                    self.game_scene.mouse_input(state, button);
+                }
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if input.state == winit::event::ElementState::Released {
+                        match input.virtual_keycode {
+                            Some(winit::event::VirtualKeyCode::Escape) => {
+                                self.go_back(control_flow);
+                            }
+                            Some(key) => {
+                                self.game_scene.key_released(&mut self.main_state, key);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                _ => {}
+            },
+            AppEvent::SceneEvent(event) => match event {
+                SceneEvent::MainMenu(event) => match event {
+                    scene::menu_scene::Event::MidiOpen(port) => {
+                        let state = scene::playing_scene::PlayingScene::new(
+                            &mut self.gpu,
+                            &mut self.main_state,
+                            port,
+                        );
+                        self.game_scene.transition_to(Box::new(state));
+
+                        // Self::render() is called right after this so we need to update scene here to prevent transition from not being visible for the first frame
+                        self.game_scene
+                            .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
+                    }
+                },
+                _ => {}
+            },
+        }
+    }
     fn resize(&mut self) {
         self.window.on_resize(&mut self.gpu);
         let (w, h) = self.window.size();
@@ -120,22 +187,6 @@ impl<'a> App<'a> {
             SceneType::Transition => {}
         }
     }
-    fn mouse_input(
-        &mut self,
-        state: &winit::event::ElementState,
-        button: &winit::event::MouseButton,
-    ) {
-        if let winit::event::ElementState::Pressed = state {
-            self.main_state.update_mouse_pressed(true);
-        } else {
-            self.main_state.update_mouse_pressed(false);
-        }
-        self.game_scene.mouse_input(state, button);
-        log::info!("{:#?} {:#?}", state, button);
-    }
-    fn key_released(&mut self, key: VirtualKeyCode) {
-        self.game_scene.key_released(&mut self.main_state, key);
-    }
     fn update(&mut self) {
         self.main_state.time_menager.update();
 
@@ -143,23 +194,7 @@ impl<'a> App<'a> {
             .game_scene
             .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
 
-        match event {
-            scene::SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::MidiOpen(port) => {
-                    let state = scene::playing_scene::PlayingScene::new(
-                        &mut self.gpu,
-                        &mut self.main_state,
-                        port,
-                    );
-                    self.game_scene.transition_to(Box::new(state));
-
-                    // Self::render() is called right after this so we need to update scene here to prevent transition from not being visible for the first frame
-                    self.game_scene
-                        .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
-                }
-            },
-            _ => {}
-        }
+        self.event(AppEvent::SceneEvent(event));
 
         self.queue_fps();
     }
@@ -227,7 +262,7 @@ async fn main_async() {
 
     // #[cfg(not(target_arch = "wasm32"))]
     // let mut last_update_inst = std::time::Instant::now();
-    event_loop.run(move |event, _, mut control_flow| {
+    event_loop.run(move |event, _, control_flow| {
         // *control_flow = {
         //     #[cfg(not(target_arch = "wasm32"))]
         //     {
@@ -253,40 +288,9 @@ async fn main_async() {
                 // #[cfg(target_arch = "wasm32")]
                 app.window.request_redraw();
             }
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(_) => {
-                    app.resize();
-                    app.gpu.submit();
-                }
-                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                    app.window.on_dpi(*scale_factor);
-                    // TODO: Check if this update is needed;
-                    app.resize();
-                }
-                WindowEvent::CursorMoved { position, .. } => {
-                    let dpi = &app.window.dpi;
-                    let x = (position.x / dpi).round();
-                    let y = (position.y / dpi).round();
-
-                    app.main_state.update_mouse_pos(x as f32, y as f32);
-                }
-                WindowEvent::MouseInput { state, button, .. } => app.mouse_input(state, button),
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if input.state == winit::event::ElementState::Released {
-                        match input.virtual_keycode {
-                            Some(winit::event::VirtualKeyCode::Escape) => {
-                                app.go_back(&mut control_flow);
-                            }
-                            Some(key) => {
-                                app.key_released(key);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => {}
-            },
+            Event::WindowEvent { event, .. } => {
+                app.event(AppEvent::WindowEvent(event, control_flow));
+            }
             Event::RedrawRequested(_) => {
                 app.update();
                 app.render();

@@ -1,11 +1,9 @@
 use crate::{
     rectangle_pipeline::RectangleInstance,
-    scene::{Scene, SceneEvent, SceneType},
+    scene::{InputEvent, Scene, SceneEvent, SceneType},
     wgpu_jumpstart::Gpu,
     MainState, Ui,
 };
-
-use winit::event::VirtualKeyCode;
 
 enum TransitionMode {
     FadeIn(Box<dyn Scene>),
@@ -131,9 +129,9 @@ impl Scene for SceneTransition {
             _ => {}
         }
     }
-    fn key_released(&mut self, state: &mut MainState, key: VirtualKeyCode) {
+    fn input_event(&mut self, state: &mut MainState, event: InputEvent) {
         match &mut self.mode {
-            TransitionMode::Static(scene) => scene.key_released(state, key),
+            TransitionMode::Static(scene) => scene.input_event(state, event),
             _ => {}
         }
     }

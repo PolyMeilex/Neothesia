@@ -1,5 +1,5 @@
 use super::{
-    super::{Scene, SceneEvent, SceneType},
+    super::{InputEvent, Scene, SceneEvent, SceneType},
     keyboard::PianoKeyboard,
     notes::Notes,
 };
@@ -108,12 +108,14 @@ impl Scene for PlayingScene {
         }
     }
     // fn mouse_input(&mut self, _state: &ElementState, _button: &MouseButton) {}
-    fn key_released(&mut self, _state: &mut MainState, key: VirtualKeyCode) {
-        match key {
-            VirtualKeyCode::Space => {
-                self.player.pause_resume();
-            }
-            _ => {}
+    fn input_event(&mut self, _state: &mut MainState, event: InputEvent) {
+        match event {
+            InputEvent::KeyReleased(key) => match key {
+                VirtualKeyCode::Space => {
+                    self.player.pause_resume();
+                }
+                _ => {}
+            },
         }
     }
 }

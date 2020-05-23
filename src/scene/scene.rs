@@ -11,7 +11,11 @@ pub trait Scene {
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
     fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
     fn mouse_input(&mut self, _state: &ElementState, _button: &MouseButton) {}
-    fn key_released(&mut self, _state: &mut MainState, _key: VirtualKeyCode) {}
+    fn input_event(&mut self, _state: &mut MainState, _event: InputEvent) {}
+}
+
+pub enum InputEvent {
+    KeyReleased(VirtualKeyCode),
 }
 
 pub enum SceneType {

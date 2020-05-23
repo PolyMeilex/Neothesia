@@ -5,7 +5,7 @@ mod ui;
 use ui::Ui;
 
 mod scene;
-use scene::{Scene, SceneEvent, SceneType};
+use scene::{InputEvent, Scene, SceneEvent, SceneType};
 
 mod time_menager;
 use time_menager::TimeMenager;
@@ -139,7 +139,10 @@ impl<'a> App<'a> {
                                 self.go_back(control_flow);
                             }
                             Some(key) => {
-                                self.game_scene.key_released(&mut self.main_state, key);
+                                self.game_scene.input_event(
+                                    &mut self.main_state,
+                                    InputEvent::KeyReleased(key),
+                                );
                             }
                             _ => {}
                         }

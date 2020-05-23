@@ -93,21 +93,30 @@ impl<'a> MenuScene<'a> {
 
         self.aysnc_job.working = true;
         thread::spawn(move || {
-            let path = tinyfiledialogs::open_file_dialog("Select Midi", "", None);
+            use nfd2::Response;
 
-            if let Some(path) = path {
-                let midi = lib_midi::Midi::new(&path);
+            match nfd2::DialogBuilder::single()
+                .filter("mid,midi")
+                .open()
+                .expect("File Dialog Error")
+            {
+                Response::Okay(path) => {
+                    log::info!("File path = {:?}", path);
+                    let midi = lib_midi::Midi::new(path.to_str().unwrap());
 
-                if let Ok(midi) = midi {
-                    tx.send(async_job::Event::MidiLoaded(midi))
-                        .expect("tx send failed in midi loader");
-                } else if let Err(e) = midi {
-                    tx.send(async_job::Event::Err(e))
+                    if let Ok(midi) = midi {
+                        tx.send(async_job::Event::MidiLoaded(midi))
+                            .expect("tx send failed in midi loader");
+                    } else if let Err(e) = midi {
+                        tx.send(async_job::Event::Err(e))
+                            .expect("tx send failed in midi loader");
+                    }
+                }
+                _ => {
+                    log::error!("User canceled dialog");
+                    tx.send(async_job::Event::Err("File dialog returned None".into()))
                         .expect("tx send failed in midi loader");
                 }
-            } else {
-                tx.send(async_job::Event::Err("File dialog returned None".into()))
-                    .expect("tx send failed in midi loader");
             }
         });
     }

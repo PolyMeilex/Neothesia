@@ -320,7 +320,9 @@ async fn main_async() {
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        env_logger::init();
+        use env_logger::Env;
+        // env_logger::init();
+        env_logger::from_env(Env::default().default_filter_or("neothesia=info")).init();
         futures::executor::block_on(main_async());
     }
 

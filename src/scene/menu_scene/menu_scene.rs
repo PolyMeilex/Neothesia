@@ -305,7 +305,7 @@ impl<'a> MidiDeviceSelect<'a> {
     }
     fn update_outs_list(&mut self) {
         self.midi_outs = self.midi_device_menager.get_outs();
-        log::info!("{:?}", self.midi_outs);
+        log::trace!("{:?}", self.midi_outs);
     }
     fn queue(&mut self, ui: &mut Ui, state: &MainState) {
         self.update_outs_list();

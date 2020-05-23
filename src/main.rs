@@ -89,10 +89,10 @@ struct App<'a> {
 
 impl<'a> App<'a> {
     fn new(mut gpu: Gpu, window: Window) -> Self {
-        let main_state = MainState::new(&gpu);
+        let mut main_state = MainState::new(&gpu);
 
         let ui = Ui::new(&main_state, &mut gpu);
-        let game_scene = scene::menu_scene::MenuScene::new(&mut gpu);
+        let game_scene = scene::menu_scene::MenuScene::new(&mut main_state, &mut gpu);
         let game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
             game_scene,
         )));
@@ -124,6 +124,12 @@ impl<'a> App<'a> {
                         let y = (position.y / dpi).round();
 
                         self.main_state.update_mouse_pos(x as f32, y as f32);
+
+                        let ae = AppEvent::SceneEvent(self.game_scene.input_event(
+                            &mut self.main_state,
+                            InputEvent::CursorMoved(x as f32, y as f32),
+                        ));
+                        self.event(ae);
                     }
                     WindowEvent::MouseInput { state, button, .. } => {
                         if let winit::event::ElementState::Pressed = state {
@@ -131,7 +137,12 @@ impl<'a> App<'a> {
                         } else {
                             self.main_state.update_mouse_pressed(false);
                         }
-                        self.game_scene.mouse_input(state, button);
+
+                        let ae = AppEvent::SceneEvent(self.game_scene.input_event(
+                            &mut self.main_state,
+                            InputEvent::MouseInput(state, button),
+                        ));
+                        self.event(ae);
                     }
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == winit::event::ElementState::Released {
@@ -187,7 +198,7 @@ impl<'a> App<'a> {
                 *control_flow = ControlFlow::Exit;
             }
             SceneType::Playing => {
-                let state = scene::menu_scene::MenuScene::new(&mut self.gpu);
+                let state = scene::menu_scene::MenuScene::new(&mut self.main_state, &mut self.gpu);
                 self.game_scene.transition_to(Box::new(state));
             }
             SceneType::Transition => {}

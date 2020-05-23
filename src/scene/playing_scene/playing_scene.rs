@@ -115,6 +115,7 @@ impl Scene for PlayingScene {
                 }
                 _ => {}
             },
+            _ => {}
         }
         SceneEvent::None
     }

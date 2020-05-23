@@ -10,15 +10,16 @@ pub trait Scene {
     fn resize(&mut self, _state: &mut MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
     fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
-    fn mouse_input(&mut self, _state: &ElementState, _button: &MouseButton) {}
     fn input_event(&mut self, _state: &mut MainState, _event: InputEvent) -> SceneEvent {
         SceneEvent::None
     }
 }
 
 #[derive(Debug)]
-pub enum InputEvent {
+pub enum InputEvent<'a> {
     KeyReleased(VirtualKeyCode),
+    MouseInput(&'a ElementState, &'a MouseButton),
+    CursorMoved(f32, f32),
 }
 
 #[derive(Debug)]

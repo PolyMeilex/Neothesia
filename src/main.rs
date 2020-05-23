@@ -15,9 +15,6 @@ mod midi_device;
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 
-#[cfg(target_arch = "wasm32")]
-mod web_wrappers;
-
 use wgpu_glyph::Section;
 use winit::{
     event::{Event, VirtualKeyCode, WindowEvent},

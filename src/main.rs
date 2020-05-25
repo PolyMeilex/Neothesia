@@ -144,6 +144,9 @@ impl<'a> App<'a> {
                         ));
                         self.event(ae);
                     }
+                    WindowEvent::Focused(_)=>{
+                        self.main_state.update_mouse_pressed(false);
+                    }
                     WindowEvent::KeyboardInput { input, .. } => {
                         if input.state == winit::event::ElementState::Released {
                             match input.virtual_keycode {

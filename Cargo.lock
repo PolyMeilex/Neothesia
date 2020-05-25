@@ -830,11 +830,6 @@ name = "instant"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7777a24a1ce5de49fcdde84ec46efa487c3af49d5b6e6e0a50367cc5c1096182"
-dependencies = [
- "js-sys",
- "wasm-bindgen",
- "web-sys",
-]
 
 [[package]]
 name = "iovec"
@@ -2039,9 +2034,7 @@ dependencies = [
  "percent-encoding",
  "raw-window-handle",
  "smithay-client-toolkit",
- "wasm-bindgen",
  "wayland-client",
- "web-sys",
  "winapi 0.3.8",
  "x11-dl",
 ]

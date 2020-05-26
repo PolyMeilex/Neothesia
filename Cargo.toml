@@ -12,33 +12,34 @@ compile_shader = []
 zerocopy = "0.3.0"
 futures = "0.3.5"
 
-winit = { version="0.22.0" }
+winit = { version="0.22.0",  features = ["web-sys"] }
 
 wgpu = "0.5.0"
-wgpu_glyph = "0.8.0"
+# wgpu_glyph = "0.8.0"
 
 
 log = "0.4"
 env_logger = "0.7.1"
 
-nfd2 = "0.2.1"
+# nfd2 = "0.2.1"
 
 lib_midi = {path="./lib_midi"}
 midir = "0.6.0"
 
-# js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# wasm-bindgen-futures = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# console_error_panic_hook = "0.1.6"
-# console_log = "0.2.0"
+instant = "0.1.4"
+js-sys = "0.3.39"
+web-sys = { version="0.3.39", features=["Document","Element","Window","HtmlInputElement","FileReaderSync","FileList","File","Blob"]}
+wasm-bindgen = "0.2.62"
+wasm-bindgen-futures = "0.4.12" 
+console_error_panic_hook = "0.1.6"
+console_log = "0.1.2"
 
 [build-dependencies]
 glsl-to-spirv = "0.1"
 
 
-# [patch.crates-io]
-# wgpu = {git ="https://github.com/gfx-rs/wgpu-rs.git"}
+[patch.crates-io]
+wgpu = {git ="https://github.com/gfx-rs/wgpu-rs.git"}
 # wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # wasm-bindgen-futures = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

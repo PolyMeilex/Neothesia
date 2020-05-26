@@ -1,4 +1,4 @@
-use std::time::Instant;
+use instant::Instant;
 
 pub struct TimeMenager {
     fps: Fps,

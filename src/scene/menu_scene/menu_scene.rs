@@ -74,9 +74,9 @@ impl<'a> MenuScene<'a> {
 
         self.midi_device_select.update_mouse_pos(x, y);
     }
-    fn mouse_clicked(&mut self, state: &MainState) -> SceneEvent {
+    fn mouse_clicked(&mut self, state: &mut MainState) -> SceneEvent {
         if self.select_file_btn.check_clicked() {
-            self.select_file_clicked();
+            self.select_file_clicked(state);
         } else if self.play_btn.check_clicked() {
             let select =
                 std::mem::replace(&mut self.midi_device_select, MidiDeviceSelect::new(state));
@@ -88,37 +88,77 @@ impl<'a> MenuScene<'a> {
 
         SceneEvent::None
     }
-    fn select_file_clicked(&mut self) {
-        let tx = self.aysnc_job.sender.clone();
+    fn select_file_clicked(&mut self, state: &mut MainState) {
+        log::info!("TET");
+        // let window = web_sys::window().expect("Window not found");
+        // let document = window.document().expect("Document not found");
+        // let body = document.body().expect("document should have a body");
 
-        self.aysnc_job.working = true;
-        thread::spawn(move || {
-            use nfd2::Response;
+        // let input : wasm_bindgen::JsValue = document.get_element_by_id("f").expect("Element creation").into();
+        // let input : web_sys::HtmlInputElement = input.into();
 
-            match nfd2::DialogBuilder::single()
-                .filter("mid,midi")
-                .open()
-                .expect("File Dialog Error")
-            {
-                Response::Okay(path) => {
-                    log::info!("File path = {:?}", path);
-                    let midi = lib_midi::Midi::new(path.to_str().unwrap());
+        // let files = input.files();
+        // if let Some(files) = files{
+        //     if let Some(file) = files.get(0){
+        //         let file_reader = web_sys::FileReaderSync::new();
+        //         // file_reader.read_as_array_buffer(file.blob);
+        //         log::info!("{:#?}",file.name());
+        //     }
+        // }
 
-                    if let Ok(midi) = midi {
-                        tx.send(async_job::Event::MidiLoaded(midi))
-                            .expect("tx send failed in midi loader");
-                    } else if let Err(e) = midi {
-                        tx.send(async_job::Event::Err(e))
-                            .expect("tx send failed in midi loader");
-                    }
-                }
-                _ => {
-                    log::error!("User canceled dialog");
-                    tx.send(async_job::Event::Err("File dialog returned None".into()))
-                        .expect("tx send failed in midi loader");
-                }
-            }
-        });
+        // let input : wasm_bindgen::JsValue = document.create_element("input").expect("Element creation").into();
+        // let input : web_sys::HtmlInputElement = input.into();
+        // input.set_attribute("style","color: white;display:block;").unwrap();
+        // input.set_type("file");
+        // input.click();
+
+        // body.append_child(&input).unwrap();
+
+        // input.type = "file";
+
+        // let tx = self.aysnc_job.sender.clone();
+        let mut midi =
+            lib_midi::Midi::from_bytes(&include_bytes!("../../../test.mid").to_vec()).unwrap();
+        // tx.send(async_job::Event::MidiLoaded(midi)).expect("tx send failed in midi loader");
+
+        midi.merged_track.notes = midi
+            .merged_track
+            .notes
+            .into_iter()
+            .filter(|n| n.ch != 9)
+            .collect();
+
+        log::info!("{:?}",midi.merged_track);
+        state.midi_file = Some(Rc::new(midi));
+
+        // self.aysnc_job.working = true;
+        // thread::spawn(move || {
+        //     use nfd2::Response;
+
+        //     match nfd2::DialogBuilder::single()
+        //         .filter("mid,midi")
+        //         .open()
+        //         .expect("File Dialog Error")
+        //     {
+        //         Response::Okay(path) => {
+        //             log::info!("File path = {:?}", path);
+        //             let midi = lib_midi::Midi::new(path.to_str().unwrap());
+
+        //             if let Ok(midi) = midi {
+        //                 tx.send(async_job::Event::MidiLoaded(midi))
+        //                     .expect("tx send failed in midi loader");
+        //             } else if let Err(e) = midi {
+        //                 tx.send(async_job::Event::Err(e))
+        //                     .expect("tx send failed in midi loader");
+        //             }
+        //         }
+        //         _ => {
+        //             log::error!("User canceled dialog");
+        //             tx.send(async_job::Event::Err("File dialog returned None".into()))
+        //                 .expect("tx send failed in midi loader");
+        //         }
+        //     }
+        // });
     }
 }
 
@@ -251,7 +291,7 @@ impl<'a> MidiDeviceSelect<'a> {
         select
             .next_btn
             .disabled(select.selected_id + 1 >= select.midi_outs.len());
-
+        
         select
     }
     fn build_ui() -> (Button<'a>, Button<'a>) {
@@ -316,18 +356,18 @@ impl<'a> MidiDeviceSelect<'a> {
             "No Midi Devices"
         };
 
-        ui.queue_text(wgpu_glyph::Section {
-            text,
-            color: [1.0, 1.0, 1.0, 1.0],
-            screen_position: (state.window_size.0 / 2.0, state.window_size.1 / 2.0 + 25.0),
-            scale: wgpu_glyph::Scale::uniform(40.0),
-            layout: wgpu_glyph::Layout::Wrap {
-                line_breaker: Default::default(),
-                h_align: wgpu_glyph::HorizontalAlign::Center,
-                v_align: wgpu_glyph::VerticalAlign::Center,
-            },
-            ..Default::default()
-        });
+        // ui.queue_text(wgpu_glyph::Section {
+        //     text,
+        //     color: [1.0, 1.0, 1.0, 1.0],
+        //     screen_position: (state.window_size.0 / 2.0, state.window_size.1 / 2.0 + 25.0),
+        //     scale: wgpu_glyph::Scale::uniform(40.0),
+        //     layout: wgpu_glyph::Layout::Wrap {
+        //         line_breaker: Default::default(),
+        //         h_align: wgpu_glyph::HorizontalAlign::Center,
+        //         v_align: wgpu_glyph::VerticalAlign::Center,
+        //     },
+        //     ..Default::default()
+        // });
 
         self.prev_btn.queue(ui);
         self.next_btn.queue(ui);
@@ -399,22 +439,22 @@ impl<'a> Button<'a> {
                 is_hovered: if self.is_hovered { 1 } else { 0 },
             });
 
-            ui.queue_text(wgpu_glyph::Section {
-                text: self.text,
-                color: if !self.disabled {
-                    [1.0, 1.0, 1.0, 1.0]
-                } else {
-                    [0.3, 0.3, 0.3, 1.0]
-                },
-                screen_position: (self.pos[0], self.pos[1]),
-                scale: wgpu_glyph::Scale::uniform(40.0),
-                layout: wgpu_glyph::Layout::Wrap {
-                    line_breaker: Default::default(),
-                    h_align: wgpu_glyph::HorizontalAlign::Center,
-                    v_align: wgpu_glyph::VerticalAlign::Center,
-                },
-                ..Default::default()
-            });
+            //     ui.queue_text(wgpu_glyph::Section {
+            //         text: self.text,
+            //         color: if !self.disabled {
+            //             [1.0, 1.0, 1.0, 1.0]
+            //         } else {
+            //             [0.3, 0.3, 0.3, 1.0]
+            //         },
+            //         screen_position: (self.pos[0], self.pos[1]),
+            //         scale: wgpu_glyph::Scale::uniform(40.0),
+            //         layout: wgpu_glyph::Layout::Wrap {
+            //             line_breaker: Default::default(),
+            //             h_align: wgpu_glyph::HorizontalAlign::Center,
+            //             v_align: wgpu_glyph::VerticalAlign::Center,
+            //         },
+            //         ..Default::default()
+            //     });
         }
     }
 }

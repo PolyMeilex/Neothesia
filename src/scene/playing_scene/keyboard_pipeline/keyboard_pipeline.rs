@@ -47,11 +47,11 @@ impl<'a> KeyboardPipeline {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &state.transform_uniform.bind_group, &[]);
 
-        render_pass.set_vertex_buffer(0, &self.simple_quad.vertex_buffer, 0, 0);
-        render_pass.set_vertex_buffer(1, &self.instances.buffer, 0, 0);
-        render_pass.set_vertex_buffer(2, &self.instances_state.buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.simple_quad.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));
+        render_pass.set_vertex_buffer(2, self.instances_state.buffer.slice(..));
 
-        render_pass.set_index_buffer(&self.simple_quad.index_buffer, 0, 0);
+        render_pass.set_index_buffer(self.simple_quad.index_buffer.slice(..));
 
         render_pass.draw_indexed(0..SimpleQuad::indices_len(), 0, 0..self.instances.len());
     }

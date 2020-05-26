@@ -5,4 +5,4 @@ authors = ["Poly <bartek.marynczak@op.pl>"]
 edition = "2018"
 
 [dependencies]
-midly = "0.4.0"
+midly = { version="0.4.0", default-features = false}

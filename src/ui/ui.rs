@@ -1,4 +1,4 @@
-use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
+// use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use super::button_pipeline::{ButtonInstance, ButtonPipeline};
 use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
@@ -8,7 +8,8 @@ use crate::MainState;
 pub struct Ui<'a> {
     rectangle_pipeline: RectanglePipeline,
     button_pipeline: ButtonPipeline,
-    glyph_brush: GlyphBrush<'a, ()>,
+    // glyph_brush: GlyphBrush<'a, ()>,
+    a: &'a str,
     queue: UiQueue,
 
     transition_pipeline: RectanglePipeline,
@@ -21,14 +22,15 @@ impl<'a> Ui<'a> {
         let rectangle_pipeline = RectanglePipeline::new(state, &gpu.device);
         let transition_pipeline = RectanglePipeline::new(state, &gpu.device);
         let font: &[u8] = include_bytes!("./Roboto-Regular.ttf");
-        let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
-            .expect("Load font")
-            .build(&gpu.device, wgpu::TextureFormat::Bgra8Unorm);
+        // let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
+        //     .expect("Load font")
+        //     .build(&gpu.device, wgpu::TextureFormat::Bgra8Unorm);
 
         Self {
             rectangle_pipeline,
             button_pipeline,
-            glyph_brush,
+            // glyph_brush,
+            a: "test",
             queue: UiQueue::new(),
 
             transition_rect_a: 0.0,
@@ -49,9 +51,9 @@ impl<'a> Ui<'a> {
     pub fn queue_rectangle(&mut self, rectangle: RectangleInstance) {
         self.queue.add_rectangle(rectangle);
     }
-    pub fn queue_text(&mut self, section: Section) {
-        self.glyph_brush.queue(section);
-    }
+    // pub fn queue_text(&mut self, section: Section) {
+    // self.glyph_brush.queue(section);
+    // }
     pub fn resize(&mut self, _state: &crate::MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, gpu: &mut Gpu) {
         self.rectangle_pipeline.update_instance_buffer(
@@ -87,15 +89,15 @@ impl<'a> Ui<'a> {
             self.rectangle_pipeline.render(state, &mut render_pass);
             self.button_pipeline.render(state, &mut render_pass);
         }
-        self.glyph_brush
-            .draw_queued(
-                &gpu.device,
-                encoder,
-                &frame.view,
-                state.window_size.0 as u32,
-                state.window_size.1 as u32,
-            )
-            .expect("glyph_brush");
+        // self.glyph_brush
+        //     .draw_queued(
+        //         &gpu.device,
+        //         encoder,
+        //         &frame.view,
+        //         state.window_size.0 as u32,
+        //         state.window_size.1 as u32,
+        //     )
+        //     .expect("glyph_brush");
 
         // Transition
         if self.transition_rect_a != 0.0 {

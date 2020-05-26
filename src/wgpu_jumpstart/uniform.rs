@@ -35,10 +35,7 @@ where
             layout: &bind_group_layout,
             bindings: &[wgpu::Binding {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer {
-                    buffer: &buffer,
-                    range: 0..std::mem::size_of_val(&data) as wgpu::BufferAddress,
-                },
+                resource: wgpu::BindingResource::Buffer(buffer.slice(..)),
             }],
         });
 

@@ -15,7 +15,7 @@ mod midi_device;
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 
-use wgpu_glyph::Section;
+// use wgpu_glyph::Section;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -144,7 +144,7 @@ impl<'a> App<'a> {
                         ));
                         self.event(ae);
                     }
-                    WindowEvent::Focused(_)=>{
+                    WindowEvent::Focused(_) => {
                         self.main_state.update_mouse_pressed(false);
                     }
                     WindowEvent::KeyboardInput { input, .. } => {
@@ -233,18 +233,18 @@ impl<'a> App<'a> {
         self.main_state.update_mouse_clicked(false);
     }
     fn queue_fps(&mut self) {
-        self.ui.queue_text(Section {
-            text: &format!("FPS: {}", self.main_state.time_menager.fps()),
-            color: [1.0, 1.0, 1.0, 1.0],
-            screen_position: (0.0, 5.0),
-            scale: wgpu_glyph::Scale::uniform(20.0),
-            layout: wgpu_glyph::Layout::Wrap {
-                line_breaker: Default::default(),
-                h_align: wgpu_glyph::HorizontalAlign::Left,
-                v_align: wgpu_glyph::VerticalAlign::Top,
-            },
-            ..Default::default()
-        });
+        // self.ui.queue_text(Section {
+        //     text: &format!("FPS: {}", self.main_state.time_menager.fps()),
+        //     color: [1.0, 1.0, 1.0, 1.0],
+        //     screen_position: (0.0, 5.0),
+        //     scale: wgpu_glyph::Scale::uniform(20.0),
+        //     layout: wgpu_glyph::Layout::Wrap {
+        //         line_breaker: Default::default(),
+        //         h_align: wgpu_glyph::HorizontalAlign::Left,
+        //         v_align: wgpu_glyph::VerticalAlign::Top,
+        //     },
+        //     ..Default::default()
+        // });
     }
     fn clear(&mut self, frame: &wgpu::SwapChainOutput) {
         self.gpu

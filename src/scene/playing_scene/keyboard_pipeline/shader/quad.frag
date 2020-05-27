@@ -4,8 +4,7 @@
 layout(location=0) in vec3 color;
 layout(location=1) in vec2 uv;
 layout(location=2) in vec2 size;
-layout(location=3) in float radius;
-layout(location=4) in float is_black;
+layout(location=3) in float is_black;
 
 layout(location=0) out vec4 f_color;
 
@@ -15,6 +14,8 @@ void main() {
     float alpha = 1.0;
 
     vec2 pos = uv * size;
+
+    float radius = 5.0;
 
     float xMax = size.x - radius;
     float yMax = size.y - radius;

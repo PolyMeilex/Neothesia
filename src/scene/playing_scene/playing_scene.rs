@@ -78,7 +78,7 @@ impl Scene for PlayingScene {
             self.player.set_time(p * self.player.midi_last_note_end)
         }
 
-        self.piano_keyboard.update_notes(gpu, notes_on);
+        self.piano_keyboard.update_notes_state(gpu, notes_on);
         self.notes.update(gpu, self.player.time);
 
         SceneEvent::None
@@ -174,16 +174,16 @@ impl Player {
         self.timer.start();
         self.active = true;
     }
-    fn update(&mut self) -> [bool; 88] {
+    fn update(&mut self) -> [(bool, usize); 88] {
         if !self.active {
-            return [false; 88];
+            return [(false, 0); 88];
         };
         self.timer.update();
         let raw_time = self.timer.get_elapsed() / 1000.0;
         self.percentage = raw_time / self.midi_last_note_end;
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
-        let mut notes_state: [bool; 88] = [false; 88];
+        let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
 
         let filtered: Vec<&lib_midi::MidiNote> = self
             .midi
@@ -199,7 +199,7 @@ impl Player {
 
             if n.start + n.duration >= self.time {
                 if n.note >= 21 && n.note <= 108 {
-                    notes_state[n.note as usize - 21] = true;
+                    notes_state[n.note as usize - 21] = (true, n.track_id);
                 }
 
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {

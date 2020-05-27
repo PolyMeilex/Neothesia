@@ -78,7 +78,7 @@ impl Scene for PlayingScene {
             self.player.set_time(p * self.player.midi_last_note_end)
         }
 
-        self.piano_keyboard.update_notes(gpu, notes_on);
+        self.piano_keyboard.update_notes_state(gpu, notes_on);
         self.notes.update(gpu, self.player.time);
 
         SceneEvent::None

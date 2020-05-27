@@ -96,7 +96,6 @@ impl PianoKeyboard {
                 position: [rect.0, rect.1],
                 size: [rect.2 - 1.0, rect.3],
                 is_black: 0,
-                radius: 5.0 * state.window_size.0 / state.window_size.1,
             });
         }
         for rect in black_keys {
@@ -104,14 +103,13 @@ impl PianoKeyboard {
                 position: [rect.0, rect.1],
                 size: [rect.2 - 1.0, rect.3],
                 is_black: 1,
-                radius: 5.0 * state.window_size.0 / state.window_size.1,
             });
         }
 
         self.keyboard_pipeline
             .update_instance_buffer(gpu, rectangles);
     }
-    pub fn update_notes(&mut self, gpu: &mut Gpu, notes: [bool; 88]) {
+    pub fn update_notes_state(&mut self, gpu: &mut Gpu, notes: [bool; 88]) {
         let mut white_keys = Vec::new();
         let mut black_keys = Vec::new();
 
@@ -133,11 +131,19 @@ impl PianoKeyboard {
             }
         }
 
+        let white_keys =
+            white_keys
+                .into_iter()
+                .map(|on| if on { [0.7, 0.7, 0.7] } else { [1.0, 1.0, 1.0] });
+
+        let black_keys =
+            black_keys
+                .into_iter()
+                .map(|on| if on { [0.5, 0.5, 0.5] } else { [0.1, 0.1, 0.1] });
+
         let notes_out = white_keys
-            .into_iter()
-            .chain(black_keys.into_iter())
-            .map(|b| if b { 1 } else { 0 })
-            .map(|b| KeyStateInstance { on: b })
+            .chain(black_keys)
+            .map(|c| KeyStateInstance { color: c })
             .collect();
 
         self.keyboard_pipeline

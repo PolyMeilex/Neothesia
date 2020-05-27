@@ -109,7 +109,7 @@ impl PianoKeyboard {
         self.keyboard_pipeline
             .update_instance_buffer(gpu, rectangles);
     }
-    pub fn update_notes_state(&mut self, gpu: &mut Gpu, notes: [bool; 88]) {
+    pub fn update_notes_state(&mut self, gpu: &mut Gpu, notes: [(bool, usize); 88]) {
         let mut white_keys = Vec::new();
         let mut black_keys = Vec::new();
 
@@ -117,7 +117,7 @@ impl PianoKeyboard {
         for id in 0..88 {
             let key_id = id + 9;
             let note_id = key_id % 12;
-            let on = notes[id as usize];
+            let note = notes[id as usize];
 
             if note_id == KEY_CIS
                 || note_id == KEY_DIS
@@ -125,21 +125,40 @@ impl PianoKeyboard {
                 || note_id == KEY_GIS
                 || note_id == KEY_AIS
             {
-                black_keys.push(on);
+                black_keys.push(note);
             } else {
-                white_keys.push(on);
+                white_keys.push(note);
             }
         }
 
-        let white_keys =
-            white_keys
-                .into_iter()
-                .map(|on| if on { [0.7, 0.7, 0.7] } else { [1.0, 1.0, 1.0] });
+        let colors: [[[f32; 3]; 2]; 2] = [
+            [
+                [93.0 / 255.0, 188.0 / 255.0, 1.0],
+                [48.0 / 255.0, 124.0 / 255.0, 1.0],
+            ],
+            [
+                [210.0 / 255.0, 89.0 / 255.0, 222.0 / 255.0],
+                [125.0 / 255.0, 69.0 / 255.0, 134.0 / 255.0],
+            ],
+        ];
 
-        let black_keys =
-            black_keys
-                .into_iter()
-                .map(|on| if on { [0.5, 0.5, 0.5] } else { [0.1, 0.1, 0.1] });
+        let white_keys = white_keys.into_iter().map(|note| {
+            let color = colors[note.1 % 2];
+            if note.0 {
+                color[0]
+            } else {
+                [1.0, 1.0, 1.0]
+            }
+        });
+
+        let black_keys = black_keys.into_iter().map(|note| {
+            let color = colors[note.1 % 2];
+            if note.0 {
+                color[1]
+            } else {
+                [0.1, 0.1, 0.1]
+            }
+        });
 
         let notes_out = white_keys
             .chain(black_keys)

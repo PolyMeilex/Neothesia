@@ -10,4 +10,4 @@ If you have any questions, feel free to join my Discord
 ## First Working Prototype
 [![IMG](https://i.snag.gy/F8SCbv.jpg)](https://youtu.be/ReE9nVuMCSE)
 [Video](https://youtu.be/ReE9nVuMCSE)
-[![Video](https://i.imgur.com/t0IaVA1.png)](https://youtu.be/ReE9nVuMCSE)
+[![Video](https://i.imgur.com/1R5uOnA.png)](https://youtu.be/ReE9nVuMCSE)

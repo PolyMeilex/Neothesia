@@ -45,13 +45,17 @@ impl Timer {
         self.time_elapsed = 0;
     }
     pub fn update(&mut self) {
-        if !self.paused {
-            // We use nanos only because when using secs timing error quickly piles up
-            // It is not visible when running 60FPS
-            // but on higher refresh rate it is important
-            self.time_elapsed += self.last_time.elapsed().as_nanos();
+        if cfg!(feature = "record") {
+            self.time_elapsed += 1000000000 / 60;
+        } else {
+            if !self.paused {
+                // We use nanos only because when using secs timing error quickly piles up
+                // It is not visible when running 60FPS
+                // but on higher refresh rate it is important
+                self.time_elapsed += self.last_time.elapsed().as_nanos();
+            }
+            self.last_time = Instant::now();
         }
-        self.last_time = Instant::now();
     }
     pub fn set_time(&mut self, time: f32) {
         if time > 0.0 {

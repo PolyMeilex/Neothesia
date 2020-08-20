@@ -83,15 +83,15 @@ impl Scene for PlayingScene {
 
         SceneEvent::None
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
-        self.notes.render(state, gpu, frame);
-        self.piano_keyboard.render(state, gpu, frame);
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, view: &wgpu::TextureView) {
+        self.notes.render(state, gpu, view);
+        self.piano_keyboard.render(state, gpu, view);
 
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,

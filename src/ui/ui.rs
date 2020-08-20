@@ -66,13 +66,13 @@ impl Ui {
             self.queue.clear_buttons(),
         );
     }
-    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, view: &wgpu::TextureView) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,
@@ -92,7 +92,7 @@ impl Ui {
             .draw_queued(
                 &gpu.device,
                 encoder,
-                &frame.view,
+                view,
                 state.window_size.0 as u32,
                 state.window_size.1 as u32,
             )
@@ -102,7 +102,7 @@ impl Ui {
         if self.transition_rect_a != 0.0 {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,

@@ -9,7 +9,7 @@ pub trait Scene {
     fn start(&mut self) {}
     fn resize(&mut self, _state: &mut MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, view: &wgpu::TextureView);
     fn input_event(&mut self, _state: &mut MainState, _event: InputEvent) -> SceneEvent {
         SceneEvent::None
     }

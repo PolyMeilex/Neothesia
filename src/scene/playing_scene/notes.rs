@@ -87,12 +87,12 @@ impl Notes {
     pub fn update(&mut self, gpu: &mut Gpu, time: f32) {
         self.notes_pipeline.update_time(gpu, time);
     }
-    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, view: &wgpu::TextureView) {
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,

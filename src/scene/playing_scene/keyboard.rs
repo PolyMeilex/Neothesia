@@ -168,12 +168,12 @@ impl PianoKeyboard {
         self.keyboard_pipeline
             .update_notes_state(&mut gpu.encoder, &gpu.device, notes_out);
     }
-    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, view: &wgpu::TextureView) {
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,

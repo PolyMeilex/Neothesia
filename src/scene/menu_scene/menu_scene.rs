@@ -168,12 +168,13 @@ impl<'a> Scene for MenuScene<'a> {
 
         SceneEvent::None
     }
-    fn render(&mut self, _state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    fn render(&mut self, _state: &mut MainState, gpu: &mut Gpu, view: &wgpu::TextureView) {
         let encoder = &mut gpu.encoder;
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,

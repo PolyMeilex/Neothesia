@@ -219,14 +219,17 @@ impl App {
         self.queue_fps();
     }
     fn render(&mut self) {
+        #[cfg(not(feature = "recod"))]
         let frame = self.window.surface.get_next_texture();
+        #[cfg(not(feature = "recod"))]
+        let view = &frame.view;
 
-        self.clear(&frame);
+        self.clear(view);
 
         self.game_scene
-            .render(&mut self.main_state, &mut self.gpu, &frame);
+            .render(&mut self.main_state, &mut self.gpu, view);
 
-        self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
+        self.ui.render(&mut self.main_state, &mut self.gpu, view);
 
         self.gpu.submit();
 
@@ -249,12 +252,12 @@ impl App {
             ..Default::default()
         });
     }
-    fn clear(&mut self, frame: &wgpu::SwapChainOutput) {
+    fn clear(&mut self, view: &wgpu::TextureView) {
         self.gpu
             .encoder
             .begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Clear,
                     store_op: wgpu::StoreOp::Store,

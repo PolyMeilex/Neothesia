@@ -79,15 +79,15 @@ enum AppEvent<'a> {
     SceneEvent(SceneEvent),
 }
 
-struct App<'a> {
+struct App {
     pub window: Window,
     pub gpu: Gpu,
-    pub ui: Ui<'a>,
+    pub ui: Ui,
     pub main_state: MainState,
     game_scene: Box<scene::scene_transition::SceneTransition>,
 }
 
-impl<'a> App<'a> {
+impl App {
     fn new(mut gpu: Gpu, window: Window) -> Self {
         let mut main_state = MainState::new(&gpu);
 
@@ -144,7 +144,7 @@ impl<'a> App<'a> {
                         ));
                         self.event(ae);
                     }
-                    WindowEvent::Focused(_)=>{
+                    WindowEvent::Focused(_) => {
                         self.main_state.update_mouse_pressed(false);
                     }
                     WindowEvent::KeyboardInput { input, .. } => {
@@ -233,11 +233,14 @@ impl<'a> App<'a> {
         self.main_state.update_mouse_clicked(false);
     }
     fn queue_fps(&mut self) {
+        let s = format!("FPS: {}", self.main_state.time_menager.fps());
+        let text = vec![wgpu_glyph::Text::new(&s)
+            .with_color([1.0, 1.0, 1.0, 1.0])
+            .with_scale(20.0)];
+
         self.ui.queue_text(Section {
-            text: &format!("FPS: {}", self.main_state.time_menager.fps()),
-            color: [1.0, 1.0, 1.0, 1.0],
+            text,
             screen_position: (0.0, 5.0),
-            scale: wgpu_glyph::Scale::uniform(20.0),
             layout: wgpu_glyph::Layout::Wrap {
                 line_breaker: Default::default(),
                 h_align: wgpu_glyph::HorizontalAlign::Left,

@@ -14,8 +14,8 @@ futures = "0.3.5"
 
 winit = { version="0.22.0" }
 
-wgpu = "0.5.0"
-wgpu_glyph = "0.8.0"
+wgpu = "0.5"
+wgpu_glyph = "0.8"
 
 
 log = "0.4"
@@ -25,6 +25,11 @@ nfd2 = "0.2.1"
 
 lib_midi = {path="./lib_midi"}
 midir = "0.6.0"
+
+iced = {git="https://github.com/hecrj/iced.git"} 
+iced_winit = {git="https://github.com/hecrj/iced.git"} 
+iced_native = {git="https://github.com/hecrj/iced.git"} 
+iced_wgpu = {git="https://github.com/hecrj/iced.git"} 
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

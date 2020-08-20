@@ -23,6 +23,9 @@ use winit::{
 
 use std::rc::Rc;
 
+mod controls;
+use controls::Controls;
+
 mod rectangle_pipeline;
 
 pub struct MainState {
@@ -85,6 +88,10 @@ struct App<'a> {
     pub ui: Ui<'a>,
     pub main_state: MainState,
     game_scene: Box<scene::scene_transition::SceneTransition>,
+    iced_renderer: iced_wgpu::Renderer,
+    iced_viewport: iced_wgpu::Viewport,
+    iced_state: iced_native::program::State<Controls>,
+    iced_debug: iced_native::Debug,
 }
 
 impl<'a> App<'a> {
@@ -97,12 +104,41 @@ impl<'a> App<'a> {
             game_scene,
         )));
 
+        let mut iced_debug = iced_native::Debug::new();
+
+        let mut settings = iced_wgpu::Settings::default();
+        settings.format = wgpu::TextureFormat::Bgra8Unorm;
+
+        let mut iced_renderer =
+            iced_wgpu::Renderer::new(iced_wgpu::Backend::new(&mut gpu.device, settings));
+
+        let physical_size = window.physical_size();
+        let iced_viewport = iced_wgpu::Viewport::with_physical_size(
+            iced::Size::new(physical_size.width, physical_size.height),
+            window.dpi,
+        );
+
+        let controls = Controls::new();
+
+        let cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
+        let iced_state = iced_native::program::State::new(
+            controls,
+            iced_viewport.logical_size(),
+            iced_winit::conversion::cursor_position(cursor_position, iced_viewport.scale_factor()),
+            &mut iced_renderer,
+            &mut iced_debug,
+        );
+
         Self {
             window,
             gpu,
             ui,
             main_state,
             game_scene,
+            iced_renderer,
+            iced_viewport,
+            iced_state,
+            iced_debug,
         }
     }
     fn event(&mut self, event: AppEvent) {
@@ -144,7 +180,7 @@ impl<'a> App<'a> {
                         ));
                         self.event(ae);
                     }
-                    WindowEvent::Focused(_)=>{
+                    WindowEvent::Focused(_) => {
                         self.main_state.update_mouse_pressed(false);
                     }
                     WindowEvent::KeyboardInput { input, .. } => {
@@ -194,6 +230,12 @@ impl<'a> App<'a> {
         self.main_state.resize(&mut self.gpu, w, h);
         self.game_scene.resize(&mut self.main_state, &mut self.gpu);
         self.ui.resize(&self.main_state, &mut self.gpu);
+
+        let physical_size = self.window.physical_size();
+        self.iced_viewport = iced_wgpu::Viewport::with_physical_size(
+            iced::Size::new(physical_size.width, physical_size.height),
+            self.window.dpi,
+        );
     }
     fn go_back(&mut self, control_flow: &mut ControlFlow) {
         match self.game_scene.scene_type() {
@@ -228,9 +270,20 @@ impl<'a> App<'a> {
 
         self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
-        self.gpu.submit();
+        //self.gpu.submit();
 
         self.main_state.update_mouse_clicked(false);
+
+        let mouse_interaction = self.iced_renderer.backend_mut().draw(
+            &mut self.gpu.device,
+            &mut self.gpu.encoder,
+            &frame.view,
+            &self.iced_viewport,
+            self.iced_state.primitive(),
+            &self.iced_debug.overlay(),
+        );
+
+        self.gpu.submit();
     }
     fn queue_fps(&mut self) {
         self.ui.queue_text(Section {
@@ -272,9 +325,12 @@ async fn main_async() {
 
     let builder = winit::window::WindowBuilder::new().with_title("Neothesia");
     let (window, gpu) = Window::new(builder, (1080, 720), &event_loop).await;
+
     let mut app = App::new(gpu, window);
     app.resize();
     app.gpu.submit();
+
+    let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
 
     // Commented out control_flow stuff is related to:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
@@ -305,11 +361,39 @@ async fn main_async() {
                 //     }
                 // }
 
+                if !app.iced_state.is_queue_empty() {
+                    let _ = app.iced_state.update(
+                        app.iced_viewport.logical_size(),
+                        iced_winit::conversion::cursor_position(
+                            cursor_position,
+                            app.iced_viewport.scale_factor(),
+                        ),
+                        None,
+                        &mut app.iced_renderer,
+                        &mut app.iced_debug,
+                    );
+                }
+
                 // #[cfg(target_arch = "wasm32")]
                 app.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {
                 app.event(AppEvent::WindowEvent(event, control_flow));
+
+                match event {
+                    winit::event::WindowEvent::CursorMoved { position, .. } => {
+                        cursor_position = *position;
+                    }
+                    _ => {}
+                }
+
+                let modifiers = winit::event::ModifiersState::default();
+
+                if let Some(event) =
+                    iced_winit::conversion::window_event(&event, app.window.dpi, modifiers)
+                {
+                    app.iced_state.queue_event(event);
+                }
             }
             Event::RedrawRequested(_) => {
                 app.update();

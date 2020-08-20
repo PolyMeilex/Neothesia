@@ -7,15 +7,16 @@ edition = "2018"
 [features]
 default = ["compile_shader"]
 compile_shader = []
+record=[]
 
 [dependencies]
 zerocopy = "0.3.0"
 futures = "0.3.5"
 
-winit = { version="0.22.0" }
+winit = { version="0.22.2" }
 
-wgpu = "0.5.0"
-wgpu_glyph = "0.8.0"
+wgpu = "0.5.2"
+wgpu_glyph = "0.9.0"
 
 
 log = "0.4"
@@ -24,7 +25,7 @@ env_logger = "0.7.1"
 nfd2 = "0.2.1"
 
 lib_midi = {path="./lib_midi"}
-midir = "0.6.0"
+midir = "0.6.2"
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

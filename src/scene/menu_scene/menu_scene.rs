@@ -316,11 +316,13 @@ impl<'a> MidiDeviceSelect<'a> {
             "No Midi Devices"
         };
 
+        let text = vec![wgpu_glyph::Text::new(text)
+            .with_color([1.0, 1.0, 1.0, 1.0])
+            .with_scale(30.0)];
+
         ui.queue_text(wgpu_glyph::Section {
             text,
-            color: [1.0, 1.0, 1.0, 1.0],
             screen_position: (state.window_size.0 / 2.0, state.window_size.1 / 2.0 + 25.0),
-            scale: wgpu_glyph::Scale::uniform(40.0),
             layout: wgpu_glyph::Layout::Wrap {
                 line_breaker: Default::default(),
                 h_align: wgpu_glyph::HorizontalAlign::Center,
@@ -399,15 +401,17 @@ impl<'a> Button<'a> {
                 is_hovered: if self.is_hovered { 1 } else { 0 },
             });
 
+            let color = if !self.disabled {
+                [1.0, 1.0, 1.0, 1.0]
+            } else {
+                [0.3, 0.3, 0.3, 1.0]
+            };
+            let text = vec![wgpu_glyph::Text::new(self.text)
+                .with_color(color)
+                .with_scale(40.0)];
             ui.queue_text(wgpu_glyph::Section {
-                text: self.text,
-                color: if !self.disabled {
-                    [1.0, 1.0, 1.0, 1.0]
-                } else {
-                    [0.3, 0.3, 0.3, 1.0]
-                },
+                text,
                 screen_position: (self.pos[0], self.pos[1]),
-                scale: wgpu_glyph::Scale::uniform(40.0),
                 layout: wgpu_glyph::Layout::Wrap {
                     line_breaker: Default::default(),
                     h_align: wgpu_glyph::HorizontalAlign::Center,

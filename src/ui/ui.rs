@@ -5,25 +5,26 @@ use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
 use crate::wgpu_jumpstart::Gpu;
 use crate::MainState;
 
-pub struct Ui<'a> {
+pub struct Ui {
     rectangle_pipeline: RectanglePipeline,
     button_pipeline: ButtonPipeline,
-    glyph_brush: GlyphBrush<'a, ()>,
+    glyph_brush: GlyphBrush<()>,
     queue: UiQueue,
 
     transition_pipeline: RectanglePipeline,
     transition_rect_a: f32,
 }
 
-impl<'a> Ui<'a> {
+impl Ui {
     pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
         let button_pipeline = ButtonPipeline::new(state, &gpu.device);
         let rectangle_pipeline = RectanglePipeline::new(state, &gpu.device);
         let transition_pipeline = RectanglePipeline::new(state, &gpu.device);
-        let font: &[u8] = include_bytes!("./Roboto-Regular.ttf");
-        let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
-            .expect("Load font")
-            .build(&gpu.device, wgpu::TextureFormat::Bgra8Unorm);
+        let font =
+            wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("./Roboto-Regular.ttf"))
+                .expect("Load font");
+        let glyph_brush =
+            GlyphBrushBuilder::using_font(font).build(&gpu.device, wgpu::TextureFormat::Bgra8Unorm);
 
         Self {
             rectangle_pipeline,

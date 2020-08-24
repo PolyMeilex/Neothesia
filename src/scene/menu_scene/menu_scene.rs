@@ -16,7 +16,7 @@ use winit::event::{MouseButton, VirtualKeyCode};
 
 #[derive(Debug)]
 pub enum Event {
-    MidiOpen(MidiPortInfo),
+    MidiOpen(Option<MidiPortInfo>),
 }
 
 pub struct MenuScene<'a> {
@@ -160,8 +160,8 @@ impl<'a> Scene for MenuScene<'a> {
         self.select_file_btn.queue(ui);
 
         self.play_btn.hidden(!state.midi_file.is_some());
-        self.play_btn
-            .disabled(self.midi_device_select.midi_outs.is_empty());
+        // self.play_btn
+        //     .disabled(self.midi_device_select.midi_outs.is_empty());
         self.play_btn.queue(ui);
 
         self.midi_device_select.queue(ui, &state);
@@ -295,8 +295,12 @@ impl<'a> MidiDeviceSelect<'a> {
         SceneEvent::None
     }
 
-    fn get_selected(mut self) -> MidiPortInfo {
-        self.midi_outs.remove(self.selected_id)
+    fn get_selected(mut self) -> Option<MidiPortInfo> {
+        if self.midi_outs.len() > self.selected_id {
+            Some(self.midi_outs.remove(self.selected_id))
+        } else {
+            None
+        }
     }
     fn next(&mut self) {
         self.selected_id += 1;
@@ -311,8 +315,8 @@ impl<'a> MidiDeviceSelect<'a> {
     fn queue(&mut self, ui: &mut Ui, state: &MainState) {
         self.update_outs_list();
 
-        let text = if self.midi_outs.len() > self.selected_id {
-            &self.midi_outs[self.selected_id].name
+        let text = if let Some(out) = self.midi_outs.get(self.selected_id) {
+            &out.name
         } else {
             "No Midi Devices"
         };
@@ -396,7 +400,7 @@ impl<'a> Button<'a> {
                 color: if self.is_hovered {
                     [56.0 / 255.0, 145.0 / 255.0, 1.0]
                 } else {
-                    [160.0 / 255.0, 81.0 / 255.0, 232_558.0 / 255.0]
+                    [160.0 / 255.0, 81.0 / 255.0, 1.0]
                 },
                 radius: 15.0,
                 is_hovered: if self.is_hovered { 1 } else { 0 },

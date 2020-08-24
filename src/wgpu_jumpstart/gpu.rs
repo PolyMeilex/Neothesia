@@ -1,7 +1,10 @@
 use super::surface::Surface;
 
 pub struct Gpu {
+    #[cfg(not(feature = "record"))]
     pub device: wgpu::Device,
+    #[cfg(feature = "record")]
+    pub device: std::sync::Arc<wgpu::Device>,
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
 }
@@ -36,7 +39,10 @@ impl Gpu {
 
         (
             Self {
+                #[cfg(not(feature = "record"))]
                 device,
+                #[cfg(feature = "record")]
+                device: std::sync::Arc::new(device),
                 queue,
                 encoder,
             },

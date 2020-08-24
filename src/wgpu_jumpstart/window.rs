@@ -68,10 +68,19 @@ impl Window {
         self.winit_window.inner_size()
     }
     pub fn on_resize(&mut self, gpu: &mut Gpu) {
-        self.surface.resize(gpu, self.physical_size());
-        let size = self.winit_window.inner_size();
-        self.width = size.width;
-        self.height = size.height;
+        #[cfg(not(feature = "record"))]
+        {
+            self.surface.resize(gpu, self.physical_size());
+            let size = self.winit_window.inner_size();
+            self.width = size.width;
+            self.height = size.height;
+        }
+
+        #[cfg(feature = "record")]
+        {
+            self.width = 1920;
+            self.height = 1080;
+        }
     }
     pub fn on_dpi(&mut self, dpi: f64) {
         self.dpi = dpi;

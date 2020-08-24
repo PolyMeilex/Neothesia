@@ -25,7 +25,7 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(gpu: &mut Gpu, state: &mut MainState, port: MidiPortInfo) -> Self {
+    pub fn new(gpu: &mut Gpu, state: &mut MainState, port: Option<MidiPortInfo>) -> Self {
         let piano_keyboard = PianoKeyboard::new(state, gpu);
         let mut notes = Notes::new(
             state,
@@ -34,7 +34,7 @@ impl PlayingScene {
             &state
                 .midi_file
                 .clone()
-                .expect("Expeced Midi File, no mifi file selected"),
+                .expect("Expected Midi File, no mifi file selected"),
         );
 
         let player = Player::new(state.midi_file.clone().unwrap(), port);
@@ -136,12 +136,14 @@ struct Player {
 }
 
 impl Player {
-    fn new(midi: Rc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
+    fn new(midi: Rc<lib_midi::Midi>, port: Option<MidiPortInfo>) -> Self {
         let mut midi_device = crate::midi_device::MidiDevicesMenager::new();
 
         log::info!("{:?}", midi_device.get_outs());
 
-        midi_device.connect_out(port);
+        if let Some(port) = port {
+            midi_device.connect_out(port);
+        }
 
         let midi_first_note_start = if let Some(note) = midi.merged_track.notes.first() {
             note.start

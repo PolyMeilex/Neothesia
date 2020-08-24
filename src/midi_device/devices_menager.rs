@@ -67,10 +67,10 @@ impl MidiDevicesMenager {
             self.midi_out_c = midi_out.connect(&port.port, "out").ok();
         }
     }
+
     pub fn send(&mut self, message: &[u8]) {
-        let _res = match &mut self.midi_out_c {
-            Some(out) => out.send(message),
-            None => Ok(()),
+        if let Some(out) = &mut self.midi_out_c {
+            out.send(message).ok();
         };
     }
 }

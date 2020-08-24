@@ -25,6 +25,9 @@ use std::rc::Rc;
 
 mod rectangle_pipeline;
 
+#[cfg(feature = "record")]
+mod recorder;
+
 pub struct MainState {
     pub window_size: (f32, f32),
     pub mouse_pos: (f32, f32),
@@ -85,6 +88,9 @@ struct App {
     pub ui: Ui,
     pub main_state: MainState,
     game_scene: Box<scene::scene_transition::SceneTransition>,
+
+    #[cfg(feature = "record")]
+    recorder: recorder::Recorder,
 }
 
 impl App {
@@ -92,7 +98,26 @@ impl App {
         let mut main_state = MainState::new(&gpu);
 
         let ui = Ui::new(&main_state, &mut gpu);
+
+        #[cfg(not(feature = "record"))]
         let game_scene = scene::menu_scene::MenuScene::new(&mut main_state, &mut gpu);
+        #[cfg(feature = "record")]
+        let game_scene = {
+            let midi = Rc::new(
+                lib_midi::Midi::new(
+                    "/home/poly/Documents/Midi/Zero no Tsukaima Season 2 OP - I Say Yes.mid",
+                )
+                .expect("midi error!"),
+            );
+
+            main_state.midi_file = Some(midi);
+
+            let game_scene =
+                scene::playing_scene::PlayingScene::new(&mut gpu, &mut main_state, None);
+
+            game_scene
+        };
+
         let game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
             game_scene,
         )));
@@ -103,6 +128,9 @@ impl App {
             ui,
             main_state,
             game_scene,
+
+            #[cfg(feature = "record")]
+            recorder: recorder::Recorder::new(),
         }
     }
     fn event(&mut self, event: AppEvent) {
@@ -218,22 +246,92 @@ impl App {
 
         self.queue_fps();
     }
+    #[cfg(not(feature = "record"))]
     fn render(&mut self) {
-        #[cfg(not(feature = "recod"))]
         let frame = self.window.surface.get_next_texture();
-        #[cfg(not(feature = "recod"))]
         let view = &frame.view;
 
-        self.clear(view);
+        {
+            self.clear(view);
 
-        self.game_scene
-            .render(&mut self.main_state, &mut self.gpu, view);
+            self.game_scene
+                .render(&mut self.main_state, &mut self.gpu, view);
 
-        self.ui.render(&mut self.main_state, &mut self.gpu, view);
+            self.ui.render(&mut self.main_state, &mut self.gpu, view);
 
-        self.gpu.submit();
+            self.gpu.submit();
 
-        self.main_state.update_mouse_clicked(false);
+            self.main_state.update_mouse_clicked(false);
+        }
+    }
+    #[cfg(feature = "record")]
+    async fn render<'a>(
+        &mut self,
+        texture: &wgpu::Texture,
+        view: &wgpu::TextureView,
+        texture_desc: &wgpu::TextureDescriptor<'a>,
+        output_buffer: &wgpu::Buffer,
+        n: usize,
+    ) /*-> Vec<u8>*/
+    {
+        {
+            self.clear(view);
+
+            self.game_scene
+                .render(&mut self.main_state, &mut self.gpu, view);
+
+            self.ui.render(&mut self.main_state, &mut self.gpu, view);
+
+            self.main_state.update_mouse_clicked(false);
+        }
+
+        {
+            let u32_size = std::mem::size_of::<u32>() as u32;
+
+            self.gpu.encoder.copy_texture_to_buffer(
+                wgpu::TextureCopyView {
+                    texture: &texture,
+                    mip_level: 0,
+                    array_layer: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                },
+                wgpu::BufferCopyView {
+                    buffer: &output_buffer,
+                    offset: 0,
+                    bytes_per_row: u32_size * 1920,
+                    rows_per_image: 1080,
+                },
+                texture_desc.size,
+            );
+
+            self.gpu.submit();
+
+            // let mapping = output_buffer.map_read(0, output_buffer_size);
+            // self.gpu.device.poll(wgpu::Maintain::Wait);
+
+            // let result = mapping.await.unwrap();
+            // let data: &[u8] = result.as_slice();
+
+            // let out = data.to_owned();
+
+            // out.resize(1280 * 720 * 4, 0);
+
+            // out.clone_from_slice(data);
+
+            // self.recorder.encoder.encode_rgba(1280, 720, data, false);
+            // out
+
+            // self.recorder.encoder.encode_rgba(1280, 720, data, false);
+            // use image::{Bgra, ImageBuffer};
+            // let buffer = ImageBuffer::<Bgra<u8>, &[u8]>::from_raw(1280, 720, data).unwrap();
+
+            // buffer
+            //     .save(&format!(
+            //         "/home/poly/Documents/Programing/rust/Neothesia/out/image{}.jpg",
+            //         n
+            //     ))
+            //     .unwrap();
+        }
     }
     fn queue_fps(&mut self) {
         let s = format!("FPS: {}", self.main_state.time_menager.fps());
@@ -277,10 +375,98 @@ async fn main_async() {
     let event_loop = EventLoop::new();
 
     let builder = winit::window::WindowBuilder::new().with_title("Neothesia");
-    let (window, gpu) = Window::new(builder, (1080, 720), &event_loop).await;
+    let (window, gpu) = Window::new(builder, (1280, 720), &event_loop).await;
     let mut app = App::new(gpu, window);
     app.resize();
     app.gpu.submit();
+
+    #[cfg(feature = "record")]
+    {
+        app.resize();
+
+        let texture_desc = wgpu::TextureDescriptor {
+            size: wgpu::Extent3d {
+                width: 1920,
+                height: 1080,
+                depth: 1,
+            },
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu_jumpstart::TEXTURE_FORMAT,
+            usage: wgpu::TextureUsage::COPY_SRC | wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            label: None,
+        };
+        let texture = app.gpu.device.create_texture(&texture_desc);
+        let view = &texture.create_default_view();
+
+        let u32_size = std::mem::size_of::<u32>() as u32;
+        let output_buffer_size = (u32_size * 1920 * 1080) as wgpu::BufferAddress;
+
+        let output_buffer_desc = wgpu::BufferDescriptor {
+            size: output_buffer_size,
+            usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
+            label: None,
+        };
+
+        let (tx, rx) = std::sync::mpsc::channel::<Option<wgpu::Buffer>>();
+
+        let d = app.gpu.device.clone();
+        let th = std::thread::spawn(move || {
+            async fn run(
+                rx: std::sync::mpsc::Receiver<Option<wgpu::Buffer>>,
+                device: &wgpu::Device,
+            ) {
+                let u32_size = std::mem::size_of::<u32>() as u32;
+                let output_buffer_size = (u32_size * 1920 * 1080) as wgpu::BufferAddress;
+                let mut encoder = mpeg_encoder::Encoder::new(
+                    "/home/poly/Documents/Programing/rust/Neothesia/out/test.mp4",
+                    1280,
+                    720,
+                );
+                encoder.init();
+
+                loop {
+                    if let Ok(b) = rx.recv() {
+                        if let Some(output_buffer) = b {
+                            let mapping = output_buffer.map_read(0, output_buffer_size);
+                            device.poll(wgpu::Maintain::Wait);
+
+                            let result = mapping.await.unwrap();
+                            let data: &[u8] = result.as_slice();
+                            encoder.encode_rgba(1920, 1080, data, false);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+            futures::executor::block_on(run(rx, &d));
+        });
+
+        let t = std::time::Instant::now();
+
+        for n in 0..(60 * 10) {
+            app.update();
+
+            let output_buffer = app.gpu.device.create_buffer(&output_buffer_desc);
+
+            app.render(&texture, &view, &texture_desc, &output_buffer, n)
+                .await;
+
+            tx.send(Some(output_buffer)).ok();
+        }
+
+        log::info!("End: {}", t.elapsed().as_millis());
+
+        tx.send(None).ok();
+        th.join().unwrap();
+
+        log::info!("End: {}", t.elapsed().as_millis());
+    }
 
     // Commented out control_flow stuff is related to:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
@@ -288,6 +474,8 @@ async fn main_async() {
 
     // #[cfg(not(target_arch = "wasm32"))]
     // let mut last_update_inst = std::time::Instant::now();
+
+    #[cfg(not(feature = "record"))]
     event_loop.run(move |event, _, control_flow| {
         // *control_flow = {
         //     #[cfg(not(target_arch = "wasm32"))]

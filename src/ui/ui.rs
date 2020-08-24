@@ -23,8 +23,8 @@ impl Ui {
         let font =
             wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("./Roboto-Regular.ttf"))
                 .expect("Load font");
-        let glyph_brush =
-            GlyphBrushBuilder::using_font(font).build(&gpu.device, wgpu::TextureFormat::Bgra8Unorm);
+        let glyph_brush = GlyphBrushBuilder::using_font(font)
+            .build(&gpu.device, crate::wgpu_jumpstart::TEXTURE_FORMAT);
 
         Self {
             rectangle_pipeline,

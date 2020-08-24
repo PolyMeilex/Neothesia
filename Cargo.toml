@@ -5,9 +5,9 @@ authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["compile_shader"]
+default = ["compile_shader","record"]
 compile_shader = []
-record=[]
+record=["mpeg_encoder"]
 
 [dependencies]
 zerocopy = "0.3.0"
@@ -26,6 +26,10 @@ nfd2 = "0.2.1"
 
 lib_midi = {path="./lib_midi"}
 midir = "0.6.2"
+
+# image = { version = "0.23.8", optional=true }
+# ffmpeg-next = { version = "4.3.6", optional=true }
+mpeg_encoder = {path="./mpeg_encoder",optional=true}
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

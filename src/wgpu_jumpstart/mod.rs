@@ -12,4 +12,4 @@ pub use {
     simple_quad::SimpleQuad, uniform::Uniform, window::Window,
 };
 
-pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
+pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;

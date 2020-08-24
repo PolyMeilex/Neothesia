@@ -107,7 +107,7 @@ impl App {
         let mut iced_debug = iced_native::Debug::new();
 
         let mut settings = iced_wgpu::Settings::default();
-        settings.format = wgpu::TextureFormat::Bgra8Unorm;
+        settings.format = wgpu_jumpstart::TEXTURE_FORMAT;
 
         let mut iced_renderer =
             iced_wgpu::Renderer::new(iced_wgpu::Backend::new(&mut gpu.device, settings));

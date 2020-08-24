@@ -157,14 +157,14 @@ impl<'a> Scene for MenuScene<'a> {
             }
         }
 
-        self.select_file_btn.queue(ui);
+        // self.select_file_btn.queue(ui);
 
-        self.play_btn.hidden(!state.midi_file.is_some());
-        self.play_btn
-            .disabled(self.midi_device_select.midi_outs.is_empty());
-        self.play_btn.queue(ui);
+        // self.play_btn.hidden(!state.midi_file.is_some());
+        // self.play_btn
+        //     .disabled(self.midi_device_select.midi_outs.is_empty());
+        // self.play_btn.queue(ui);
 
-        self.midi_device_select.queue(ui, &state);
+        // self.midi_device_select.queue(ui, &state);
 
         SceneEvent::None
     }

@@ -1556,6 +1556,7 @@ dependencies = [
  "futures",
  "glsl-to-spirv",
  "iced",
+ "iced_graphics",
  "iced_native",
  "iced_wgpu",
  "iced_winit",

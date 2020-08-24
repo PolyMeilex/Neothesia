@@ -1,0 +1,15 @@
+[package]
+name = "mpeg_encoder"
+version = "0.2.1"
+authors = ["Sébastien Crozet <developer@crozet.re>"]
+
+description = "A simple ffmpeg video encoder."
+repository = "https://github.com/sebcrozet/mpeg_encoder"
+readme = "README.md"
+keywords = [ "encoder", "ffmpeg", "mpeg", "video" ]
+license = "BSD-3-Clause"
+
+[dependencies.ffmpeg-sys-next]
+version = "4.3.4"
+default-features = false
+features = [ "avformat", "swscale" ]

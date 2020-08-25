@@ -1,4 +1,4 @@
 #[allow(dead_code)]
-mod devices_menager;
-pub use devices_menager::MidiDevicesMenager;
-pub use devices_menager::MidiPortInfo;
+mod devices_manager;
+pub use devices_manager::MidiDevicesManager;
+pub use devices_manager::MidiPortInfo;

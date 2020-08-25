@@ -6,7 +6,7 @@ use super::{
 
 use crate::{
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
-    time_menager::Timer,
+    time_manager::Timer,
     ui::Ui,
     wgpu_jumpstart::{Color, Gpu},
     MainState,
@@ -122,12 +122,12 @@ impl Scene for PlayingScene {
 }
 
 use crate::midi_device::MidiPortInfo;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 struct Player {
-    midi: Rc<lib_midi::Midi>,
+    midi: Arc<lib_midi::Midi>,
     midi_first_note_start: f32,
     midi_last_note_end: f32,
-    midi_device: crate::midi_device::MidiDevicesMenager,
+    midi_device: crate::midi_device::MidiDevicesManager,
     active_notes: HashMap<usize, u8>,
     timer: Timer,
     percentage: f32,
@@ -136,8 +136,8 @@ struct Player {
 }
 
 impl Player {
-    fn new(midi: Rc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
-        let mut midi_device = crate::midi_device::MidiDevicesMenager::new();
+    fn new(midi: Arc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
+        let mut midi_device = crate::midi_device::MidiDevicesManager::new();
 
         log::info!("{:?}", midi_device.get_outs());
 

@@ -2,14 +2,15 @@ use midir::{
     MidiInput, MidiInputConnection, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort,
 };
 
-pub struct MidiDevicesMenager {
+pub struct MidiDevicesManager {
     midi_out: Option<MidiOutput>,
     // midi_in: Option<MidiInput>,
     midi_out_c: Option<MidiOutputConnection>,
     // midi_in_c: Option<MidiInputConnection>,
+    pub outs: Vec<MidiPortInfo>,
 }
 
-impl MidiDevicesMenager {
+impl MidiDevicesManager {
     pub fn new() -> Self {
         let midi_out = MidiOutput::new("midi_out").ok();
         // let midi_in = MidiInput::new("midi_in").ok();
@@ -19,7 +20,39 @@ impl MidiDevicesMenager {
             // midi_in,
             midi_out_c: None,
             // midi_in_c: None,
+            outs: Vec::new(),
         }
+    }
+
+    /// Check if out id still exists
+    pub fn check_out_id(&self, id: usize) -> Option<usize> {
+        if self.outs.get(id).is_some() {
+            Some(id)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_out(&self, id: usize) -> Option<&MidiPortInfo> {
+        self.outs.get(id)
+    }
+
+    pub fn update_outs(&mut self) {
+        self.outs = match &self.midi_out {
+            Some(midi_out) => {
+                let mut outs = Vec::new();
+                let ports = midi_out.ports();
+                for p in ports {
+                    let name = match midi_out.port_name(&p).ok() {
+                        Some(name) => name,
+                        None => String::from("Unknown"),
+                    };
+                    outs.push(MidiPortInfo { port: p, name })
+                }
+                outs
+            }
+            None => Vec::new(),
+        };
     }
     pub fn get_outs(&self) -> Vec<MidiPortInfo> {
         match &self.midi_out {
@@ -88,6 +121,7 @@ impl MidiDevicesMenager {
 //     }
 // }
 
+#[derive(Clone)]
 pub struct MidiPortInfo {
     pub port: MidiOutputPort,
     pub name: String,

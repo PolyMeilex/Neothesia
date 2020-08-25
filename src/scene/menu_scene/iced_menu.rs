@@ -9,10 +9,10 @@ use crate::{
     scene::SceneEvent,
 };
 
-pub struct Controls {
+pub struct IcedMenu {
     midi_device_menager: MidiDevicesManager,
     selected_out_id: Option<usize>,
-    midi_file: Option<lib_midi::Midi>,
+    midi_file: Option<Arc<lib_midi::Midi>>,
 
     file_select_button: neo_btn::State,
     prev_button: neo_btn::State,
@@ -33,15 +33,15 @@ pub enum Message {
     NextPressed,
     PlayPressed,
 
-    MainMenuDone(lib_midi::Midi, Option<MidiPortInfo>),
+    MainMenuDone(Arc<lib_midi::Midi>, Option<MidiPortInfo>),
 }
 
-impl Controls {
-    pub fn new() -> Controls {
-        Controls {
+impl IcedMenu {
+    pub fn new(midi_file: Option<Arc<lib_midi::Midi>>) -> Self {
+        Self {
             midi_device_menager: MidiDevicesManager::new(),
             selected_out_id: None,
-            midi_file: None,
+            midi_file,
 
             file_select_button: neo_btn::State::new(),
             prev_button: neo_btn::State::new(),
@@ -54,7 +54,7 @@ impl Controls {
     }
 }
 
-impl Program for Controls {
+impl Program for IcedMenu {
     type Renderer = Renderer;
     type Message = Message;
 
@@ -76,7 +76,11 @@ impl Program for Controls {
                             log::error!("{}", e);
                         }
 
-                        self.midi_file = midi.ok();
+                        self.midi_file = if let Ok(midi) = midi {
+                            Some(Arc::new(midi))
+                        } else {
+                            None
+                        }
                     }
                     _ => {
                         log::error!("User canceled dialog");
@@ -142,7 +146,7 @@ impl Program for Controls {
             }
             //
             Message::PlayPressed => {
-                async fn play(file: lib_midi::Midi, port: Option<MidiPortInfo>) -> Message {
+                async fn play(file: Arc<lib_midi::Midi>, port: Option<MidiPortInfo>) -> Message {
                     Message::MainMenuDone(file, port)
                 }
 
@@ -240,44 +244,25 @@ impl Program for Controls {
             .center_x()
             .center_y();
 
-        // let root = Column::new()
-        //     .width(Length::Fill)
-        //     // .push(container)
-        //     .push(
-        //         Row::new()
-        //             .width(Length::Fill)
-        //             .align_items(Align::Center)
-        //             .push(
-        //                 Text::new("test")
-        //                     .width(Length::Units(100))
-        //                     .color(Color::WHITE),
-        //             )
-        //             .push(
-        //                 Text::new("test2")
-        //                     .width(Length::Units(100))
-        //                     .color(Color::WHITE),
-        //             ),
-        //     );
+        let content: Element<Self::Message, Self::Renderer> = if self.midi_file.is_some() {
+            let btn = NeoBtn::new(
+                &mut self.play_button,
+                Text::new("Play")
+                    .size(30)
+                    .horizontal_alignment(HorizontalAlignment::Center)
+                    .vertical_alignment(VerticalAlignment::Center)
+                    .color(Color::WHITE),
+            )
+            .min_height(50)
+            .width(Length::Units(150))
+            .on_press(Message::PlayPressed);
 
-        // root.into()
-        // Row::new()
-        //     .width(Length::Fill)
-        //     .align_items(Align::End)
-        //     .push(
+            btn.into()
+        } else {
+            Row::new().height(Length::Units(50)).into()
+        };
 
-        let btn = NeoBtn::new(
-            &mut self.play_button,
-            Text::new("Play")
-                .size(30)
-                .horizontal_alignment(HorizontalAlignment::Center)
-                .vertical_alignment(VerticalAlignment::Center)
-                .color(Color::WHITE),
-        )
-        .min_height(50)
-        .width(Length::Units(150))
-        .on_press(Message::PlayPressed);
-
-        let footer = Container::new(btn)
+        let footer = Container::new(content)
             .padding(10)
             .width(Length::Fill)
             .align_x(Align::End);
@@ -560,3 +545,4 @@ mod neo_btn {
 }
 
 use neo_btn::NeoBtn;
+use std::{rc::Rc, sync::Arc};

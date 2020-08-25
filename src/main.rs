@@ -7,8 +7,8 @@ use ui::Ui;
 mod scene;
 use scene::{InputEvent, Scene, SceneEvent, SceneType};
 
-mod time_menager;
-use time_menager::TimeMenager;
+mod time_manager;
+use time_manager::Fps;
 
 mod midi_device;
 
@@ -29,32 +29,36 @@ use controls::Controls;
 mod rectangle_pipeline;
 
 pub struct MainState {
+    pub cursor_physical_position: winit::dpi::PhysicalPosition<f64>,
     pub window_size: (f32, f32),
     pub mouse_pos: (f32, f32),
     /// Mouse Was Clicked This Frame
     pub mouse_clicked: bool,
     /// Mouse Is Pressed This Frame
     pub mouse_pressed: bool,
-    pub time_menager: TimeMenager,
     pub transform_uniform: Uniform<TransformUniform>,
 
-    pub midi_file: Option<Rc<lib_midi::Midi>>,
+    pub midi_file: Option<Arc<lib_midi::Midi>>,
+
+    pub iced_manager: IcedManager,
 }
 
 impl MainState {
-    fn new(gpu: &Gpu) -> Self {
+    fn new(gpu: &Gpu, window: &Window) -> Self {
+        let iced_manager = IcedManager::new(&gpu.device, &window);
         Self {
+            cursor_physical_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
             window_size: (0.0, 0.0),
             mouse_pos: (0.0, 0.0),
             mouse_clicked: false,
             mouse_pressed: false,
-            time_menager: TimeMenager::new(),
             transform_uniform: Uniform::new(
                 &gpu.device,
                 TransformUniform::default(),
                 wgpu::ShaderStage::VERTEX,
             ),
             midi_file: None,
+            iced_manager,
         }
     }
     fn resize(&mut self, gpu: &mut Gpu, w: f32, h: f32) {
@@ -77,6 +81,47 @@ impl MainState {
     }
 }
 
+pub struct IcedManager {
+    renderer: iced_wgpu::Renderer,
+    viewport: iced_wgpu::Viewport,
+    pub state: iced_native::program::State<Controls>,
+    debug: iced_native::Debug,
+}
+impl IcedManager {
+    fn new(device: &wgpu::Device, window: &Window) -> Self {
+        let mut debug = iced_native::Debug::new();
+
+        let mut settings = iced_wgpu::Settings::default();
+        settings.format = wgpu_jumpstart::TEXTURE_FORMAT;
+
+        let mut renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
+
+        let physical_size = window.physical_size();
+        let viewport = iced_wgpu::Viewport::with_physical_size(
+            iced::Size::new(physical_size.width, physical_size.height),
+            window.dpi,
+        );
+
+        let controls = Controls::new();
+
+        let cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
+        let state = iced_native::program::State::new(
+            controls,
+            viewport.logical_size(),
+            iced_winit::conversion::cursor_position(cursor_position, viewport.scale_factor()),
+            &mut renderer,
+            &mut debug,
+        );
+
+        Self {
+            renderer,
+            viewport,
+            state,
+            debug,
+        }
+    }
+}
+
 enum AppEvent<'a> {
     WindowEvent(&'a WindowEvent<'a>, &'a mut ControlFlow),
     SceneEvent(SceneEvent),
@@ -87,16 +132,13 @@ struct App {
     pub gpu: Gpu,
     pub ui: Ui,
     pub main_state: MainState,
+    fps_timer: Fps,
     game_scene: Box<scene::scene_transition::SceneTransition>,
-    iced_renderer: iced_wgpu::Renderer,
-    iced_viewport: iced_wgpu::Viewport,
-    iced_state: iced_native::program::State<Controls>,
-    iced_debug: iced_native::Debug,
 }
 
 impl App {
     fn new(mut gpu: Gpu, window: Window) -> Self {
-        let mut main_state = MainState::new(&gpu);
+        let mut main_state = MainState::new(&gpu, &window);
 
         let ui = Ui::new(&main_state, &mut gpu);
         let game_scene = scene::menu_scene::MenuScene::new(&mut main_state, &mut gpu);
@@ -104,41 +146,13 @@ impl App {
             game_scene,
         )));
 
-        let mut iced_debug = iced_native::Debug::new();
-
-        let mut settings = iced_wgpu::Settings::default();
-        settings.format = wgpu_jumpstart::TEXTURE_FORMAT;
-
-        let mut iced_renderer =
-            iced_wgpu::Renderer::new(iced_wgpu::Backend::new(&mut gpu.device, settings));
-
-        let physical_size = window.physical_size();
-        let iced_viewport = iced_wgpu::Viewport::with_physical_size(
-            iced::Size::new(physical_size.width, physical_size.height),
-            window.dpi,
-        );
-
-        let controls = Controls::new();
-
-        let cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
-        let iced_state = iced_native::program::State::new(
-            controls,
-            iced_viewport.logical_size(),
-            iced_winit::conversion::cursor_position(cursor_position, iced_viewport.scale_factor()),
-            &mut iced_renderer,
-            &mut iced_debug,
-        );
-
         Self {
             window,
             gpu,
             ui,
             main_state,
+            fps_timer: Fps::new(),
             game_scene,
-            iced_renderer,
-            iced_viewport,
-            iced_state,
-            iced_debug,
         }
     }
     fn event(&mut self, event: AppEvent) {
@@ -155,6 +169,8 @@ impl App {
                         self.resize();
                     }
                     WindowEvent::CursorMoved { position, .. } => {
+                        self.main_state.cursor_physical_position = *position;
+
                         let dpi = &self.window.dpi;
                         let x = (position.x / dpi).round();
                         let y = (position.y / dpi).round();
@@ -232,7 +248,7 @@ impl App {
         self.ui.resize(&self.main_state, &mut self.gpu);
 
         let physical_size = self.window.physical_size();
-        self.iced_viewport = iced_wgpu::Viewport::with_physical_size(
+        self.main_state.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
             iced::Size::new(physical_size.width, physical_size.height),
             self.window.dpi,
         );
@@ -250,7 +266,7 @@ impl App {
         }
     }
     fn update(&mut self) {
-        self.main_state.time_menager.update();
+        self.fps_timer.update();
 
         let event = self
             .game_scene
@@ -268,25 +284,23 @@ impl App {
         self.game_scene
             .render(&mut self.main_state, &mut self.gpu, &frame);
 
+        // let _mouse_interaction = self.main_state.iced_manager.renderer.backend_mut().draw(
+        //     &mut self.gpu.device,
+        //     &mut self.gpu.encoder,
+        //     &frame.view,
+        //     &self.main_state.iced_manager.viewport,
+        //     self.main_state.iced_manager.state.primitive(),
+        //     &self.main_state.iced_manager.debug.overlay(),
+        // );
+
         self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
-        //self.gpu.submit();
+        self.gpu.submit();
 
         self.main_state.update_mouse_clicked(false);
-
-        let mouse_interaction = self.iced_renderer.backend_mut().draw(
-            &mut self.gpu.device,
-            &mut self.gpu.encoder,
-            &frame.view,
-            &self.iced_viewport,
-            self.iced_state.primitive(),
-            &self.iced_debug.overlay(),
-        );
-
-        self.gpu.submit();
     }
     fn queue_fps(&mut self) {
-        let s = format!("FPS: {}", self.main_state.time_menager.fps());
+        let s = format!("FPS: {}", self.fps_timer.fps());
         let text = vec![wgpu_glyph::Text::new(&s)
             .with_color([1.0, 1.0, 1.0, 1.0])
             .with_scale(20.0)];
@@ -323,17 +337,15 @@ impl App {
     }
 }
 
-async fn main_async() {
+fn main_async() {
     let event_loop = EventLoop::new();
 
     let builder = winit::window::WindowBuilder::new().with_title("Neothesia");
-    let (window, gpu) = Window::new(builder, (1080, 720), &event_loop).await;
+    let (window, gpu) = block_on(Window::new(builder, (1080, 720), &event_loop));
 
     let mut app = App::new(gpu, window);
     app.resize();
     app.gpu.submit();
-
-    let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
 
     // Commented out control_flow stuff is related to:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
@@ -364,18 +376,8 @@ async fn main_async() {
                 //     }
                 // }
 
-                if !app.iced_state.is_queue_empty() {
-                    let _ = app.iced_state.update(
-                        app.iced_viewport.logical_size(),
-                        iced_winit::conversion::cursor_position(
-                            cursor_position,
-                            app.iced_viewport.scale_factor(),
-                        ),
-                        None,
-                        &mut app.iced_renderer,
-                        &mut app.iced_debug,
-                    );
-                }
+                let event = app.game_scene.main_events_cleared(&mut app.main_state);
+                app.event(AppEvent::SceneEvent(event));
 
                 // #[cfg(target_arch = "wasm32")]
                 app.window.request_redraw();
@@ -383,20 +385,7 @@ async fn main_async() {
             Event::WindowEvent { event, .. } => {
                 app.event(AppEvent::WindowEvent(event, control_flow));
 
-                match event {
-                    winit::event::WindowEvent::CursorMoved { position, .. } => {
-                        cursor_position = *position;
-                    }
-                    _ => {}
-                }
-
-                let modifiers = winit::event::ModifiersState::default();
-
-                if let Some(event) =
-                    iced_winit::conversion::window_event(&event, app.window.dpi, modifiers)
-                {
-                    app.iced_state.queue_event(event);
-                }
+                app.game_scene.window_event(&mut app.main_state, event);
             }
             Event::RedrawRequested(_) => {
                 app.update();
@@ -413,7 +402,8 @@ fn main() {
         use env_logger::Env;
         // env_logger::init();
         env_logger::from_env(Env::default().default_filter_or("neothesia=info")).init();
-        futures::executor::block_on(main_async());
+        // futures::executor::block_on(main_async());
+        main_async();
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -421,6 +411,19 @@ fn main() {
         console_log::init().expect("could not initialize logger");
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-        wasm_bindgen_futures::spawn_local(main_async());
+        // wasm_bindgen_futures::spawn_local(main_async());
+        main_async()
     }
+}
+
+use std::{future::Future, sync::Arc};
+
+pub fn block_on<F>(f: F) -> <F as Future>::Output
+where
+    F: Future,
+{
+    #[cfg(not(target_arch = "wasm32"))]
+    return futures::executor::block_on(f);
+    #[cfg(target_arch = "wasm32")]
+    return wasm_bindgen_futures::spawn_local(f);
 }

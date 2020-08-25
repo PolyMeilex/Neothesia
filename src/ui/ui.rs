@@ -1,13 +1,11 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
-use super::button_pipeline::{ButtonInstance, ButtonPipeline};
 use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
 use crate::wgpu_jumpstart::{self, Gpu};
 use crate::MainState;
 
 pub struct Ui {
     rectangle_pipeline: RectanglePipeline,
-    button_pipeline: ButtonPipeline,
     glyph_brush: GlyphBrush<()>,
     queue: UiQueue,
 
@@ -17,7 +15,6 @@ pub struct Ui {
 
 impl Ui {
     pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
-        let button_pipeline = ButtonPipeline::new(state, &gpu.device);
         let rectangle_pipeline = RectanglePipeline::new(state, &gpu.device);
         let transition_pipeline = RectanglePipeline::new(state, &gpu.device);
         let font =
@@ -28,7 +25,6 @@ impl Ui {
 
         Self {
             rectangle_pipeline,
-            button_pipeline,
             glyph_brush,
             queue: UiQueue::new(),
 
@@ -44,9 +40,6 @@ impl Ui {
             vec![rectangle],
         );
     }
-    pub fn queue_button(&mut self, button: ButtonInstance) {
-        self.queue.add_button(button);
-    }
     pub fn queue_rectangle(&mut self, rectangle: RectangleInstance) {
         self.queue.add_rectangle(rectangle);
     }
@@ -59,11 +52,6 @@ impl Ui {
             &mut gpu.encoder,
             &gpu.device,
             self.queue.clear_rectangles(),
-        );
-        self.button_pipeline.update_instance_buffer(
-            &mut gpu.encoder,
-            &gpu.device,
-            self.queue.clear_buttons(),
         );
     }
     pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
@@ -86,7 +74,6 @@ impl Ui {
                 depth_stencil_attachment: None,
             });
             self.rectangle_pipeline.render(state, &mut render_pass);
-            self.button_pipeline.render(state, &mut render_pass);
         }
         self.glyph_brush
             .draw_queued(
@@ -121,25 +108,17 @@ impl Ui {
 }
 
 struct UiQueue {
-    buttons: Vec<ButtonInstance>,
     rectangles: Vec<RectangleInstance>,
 }
 
 impl UiQueue {
     pub fn new() -> Self {
         Self {
-            buttons: Vec::new(),
             rectangles: Vec::new(),
         }
     }
-    pub fn add_button(&mut self, button: ButtonInstance) {
-        self.buttons.push(button);
-    }
     pub fn add_rectangle(&mut self, rectangle: RectangleInstance) {
         self.rectangles.push(rectangle);
-    }
-    pub fn clear_buttons(&mut self) -> Vec<ButtonInstance> {
-        std::mem::replace(&mut self.buttons, Vec::new())
     }
     pub fn clear_rectangles(&mut self) -> Vec<RectangleInstance> {
         std::mem::replace(&mut self.rectangles, Vec::new())

@@ -13,7 +13,7 @@ record=[]
 zerocopy = "0.3.0"
 futures = "0.3.5"
 
-winit = { version="0.22.2" }
+winit = { version="0.22.2"}
 
 wgpu = "0.5.2"
 wgpu_glyph = "0.9.0"
@@ -27,7 +27,7 @@ nfd2 = "0.2.1"
 lib_midi = {path="./lib_midi"}
 midir = "0.6.2"
 
-iced = {git="https://github.com/hecrj/iced.git"} 
+iced = {git="https://github.com/hecrj/iced.git", default-features = false, features=["wgpu"]} 
 iced_winit = {git="https://github.com/hecrj/iced.git"} 
 iced_native = {git="https://github.com/hecrj/iced.git"} 
 iced_wgpu = {git="https://github.com/hecrj/iced.git"} 

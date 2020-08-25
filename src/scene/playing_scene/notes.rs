@@ -1,5 +1,5 @@
 use super::notes_pipeline::{NoteInstance, NotesPipeline};
-use crate::wgpu_jumpstart::Gpu;
+use crate::wgpu_jumpstart::{Color, Gpu};
 use crate::MainState;
 
 pub struct Notes {
@@ -43,18 +43,14 @@ impl Notes {
                 //         [54.0 / 255.0, 109.0 / 255.0, 173.0 / 255.0],
                 //     ],
                 // ];
-                let colors: [[[f32; 3]; 2]; 2] = [
+                let colors: [[Color; 2]; 2] = [
                     [
-                        [93.0 / 255.0, 188.0 / 255.0, 1.0],
-                        [48.0 / 255.0, 124.0 / 255.0, 1.0],
-                        // [49.0 / 255.0, 151.0 / 255.0, 255.0 / 255.0],
-                        // [5.0 / 255.0, 92.0 / 255.0, 182.0 / 255.0],
+                        Color::from_rgba8(93, 188, 255, 1.0),
+                        Color::from_rgba8(48, 124, 255, 1.0),
                     ],
                     [
-                        [210.0 / 255.0, 89.0 / 255.0, 222.0 / 255.0],
-                        [125.0 / 255.0, 69.0 / 255.0, 134.0 / 255.0],
-                        // [165.0 / 255.0, 84.0 / 255.0, 255.0 / 255.0],
-                        // [114.0 / 255.0, 0.0 / 255.0, 219.0 / 255.0],
+                        Color::from_rgba8(210, 89, 222, 1.0),
+                        Color::from_rgba8(125, 69, 134, 1.0),
                     ],
                 ];
 
@@ -70,7 +66,7 @@ impl Notes {
                 instances.push(NoteInstance {
                     position: [key.x, note.start],
                     size: [key.w - 1.0, h],
-                    color,
+                    color: color.into_linear_rgb(),
                     radius: 4.0 * ar,
                 });
             } else {

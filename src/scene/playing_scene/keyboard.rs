@@ -1,5 +1,5 @@
 use super::keyboard_pipeline::{KeyInstance, KeyStateInstance, KeyboardPipeline};
-use crate::wgpu_jumpstart::Gpu;
+use crate::wgpu_jumpstart::{Color, Gpu};
 use crate::MainState;
 
 // const KEY_C: u8 = 0;
@@ -131,14 +131,14 @@ impl PianoKeyboard {
             }
         }
 
-        let colors: [[[f32; 3]; 2]; 2] = [
+        let colors: [[Color; 2]; 2] = [
             [
-                [93.0 / 255.0, 188.0 / 255.0, 1.0],
-                [48.0 / 255.0, 124.0 / 255.0, 1.0],
+                Color::from_rgba8(93, 188, 255, 1.0),
+                Color::from_rgba8(48, 124, 255, 1.0),
             ],
             [
-                [210.0 / 255.0, 89.0 / 255.0, 222.0 / 255.0],
-                [125.0 / 255.0, 69.0 / 255.0, 134.0 / 255.0],
+                Color::from_rgba8(210, 89, 222, 1.0),
+                Color::from_rgba8(125, 69, 134, 1.0),
             ],
         ];
 
@@ -147,7 +147,7 @@ impl PianoKeyboard {
             if note.0 {
                 color[0]
             } else {
-                [1.0, 1.0, 1.0]
+                Color::new(1.0, 1.0, 1.0, 1.0)
             }
         });
 
@@ -156,13 +156,15 @@ impl PianoKeyboard {
             if note.0 {
                 color[1]
             } else {
-                [0.1, 0.1, 0.1]
+                Color::new(0.1, 0.1, 0.1, 1.0)
             }
         });
 
         let notes_out = white_keys
             .chain(black_keys)
-            .map(|c| KeyStateInstance { color: c })
+            .map(|c| KeyStateInstance {
+                color: c.into_linear_rgb(),
+            })
             .collect();
 
         self.keyboard_pipeline

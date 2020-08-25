@@ -19,10 +19,12 @@ mat2 rotZ(float angle) {
 void note_render(vec2 uv, float pos, inout vec3 color) {
   float mod_x = mod(uv.x, 0.1 * 2.5 * 2.0);
 
-  vec3 col = vec3(160.0 / 255.0, 81.0 / 255.0, 238.0 / 255.0);
+  vec3 col = vec3(0.35, 0.08, 0.85);
+  // vec3 col = vec3(160.0 / 255.0, 81.0 / 255.0, 238.0 / 255.0);
 
   if (pos == 0.5) {
-    col = vec3(113.0 / 255.0, 48.0 / 255.0, 178.0 / 255.0);
+    col = vec3(0.16, 0.02, 0.44);
+    // col = vec3(113.0 / 255.0, 48.0 / 255.0, 178.0 / 255.0);
   }
 
   if (uv.y > 0.0 && uv.y < 0.5) {
@@ -36,7 +38,7 @@ void note_render(vec2 uv, float pos, inout vec3 color) {
 
 void main() {
   vec2 st = uv;
-  vec3 color = vec3(0.12);
+  vec3 color = vec3(0.01);
 
   float d = 0.0;
 

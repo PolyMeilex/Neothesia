@@ -3,7 +3,7 @@ use crate::{
     scene::{InputEvent, Scene, SceneEvent, SceneType},
     time_menager::Timer,
     ui::{ButtonInstance, Ui},
-    wgpu_jumpstart::Gpu,
+    wgpu_jumpstart::{Color, Gpu},
     MainState,
 };
 
@@ -393,18 +393,18 @@ impl<'a> Button<'a> {
                 position: self.pos,
                 size: self.size,
                 color: if self.is_hovered {
-                    [56.0 / 255.0, 145.0 / 255.0, 1.0]
+                    Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgb()
                 } else {
-                    [160.0 / 255.0, 81.0 / 255.0, 232_558.0 / 255.0]
+                    Color::from_rgba8(160, 81, 255, 1.0).into_linear_rgb()
                 },
                 radius: 15.0,
                 is_hovered: if self.is_hovered { 1 } else { 0 },
             });
 
             let color = if !self.disabled {
-                [1.0, 1.0, 1.0, 1.0]
+                Color::new(1.0, 1.0, 1.0, 1.0).into_linear_rgba()
             } else {
-                [0.3, 0.3, 0.3, 1.0]
+                Color::new(0.3, 0.3, 0.3, 1.0).into_linear_rgba()
             };
             let text = vec![wgpu_glyph::Text::new(self.text)
                 .with_color(color)

@@ -13,12 +13,8 @@ layout(location=0) out vec4 f_color;
 
 
 void main() {
-    // vec3 col = color;
-
-    vec3 col = vec3(0.08);
+    vec3 col = vec3(0.007);
     float alpha = 0.6;
-
-    // float radius = 15.0;
 
     vec2 pos = uv * size;
 
@@ -27,7 +23,7 @@ void main() {
 
 
     if (is_hovered == 1.0) {
-        col = vec3(0.05);
+        col = vec3(0.003);
     }
 
     if(pos.y > size.y - 8.0){

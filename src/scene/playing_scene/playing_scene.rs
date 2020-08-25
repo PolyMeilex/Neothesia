@@ -8,7 +8,7 @@ use crate::{
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
     time_menager::Timer,
     ui::Ui,
-    wgpu_jumpstart::Gpu,
+    wgpu_jumpstart::{Color, Gpu},
     MainState,
 };
 
@@ -68,13 +68,13 @@ impl Scene for PlayingScene {
         ui.queue_rectangle(RectangleInstance {
             position: [size_x / 2.0, 0.0],
             size: [size_x, 10.0],
-            color: [56.0 / 255.0, 145.0 / 255.0, 1.0, 1.0],
+            color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
         });
 
         if state.mouse_pos.1 < 20.0 && state.mouse_pressed {
             let x = state.mouse_pos.0;
             let p = x / state.window_size.0;
-            log::info!("Progressbar Clicked: x:{},p:{}", x, p);
+            log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
             self.player.set_time(p * self.player.midi_last_note_end)
         }
 

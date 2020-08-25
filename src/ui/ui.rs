@@ -2,7 +2,7 @@ use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use super::button_pipeline::{ButtonInstance, ButtonPipeline};
 use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
-use crate::wgpu_jumpstart::Gpu;
+use crate::wgpu_jumpstart::{self, Gpu};
 use crate::MainState;
 
 pub struct Ui {
@@ -23,8 +23,8 @@ impl Ui {
         let font =
             wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("./Roboto-Regular.ttf"))
                 .expect("Load font");
-        let glyph_brush = GlyphBrushBuilder::using_font(font)
-            .build(&gpu.device, crate::wgpu_jumpstart::TEXTURE_FORMAT);
+        let glyph_brush =
+            GlyphBrushBuilder::using_font(font).build(&gpu.device, wgpu_jumpstart::TEXTURE_FORMAT);
 
         Self {
             rectangle_pipeline,

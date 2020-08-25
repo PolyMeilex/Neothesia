@@ -27,8 +27,6 @@ nfd2 = "0.2.1"
 lib_midi = {path="./lib_midi"}
 midir = "0.6.2"
 
-iced = {git="https://github.com/hecrj/iced.git", default-features = false, features=["wgpu"]} 
-iced_winit = {git="https://github.com/hecrj/iced.git"} 
 iced_native = {git="https://github.com/hecrj/iced.git"} 
 iced_wgpu = {git="https://github.com/hecrj/iced.git"} 
 iced_graphics = {git="https://github.com/hecrj/iced.git"} 

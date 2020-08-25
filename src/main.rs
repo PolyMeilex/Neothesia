@@ -21,12 +21,9 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use std::rc::Rc;
-
-mod controls;
-use controls::Controls;
-
 mod rectangle_pipeline;
+
+mod iced_conversion;
 
 pub struct MainState {
     pub cursor_physical_position: winit::dpi::PhysicalPosition<f64>,
@@ -84,39 +81,26 @@ impl MainState {
 pub struct IcedManager {
     renderer: iced_wgpu::Renderer,
     viewport: iced_wgpu::Viewport,
-    pub state: iced_native::program::State<Controls>,
     debug: iced_native::Debug,
 }
 impl IcedManager {
     fn new(device: &wgpu::Device, window: &Window) -> Self {
-        let mut debug = iced_native::Debug::new();
+        let debug = iced_native::Debug::new();
 
         let mut settings = iced_wgpu::Settings::default();
         settings.format = wgpu_jumpstart::TEXTURE_FORMAT;
 
-        let mut renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
+        let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
 
         let physical_size = window.physical_size();
         let viewport = iced_wgpu::Viewport::with_physical_size(
-            iced::Size::new(physical_size.width, physical_size.height),
+            iced_native::Size::new(physical_size.width, physical_size.height),
             window.dpi,
-        );
-
-        let controls = Controls::new();
-
-        let cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
-        let state = iced_native::program::State::new(
-            controls,
-            viewport.logical_size(),
-            iced_winit::conversion::cursor_position(cursor_position, viewport.scale_factor()),
-            &mut renderer,
-            &mut debug,
         );
 
         Self {
             renderer,
             viewport,
-            state,
             debug,
         }
     }
@@ -249,7 +233,7 @@ impl App {
 
         let physical_size = self.window.physical_size();
         self.main_state.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
-            iced::Size::new(physical_size.width, physical_size.height),
+            iced_native::Size::new(physical_size.width, physical_size.height),
             self.window.dpi,
         );
     }

@@ -31,7 +31,7 @@ impl MenuScene {
         let iced_state = iced_native::program::State::new(
             menu,
             state.iced_manager.viewport.logical_size(),
-            iced_winit::conversion::cursor_position(
+            crate::iced_conversion::cursor_position(
                 state.cursor_physical_position,
                 state.iced_manager.viewport.scale_factor(),
             ),
@@ -118,7 +118,7 @@ impl Scene for MenuScene {
     fn window_event(&mut self, main_state: &mut MainState, event: &WindowEvent) -> SceneEvent {
         let modifiers = winit::event::ModifiersState::default();
 
-        if let Some(event) = iced_winit::conversion::window_event(
+        if let Some(event) = crate::iced_conversion::window_event(
             &event,
             main_state.iced_manager.viewport.scale_factor(),
             modifiers,
@@ -132,7 +132,7 @@ impl Scene for MenuScene {
         if !self.iced_state.is_queue_empty() {
             let event = self.iced_state.update(
                 main_state.iced_manager.viewport.logical_size(),
-                iced_winit::conversion::cursor_position(
+                crate::iced_conversion::cursor_position(
                     main_state.cursor_physical_position,
                     main_state.iced_manager.viewport.scale_factor(),
                 ),

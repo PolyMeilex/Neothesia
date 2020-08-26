@@ -1,5 +1,5 @@
 use super::{
-    super::{InputEvent, Scene, SceneEvent, SceneType},
+    super::{Scene, SceneEvent, SceneType},
     keyboard::PianoKeyboard,
     notes::Notes,
 };
@@ -12,10 +12,7 @@ use crate::{
     MainState,
 };
 
-use std::rc::Rc;
-
-use winit::event::VirtualKeyCode;
-// use winit::event::{ElementState, MouseButton};
+use winit::event::WindowEvent;
 
 pub struct PlayingScene {
     piano_keyboard: PianoKeyboard,
@@ -107,16 +104,24 @@ impl Scene for PlayingScene {
             self.rectangle_pipeline.render(state, &mut render_pass)
         }
     }
-    fn input_event(&mut self, _state: &mut MainState, event: InputEvent) -> SceneEvent {
-        match event {
-            InputEvent::KeyReleased(key) => match key {
-                VirtualKeyCode::Space => {
-                    self.player.pause_resume();
+    fn window_event(&mut self, _main_state: &mut MainState, event: &WindowEvent) -> SceneEvent {
+        match &event {
+            winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+                Some(winit::event::VirtualKeyCode::Escape) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        return SceneEvent::GoBack;
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Space) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        self.player.pause_resume();
+                    }
                 }
                 _ => {}
             },
             _ => {}
         }
+
         SceneEvent::None
     }
 }

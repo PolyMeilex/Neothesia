@@ -1,6 +1,6 @@
 use crate::{
     rectangle_pipeline::RectangleInstance,
-    scene::{InputEvent, Scene, SceneEvent, SceneType},
+    scene::{Scene, SceneEvent, SceneType},
     wgpu_jumpstart::Gpu,
     MainState, Ui,
 };
@@ -131,12 +131,6 @@ impl Scene for SceneTransition {
             TransitionMode::FadeOut(from, _to) => from.render(state, gpu, frame),
             TransitionMode::Static(scene) => scene.render(state, gpu, frame),
             _ => {}
-        }
-    }
-    fn input_event(&mut self, state: &mut MainState, event: InputEvent) -> SceneEvent {
-        match &mut self.mode {
-            TransitionMode::Static(scene) => scene.input_event(state, event),
-            _ => SceneEvent::None,
         }
     }
     fn window_event(&mut self, state: &mut MainState, event: &WindowEvent) -> SceneEvent {

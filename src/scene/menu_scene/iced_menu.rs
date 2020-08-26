@@ -1,14 +1,12 @@
 use iced_native::{
-    button, slider, Align, Button, Color, Column, Command, Container, Element, HorizontalAlignment,
-    Length, Program, Row, Slider, Text, VerticalAlignment,
+    image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
+    Program, Row, Text, VerticalAlignment,
 };
 use iced_wgpu::Renderer;
 
-use crate::{
-    midi_device::{MidiDevicesManager, MidiPortInfo},
-    scene::SceneEvent,
-};
+use crate::midi_device::{MidiDevicesManager, MidiPortInfo};
 
+use std::sync::Arc;
 pub struct IcedMenu {
     midi_device_menager: MidiDevicesManager,
     selected_out_id: Option<usize>,
@@ -146,22 +144,28 @@ impl Program for IcedMenu {
             }
             //
             Message::PlayPressed => {
-                async fn play(file: Arc<lib_midi::Midi>, port: Option<MidiPortInfo>) -> Message {
-                    Message::MainMenuDone(file, port)
-                }
+                if self.midi_file.is_some() {
+                    async fn play(
+                        file: Arc<lib_midi::Midi>,
+                        port: Option<MidiPortInfo>,
+                    ) -> Message {
+                        Message::MainMenuDone(file, port)
+                    }
 
-                let port = if let Some(id) = self.selected_out_id {
-                    if let Some(out) = self.midi_device_menager.get_out(id) {
-                        Some(out.clone())
+                    let port = if let Some(id) = self.selected_out_id {
+                        if let Some(out) = self.midi_device_menager.get_out(id) {
+                            Some(out.clone())
+                        } else {
+                            None
+                        }
                     } else {
                         None
-                    }
-                } else {
-                    None
-                };
+                    };
 
-                let midi = std::mem::replace(&mut self.midi_file, None).expect("No midi file!!");
-                return Command::from(play(midi, port));
+                    let midi =
+                        std::mem::replace(&mut self.midi_file, None).expect("No midi file!!");
+                    return Command::from(play(midi, port));
+                }
             }
             Message::MainMenuDone(_, _) => {}
         }
@@ -172,100 +176,128 @@ impl Program for IcedMenu {
     fn view(&mut self) -> Element<Message, Renderer> {
         self.update(Message::UpdateOuts);
 
-        let btn = Row::new().height(Length::Units(100)).push(
-            NeoBtn::new(
-                &mut self.file_select_button,
-                Text::new("Select File")
-                    .size(40)
-                    .horizontal_alignment(HorizontalAlignment::Center)
-                    .vertical_alignment(VerticalAlignment::Center),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .on_press(Message::FileSelectPressed),
-        );
-
-        let selected_out = if let Some(id) = self.selected_out_id {
-            self.midi_device_menager.get_out(id)
-        } else {
-            None
-        };
-
-        let text = if let Some(out) = selected_out {
-            out.name.clone()
-        } else {
-            "No Midi Devices".into()
-        };
-
-        let text = Text::new(text)
-            .color(Color::WHITE)
-            .height(Length::Units(100))
-            .size(30)
-            .horizontal_alignment(HorizontalAlignment::Center)
-            .vertical_alignment(VerticalAlignment::Center);
-
-        let select_row = Row::new()
-            .height(Length::Units(50))
-            .push(
+        let main: Element<_, _> = {
+            let file_select_button = Row::new().height(Length::Units(100)).push(
                 NeoBtn::new(
-                    &mut self.prev_button,
-                    Text::new("<")
+                    &mut self.file_select_button,
+                    Text::new("Select File")
                         .size(40)
                         .horizontal_alignment(HorizontalAlignment::Center)
                         .vertical_alignment(VerticalAlignment::Center),
                 )
                 .width(Length::Fill)
-                .disabled(!self.prev_out_exists)
-                .on_press(Message::PrevPressed),
-            )
-            .push(
-                NeoBtn::new(
-                    &mut self.next_button,
-                    Text::new(">")
-                        .size(40)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
-                )
-                .width(Length::Fill)
-                .disabled(!self.next_out_exists)
-                .on_press(Message::NextPressed),
+                .height(Length::Fill)
+                .on_press(Message::FileSelectPressed),
             );
 
-        let coll = Column::new()
-            .align_items(Align::Center)
-            .width(Length::Units(500))
-            .push(btn)
-            .push(text)
-            .push(select_row);
+            let selected_out = if let Some(id) = self.selected_out_id {
+                self.midi_device_menager.get_out(id)
+            } else {
+                None
+            };
 
-        let main = Container::new(coll)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y();
+            let text = if let Some(out) = selected_out {
+                out.name.clone()
+            } else {
+                "No Midi Devices".into()
+            };
 
-        let content: Element<Self::Message, Self::Renderer> = if self.midi_file.is_some() {
-            let btn = NeoBtn::new(
-                &mut self.play_button,
-                Text::new("Play")
-                    .size(30)
-                    .horizontal_alignment(HorizontalAlignment::Center)
-                    .vertical_alignment(VerticalAlignment::Center)
-                    .color(Color::WHITE),
-            )
-            .min_height(50)
-            .width(Length::Units(150))
-            .on_press(Message::PlayPressed);
+            let text = Text::new(text)
+                .color(Color::WHITE)
+                // .height(Length::Units(100))
+                .size(30)
+                .horizontal_alignment(HorizontalAlignment::Center)
+                .vertical_alignment(VerticalAlignment::Center);
 
-            btn.into()
-        } else {
-            Row::new().height(Length::Units(50)).into()
+            let select_row = Row::new()
+                .height(Length::Units(50))
+                .push(
+                    NeoBtn::new(
+                        &mut self.prev_button,
+                        Text::new("<")
+                            .size(40)
+                            .horizontal_alignment(HorizontalAlignment::Center)
+                            .vertical_alignment(VerticalAlignment::Center),
+                    )
+                    .width(Length::Fill)
+                    .disabled(!self.prev_out_exists)
+                    .on_press(Message::PrevPressed),
+                )
+                .push(
+                    NeoBtn::new(
+                        &mut self.next_button,
+                        Text::new(">")
+                            .size(40)
+                            .horizontal_alignment(HorizontalAlignment::Center)
+                            .vertical_alignment(VerticalAlignment::Center),
+                    )
+                    .width(Length::Fill)
+                    .disabled(!self.next_out_exists)
+                    .on_press(Message::NextPressed),
+                );
+
+            let controls = Column::new()
+                .align_items(Align::Center)
+                .width(Length::Units(500))
+                .spacing(30)
+                .push(file_select_button)
+                .push(text)
+                .push(select_row);
+
+            let controls = Container::new(controls).width(Length::Fill).center_x();
+
+            let image = Image::new(image::Handle::from_memory(
+                include_bytes!("./img/baner.png").to_vec(),
+            ));
+            let image = Container::new(image)
+                .center_x()
+                .center_y()
+                .width(Length::Fill);
+
+            let main = Column::new()
+                .width(Length::Fill)
+                .spacing(40)
+                .max_width(650)
+                .push(image)
+                .push(controls);
+
+            let centered_main = Container::new(main)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .center_x()
+                .center_y();
+
+            centered_main.into()
         };
 
-        let footer = Container::new(content)
-            .padding(10)
-            .width(Length::Fill)
-            .align_x(Align::End);
+        let footer: Element<_, _> = {
+            let content: Element<Self::Message, Self::Renderer> = if self.midi_file.is_some() {
+                let btn = NeoBtn::new(
+                    &mut self.play_button,
+                    Text::new("Play")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .vertical_alignment(VerticalAlignment::Center)
+                        .color(Color::WHITE),
+                )
+                .min_height(50)
+                .height(Length::Fill)
+                .width(Length::Units(150))
+                .on_press(Message::PlayPressed);
+
+                btn.into()
+            } else {
+                Row::new().into()
+            };
+
+            let footer = Container::new(content)
+                .padding(10)
+                .width(Length::Fill)
+                .height(Length::Units(70))
+                .align_x(Align::End)
+                .align_y(Align::End);
+            footer.into()
+        };
 
         Column::new().push(main).push(footer).into()
     }
@@ -283,8 +315,8 @@ mod neo_btn {
     // implemented by `iced_wgpu` and other renderers.
     use iced_graphics::{defaults, Backend, Defaults, Primitive, Rectangle, Renderer};
     use iced_native::{
-        button, layout, mouse, Background, Clipboard, Color, Element, Event, Hasher, Layout,
-        Length, Point, Size, Text, Vector, Widget,
+        layout, mouse, Background, Clipboard, Color, Element, Event, Hasher, Layout, Length, Point,
+        Vector, Widget,
     };
 
     pub struct NeoBtn<'a, Message: Clone, B: Backend> {
@@ -545,4 +577,3 @@ mod neo_btn {
 }
 
 use neo_btn::NeoBtn;
-use std::{rc::Rc, sync::Arc};

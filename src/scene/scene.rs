@@ -2,7 +2,7 @@ use crate::ui::Ui;
 use crate::wgpu_jumpstart::Gpu;
 use crate::MainState;
 
-use winit::event::{ElementState, MouseButton, VirtualKeyCode, WindowEvent};
+use winit::event::WindowEvent;
 
 pub trait Scene {
     fn scene_type(&self) -> SceneType;
@@ -10,9 +10,6 @@ pub trait Scene {
     fn resize(&mut self, _state: &mut MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
     fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput);
-    fn input_event(&mut self, _state: &mut MainState, _event: InputEvent) -> SceneEvent {
-        SceneEvent::None
-    }
     fn window_event(&mut self, _state: &mut MainState, _event: &WindowEvent) -> SceneEvent {
         SceneEvent::None
     }
@@ -22,21 +19,15 @@ pub trait Scene {
 }
 
 #[derive(Debug)]
-pub enum InputEvent<'a> {
-    KeyReleased(VirtualKeyCode),
-    MouseInput(&'a ElementState, &'a MouseButton),
-    CursorMoved(f32, f32),
-}
-
-#[derive(Debug)]
 pub enum SceneType {
     MainMenu,
     Playing,
     Transition,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum SceneEvent {
     MainMenu(super::menu_scene::Event),
+    GoBack,
     None,
 }

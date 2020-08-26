@@ -1,6 +1,4 @@
-use midir::{
-    MidiInput, MidiInputConnection, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort,
-};
+use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 pub struct MidiDevicesManager {
     midi_out: Option<MidiOutput>,

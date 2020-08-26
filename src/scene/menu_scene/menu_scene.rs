@@ -1,18 +1,17 @@
 use crate::{
-    midi_device::{MidiDevicesManager, MidiPortInfo},
-    scene::{InputEvent, Scene, SceneEvent, SceneType},
+    midi_device::MidiPortInfo,
+    scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
     ui::Ui,
-    wgpu_jumpstart::{Color, Gpu},
+    wgpu_jumpstart::Gpu,
     MainState,
 };
 
 use super::{bg_pipeline::BgPipeline, iced_menu, IcedMenu};
 
-use std::{rc::Rc, sync::Arc};
-use winit::event::{MouseButton, VirtualKeyCode, WindowEvent};
+use winit::event::WindowEvent;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Event {
     MidiOpen(MidiPortInfo),
 }
@@ -54,6 +53,7 @@ impl Scene for MenuScene {
     fn scene_type(&self) -> SceneType {
         SceneType::MainMenu
     }
+
     fn update(&mut self, _state: &mut MainState, gpu: &mut Gpu, _ui: &mut Ui) -> SceneEvent {
         self.timer.update();
         let time = self.timer.get_elapsed() / 1000.0;
@@ -62,6 +62,7 @@ impl Scene for MenuScene {
 
         SceneEvent::None
     }
+
     fn render(&mut self, main_state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
         let encoder = &mut gpu.encoder;
         {
@@ -92,29 +93,7 @@ impl Scene for MenuScene {
             &main_state.iced_manager.debug.overlay(),
         );
     }
-    fn input_event(&mut self, _state: &mut MainState, event: InputEvent) -> SceneEvent {
-        match event {
-            InputEvent::KeyReleased(key) => match key {
-                VirtualKeyCode::Return => SceneEvent::None,
-                _ => SceneEvent::None,
-            },
-            InputEvent::MouseInput(s, button) => match button {
-                MouseButton::Left => {
-                    if let winit::event::ElementState::Pressed = s {
-                        // self.mouse_clicked(state)
-                        SceneEvent::None
-                    } else {
-                        SceneEvent::None
-                    }
-                }
-                _ => SceneEvent::None,
-            },
-            InputEvent::CursorMoved(x, y) => {
-                // self.update_mouse_pos(x, y);
-                SceneEvent::None
-            } // _ => SceneEvent::None,
-        }
-    }
+
     fn window_event(&mut self, main_state: &mut MainState, event: &WindowEvent) -> SceneEvent {
         let modifiers = winit::event::ModifiersState::default();
 
@@ -126,8 +105,27 @@ impl Scene for MenuScene {
             self.iced_state.queue_event(event);
         }
 
+        match &event {
+            winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+                Some(winit::event::VirtualKeyCode::Return) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        self.iced_state
+                            .queue_message(iced_menu::Message::PlayPressed)
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Escape) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        return SceneEvent::GoBack;
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
         SceneEvent::None
     }
+
     fn main_events_cleared(&mut self, main_state: &mut MainState) -> SceneEvent {
         if !self.iced_state.is_queue_empty() {
             let event = self.iced_state.update(

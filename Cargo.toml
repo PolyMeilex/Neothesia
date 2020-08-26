@@ -28,7 +28,7 @@ lib_midi = {path="./lib_midi"}
 midir = "0.6.2"
 
 iced_native = {git="https://github.com/hecrj/iced.git"} 
-iced_wgpu = {git="https://github.com/hecrj/iced.git"} 
+iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
 iced_graphics = {git="https://github.com/hecrj/iced.git"} 
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

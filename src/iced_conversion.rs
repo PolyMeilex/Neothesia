@@ -3,16 +3,6 @@ use iced_native::{
     mouse, window, Event, Point,
 };
 
-/// The mode of a window-based application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Mode {
-    /// The application appears in its own window.
-    Windowed,
-
-    /// The application takes the whole screen of its current monitor.
-    Fullscreen,
-}
-
 pub fn window_event(
     event: &winit::event::WindowEvent<'_>,
     scale_factor: f64,

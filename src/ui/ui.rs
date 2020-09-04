@@ -54,50 +54,42 @@ impl Ui {
             self.queue.clear_rectangles(),
         );
     }
-    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,
             });
             self.rectangle_pipeline.render(state, &mut render_pass);
         }
-        self.glyph_brush
-            .draw_queued(
-                &gpu.device,
-                encoder,
-                &frame.view,
-                state.window_size.0 as u32,
-                state.window_size.1 as u32,
-            )
-            .expect("glyph_brush");
+        // self.glyph_brush
+        //     .draw_queued(
+        //         &gpu.device,
+        //         encoder,
+        //         &frame.output.view,
+        //         state.window_size.0 as u32,
+        //         state.window_size.1 as u32,
+        //     )
+        //     .expect("glyph_brush");
 
         // Transition
         if self.transition_rect_a != 0.0 {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,

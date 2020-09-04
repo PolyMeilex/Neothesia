@@ -63,20 +63,16 @@ impl Scene for MenuScene {
         SceneEvent::None
     }
 
-    fn render(&mut self, main_state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    fn render(&mut self, main_state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,
@@ -86,8 +82,9 @@ impl Scene for MenuScene {
 
         let _mouse_interaction = main_state.iced_manager.renderer.backend_mut().draw(
             &mut gpu.device,
+            &mut gpu.staging_belt,
             &mut gpu.encoder,
-            &frame.view,
+            &frame.output.view,
             &main_state.iced_manager.viewport,
             self.iced_state.primitive(),
             &main_state.iced_manager.debug.overlay(),

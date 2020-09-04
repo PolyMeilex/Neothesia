@@ -1,3 +1,4 @@
+use wgpu::util::DeviceExt;
 use zerocopy::AsBytes;
 
 pub struct Instances<I>
@@ -17,6 +18,7 @@ where
             label: None,
             size: (instance_size * max_size) as u64,
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
+            mapped_at_creation: false,
         });
 
         Self {
@@ -29,8 +31,12 @@ where
             return;
         }
         let buffer_size = (self.data.len() * std::mem::size_of::<I>()) as u64;
-        let staging_buffer =
-            device.create_buffer_with_data(&self.data.as_bytes(), wgpu::BufferUsage::COPY_SRC);
+
+        let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: &self.data.as_bytes(),
+            usage: wgpu::BufferUsage::COPY_SRC,
+        });
 
         command_encoder.copy_buffer_to_buffer(&staging_buffer, 0, &self.buffer, 0, buffer_size);
     }

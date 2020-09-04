@@ -10,8 +10,10 @@ pub struct BgPipeline {
 
 impl<'a> BgPipeline {
     pub fn new(gpu: &Gpu) -> Self {
-        let vs_module = shader::create_module(&gpu.device, include_bytes!("shader/quad.vert.spv"));
-        let fs_module = shader::create_module(&gpu.device, include_bytes!("shader/quad.frag.spv"));
+        let vs_module =
+            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.vert.spv"));
+        let fs_module =
+            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let time_uniform = Uniform::new(
             &gpu.device,
@@ -22,7 +24,9 @@ impl<'a> BgPipeline {
         let render_pipeline_layout =
             &gpu.device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: None,
                     bind_group_layouts: &[&time_uniform.bind_group_layout],
+                    push_constant_ranges: &[],
                 });
 
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
@@ -44,9 +48,9 @@ impl<'a> BgPipeline {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.time_uniform.bind_group, &[]);
 
-        render_pass.set_vertex_buffer(0, &self.simple_quad.vertex_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.simple_quad.vertex_buffer.slice(..));
 
-        render_pass.set_index_buffer(&self.simple_quad.index_buffer, 0, 0);
+        render_pass.set_index_buffer(self.simple_quad.index_buffer.slice(..));
 
         render_pass.draw_indexed(0..SimpleQuad::indices_len(), 0, 0..1);
     }

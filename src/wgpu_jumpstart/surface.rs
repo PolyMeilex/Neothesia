@@ -36,9 +36,9 @@ impl Surface {
             .device
             .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
     }
-    pub fn get_next_texture(&mut self) -> wgpu::SwapChainOutput {
+    pub fn get_current_frame(&mut self) -> wgpu::SwapChainFrame {
         self.swap_chain
-            .get_next_texture()
-            .expect("get_next_texture")
+            .get_current_frame()
+            .expect("Surface::get_current_frame")
     }
 }

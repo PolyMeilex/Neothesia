@@ -238,7 +238,7 @@ impl App {
     }
 
     fn render(&mut self) {
-        let frame = self.window.surface.get_next_texture();
+        let frame = self.window.surface.get_current_frame();
 
         self.clear(&frame);
 
@@ -279,20 +279,21 @@ impl App {
         });
     }
 
-    fn clear(&mut self, frame: &wgpu::SwapChainOutput) {
+    fn clear(&mut self, frame: &wgpu::SwapChainFrame) {
         self.gpu
             .encoder
             .begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Clear,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,

@@ -10,11 +10,16 @@ pub struct RectangleInstance {
     pub color: [f32; 4],
 }
 impl RectangleInstance {
-    pub fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
+    pub fn attributes() -> [wgpu::VertexAttributeDescriptor; 3] {
+        vertex_attr_array!(1 => Float2,2 => Float2,3 => Float4)
+    }
+    pub fn desc<'a>(
+        attributes: &'a [wgpu::VertexAttributeDescriptor],
+    ) -> wgpu::VertexBufferDescriptor<'a> {
         wgpu::VertexBufferDescriptor {
             stride: std::mem::size_of::<RectangleInstance>() as wgpu::BufferAddress,
             step_mode: wgpu::InputStepMode::Instance,
-            attributes: &vertex_attr_array!(1 => Float2,2 => Float2,3 => Float4),
+            attributes,
         }
     }
 }

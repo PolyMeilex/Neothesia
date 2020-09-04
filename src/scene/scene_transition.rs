@@ -125,7 +125,7 @@ impl Scene for SceneTransition {
             _ => SceneEvent::None,
         }
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
         match &mut self.mode {
             TransitionMode::FadeIn(scene) => scene.render(state, gpu, frame),
             TransitionMode::FadeOut(from, _to) => from.render(state, gpu, frame),

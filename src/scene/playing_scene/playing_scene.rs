@@ -1,21 +1,18 @@
 use super::{
-    super::{InputEvent, Scene, SceneEvent, SceneType},
+    super::{Scene, SceneEvent, SceneType},
     keyboard::PianoKeyboard,
     notes::Notes,
 };
 
 use crate::{
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
-    time_menager::Timer,
+    time_manager::Timer,
     ui::Ui,
     wgpu_jumpstart::{Color, Gpu},
     MainState,
 };
 
-use std::rc::Rc;
-
-use winit::event::VirtualKeyCode;
-// use winit::event::{ElementState, MouseButton};
+use winit::event::WindowEvent;
 
 pub struct PlayingScene {
     piano_keyboard: PianoKeyboard,
@@ -83,7 +80,7 @@ impl Scene for PlayingScene {
 
         SceneEvent::None
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
         self.notes.render(state, gpu, frame);
         self.piano_keyboard.render(state, gpu, frame);
 
@@ -91,15 +88,11 @@ impl Scene for PlayingScene {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,
@@ -107,27 +100,35 @@ impl Scene for PlayingScene {
             self.rectangle_pipeline.render(state, &mut render_pass)
         }
     }
-    fn input_event(&mut self, _state: &mut MainState, event: InputEvent) -> SceneEvent {
-        match event {
-            InputEvent::KeyReleased(key) => match key {
-                VirtualKeyCode::Space => {
-                    self.player.pause_resume();
+    fn window_event(&mut self, _main_state: &mut MainState, event: &WindowEvent) -> SceneEvent {
+        match &event {
+            winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+                Some(winit::event::VirtualKeyCode::Escape) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        return SceneEvent::GoBack;
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Space) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        self.player.pause_resume();
+                    }
                 }
                 _ => {}
             },
             _ => {}
         }
+
         SceneEvent::None
     }
 }
 
 use crate::midi_device::MidiPortInfo;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 struct Player {
-    midi: Rc<lib_midi::Midi>,
+    midi: Arc<lib_midi::Midi>,
     midi_first_note_start: f32,
     midi_last_note_end: f32,
-    midi_device: crate::midi_device::MidiDevicesMenager,
+    midi_device: crate::midi_device::MidiDevicesManager,
     active_notes: HashMap<usize, u8>,
     timer: Timer,
     percentage: f32,
@@ -136,8 +137,8 @@ struct Player {
 }
 
 impl Player {
-    fn new(midi: Rc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
-        let mut midi_device = crate::midi_device::MidiDevicesMenager::new();
+    fn new(midi: Arc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
+        let mut midi_device = crate::midi_device::MidiDevicesManager::new();
 
         log::info!("{:?}", midi_device.get_outs());
 

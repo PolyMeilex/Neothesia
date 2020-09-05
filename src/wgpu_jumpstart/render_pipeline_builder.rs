@@ -11,7 +11,8 @@ impl<'a> RenderPipelineBuilder<'a> {
     pub fn new(layout: &'a PipelineLayout, vertex_module: &'a ShaderModule) -> Self {
         Self {
             render_pipeline_descriptor: RenderPipelineDescriptor {
-                layout: &layout,
+                label: None,
+                layout: Some(layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: vertex_module,
                     entry_point: "main",
@@ -20,9 +21,7 @@ impl<'a> RenderPipelineBuilder<'a> {
                 rasterization_state: Some(RasterizationStateDescriptor {
                     front_face: wgpu::FrontFace::Ccw,
                     cull_mode: wgpu::CullMode::None,
-                    depth_bias: 0,
-                    depth_bias_slope_scale: 0.0,
-                    depth_bias_clamp: 0.0,
+                    ..Default::default()
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {

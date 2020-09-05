@@ -1,13 +1,11 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
-use super::button_pipeline::{ButtonInstance, ButtonPipeline};
 use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
 use crate::wgpu_jumpstart::{self, Gpu};
 use crate::MainState;
 
 pub struct Ui {
     rectangle_pipeline: RectanglePipeline,
-    button_pipeline: ButtonPipeline,
     glyph_brush: GlyphBrush<()>,
     queue: UiQueue,
 
@@ -17,7 +15,6 @@ pub struct Ui {
 
 impl Ui {
     pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
-        let button_pipeline = ButtonPipeline::new(state, &gpu.device);
         let rectangle_pipeline = RectanglePipeline::new(state, &gpu.device);
         let transition_pipeline = RectanglePipeline::new(state, &gpu.device);
         let font =
@@ -28,7 +25,6 @@ impl Ui {
 
         Self {
             rectangle_pipeline,
-            button_pipeline,
             glyph_brush,
             queue: UiQueue::new(),
 
@@ -44,9 +40,6 @@ impl Ui {
             vec![rectangle],
         );
     }
-    pub fn queue_button(&mut self, button: ButtonInstance) {
-        self.queue.add_button(button);
-    }
     pub fn queue_rectangle(&mut self, rectangle: RectangleInstance) {
         self.queue.add_rectangle(rectangle);
     }
@@ -60,57 +53,43 @@ impl Ui {
             &gpu.device,
             self.queue.clear_rectangles(),
         );
-        self.button_pipeline.update_instance_buffer(
-            &mut gpu.encoder,
-            &gpu.device,
-            self.queue.clear_buttons(),
-        );
     }
-    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,
             });
             self.rectangle_pipeline.render(state, &mut render_pass);
-            self.button_pipeline.render(state, &mut render_pass);
         }
-        self.glyph_brush
-            .draw_queued(
-                &gpu.device,
-                encoder,
-                &frame.view,
-                state.window_size.0 as u32,
-                state.window_size.1 as u32,
-            )
-            .expect("glyph_brush");
+        // self.glyph_brush
+        //     .draw_queued(
+        //         &gpu.device,
+        //         encoder,
+        //         &frame.output.view,
+        //         state.window_size.0 as u32,
+        //         state.window_size.1 as u32,
+        //     )
+        //     .expect("glyph_brush");
 
         // Transition
         if self.transition_rect_a != 0.0 {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &frame.output.view,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
                 }],
                 depth_stencil_attachment: None,
@@ -121,25 +100,17 @@ impl Ui {
 }
 
 struct UiQueue {
-    buttons: Vec<ButtonInstance>,
     rectangles: Vec<RectangleInstance>,
 }
 
 impl UiQueue {
     pub fn new() -> Self {
         Self {
-            buttons: Vec::new(),
             rectangles: Vec::new(),
         }
     }
-    pub fn add_button(&mut self, button: ButtonInstance) {
-        self.buttons.push(button);
-    }
     pub fn add_rectangle(&mut self, rectangle: RectangleInstance) {
         self.rectangles.push(rectangle);
-    }
-    pub fn clear_buttons(&mut self) -> Vec<ButtonInstance> {
-        std::mem::replace(&mut self.buttons, Vec::new())
     }
     pub fn clear_rectangles(&mut self) -> Vec<RectangleInstance> {
         std::mem::replace(&mut self.rectangles, Vec::new())

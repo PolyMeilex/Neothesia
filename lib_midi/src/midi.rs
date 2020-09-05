@@ -4,7 +4,7 @@ use {
     std::fs,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Midi {
     // pub tracks_count: u16,
     pub format: Format,

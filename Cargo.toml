@@ -13,19 +13,23 @@ record=[]
 zerocopy = "0.3.0"
 futures = "0.3.5"
 
-winit = { version="0.22.2" }
+winit = { version="0.22.2"}
 
-wgpu = "0.5.2"
-wgpu_glyph = "0.9.0"
+wgpu = "0.6.0"
+wgpu_glyph = "0.10.0"
 
 
 log = "0.4"
 env_logger = "0.7.1"
 
-nfd2 = "0.2.1"
+# nfd2 = "0.2.1"
 
 lib_midi = {path="./lib_midi"}
 midir = "0.6.2"
+
+iced_native = {git="https://github.com/hecrj/iced.git"} 
+iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
+iced_graphics = {git="https://github.com/hecrj/iced.git"} 
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
@@ -38,7 +42,14 @@ midir = "0.6.2"
 glsl-to-spirv = "0.1"
 
 
-# [patch.crates-io]
+[patch.crates-io]
+iced_native = {git="https://github.com/hecrj/iced.git"} 
+iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
+iced_graphics = {git="https://github.com/hecrj/iced.git"} 
+iced_core = {git="https://github.com/hecrj/iced.git"} 
+iced_futures = {git="https://github.com/hecrj/iced.git"} 
+iced_style = {git="https://github.com/hecrj/iced.git"} 
+
 # wgpu = {git ="https://github.com/gfx-rs/wgpu-rs.git"}
 # wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # wasm-bindgen-futures = { git = "https://github.com/rustwasm/wasm-bindgen" }

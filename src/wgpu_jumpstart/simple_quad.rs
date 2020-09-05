@@ -1,3 +1,4 @@
+use wgpu::util::DeviceExt;
 use zerocopy::AsBytes;
 
 pub struct SimpleQuad {
@@ -6,11 +7,17 @@ pub struct SimpleQuad {
 }
 impl SimpleQuad {
     pub fn new(device: &wgpu::Device) -> Self {
-        let vertex_buffer =
-            device.create_buffer_with_data(&VERTICES.as_bytes(), wgpu::BufferUsage::VERTEX);
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: &VERTICES.as_bytes(),
+            usage: wgpu::BufferUsage::VERTEX,
+        });
 
-        let index_buffer =
-            device.create_buffer_with_data(&INDICES.as_bytes(), wgpu::BufferUsage::INDEX);
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: &INDICES.as_bytes(),
+            usage: wgpu::BufferUsage::INDEX,
+        });
 
         Self {
             vertex_buffer,

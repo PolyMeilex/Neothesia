@@ -1,9 +1,10 @@
 use crate::{
     rectangle_pipeline::RectangleInstance,
-    scene::{InputEvent, Scene, SceneEvent, SceneType},
+    scene::{Scene, SceneEvent, SceneType},
     wgpu_jumpstart::Gpu,
     MainState, Ui,
 };
+use winit::event::WindowEvent;
 
 enum TransitionMode {
     FadeIn(Box<dyn Scene>),
@@ -48,7 +49,10 @@ impl Scene for SceneTransition {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.resize(state, gpu),
             TransitionMode::FadeIn(scene) => scene.resize(state, gpu),
-            TransitionMode::FadeOut(from, _to) => from.resize(state, gpu),
+            TransitionMode::FadeOut(from, to) => {
+                from.resize(state, gpu);
+                to.resize(state, gpu);
+            }
             _ => {}
         }
     }
@@ -121,7 +125,7 @@ impl Scene for SceneTransition {
             _ => SceneEvent::None,
         }
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainOutput) {
+    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
         match &mut self.mode {
             TransitionMode::FadeIn(scene) => scene.render(state, gpu, frame),
             TransitionMode::FadeOut(from, _to) => from.render(state, gpu, frame),
@@ -129,9 +133,17 @@ impl Scene for SceneTransition {
             _ => {}
         }
     }
-    fn input_event(&mut self, state: &mut MainState, event: InputEvent) -> SceneEvent {
+    fn window_event(&mut self, state: &mut MainState, event: &WindowEvent) -> SceneEvent {
         match &mut self.mode {
-            TransitionMode::Static(scene) => scene.input_event(state, event),
+            TransitionMode::Static(scene) => scene.window_event(state, event),
+            _ => SceneEvent::None,
+        }
+    }
+    fn main_events_cleared(&mut self, state: &mut MainState) -> SceneEvent {
+        match &mut self.mode {
+            TransitionMode::FadeIn(scene) => scene.main_events_cleared(state),
+            TransitionMode::FadeOut(from, _to) => from.main_events_cleared(state),
+            TransitionMode::Static(scene) => scene.main_events_cleared(state),
             _ => SceneEvent::None,
         }
     }

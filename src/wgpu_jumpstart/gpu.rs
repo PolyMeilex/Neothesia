@@ -4,41 +4,51 @@ pub struct Gpu {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
+    pub staging_belt: wgpu::util::StagingBelt,
+    pub local_pool: futures::executor::LocalPool,
 }
 
 impl Gpu {
     pub async fn for_window(window: &winit::window::Window) -> (Self, Surface) {
-        let surface = wgpu::Surface::create(window);
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
-        let adapter = wgpu::Adapter::request(
-            &wgpu::RequestAdapterOptions {
+        let surface = unsafe { instance.create_surface(window) };
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
-            },
-            wgpu::BackendBit::PRIMARY,
-        )
-        .await
-        .expect("Failed to create adapter");
+            })
+            .await
+            .expect("Failed to create adapter");
 
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                extensions: wgpu::Extensions {
-                    anisotropic_filtering: false,
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    features: wgpu::Features::empty(),
+                    limits: Default::default(),
+                    shader_validation: false,
                 },
-                limits: Default::default(),
-            })
-            .await;
+                None,
+            )
+            .await
+            .expect("Failed to request device");
 
         let surface = Surface::new(window, surface, &device);
 
         let encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+        let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
+        let local_pool = futures::executor::LocalPool::new();
+
         (
             Self {
                 device,
                 queue,
                 encoder,
+                staging_belt,
+                local_pool,
             },
             surface,
         )
@@ -52,6 +62,18 @@ impl Gpu {
         // current frame
         let encoder = std::mem::replace(&mut self.encoder, new_encoder);
 
-        self.queue.submit(&[encoder.finish()]);
+        self.staging_belt.finish();
+        self.queue.submit(Some(encoder.finish()));
+
+        {
+            use futures::task::SpawnExt;
+
+            self.local_pool
+                .spawner()
+                .spawn(self.staging_belt.recall())
+                .expect("Recall staging buffers");
+
+            self.local_pool.run_until_stalled();
+        }
     }
 }

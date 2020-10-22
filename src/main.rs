@@ -43,6 +43,19 @@ pub struct MainState {
 impl MainState {
     fn new(gpu: &Gpu, window: &Window) -> Self {
         let iced_manager = IcedManager::new(&gpu.device, &window);
+
+        let args: Vec<String> = std::env::args().collect();
+
+        let midi_file = if args.len() > 1 {
+            if let Some(midi) = lib_midi::Midi::new(&args[1]).ok() {
+                Some(Arc::new(midi))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         Self {
             cursor_physical_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
             window_size: (0.0, 0.0),
@@ -54,7 +67,7 @@ impl MainState {
                 TransformUniform::default(),
                 wgpu::ShaderStage::VERTEX,
             ),
-            midi_file: None,
+            midi_file,
             iced_manager,
         }
     }

@@ -22,7 +22,7 @@ wgpu_glyph = "0.10.0"
 log = "0.4"
 env_logger = "0.7.1"
 
-# nfd2 = "0.2.1"
+nfd2 = "0.2.1"
 
 lib_midi = {path="./lib_midi"}
 midir = "0.6.2"

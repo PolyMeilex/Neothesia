@@ -59,31 +59,31 @@ impl Program for IcedMenu {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::FileSelectPressed => {
-                // use nfd2::Response;
+                use nfd2::Response;
 
-                // match nfd2::DialogBuilder::single()
-                //     .filter("mid,midi")
-                //     .open()
-                //     .expect("File Dialog Error")
-                // {
-                //     Response::Okay(path) => {
-                //         log::info!("File path = {:?}", path);
-                //         let midi = lib_midi::Midi::new(path.to_str().unwrap());
+                match nfd2::DialogBuilder::single()
+                    .filter("mid,midi")
+                    .open()
+                    .expect("File Dialog Error")
+                {
+                    Response::Okay(path) => {
+                        log::info!("File path = {:?}", path);
+                        let midi = lib_midi::Midi::new(path.to_str().unwrap());
 
-                //         if let Err(e) = &midi {
-                //             log::error!("{}", e);
-                //         }
+                        if let Err(e) = &midi {
+                            log::error!("{}", e);
+                        }
 
-                //         self.midi_file = if let Ok(midi) = midi {
-                //             Some(Arc::new(midi))
-                //         } else {
-                //             None
-                //         }
-                //     }
-                //     _ => {
-                //         log::error!("User canceled dialog");
-                //     }
-                // }
+                        self.midi_file = if let Ok(midi) = midi {
+                            Some(Arc::new(midi))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => {
+                        log::error!("User canceled dialog");
+                    }
+                }
             }
             // Next / Prev Logic
             Message::UpdateOuts => {

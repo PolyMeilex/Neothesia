@@ -11,21 +11,21 @@ record=[]
 
 [dependencies]
 zerocopy = "0.3.0"
-futures = "0.3.5"
+futures = "0.3.7"
 
-winit = { version="0.22.2"}
+winit = { version="0.23.0"}
 
 wgpu = "0.6.0"
 wgpu_glyph = "0.10.0"
 
 
 log = "0.4"
-env_logger = "0.7.1"
+env_logger = "0.8.1"
 
-nfd2 = "0.2.1"
+nfd2 = "0.2.3"
 
 lib_midi = {path="./lib_midi"}
-midir = "0.6.2"
+midir = "0.7.0"
 
 iced_native = {git="https://github.com/hecrj/iced.git"} 
 iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 

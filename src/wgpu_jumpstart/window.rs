@@ -18,7 +18,7 @@ impl Window {
         size: (u32, u32),
         event_loop: &EventLoop<()>,
     ) -> (Self, Gpu) {
-        let dpi = event_loop.primary_monitor().scale_factor();
+        let dpi = event_loop.primary_monitor().unwrap().scale_factor();
 
         let (width, height) = size;
 

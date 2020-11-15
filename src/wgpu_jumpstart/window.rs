@@ -1,11 +1,7 @@
 use super::gpu::Gpu;
 
-use winit::event_loop::EventLoop;
-use winit::window::WindowBuilder;
-
 pub struct Window {
     pub winit_window: winit::window::Window,
-    pub dpi: f64,
 
     surface: wgpu::Surface,
 
@@ -14,23 +10,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub async fn new(
-        builder: WindowBuilder,
-        size: (u32, u32),
-        event_loop: &EventLoop<()>,
-    ) -> (Self, Gpu) {
-        let dpi = event_loop.primary_monitor().unwrap().scale_factor();
-
-        let (width, height) = size;
-
-        let width = (width as f64 / dpi).round();
-        let height = (height as f64 / dpi).round();
-
-        let winit_window = builder
-            .with_inner_size(winit::dpi::LogicalSize { width, height })
-            .build(event_loop)
-            .unwrap();
-
+    pub async fn new(winit_window: winit::window::Window) -> (Self, Gpu) {
         #[cfg(target_arch = "wasm32")]
         {
             use winit::platform::web::WindowExtWebSys;
@@ -67,7 +47,6 @@ impl Window {
             Self {
                 surface,
                 winit_window,
-                dpi,
 
                 swap_chain,
                 swap_chain_descriptor,
@@ -76,16 +55,20 @@ impl Window {
         )
     }
 
+    #[inline]
+    pub fn scale_factor(&self) -> f64 {
+        self.winit_window.scale_factor()
+    }
+
+    #[inline]
     pub fn physical_size(&self) -> winit::dpi::PhysicalSize<u32> {
         self.winit_window.inner_size()
     }
 
-    pub fn size(&self) -> (f32, f32) {
+    pub fn logical_size(&self) -> (f32, f32) {
         let ps = self.physical_size();
-        (
-            ps.width as f32 / self.dpi as f32,
-            ps.height as f32 / self.dpi as f32,
-        )
+        let ls = ps.to_logical::<f32>(self.scale_factor());
+        (ls.width, ls.height)
     }
 
     pub fn on_resize(&mut self, gpu: &mut Gpu) {
@@ -99,14 +82,12 @@ impl Window {
             .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
     }
 
-    pub fn on_dpi(&mut self, dpi: f64) {
-        self.dpi = dpi;
-    }
-
+    #[inline]
     pub fn request_redraw(&self) {
         self.winit_window.request_redraw();
     }
 
+    #[inline]
     pub fn get_current_frame(&mut self) -> wgpu::SwapChainFrame {
         self.swap_chain
             .get_current_frame()

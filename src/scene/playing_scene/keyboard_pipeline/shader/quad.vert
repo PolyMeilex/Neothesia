@@ -7,10 +7,10 @@ layout(location=2) in vec2 i_size;
 layout(location=3) in uint i_is_black;
 layout(location=4) in vec3 i_color;
 
-layout(location=0) out vec3 color;
-layout(location=1) out vec2 uv;
-layout(location=2) out vec2 size;
-layout(location=3) out float is_black;
+layout(location=0) out vec3 o_color;
+layout(location=1) out vec2 o_uv;
+layout(location=2) out vec2 o_size;
+layout(location=3) out float o_is_black;
 
 layout(set=0, binding=0) 
 uniform Uniforms {
@@ -19,11 +19,11 @@ uniform Uniforms {
 };
 
 void main() {
-    color = i_color;
+    o_color = i_color;
 
-    size = i_size;
-    uv = a_position;
-    is_black = float(i_is_black);
+    o_size = i_size;
+    o_uv = a_position;
+    o_is_black = float(i_is_black);
 
     mat4 i_Transform = mat4(
         vec4(i_size.x, 0.0, 0.0, 0.0),

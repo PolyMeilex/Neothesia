@@ -1,24 +1,24 @@
 #version 450
 
 
-layout(location=0) in vec3 color;
-layout(location=1) in vec2 uv;
-layout(location=2) in vec2 size;
-layout(location=3) in float is_black;
+layout(location=0) in vec3 i_color;
+layout(location=1) in vec2 i_uv;
+layout(location=2) in vec2 i_size;
+layout(location=3) in float i_is_black;
 
-layout(location=0) out vec4 f_color;
+layout(location=0) out vec4 o_color;
 
 void main() {
-    vec3 col = color;
+    vec3 col = i_color;
 
     float alpha = 1.0;
 
-    vec2 pos = uv * size;
+    vec2 pos = i_uv * i_size;
 
     float radius = 5.0;
 
-    float xMax = size.x - radius;
-    float yMax = size.y - radius;
+    float xMax = i_size.x - radius;
+    float yMax = i_size.y - radius;
 
     if (pos.x  < radius && pos.y > yMax ){
         alpha *= 1.0 - smoothstep(radius - 0.7,radius+ 0.7, length(pos - vec2(radius,yMax)));
@@ -26,9 +26,9 @@ void main() {
         alpha *= 1.0 - smoothstep(radius - 0.7,radius+ 0.7, length(pos - vec2(xMax,yMax)));
     }
 
-    if(is_black==1.0){
-        f_color = vec4(col, alpha);
+    if(i_is_black==1.0){
+        o_color = vec4(col, alpha);
     }else{
-        f_color = vec4(col*alpha,1.0);
+        o_color = vec4(col*alpha,1.0);
     }
 }

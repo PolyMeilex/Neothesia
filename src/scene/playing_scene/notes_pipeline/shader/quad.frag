@@ -1,33 +1,33 @@
 #version 450
 
 
-layout(location=0) in vec3 color;
-layout(location=1) in vec2 uv;
-layout(location=2) in vec2 size;
-layout(location=3) in float radius;
+layout(location=0) in vec3 i_color;
+layout(location=1) in vec2 i_uv;
+layout(location=2) in vec2 i_size;
+layout(location=3) in float i_radius;
 
-layout(location=0) out vec4 f_color;
+layout(location=0) out vec4 o_color;
 
 
 void main() {
-    vec3 col = color;
+    vec3 col = i_color;
 
     float alpha = 1.0;
 
-    vec2 pos = uv * size;
+    vec2 pos = i_uv * i_size;
 
-    float xMax = size.x - radius;
-    float yMax = size.y - radius;
+    float xMax = i_size.x - i_radius;
+    float yMax = i_size.y - i_radius;
 
-    if (pos.x  < radius && pos.y < radius ){
-        alpha *= 1.0 - smoothstep(radius - 0.7,radius+ 0.7, length(pos - vec2(radius,radius)));
-    }else if (pos.x  < radius && pos.y > yMax ){
-        alpha *= 1.0 - smoothstep(radius - 0.7,radius+ 0.7, length(pos - vec2(radius,yMax)));
+    if (pos.x  < i_radius && pos.y < i_radius ){
+        alpha *= 1.0 - smoothstep(i_radius - 0.7,i_radius+ 0.7, length(pos - vec2(i_radius,i_radius)));
+    }else if (pos.x  < i_radius && pos.y > yMax ){
+        alpha *= 1.0 - smoothstep(i_radius - 0.7,i_radius+ 0.7, length(pos - vec2(i_radius,yMax)));
     }else if (pos.x  > xMax && pos.y > yMax ){
-        alpha *= 1.0 - smoothstep(radius - 0.7,radius+ 0.7, length(pos - vec2(xMax,yMax)));
-    }else if (pos.x  > xMax && pos.y < radius ){
-        alpha *= 1.0 - smoothstep(radius - 0.7,radius+ 0.7, length(pos - vec2(xMax,radius)));
+        alpha *= 1.0 - smoothstep(i_radius - 0.7,i_radius+ 0.7, length(pos - vec2(xMax,yMax)));
+    }else if (pos.x  > xMax && pos.y < i_radius ){
+        alpha *= 1.0 - smoothstep(i_radius - 0.7,i_radius+ 0.7, length(pos - vec2(xMax,i_radius)));
     }
 
-    f_color = vec4(col, alpha);
+    o_color = vec4(col, alpha);
 }

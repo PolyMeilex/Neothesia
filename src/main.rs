@@ -119,11 +119,6 @@ impl IcedManager {
     }
 }
 
-enum AppEvent<'a> {
-    WindowEvent(&'a WindowEvent<'a>),
-    SceneEvent(SceneEvent),
-}
-
 struct App {
     pub window: Window,
     pub gpu: Gpu,
@@ -153,71 +148,66 @@ impl App {
         }
     }
 
-    fn event(&mut self, event: AppEvent, control_flow: &mut ControlFlow) {
-        match event {
-            AppEvent::WindowEvent(event) => {
-                match &event {
-                    WindowEvent::Resized(_) => {
-                        self.resize();
-                        self.gpu.submit().unwrap();
-                    }
-                    WindowEvent::ScaleFactorChanged { .. } => {
-                        // TODO: Check if this update is needed;
-                        self.resize();
-                    }
-                    WindowEvent::CursorMoved { position, .. } => {
-                        self.main_state.cursor_physical_position = *position;
-
-                        let dpi = self.window.scale_factor();
-                        let winit::dpi::LogicalPosition { x, y } = position.to_logical::<f32>(dpi);
-
-                        self.main_state.update_mouse_pos(x, y);
-                    }
-                    WindowEvent::MouseInput { state, .. } => {
-                        if let winit::event::ElementState::Pressed = state {
-                            self.main_state.update_mouse_pressed(true);
-                        } else {
-                            self.main_state.update_mouse_pressed(false);
-                        }
-                    }
-                    WindowEvent::Focused(_) => {
-                        self.main_state.update_mouse_pressed(false);
-                    }
-                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                    _ => {}
-                }
-
-                let scene_event = self.game_scene.window_event(&mut self.main_state, event);
-                self.event(AppEvent::SceneEvent(scene_event), control_flow)
+    fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
+        match &event {
+            WindowEvent::Resized(_) => {
+                self.resize();
+                self.gpu.submit().unwrap();
             }
-            AppEvent::SceneEvent(event) => match event {
-                SceneEvent::MainMenu(event) => match event {
-                    scene::menu_scene::Event::MidiOpen(port) => {
-                        let state = scene::playing_scene::PlayingScene::new(
-                            &mut self.gpu,
-                            &mut self.main_state,
-                            port,
-                        );
-                        self.game_scene.transition_to(Box::new(state));
+            WindowEvent::ScaleFactorChanged { .. } => {
+                // TODO: Check if this update is needed;
+                self.resize();
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.main_state.cursor_physical_position = *position;
 
-                        // Self::render() is called right after this so we need to update scene here to prevent transition from not being visible for the first frame
-                        self.game_scene
-                            .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
-                    }
-                },
-                SceneEvent::GoBack => match self.game_scene.scene_type() {
-                    SceneType::MainMenu => {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                    SceneType::Playing => {
-                        let state =
-                            scene::menu_scene::MenuScene::new(&mut self.main_state, &mut self.gpu);
-                        self.game_scene.transition_to(Box::new(state));
-                    }
-                    SceneType::Transition => {}
-                },
-                _ => {}
+                let dpi = self.window.scale_factor();
+                let winit::dpi::LogicalPosition { x, y } = position.to_logical::<f32>(dpi);
+
+                self.main_state.update_mouse_pos(x, y);
+            }
+            WindowEvent::MouseInput { state, .. } => {
+                if let winit::event::ElementState::Pressed = state {
+                    self.main_state.update_mouse_pressed(true);
+                } else {
+                    self.main_state.update_mouse_pressed(false);
+                }
+            }
+            WindowEvent::Focused(_) => {
+                self.main_state.update_mouse_pressed(false);
+            }
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            _ => {}
+        }
+
+        let scene_event = self.game_scene.window_event(&mut self.main_state, event);
+        self.scene_event(scene_event, control_flow);
+    }
+
+    fn scene_event(&mut self, event: SceneEvent, control_flow: &mut ControlFlow) {
+        match event {
+            SceneEvent::MainMenu(event) => match event {
+                scene::menu_scene::Event::MidiOpen(port) => {
+                    let state = scene::playing_scene::PlayingScene::new(
+                        &mut self.gpu,
+                        &mut self.main_state,
+                        port,
+                    );
+                    self.game_scene.transition_to(Box::new(state));
+                }
             },
+            SceneEvent::GoBack => match self.game_scene.scene_type() {
+                SceneType::MainMenu => {
+                    *control_flow = ControlFlow::Exit;
+                }
+                SceneType::Playing => {
+                    let state =
+                        scene::menu_scene::MenuScene::new(&mut self.main_state, &mut self.gpu);
+                    self.game_scene.transition_to(Box::new(state));
+                }
+                SceneType::Transition => {}
+            },
+            _ => {}
         }
     }
 
@@ -243,7 +233,7 @@ impl App {
             .game_scene
             .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
 
-        self.event(AppEvent::SceneEvent(event), control_flow);
+        self.scene_event(event, control_flow);
 
         self.queue_fps();
     }
@@ -254,7 +244,7 @@ impl App {
             .get_current_frame()
             .expect("Could not get_current_frame()");
 
-        self.clear(&frame);
+        self.gpu.clear(&frame);
 
         self.game_scene
             .render(&mut self.main_state, &mut self.gpu, &frame);
@@ -291,27 +281,6 @@ impl App {
             },
             ..Default::default()
         });
-    }
-
-    fn clear(&mut self, frame: &wgpu::SwapChainFrame) {
-        self.gpu
-            .encoder
-            .begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.output.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }),
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            });
     }
 }
 
@@ -363,13 +332,13 @@ fn main_async() {
                 // }
 
                 let event = app.game_scene.main_events_cleared(&mut app.main_state);
-                app.event(AppEvent::SceneEvent(event), control_flow);
+                app.scene_event(event, control_flow);
 
                 // #[cfg(target_arch = "wasm32")]
                 app.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {
-                app.event(AppEvent::WindowEvent(event), control_flow);
+                app.window_event(event, control_flow);
             }
             Event::RedrawRequested(_) => {
                 app.update(control_flow);

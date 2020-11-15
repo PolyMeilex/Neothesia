@@ -53,6 +53,26 @@ impl Gpu {
             surface,
         ))
     }
+
+    pub fn clear(&mut self, frame: &wgpu::SwapChainFrame) {
+        self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: &frame.output.view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 1.0,
+                    }),
+                    store: true,
+                },
+            }],
+            depth_stencil_attachment: None,
+        });
+    }
+
     pub fn submit(&mut self) -> Result<(), futures::task::SpawnError> {
         let new_encoder = self
             .device

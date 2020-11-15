@@ -1,4 +1,4 @@
-use super::surface::Surface;
+use super::GpuInitError;
 
 pub struct Gpu {
     pub device: wgpu::Device,
@@ -9,7 +9,9 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    pub async fn for_window(window: &winit::window::Window) -> (Self, Surface) {
+    pub async fn for_window(
+        window: &winit::window::Window,
+    ) -> Result<(Self, wgpu::Surface), GpuInitError> {
         let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
         let surface = unsafe { instance.create_surface(window) };
@@ -20,7 +22,7 @@ impl Gpu {
                 compatible_surface: Some(&surface),
             })
             .await
-            .expect("Failed to create adapter");
+            .ok_or(GpuInitError::AdapterRequest)?;
 
         let (device, queue) = adapter
             .request_device(
@@ -32,9 +34,7 @@ impl Gpu {
                 None,
             )
             .await
-            .expect("Failed to request device");
-
-        let surface = Surface::new(window, surface, &device);
+            .map_err(|err| GpuInitError::DeviceRequest(err))?;
 
         let encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -42,7 +42,7 @@ impl Gpu {
         let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
         let local_pool = futures::executor::LocalPool::new();
 
-        (
+        Ok((
             Self {
                 device,
                 queue,
@@ -51,9 +51,9 @@ impl Gpu {
                 local_pool,
             },
             surface,
-        )
+        ))
     }
-    pub fn submit(&mut self) {
+    pub fn submit(&mut self) -> Result<(), futures::task::SpawnError> {
         let new_encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -70,10 +70,11 @@ impl Gpu {
 
             self.local_pool
                 .spawner()
-                .spawn(self.staging_belt.recall())
-                .expect("Recall staging buffers");
+                .spawn(self.staging_belt.recall())?;
 
             self.local_pool.run_until_stalled();
         }
+
+        Ok(())
     }
 }

@@ -68,8 +68,9 @@ impl PianoKeyboard {
 
                 let black_offset = w;
 
-                let x = x_offset + black_offset + x + w / 2.0;
-                let y = y + h / 2.0 + state.window_size.1 - h * 1.5;
+                // let x = x_offset + black_offset + x + w / 2.0;
+                let x = x_offset + black_offset + x;
+                let y = y + state.window_size.1 - h * 1.5;
 
                 self.all_keys.push(Key {
                     x,
@@ -78,8 +79,8 @@ impl PianoKeyboard {
                 });
                 black_keys.push((x, y, w, h));
             } else {
-                let x = x_offset + x + w / 2.0;
-                let y = y + h / 2.0 + state.window_size.1 - h;
+                let x = x_offset + x;
+                let y = y + state.window_size.1 - h;
 
                 self.all_keys.push(Key {
                     x,

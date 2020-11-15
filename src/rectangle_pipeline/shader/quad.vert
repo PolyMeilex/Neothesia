@@ -17,8 +17,8 @@ void main() {
     color = i_color;
 
     mat4 i_Transform = mat4(
-        vec4(0.5*i_size.x, 0.0, 0.0, 0.0),
-        vec4(0.0, 0.5*i_size.y, 0.0, 0.0),
+        vec4(i_size.x, 0.0, 0.0, 0.0),
+        vec4(0.0, i_size.y, 0.0, 0.0),
         vec4(0.0, 0.0, 1.0, 0.0),
         vec4(i_pos, 0.0, 1.0)
     );

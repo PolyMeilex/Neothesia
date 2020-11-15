@@ -1,6 +1,6 @@
 use {
     crate::TracksParser,
-    midly::{Event, EventKind, MetaMessage, MidiMessage},
+    midly::{TrackEvent, TrackEventKind, MetaMessage, MidiMessage},
     std::collections::HashMap,
 };
 
@@ -31,7 +31,7 @@ pub struct MidiTrack {
 }
 
 impl MidiTrack {
-    pub fn new(track: &[Event], track_id: usize) -> Self {
+    pub fn new(track: &[TrackEvent], track_id: usize) -> Self {
         let mut tempo = 500_000; // 120 bpm
 
         let mut has_tempo = false;
@@ -41,7 +41,7 @@ impl MidiTrack {
         for event in track.iter() {
             time_in_units += event.delta.as_int() as f32;
 
-            if let EventKind::Meta(meta) = &event.kind {
+            if let TrackEventKind::Meta(meta) = &event.kind {
                 if let MetaMessage::Tempo(t) = &meta {
                     if !has_tempo {
                         tempo = t.as_int();
@@ -64,7 +64,7 @@ impl MidiTrack {
         }
     }
 
-    pub fn extract_notes(&mut self, events: &[Event], parent_parser: &mut TracksParser) {
+    pub fn extract_notes(&mut self, events: &[TrackEvent], parent_parser: &mut TracksParser) {
         self.notes.clear();
 
         let mut time_in_units = 0.0;
@@ -103,7 +103,7 @@ impl MidiTrack {
         for event in events.iter() {
             time_in_units += event.delta.as_int() as f32;
 
-            if let EventKind::Midi { channel, message } = &event.kind {
+            if let TrackEventKind::Midi { channel, message } = &event.kind {
                 match &message {
                     MidiMessage::NoteOn { key, vel } => {
                         let key = key.as_int();

@@ -38,8 +38,8 @@ void main() {
     
 
     mat4 i_Transform = mat4(
-        vec4(size.x / 2.0, 0.0, 0.0, 0.0),
-        vec4(0.0, size.y / 2.0, 0.0, 0.0),
+        vec4(size.x, 0.0, 0.0, 0.0),
+        vec4(0.0, size.y, 0.0, 0.0),
         vec4(0.0, 0.0, 1.0, 0.0),
         vec4(pos + offset, 0.0, 1.0)
     );
@@ -47,7 +47,7 @@ void main() {
     
     o_color = i_color;
     o_radius = i_radius;
-    o_uv = (a_position + vec2(1.0,1.0))/2.0;
+    o_uv = a_position;
     o_size = size;
 
     gl_Position = u_Transform * i_Transform * vec4(a_position, 0.0, 1.0);

@@ -108,7 +108,7 @@ impl IcedManager {
         let physical_size = window.physical_size();
         let viewport = iced_wgpu::Viewport::with_physical_size(
             iced_native::Size::new(physical_size.width, physical_size.height),
-            window.dpi,
+            window.scale_factor(),
         );
 
         Self {
@@ -159,21 +159,19 @@ impl App {
                 match &event {
                     WindowEvent::Resized(_) => {
                         self.resize();
-                        self.gpu.submit();
+                        self.gpu.submit().unwrap();
                     }
-                    WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                        self.window.on_dpi(*scale_factor);
+                    WindowEvent::ScaleFactorChanged { .. } => {
                         // TODO: Check if this update is needed;
                         self.resize();
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         self.main_state.cursor_physical_position = *position;
 
-                        let dpi = &self.window.dpi;
-                        let x = (position.x / dpi).round();
-                        let y = (position.y / dpi).round();
+                        let dpi = self.window.scale_factor();
+                        let winit::dpi::LogicalPosition { x, y } = position.to_logical::<f32>(dpi);
 
-                        self.main_state.update_mouse_pos(x as f32, y as f32);
+                        self.main_state.update_mouse_pos(x, y);
                     }
                     WindowEvent::MouseInput { state, .. } => {
                         if let winit::event::ElementState::Pressed = state {
@@ -225,7 +223,7 @@ impl App {
 
     fn resize(&mut self) {
         self.window.on_resize(&mut self.gpu);
-        let (w, h) = self.window.size();
+        let (w, h) = self.window.logical_size();
 
         self.main_state.resize(&mut self.gpu, w, h);
         self.game_scene.resize(&mut self.main_state, &mut self.gpu);
@@ -234,7 +232,7 @@ impl App {
         let physical_size = self.window.physical_size();
         self.main_state.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
             iced_native::Size::new(physical_size.width, physical_size.height),
-            self.window.dpi,
+            self.window.scale_factor(),
         );
     }
 
@@ -251,7 +249,10 @@ impl App {
     }
 
     fn render(&mut self) {
-        let frame = self.window.surface.get_current_frame();
+        let frame = self
+            .window
+            .get_current_frame()
+            .expect("Could not get_current_frame()");
 
         self.clear(&frame);
 
@@ -269,7 +270,7 @@ impl App {
 
         self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
-        self.gpu.submit();
+        self.gpu.submit().unwrap();
 
         self.main_state.update_mouse_clicked(false);
     }
@@ -317,12 +318,20 @@ impl App {
 fn main_async() {
     let event_loop = EventLoop::new();
 
-    let builder = winit::window::WindowBuilder::new().with_title("Neothesia");
-    let (window, gpu) = block_on(Window::new(builder, (1080, 720), &event_loop));
+    let winit_window = winit::window::WindowBuilder::new()
+        .with_title("Neothesia")
+        .with_inner_size(winit::dpi::LogicalSize {
+            width: 1080.0,
+            height: 720.0,
+        })
+        .build(&event_loop)
+        .unwrap();
+
+    let (window, gpu) = block_on(Window::new(winit_window)).unwrap();
 
     let mut app = App::new(gpu, window);
     app.resize();
-    app.gpu.submit();
+    app.gpu.submit().unwrap();
 
     // Commented out control_flow stuff is related to:
     // https://github.com/gfx-rs/wgpu-rs/pull/306

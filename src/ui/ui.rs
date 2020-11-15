@@ -71,15 +71,16 @@ impl Ui {
             });
             self.rectangle_pipeline.render(state, &mut render_pass);
         }
-        // self.glyph_brush
-        //     .draw_queued(
-        //         &gpu.device,
-        //         encoder,
-        //         &frame.output.view,
-        //         state.window_size.0 as u32,
-        //         state.window_size.1 as u32,
-        //     )
-        //     .expect("glyph_brush");
+        self.glyph_brush
+            .draw_queued(
+                &gpu.device,
+                &mut gpu.staging_belt,
+                encoder,
+                &frame.output.view,
+                state.window_size.0 as u32,
+                state.window_size.1 as u32,
+            )
+            .expect("glyph_brush");
 
         // Transition
         if self.transition_rect_a != 0.0 {

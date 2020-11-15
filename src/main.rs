@@ -30,7 +30,7 @@ pub struct MainState {
 }
 
 impl MainState {
-    fn new(gpu: &Gpu) -> Self {
+    fn new() -> Self {
         let args: Vec<String> = std::env::args().collect();
 
         let midi_file = if args.len() > 1 {
@@ -88,7 +88,7 @@ pub struct Target {
 
 impl Target {
     pub fn new(window: Window, mut gpu: Gpu) -> Self {
-        let state = MainState::new(&gpu);
+        let state = MainState::new();
 
         let transform_uniform = Uniform::new(
             &gpu.device,
@@ -206,7 +206,7 @@ impl App {
 
         self.scene_event(event, control_flow);
 
-        self.queue_fps();
+        self.target.ui.queue_fps(self.fps_timer.fps());
     }
 
     fn render(&mut self) {
@@ -232,34 +232,30 @@ impl App {
         self.target.ui.render(
             &self.target.window,
             &self.target.transform_uniform,
-            &self.target.state,
             &mut self.target.gpu,
             &frame,
         );
 
         self.target.gpu.submit().unwrap();
     }
-
-    fn queue_fps(&mut self) {
-        let s = format!("FPS: {}", self.fps_timer.fps());
-        let text = vec![wgpu_glyph::Text::new(&s)
-            .with_color([1.0, 1.0, 1.0, 1.0])
-            .with_scale(20.0)];
-
-        self.target.ui.queue_text(Section {
-            text,
-            screen_position: (0.0, 5.0),
-            layout: wgpu_glyph::Layout::Wrap {
-                line_breaker: Default::default(),
-                h_align: wgpu_glyph::HorizontalAlign::Left,
-                v_align: wgpu_glyph::VerticalAlign::Top,
-            },
-            ..Default::default()
-        });
-    }
 }
 
-fn main_async() {
+fn main() {
+    {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            use env_logger::Env;
+            env_logger::Builder::from_env(Env::default().default_filter_or("neothesia=info"))
+                .init();
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            console_log::init().expect("could not initialize logger");
+            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        }
+    }
+
     let event_loop = EventLoop::new();
 
     let winit_window = winit::window::WindowBuilder::new()
@@ -323,26 +319,6 @@ fn main_async() {
             _ => {}
         }
     });
-}
-
-fn main() {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        use env_logger::Env;
-        // env_logger::init();
-        env_logger::from_env(Env::default().default_filter_or("neothesia=info")).init();
-        // futures::executor::block_on(main_async());
-        main_async();
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        console_log::init().expect("could not initialize logger");
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
-        // wasm_bindgen_futures::spawn_local(main_async());
-        main_async()
-    }
 }
 
 use std::{future::Future, sync::Arc};

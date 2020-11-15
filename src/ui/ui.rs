@@ -1,5 +1,4 @@
 use crate::wgpu_jumpstart::Window;
-use crate::Target;
 use crate::TransformUniform;
 
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
@@ -50,6 +49,25 @@ impl Ui {
     pub fn queue_text(&mut self, section: Section) {
         self.glyph_brush.queue(section);
     }
+
+    pub fn queue_fps(&mut self, fps: i32) {
+        let s = format!("FPS: {}", fps);
+        let text = vec![wgpu_glyph::Text::new(&s)
+            .with_color([1.0, 1.0, 1.0, 1.0])
+            .with_scale(20.0)];
+
+        self.queue_text(Section {
+            text,
+            screen_position: (0.0, 5.0),
+            layout: wgpu_glyph::Layout::Wrap {
+                line_breaker: Default::default(),
+                h_align: wgpu_glyph::HorizontalAlign::Left,
+                v_align: wgpu_glyph::VerticalAlign::Top,
+            },
+            ..Default::default()
+        });
+    }
+
     fn update(&mut self, gpu: &mut Gpu) {
         self.rectangle_pipeline.update_instance_buffer(
             &mut gpu.encoder,
@@ -61,7 +79,6 @@ impl Ui {
         &mut self,
         window: &Window,
         transform_uniform: &Uniform<TransformUniform>,
-        state: &MainState,
         gpu: &mut Gpu,
         frame: &wgpu::SwapChainFrame,
     ) {

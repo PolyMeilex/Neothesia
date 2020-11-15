@@ -1,15 +1,16 @@
 use super::gpu::Gpu;
-use super::surface::Surface;
 
 use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 
 pub struct Window {
-    pub surface: Surface,
     pub winit_window: winit::window::Window,
-    pub width: u32,
-    pub height: u32,
     pub dpi: f64,
+
+    surface: wgpu::Surface,
+
+    swap_chain: wgpu::SwapChain,
+    swap_chain_descriptor: wgpu::SwapChainDescriptor,
 }
 
 impl Window {
@@ -45,38 +46,70 @@ impl Window {
 
         let (gpu, surface) = Gpu::for_window(&winit_window).await;
 
-        let size = winit_window.inner_size();
+        let (swap_chain, swap_chain_descriptor) = {
+            let size = winit_window.inner_size();
+
+            let swap_chain_descriptor = wgpu::SwapChainDescriptor {
+                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                format: super::TEXTURE_FORMAT,
+                width: size.width,
+                height: size.height,
+                present_mode: wgpu::PresentMode::Fifo,
+            };
+
+            let swap_chain = gpu
+                .device
+                .create_swap_chain(&surface, &swap_chain_descriptor);
+            (swap_chain, swap_chain_descriptor)
+        };
 
         (
             Self {
                 surface,
                 winit_window,
-                width: size.width,
-                height: size.height,
                 dpi,
+
+                swap_chain,
+                swap_chain_descriptor,
             },
             gpu,
         )
     }
-    pub fn size(&self) -> (f32, f32) {
-        (
-            self.width as f32 / self.dpi as f32,
-            self.height as f32 / self.dpi as f32,
-        )
-    }
+
     pub fn physical_size(&self) -> winit::dpi::PhysicalSize<u32> {
         self.winit_window.inner_size()
     }
-    pub fn on_resize(&mut self, gpu: &mut Gpu) {
-        self.surface.resize(gpu, self.physical_size());
-        let size = self.winit_window.inner_size();
-        self.width = size.width;
-        self.height = size.height;
+
+    pub fn size(&self) -> (f32, f32) {
+        let ps = self.physical_size();
+        (
+            ps.width as f32 / self.dpi as f32,
+            ps.height as f32 / self.dpi as f32,
+        )
     }
+
+    pub fn on_resize(&mut self, gpu: &mut Gpu) {
+        let size = self.physical_size();
+
+        self.swap_chain_descriptor.width = size.width;
+        self.swap_chain_descriptor.height = size.height;
+
+        self.swap_chain = gpu
+            .device
+            .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
+    }
+
     pub fn on_dpi(&mut self, dpi: f64) {
         self.dpi = dpi;
     }
+
     pub fn request_redraw(&self) {
         self.winit_window.request_redraw();
+    }
+
+    pub fn get_current_frame(&mut self) -> wgpu::SwapChainFrame {
+        self.swap_chain
+            .get_current_frame()
+            .expect("Surface::get_current_frame")
     }
 }

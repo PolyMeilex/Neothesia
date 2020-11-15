@@ -3,7 +3,6 @@ mod gpu;
 mod instances;
 mod render_pipeline_builder;
 mod simple_quad;
-mod surface;
 mod uniform;
 mod window;
 

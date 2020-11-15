@@ -1,5 +1,3 @@
-use super::surface::Surface;
-
 pub struct Gpu {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -9,7 +7,7 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    pub async fn for_window(window: &winit::window::Window) -> (Self, Surface) {
+    pub async fn for_window(window: &winit::window::Window) -> (Self, wgpu::Surface) {
         let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
         let surface = unsafe { instance.create_surface(window) };
@@ -33,8 +31,6 @@ impl Gpu {
             )
             .await
             .expect("Failed to request device");
-
-        let surface = Surface::new(window, surface, &device);
 
         let encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });

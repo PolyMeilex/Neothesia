@@ -251,7 +251,7 @@ impl App {
     }
 
     fn render(&mut self) {
-        let frame = self.window.surface.get_current_frame();
+        let frame = self.window.get_current_frame();
 
         self.clear(&frame);
 

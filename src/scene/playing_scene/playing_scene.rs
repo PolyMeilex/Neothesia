@@ -63,8 +63,8 @@ impl Scene for PlayingScene {
 
         let size_x = state.window_size.0 * self.player.percentage;
         ui.queue_rectangle(RectangleInstance {
-            position: [size_x / 2.0, 0.0],
-            size: [size_x, 10.0],
+            position: [0.0, 0.0],
+            size: [size_x, 5.0],
             color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
         });
 

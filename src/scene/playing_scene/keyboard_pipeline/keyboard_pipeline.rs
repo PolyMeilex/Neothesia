@@ -1,12 +1,12 @@
 use super::{KeyInstance, KeyStateInstance};
 
-use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, SimpleQuad};
+use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape};
 
 use crate::MainState;
 
 pub struct KeyboardPipeline {
     render_pipeline: wgpu::RenderPipeline,
-    simple_quad: SimpleQuad,
+    quad: Shape,
 
     instances: Instances<KeyInstance>,
     instances_state: Instances<KeyStateInstance>,
@@ -33,19 +33,19 @@ impl<'a> KeyboardPipeline {
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
             .fragment_stage(&fs_module)
             .vertex_buffers(&[
-                SimpleQuad::vertex_buffer_descriptor(),
+                Shape::vertex_buffer_descriptor(),
                 KeyInstance::desc(&ki_attrs),
                 KeyStateInstance::vertex_buffer_descriptor(),
             ])
             .build(&gpu.device);
 
-        let simple_quad = SimpleQuad::new(&gpu.device);
+        let quad = Shape::new_quad(&gpu.device);
         let instances = Instances::new(&gpu.device, 88);
         let instances_state = Instances::new(&gpu.device, 88);
 
         Self {
             render_pipeline,
-            simple_quad,
+            quad,
             instances,
             instances_state,
         }
@@ -54,13 +54,13 @@ impl<'a> KeyboardPipeline {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &state.transform_uniform.bind_group, &[]);
 
-        render_pass.set_vertex_buffer(0, self.simple_quad.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));
         render_pass.set_vertex_buffer(2, self.instances_state.buffer.slice(..));
 
-        render_pass.set_index_buffer(self.simple_quad.index_buffer.slice(..));
+        render_pass.set_index_buffer(self.quad.index_buffer.slice(..));
 
-        render_pass.draw_indexed(0..SimpleQuad::indices_len(), 0, 0..self.instances.len());
+        render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
     pub fn update_instance_buffer(&mut self, gpu: &mut Gpu, instances: Vec<KeyInstance>) {
         self.instances.data = instances;

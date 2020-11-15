@@ -87,7 +87,7 @@ impl Scene for SceneTransition {
                     RectangleInstance {
                         color: [0.0, 0.0, 0.0, alpha],
                         size: [state.window_size.0, state.window_size.1],
-                        position: [state.window_size.0 / 2.0, state.window_size.1 / 2.0],
+                        position: [0.0, 0.0],
                     },
                 );
                 SceneEvent::None
@@ -117,7 +117,7 @@ impl Scene for SceneTransition {
                     RectangleInstance {
                         color: [0.0, 0.0, 0.0, alpha],
                         size: [state.window_size.0, state.window_size.1],
-                        position: [state.window_size.0 / 2.0, state.window_size.1 / 2.0],
+                        position: [0.0, 0.0],
                     },
                 );
                 SceneEvent::None

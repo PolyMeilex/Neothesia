@@ -1,6 +1,6 @@
 use super::NoteInstance;
 
-use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
 
 use crate::MainState;
 
@@ -9,7 +9,7 @@ use zerocopy::AsBytes;
 pub struct NotesPipeline {
     render_pipeline: wgpu::RenderPipeline,
 
-    simple_quad: SimpleQuad,
+    quad: Shape,
 
     instances: Instances<NoteInstance>,
     time_uniform: Uniform<TimeUniform>,
@@ -46,19 +46,19 @@ impl<'a> NotesPipeline {
         let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
             .fragment_stage(&fs_module)
             .vertex_buffers(&[
-                SimpleQuad::vertex_buffer_descriptor(),
+                Shape::vertex_buffer_descriptor(),
                 NoteInstance::desc(&ni_attrs),
             ])
             .build(&gpu.device);
 
-        let simple_quad = SimpleQuad::new(&gpu.device);
+        let quad = Shape::new_quad(&gpu.device);
 
         let instances = Instances::new(&gpu.device, midi.merged_track.notes.len());
 
         Self {
             render_pipeline,
 
-            simple_quad,
+            quad,
 
             instances,
 
@@ -70,12 +70,12 @@ impl<'a> NotesPipeline {
         render_pass.set_bind_group(0, &state.transform_uniform.bind_group, &[]);
         render_pass.set_bind_group(1, &self.time_uniform.bind_group, &[]);
 
-        render_pass.set_vertex_buffer(0, self.simple_quad.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));
 
-        render_pass.set_index_buffer(self.simple_quad.index_buffer.slice(..));
+        render_pass.set_index_buffer(self.quad.index_buffer.slice(..));
 
-        render_pass.draw_indexed(0..SimpleQuad::indices_len(), 0, 0..self.instances.len());
+        render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
     pub fn update_instance_buffer(&mut self, gpu: &mut Gpu, instances: Vec<NoteInstance>) {
         self.instances.data = instances;

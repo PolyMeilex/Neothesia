@@ -26,13 +26,8 @@ mod rectangle_pipeline;
 mod iced_conversion;
 
 pub struct MainState {
-    pub cursor_physical_position: winit::dpi::PhysicalPosition<f64>,
-    pub window_size: (f32, f32),
-    pub mouse_pos: (f32, f32),
-    /// Mouse Was Clicked This Frame
-    pub mouse_clicked: bool,
-    /// Mouse Is Pressed This Frame
-    pub mouse_pressed: bool,
+    pub window: Window,
+
     pub transform_uniform: Uniform<TransformUniform>,
 
     pub midi_file: Option<Arc<lib_midi::Midi>>,
@@ -41,7 +36,7 @@ pub struct MainState {
 }
 
 impl MainState {
-    fn new(gpu: &Gpu, window: &Window) -> Self {
+    fn new(gpu: &Gpu, window: Window) -> Self {
         let iced_manager = IcedManager::new(&gpu.device, &window);
 
         let args: Vec<String> = std::env::args().collect();
@@ -57,11 +52,7 @@ impl MainState {
         };
 
         Self {
-            cursor_physical_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
-            window_size: (0.0, 0.0),
-            mouse_pos: (0.0, 0.0),
-            mouse_clicked: false,
-            mouse_pressed: false,
+            window,
             transform_uniform: Uniform::new(
                 &gpu.device,
                 TransformUniform::default(),
@@ -72,22 +63,8 @@ impl MainState {
         }
     }
     fn resize(&mut self, gpu: &mut Gpu, w: f32, h: f32) {
-        self.window_size = (w, h);
         self.transform_uniform.data.update(w, h);
         self.transform_uniform.update(&mut gpu.encoder, &gpu.device);
-    }
-    fn update_mouse_pos(&mut self, x: f32, y: f32) {
-        self.mouse_pos = (x, y);
-    }
-    fn update_mouse_pressed(&mut self, state: bool) {
-        self.mouse_pressed = state;
-
-        if state {
-            self.update_mouse_clicked(true);
-        }
-    }
-    fn update_mouse_clicked(&mut self, clicked: bool) {
-        self.mouse_clicked = clicked;
     }
 }
 
@@ -105,10 +82,10 @@ impl IcedManager {
 
         let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
 
-        let physical_size = window.physical_size();
+        let physical_size = window.state.physical_size;
         let viewport = iced_wgpu::Viewport::with_physical_size(
             iced_native::Size::new(physical_size.width, physical_size.height),
-            window.scale_factor(),
+            window.state.scale_factor,
         );
 
         Self {
@@ -120,7 +97,7 @@ impl IcedManager {
 }
 
 struct App {
-    pub window: Window,
+    // pub window: Window,
     pub gpu: Gpu,
     pub ui: Ui,
     pub main_state: MainState,
@@ -130,7 +107,7 @@ struct App {
 
 impl App {
     fn new(mut gpu: Gpu, window: Window) -> Self {
-        let mut main_state = MainState::new(&gpu, &window);
+        let mut main_state = MainState::new(&gpu, window);
 
         let ui = Ui::new(&main_state, &mut gpu);
         let game_scene = scene::menu_scene::MenuScene::new(&mut main_state, &mut gpu);
@@ -139,7 +116,7 @@ impl App {
         )));
 
         Self {
-            window,
+            // window,
             gpu,
             ui,
             main_state,
@@ -157,24 +134,6 @@ impl App {
             WindowEvent::ScaleFactorChanged { .. } => {
                 // TODO: Check if this update is needed;
                 self.resize();
-            }
-            WindowEvent::CursorMoved { position, .. } => {
-                self.main_state.cursor_physical_position = *position;
-
-                let dpi = self.window.scale_factor();
-                let winit::dpi::LogicalPosition { x, y } = position.to_logical::<f32>(dpi);
-
-                self.main_state.update_mouse_pos(x, y);
-            }
-            WindowEvent::MouseInput { state, .. } => {
-                if let winit::event::ElementState::Pressed = state {
-                    self.main_state.update_mouse_pressed(true);
-                } else {
-                    self.main_state.update_mouse_pressed(false);
-                }
-            }
-            WindowEvent::Focused(_) => {
-                self.main_state.update_mouse_pressed(false);
             }
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             _ => {}
@@ -212,17 +171,16 @@ impl App {
     }
 
     fn resize(&mut self) {
-        self.window.on_resize(&mut self.gpu);
-        let (w, h) = self.window.logical_size();
+        let winit::dpi::LogicalSize { width, height } = self.main_state.window.state.logical_size;
 
-        self.main_state.resize(&mut self.gpu, w, h);
+        self.main_state.resize(&mut self.gpu, width, height);
         self.game_scene.resize(&mut self.main_state, &mut self.gpu);
         self.ui.resize(&self.main_state, &mut self.gpu);
 
-        let physical_size = self.window.physical_size();
+        let physical_size = self.main_state.window.state.physical_size;
         self.main_state.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
             iced_native::Size::new(physical_size.width, physical_size.height),
-            self.window.scale_factor(),
+            self.main_state.window.state.scale_factor,
         );
     }
 
@@ -240,6 +198,7 @@ impl App {
 
     fn render(&mut self) {
         let frame = self
+            .main_state
             .window
             .get_current_frame()
             .expect("Could not get_current_frame()");
@@ -261,8 +220,6 @@ impl App {
         self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
         self.gpu.submit().unwrap();
-
-        self.main_state.update_mouse_clicked(false);
     }
 
     fn queue_fps(&mut self) {
@@ -321,6 +278,9 @@ fn main_async() {
         //         ControlFlow::Poll
         //     }
         // };
+
+        app.main_state.window.on_event(&mut app.gpu, &event);
+
         match &event {
             Event::MainEventsCleared => {
                 // #[cfg(not(target_arch = "wasm32"))]
@@ -335,7 +295,7 @@ fn main_async() {
                 app.scene_event(event, control_flow);
 
                 // #[cfg(target_arch = "wasm32")]
-                app.window.request_redraw();
+                app.main_state.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {
                 app.window_event(event, control_flow);

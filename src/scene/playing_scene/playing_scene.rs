@@ -59,18 +59,29 @@ impl Scene for PlayingScene {
             .resize(state, gpu, &self.piano_keyboard.all_keys, &self.player.midi);
     }
     fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {
+        let (window_w, _) = {
+            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            (width, height)
+        };
+
         let notes_on = self.player.update();
 
-        let size_x = state.window_size.0 * self.player.percentage;
+        let size_x = window_w * self.player.percentage;
         ui.queue_rectangle(RectangleInstance {
             position: [0.0, 0.0],
             size: [size_x, 5.0],
             color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
         });
 
-        if state.mouse_pos.1 < 20.0 && state.mouse_pressed {
-            let x = state.mouse_pos.0;
-            let p = x / state.window_size.0;
+        let pos = &state.window.state.cursor_logical_position;
+        if pos.y < 20.0
+            && state
+                .window
+                .state
+                .mouse_is_pressed(winit::event::MouseButton::Left)
+        {
+            let x = pos.x;
+            let p = x / window_w;
             log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
             self.player.set_time(p * self.player.midi_last_note_end)
         }

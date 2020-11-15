@@ -31,7 +31,7 @@ impl MenuScene {
             menu,
             state.iced_manager.viewport.logical_size(),
             crate::iced_conversion::cursor_position(
-                state.cursor_physical_position,
+                state.window.state.cursor_physical_position,
                 state.iced_manager.viewport.scale_factor(),
             ),
             &mut state.iced_manager.renderer,
@@ -128,7 +128,7 @@ impl Scene for MenuScene {
             let event = self.iced_state.update(
                 main_state.iced_manager.viewport.logical_size(),
                 crate::iced_conversion::cursor_position(
-                    main_state.cursor_physical_position,
+                    main_state.window.state.cursor_physical_position,
                     main_state.iced_manager.viewport.scale_factor(),
                 ),
                 None,

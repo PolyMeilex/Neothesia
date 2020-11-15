@@ -71,14 +71,19 @@ impl Ui {
             });
             self.rectangle_pipeline.render(state, &mut render_pass);
         }
+
+        let (window_w, window_h) = {
+            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            (width, height)
+        };
         self.glyph_brush
             .draw_queued(
                 &gpu.device,
                 &mut gpu.staging_belt,
                 encoder,
                 &frame.output.view,
-                state.window_size.0 as u32,
-                state.window_size.1 as u32,
+                window_w.round() as u32,
+                window_h.round() as u32,
             )
             .expect("glyph_brush");
 

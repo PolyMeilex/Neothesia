@@ -1,7 +1,17 @@
 use super::{Gpu, GpuInitError};
+use std::collections::HashMap;
+use winit::dpi::LogicalPosition;
+use winit::dpi::PhysicalPosition;
+use winit::event::MouseButton;
+
+use winit::{
+    dpi::{LogicalSize, PhysicalSize},
+    event::{Event, WindowEvent},
+};
 
 pub struct Window {
     pub winit_window: winit::window::Window,
+    pub state: WinitState,
 
     surface: wgpu::Surface,
 
@@ -43,10 +53,14 @@ impl Window {
             (swap_chain, swap_chain_descriptor)
         };
 
+        let state = WinitState::new(&winit_window);
+
         Ok((
             Self {
-                surface,
                 winit_window,
+                state,
+
+                surface,
 
                 swap_chain,
                 swap_chain_descriptor,
@@ -55,31 +69,18 @@ impl Window {
         ))
     }
 
-    #[inline]
-    pub fn scale_factor(&self) -> f64 {
-        self.winit_window.scale_factor()
-    }
+    pub fn on_event<T>(&mut self, gpu: &mut Gpu, event: &Event<T>) {
+        self.state.update(event);
 
-    #[inline]
-    pub fn physical_size(&self) -> winit::dpi::PhysicalSize<u32> {
-        self.winit_window.inner_size()
-    }
-
-    pub fn logical_size(&self) -> (f32, f32) {
-        let ps = self.physical_size();
-        let ls = ps.to_logical::<f32>(self.scale_factor());
-        (ls.width, ls.height)
-    }
-
-    pub fn on_resize(&mut self, gpu: &mut Gpu) {
-        let size = self.physical_size();
-
-        self.swap_chain_descriptor.width = size.width;
-        self.swap_chain_descriptor.height = size.height;
-
-        self.swap_chain = gpu
-            .device
-            .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
+                    self.resize_swap_chain(gpu)
+                }
+                _ => {}
+            },
+            _ => {}
+        }
     }
 
     #[inline]
@@ -90,5 +91,120 @@ impl Window {
     #[inline]
     pub fn get_current_frame(&mut self) -> Result<wgpu::SwapChainFrame, wgpu::SwapChainError> {
         self.swap_chain.get_current_frame()
+    }
+
+    fn resize_swap_chain(&mut self, gpu: &mut Gpu) {
+        let size = &self.state.physical_size;
+
+        self.swap_chain_descriptor.width = size.width;
+        self.swap_chain_descriptor.height = size.height;
+
+        self.swap_chain = gpu
+            .device
+            .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
+    }
+}
+
+pub struct WinitState {
+    pub physical_size: PhysicalSize<u32>,
+    pub logical_size: LogicalSize<f32>,
+
+    pub scale_factor: f64,
+
+    pub cursor_physical_position: PhysicalPosition<f64>,
+    pub cursor_logical_position: LogicalPosition<f32>,
+
+    pub focused: bool,
+
+    /// Mouse Was Clicked This Frame
+    mouse_clicked_events: Vec<MouseButton>,
+    mouse_buttons_state: HashMap<MouseButton, bool>,
+}
+
+impl WinitState {
+    fn new(window: &winit::window::Window) -> Self {
+        let scale_factor = window.scale_factor();
+
+        let physical_size = window.inner_size();
+        let logical_size = physical_size.to_logical::<f32>(scale_factor);
+
+        let cursor_physical_position = PhysicalPosition::new(0.0, 0.0);
+        let cursor_logical_position = LogicalPosition::new(0.0, 0.0);
+
+        Self {
+            physical_size,
+            logical_size,
+
+            scale_factor,
+
+            cursor_physical_position,
+            cursor_logical_position,
+
+            focused: false,
+
+            mouse_clicked_events: Vec::new(),
+            mouse_buttons_state: HashMap::new(),
+        }
+    }
+
+    pub fn mouse_was_pressed(&self, button: MouseButton) -> bool {
+        for btn in self.mouse_clicked_events.iter() {
+            if &button == btn {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn mouse_is_pressed(&self, button: MouseButton) -> bool {
+        if let Some(s) = self.mouse_buttons_state.get(&button) {
+            *s
+        } else {
+            false
+        }
+    }
+
+    fn update<T>(&mut self, event: &Event<T>) {
+        match event {
+            Event::NewEvents { .. } => {
+                self.mouse_clicked_events.clear();
+            }
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::Resized(ps) => {
+                    self.physical_size = *ps;
+                    self.logical_size = ps.to_logical(self.scale_factor);
+                }
+                WindowEvent::ScaleFactorChanged {
+                    scale_factor,
+                    new_inner_size,
+                } => {
+                    self.physical_size = **new_inner_size;
+                    self.logical_size = new_inner_size.to_logical(self.scale_factor);
+
+                    self.scale_factor = *scale_factor;
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    self.cursor_physical_position = *position;
+                    self.cursor_logical_position = position.to_logical(self.scale_factor);
+                }
+                WindowEvent::MouseInput { state, button, .. } => {
+                    if let winit::event::ElementState::Pressed = state {
+                        self.mouse_clicked_events.push(*button);
+                        self.mouse_buttons_state.insert(*button, true);
+                    } else {
+                        self.mouse_buttons_state.insert(*button, false);
+                    }
+                }
+                WindowEvent::Focused(f) => {
+                    self.focused = *f;
+                    if f == &false {
+                        self.mouse_buttons_state.clear();
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
     }
 }

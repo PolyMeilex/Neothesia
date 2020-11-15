@@ -82,11 +82,15 @@ impl Scene for SceneTransition {
                     alpha = 0.0;
                 }
 
+                let (window_w, window_h) = {
+                    let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+                    (width, height)
+                };
                 ui.set_transition_alpha(
                     gpu,
                     RectangleInstance {
                         color: [0.0, 0.0, 0.0, alpha],
-                        size: [state.window_size.0, state.window_size.1],
+                        size: [window_w, window_h],
                         position: [0.0, 0.0],
                     },
                 );
@@ -112,11 +116,15 @@ impl Scene for SceneTransition {
                     self.mode = TransitionMode::FadeIn(game_scene);
                 }
 
+                let (window_w, window_h) = {
+                    let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+                    (width, height)
+                };
                 ui.set_transition_alpha(
                     gpu,
                     RectangleInstance {
                         color: [0.0, 0.0, 0.0, alpha],
-                        size: [state.window_size.0, state.window_size.1],
+                        size: [window_w, window_h],
                         position: [0.0, 0.0],
                     },
                 );

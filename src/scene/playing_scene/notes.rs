@@ -25,13 +25,18 @@ impl Notes {
         keys: &[super::keyboard::Key],
         midi: &lib_midi::Midi,
     ) {
+        let (window_w, window_h) = {
+            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            (width, height)
+        };
+
         let mut instances = Vec::new();
 
         let mut longer_than_88 = false;
         for note in midi.merged_track.notes.iter() {
             if note.note >= 21 && note.note <= 108 {
                 let key = &keys[note.note as usize - 21];
-                let ar = state.window_size.0 / state.window_size.1;
+                let ar = window_w / window_h;
 
                 // let colors: [[[f32; 3]; 2]; 2] = [
                 //     [

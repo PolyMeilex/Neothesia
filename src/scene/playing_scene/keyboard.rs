@@ -38,8 +38,13 @@ impl PianoKeyboard {
         piano_keyboard
     }
     pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {
-        let w = state.window_size.0 / 52.0;
-        let h = state.window_size.1 / 5.0;
+        let (window_w, window_h) = {
+            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            (width, height)
+        };
+
+        let w = window_w / 52.0;
+        let h = window_h / 5.0;
 
         let mut x_offset = 0.0;
 
@@ -70,7 +75,7 @@ impl PianoKeyboard {
 
                 // let x = x_offset + black_offset + x + w / 2.0;
                 let x = x_offset + black_offset + x;
-                let y = y + state.window_size.1 - h * 1.5;
+                let y = y + window_h - h * 1.5;
 
                 self.all_keys.push(Key {
                     x,
@@ -80,7 +85,7 @@ impl PianoKeyboard {
                 black_keys.push((x, y, w, h));
             } else {
                 let x = x_offset + x;
-                let y = y + state.window_size.1 - h;
+                let y = y + window_h - h;
 
                 self.all_keys.push(Key {
                     x,

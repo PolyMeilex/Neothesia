@@ -1,3 +1,5 @@
+mod error;
+
 mod color;
 mod gpu;
 mod instances;
@@ -5,6 +7,8 @@ mod render_pipeline_builder;
 mod simple_quad;
 mod uniform;
 mod window;
+
+pub use error::GpuInitError;
 
 pub mod shader;
 pub use {

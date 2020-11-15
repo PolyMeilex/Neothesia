@@ -1,4 +1,4 @@
-use super::gpu::Gpu;
+use super::{Gpu, GpuInitError};
 
 pub struct Window {
     pub winit_window: winit::window::Window,
@@ -10,7 +10,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub async fn new(winit_window: winit::window::Window) -> (Self, Gpu) {
+    pub async fn new(winit_window: winit::window::Window) -> Result<(Self, Gpu), GpuInitError> {
         #[cfg(target_arch = "wasm32")]
         {
             use winit::platform::web::WindowExtWebSys;
@@ -21,10 +21,10 @@ impl Window {
                     body.append_child(&web_sys::Element::from(winit_window.canvas()))
                         .ok()
                 })
-                .expect("couldn't append canvas to document body");
+                .unwrap_or(Err(GpuInitError::AppendToBody)?);
         }
 
-        let (gpu, surface) = Gpu::for_window(&winit_window).await;
+        let (gpu, surface) = Gpu::for_window(&winit_window).await?;
 
         let (swap_chain, swap_chain_descriptor) = {
             let size = winit_window.inner_size();
@@ -43,7 +43,7 @@ impl Window {
             (swap_chain, swap_chain_descriptor)
         };
 
-        (
+        Ok((
             Self {
                 surface,
                 winit_window,
@@ -52,7 +52,7 @@ impl Window {
                 swap_chain_descriptor,
             },
             gpu,
-        )
+        ))
     }
 
     #[inline]
@@ -88,9 +88,7 @@ impl Window {
     }
 
     #[inline]
-    pub fn get_current_frame(&mut self) -> wgpu::SwapChainFrame {
-        self.swap_chain
-            .get_current_frame()
-            .expect("Surface::get_current_frame")
+    pub fn get_current_frame(&mut self) -> Result<wgpu::SwapChainFrame, wgpu::SwapChainError> {
+        self.swap_chain.get_current_frame()
     }
 }

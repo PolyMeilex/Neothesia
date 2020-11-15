@@ -159,7 +159,7 @@ impl App {
                 match &event {
                     WindowEvent::Resized(_) => {
                         self.resize();
-                        self.gpu.submit();
+                        self.gpu.submit().unwrap();
                     }
                     WindowEvent::ScaleFactorChanged { .. } => {
                         // TODO: Check if this update is needed;
@@ -249,7 +249,10 @@ impl App {
     }
 
     fn render(&mut self) {
-        let frame = self.window.get_current_frame();
+        let frame = self
+            .window
+            .get_current_frame()
+            .expect("Could not get_current_frame()");
 
         self.clear(&frame);
 
@@ -267,7 +270,7 @@ impl App {
 
         self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
 
-        self.gpu.submit();
+        self.gpu.submit().unwrap();
 
         self.main_state.update_mouse_clicked(false);
     }
@@ -324,11 +327,11 @@ fn main_async() {
         .build(&event_loop)
         .unwrap();
 
-    let (window, gpu) = block_on(Window::new(winit_window));
+    let (window, gpu) = block_on(Window::new(winit_window)).unwrap();
 
     let mut app = App::new(gpu, window);
     app.resize();
-    app.gpu.submit();
+    app.gpu.submit().unwrap();
 
     // Commented out control_flow stuff is related to:
     // https://github.com/gfx-rs/wgpu-rs/pull/306

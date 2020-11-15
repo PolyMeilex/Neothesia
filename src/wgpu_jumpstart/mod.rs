@@ -10,7 +10,6 @@ mod window;
 
 pub use error::GpuInitError;
 
-pub mod shader;
 pub use {
     color::Color, gpu::Gpu, instances::Instances, render_pipeline_builder::RenderPipelineBuilder,
     simple_quad::SimpleQuad, uniform::Uniform, window::Window,

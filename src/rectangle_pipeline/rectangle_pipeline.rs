@@ -1,6 +1,6 @@
 use super::RectangleInstance;
 
-use crate::wgpu_jumpstart::{shader, Instances, RenderPipelineBuilder, SimpleQuad};
+use crate::wgpu_jumpstart::{Instances, RenderPipelineBuilder, SimpleQuad};
 
 use crate::MainState;
 
@@ -14,8 +14,8 @@ pub struct RectanglePipeline {
 
 impl<'a> RectanglePipeline {
     pub fn new(state: &MainState, device: &wgpu::Device) -> Self {
-        let vs_module = shader::create_module(device, wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module = shader::create_module(device, wgpu::include_spirv!("shader/quad.frag.spv"));
+        let vs_module = device.create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+        let fs_module = device.create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

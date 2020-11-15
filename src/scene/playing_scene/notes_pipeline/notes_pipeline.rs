@@ -1,6 +1,6 @@
 use super::NoteInstance;
 
-use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, SimpleQuad, Uniform};
 
 use crate::MainState;
 
@@ -17,10 +17,12 @@ pub struct NotesPipeline {
 
 impl<'a> NotesPipeline {
     pub fn new(state: &MainState, gpu: &Gpu, midi: &lib_midi::Midi) -> Self {
-        let vs_module =
-            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module =
-            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.frag.spv"));
+        let vs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+        let fs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let time_uniform = Uniform::new(
             &gpu.device,

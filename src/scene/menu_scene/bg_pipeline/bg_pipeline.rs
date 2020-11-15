@@ -1,4 +1,4 @@
-use crate::wgpu_jumpstart::{shader, Gpu, RenderPipelineBuilder, SimpleQuad, Uniform};
+use crate::wgpu_jumpstart::{Gpu, RenderPipelineBuilder, SimpleQuad, Uniform};
 use zerocopy::AsBytes;
 
 pub struct BgPipeline {
@@ -10,10 +10,12 @@ pub struct BgPipeline {
 
 impl<'a> BgPipeline {
     pub fn new(gpu: &Gpu) -> Self {
-        let vs_module =
-            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module =
-            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.frag.spv"));
+        let vs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+        let fs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let time_uniform = Uniform::new(
             &gpu.device,

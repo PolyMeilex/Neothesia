@@ -1,6 +1,6 @@
 use super::{KeyInstance, KeyStateInstance};
 
-use crate::wgpu_jumpstart::{shader, Gpu, Instances, RenderPipelineBuilder, SimpleQuad};
+use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, SimpleQuad};
 
 use crate::MainState;
 
@@ -14,10 +14,12 @@ pub struct KeyboardPipeline {
 
 impl<'a> KeyboardPipeline {
     pub fn new(state: &MainState, gpu: &Gpu) -> Self {
-        let vs_module =
-            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module =
-            shader::create_module(&gpu.device, wgpu::include_spirv!("shader/quad.frag.spv"));
+        let vs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+        let fs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let render_pipeline_layout =
             &gpu.device

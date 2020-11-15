@@ -1,4 +1,6 @@
 use super::NoteInstance;
+use crate::Target;
+use crate::TransformUniform;
 
 use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
 
@@ -16,26 +18,30 @@ pub struct NotesPipeline {
 }
 
 impl<'a> NotesPipeline {
-    pub fn new(state: &MainState, gpu: &Gpu, midi: &lib_midi::Midi) -> Self {
-        let vs_module = gpu
+    pub fn new(target: &Target, midi: &lib_midi::Midi) -> Self {
+        let vs_module = target
+            .gpu
             .device
             .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module = gpu
+        let fs_module = target
+            .gpu
             .device
             .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let time_uniform = Uniform::new(
-            &gpu.device,
+            &target.gpu.device,
             TimeUniform::default(),
             wgpu::ShaderStage::VERTEX,
         );
 
         let render_pipeline_layout =
-            &gpu.device
+            &target
+                .gpu
+                .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
                     bind_group_layouts: &[
-                        &state.transform_uniform.bind_group_layout,
+                        &target.transform_uniform.bind_group_layout,
                         &time_uniform.bind_group_layout,
                     ],
                     push_constant_ranges: &[],
@@ -49,11 +55,11 @@ impl<'a> NotesPipeline {
                 Shape::vertex_buffer_descriptor(),
                 NoteInstance::desc(&ni_attrs),
             ])
-            .build(&gpu.device);
+            .build(&target.gpu.device);
 
-        let quad = Shape::new_quad(&gpu.device);
+        let quad = Shape::new_quad(&target.gpu.device);
 
-        let instances = Instances::new(&gpu.device, midi.merged_track.notes.len());
+        let instances = Instances::new(&target.gpu.device, midi.merged_track.notes.len());
 
         Self {
             render_pipeline,
@@ -65,9 +71,13 @@ impl<'a> NotesPipeline {
             time_uniform,
         }
     }
-    pub fn render(&'a self, state: &'a MainState, render_pass: &mut wgpu::RenderPass<'a>) {
+    pub fn render(
+        &'a self,
+        transform_uniform: &'a Uniform<TransformUniform>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &state.transform_uniform.bind_group, &[]);
+        render_pass.set_bind_group(0, &transform_uniform.bind_group, &[]);
         render_pass.set_bind_group(1, &self.time_uniform.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));

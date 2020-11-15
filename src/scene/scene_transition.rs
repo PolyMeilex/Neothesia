@@ -1,9 +1,9 @@
 use crate::{
     rectangle_pipeline::RectangleInstance,
     scene::{Scene, SceneEvent, SceneType},
-    wgpu_jumpstart::Gpu,
-    MainState, Ui,
+    Target,
 };
+
 use winit::event::WindowEvent;
 
 enum TransitionMode {
@@ -45,22 +45,22 @@ impl Scene for SceneTransition {
             _ => SceneType::Transition,
         }
     }
-    fn resize(&mut self, state: &mut MainState, gpu: &mut Gpu) {
+    fn resize(&mut self, target: &mut Target) {
         match &mut self.mode {
-            TransitionMode::Static(scene) => scene.resize(state, gpu),
-            TransitionMode::FadeIn(scene) => scene.resize(state, gpu),
+            TransitionMode::Static(scene) => scene.resize(target),
+            TransitionMode::FadeIn(scene) => scene.resize(target),
             TransitionMode::FadeOut(from, to) => {
-                from.resize(state, gpu);
-                to.resize(state, gpu);
+                from.resize(target);
+                to.resize(target);
             }
             _ => {}
         }
     }
-    fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {
+    fn update(&mut self, target: &mut Target) -> SceneEvent {
         match &mut self.mode {
-            TransitionMode::Static(scene) => scene.update(state, gpu, ui),
+            TransitionMode::Static(scene) => scene.update(target),
             TransitionMode::FadeIn(scene) => {
-                scene.update(state, gpu, ui);
+                scene.update(target);
 
                 let mut alpha = 1.0 - self.n;
 
@@ -83,11 +83,12 @@ impl Scene for SceneTransition {
                 }
 
                 let (window_w, window_h) = {
-                    let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+                    let winit::dpi::LogicalSize { width, height } =
+                        target.window.state.logical_size;
                     (width, height)
                 };
-                ui.set_transition_alpha(
-                    gpu,
+                target.ui.set_transition_alpha(
+                    &mut target.gpu,
                     RectangleInstance {
                         color: [0.0, 0.0, 0.0, alpha],
                         size: [window_w, window_h],
@@ -97,7 +98,7 @@ impl Scene for SceneTransition {
                 SceneEvent::None
             }
             TransitionMode::FadeOut(from, _to) => {
-                from.update(state, gpu, ui);
+                from.update(target);
 
                 let alpha = 0.0 + self.n;
 
@@ -117,11 +118,12 @@ impl Scene for SceneTransition {
                 }
 
                 let (window_w, window_h) = {
-                    let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+                    let winit::dpi::LogicalSize { width, height } =
+                        target.window.state.logical_size;
                     (width, height)
                 };
-                ui.set_transition_alpha(
-                    gpu,
+                target.ui.set_transition_alpha(
+                    &mut target.gpu,
                     RectangleInstance {
                         color: [0.0, 0.0, 0.0, alpha],
                         size: [window_w, window_h],
@@ -133,25 +135,25 @@ impl Scene for SceneTransition {
             _ => SceneEvent::None,
         }
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
+    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
         match &mut self.mode {
-            TransitionMode::FadeIn(scene) => scene.render(state, gpu, frame),
-            TransitionMode::FadeOut(from, _to) => from.render(state, gpu, frame),
-            TransitionMode::Static(scene) => scene.render(state, gpu, frame),
+            TransitionMode::FadeIn(scene) => scene.render(target, frame),
+            TransitionMode::FadeOut(from, _to) => from.render(target, frame),
+            TransitionMode::Static(scene) => scene.render(target, frame),
             _ => {}
         }
     }
-    fn window_event(&mut self, state: &mut MainState, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         match &mut self.mode {
-            TransitionMode::Static(scene) => scene.window_event(state, event),
+            TransitionMode::Static(scene) => scene.window_event(target, event),
             _ => SceneEvent::None,
         }
     }
-    fn main_events_cleared(&mut self, state: &mut MainState) -> SceneEvent {
+    fn main_events_cleared(&mut self, target: &mut Target) -> SceneEvent {
         match &mut self.mode {
-            TransitionMode::FadeIn(scene) => scene.main_events_cleared(state),
-            TransitionMode::FadeOut(from, _to) => from.main_events_cleared(state),
-            TransitionMode::Static(scene) => scene.main_events_cleared(state),
+            TransitionMode::FadeIn(scene) => scene.main_events_cleared(target),
+            TransitionMode::FadeOut(from, _to) => from.main_events_cleared(target),
+            TransitionMode::Static(scene) => scene.main_events_cleared(target),
             _ => SceneEvent::None,
         }
     }

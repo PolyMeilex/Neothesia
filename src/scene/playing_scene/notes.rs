@@ -1,32 +1,26 @@
 use super::notes_pipeline::{NoteInstance, NotesPipeline};
 use crate::wgpu_jumpstart::{Color, Gpu};
-use crate::MainState;
+use crate::Target;
 
 pub struct Notes {
     notes_pipeline: NotesPipeline,
 }
 
 impl Notes {
-    pub fn new(
-        state: &MainState,
-        gpu: &mut Gpu,
-        keys: &[super::keyboard::Key],
-        midi: &lib_midi::Midi,
-    ) -> Self {
-        let notes_pipeline = NotesPipeline::new(state, gpu, midi);
+    pub fn new(target: &mut Target, keys: &[super::keyboard::Key], midi: &lib_midi::Midi) -> Self {
+        let notes_pipeline = NotesPipeline::new(target, midi);
         let mut notes = Self { notes_pipeline };
-        notes.resize(state, gpu, keys, midi);
+        notes.resize(target, keys, midi);
         notes
     }
     pub fn resize(
         &mut self,
-        state: &crate::MainState,
-        gpu: &mut Gpu,
+        target: &mut Target,
         keys: &[super::keyboard::Key],
         midi: &lib_midi::Midi,
     ) {
         let (window_w, window_h) = {
-            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)
         };
 
@@ -83,13 +77,14 @@ impl Notes {
             log::warn!("Midi Wider Than 88 Keys!");
         }
 
-        self.notes_pipeline.update_instance_buffer(gpu, instances);
+        self.notes_pipeline
+            .update_instance_buffer(&mut target.gpu, instances);
     }
     pub fn update(&mut self, gpu: &mut Gpu, time: f32) {
         self.notes_pipeline.update_time(gpu, time);
     }
-    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
-        let encoder = &mut gpu.encoder;
+    pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+        let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -102,7 +97,8 @@ impl Notes {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.notes_pipeline.render(state, &mut render_pass);
+            self.notes_pipeline
+                .render(&target.transform_uniform, &mut render_pass);
         }
     }
 }

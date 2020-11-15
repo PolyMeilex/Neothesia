@@ -26,19 +26,11 @@ mod rectangle_pipeline;
 mod iced_conversion;
 
 pub struct MainState {
-    pub window: Window,
-
-    pub transform_uniform: Uniform<TransformUniform>,
-
     pub midi_file: Option<Arc<lib_midi::Midi>>,
-
-    pub iced_manager: IcedManager,
 }
 
 impl MainState {
-    fn new(gpu: &Gpu, window: Window) -> Self {
-        let iced_manager = IcedManager::new(&gpu.device, &window);
-
+    fn new(gpu: &Gpu) -> Self {
         let args: Vec<String> = std::env::args().collect();
 
         let midi_file = if args.len() > 1 {
@@ -51,20 +43,7 @@ impl MainState {
             None
         };
 
-        Self {
-            window,
-            transform_uniform: Uniform::new(
-                &gpu.device,
-                TransformUniform::default(),
-                wgpu::ShaderStage::VERTEX,
-            ),
-            midi_file,
-            iced_manager,
-        }
-    }
-    fn resize(&mut self, gpu: &mut Gpu, w: f32, h: f32) {
-        self.transform_uniform.data.update(w, h);
-        self.transform_uniform.update(&mut gpu.encoder, &gpu.device);
+        Self { midi_file }
     }
 }
 
@@ -96,30 +75,82 @@ impl IcedManager {
     }
 }
 
-struct App {
-    // pub window: Window,
+pub struct Target {
+    pub state: MainState,
+
+    pub window: Window,
     pub gpu: Gpu,
+    pub transform_uniform: Uniform<TransformUniform>,
+
     pub ui: Ui,
-    pub main_state: MainState,
+    pub iced_manager: IcedManager,
+}
+
+impl Target {
+    pub fn new(window: Window, mut gpu: Gpu) -> Self {
+        let state = MainState::new(&gpu);
+
+        let transform_uniform = Uniform::new(
+            &gpu.device,
+            TransformUniform::default(),
+            wgpu::ShaderStage::VERTEX,
+        );
+
+        let ui = Ui::new(&transform_uniform, &mut gpu);
+
+        let iced_manager = IcedManager::new(&gpu.device, &window);
+
+        Self {
+            state,
+
+            window,
+            gpu,
+            transform_uniform,
+
+            ui,
+            iced_manager,
+        }
+    }
+    fn resize(&mut self) {
+        {
+            let winit::dpi::LogicalSize { width, height } = self.window.state.logical_size;
+            self.transform_uniform.data.update(width, height);
+            self.transform_uniform
+                .update(&mut self.gpu.encoder, &self.gpu.device);
+        }
+
+        {
+            let physical_size = self.window.state.physical_size;
+            self.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
+                iced_native::Size::new(physical_size.width, physical_size.height),
+                self.window.state.scale_factor,
+            );
+        }
+    }
+}
+
+struct App {
+    target: Target,
+
     fps_timer: Fps,
     game_scene: Box<scene::scene_transition::SceneTransition>,
 }
 
 impl App {
-    fn new(mut gpu: Gpu, window: Window) -> Self {
-        let mut main_state = MainState::new(&gpu, window);
+    fn new(gpu: Gpu, window: Window) -> Self {
+        let mut target = Target::new(window, gpu);
 
-        let ui = Ui::new(&main_state, &mut gpu);
-        let game_scene = scene::menu_scene::MenuScene::new(&mut main_state, &mut gpu);
-        let game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
+        let game_scene = scene::menu_scene::MenuScene::new(&mut target);
+        let mut game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
             game_scene,
         )));
 
+        target.resize();
+        game_scene.resize(&mut target);
+        target.gpu.submit().unwrap();
+
         Self {
-            // window,
-            gpu,
-            ui,
-            main_state,
+            target,
             fps_timer: Fps::new(),
             game_scene,
         }
@@ -128,18 +159,21 @@ impl App {
     fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
         match &event {
             WindowEvent::Resized(_) => {
-                self.resize();
-                self.gpu.submit().unwrap();
+                self.target.resize();
+                self.game_scene.resize(&mut self.target);
+
+                self.target.gpu.submit().unwrap();
             }
             WindowEvent::ScaleFactorChanged { .. } => {
                 // TODO: Check if this update is needed;
-                self.resize();
+                self.target.resize();
+                self.game_scene.resize(&mut self.target);
             }
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             _ => {}
         }
 
-        let scene_event = self.game_scene.window_event(&mut self.main_state, event);
+        let scene_event = self.game_scene.window_event(&mut self.target, event);
         self.scene_event(scene_event, control_flow);
     }
 
@@ -147,11 +181,7 @@ impl App {
         match event {
             SceneEvent::MainMenu(event) => match event {
                 scene::menu_scene::Event::MidiOpen(port) => {
-                    let state = scene::playing_scene::PlayingScene::new(
-                        &mut self.gpu,
-                        &mut self.main_state,
-                        port,
-                    );
+                    let state = scene::playing_scene::PlayingScene::new(&mut self.target, port);
                     self.game_scene.transition_to(Box::new(state));
                 }
             },
@@ -160,8 +190,7 @@ impl App {
                     *control_flow = ControlFlow::Exit;
                 }
                 SceneType::Playing => {
-                    let state =
-                        scene::menu_scene::MenuScene::new(&mut self.main_state, &mut self.gpu);
+                    let state = scene::menu_scene::MenuScene::new(&mut self.target);
                     self.game_scene.transition_to(Box::new(state));
                 }
                 SceneType::Transition => {}
@@ -170,26 +199,10 @@ impl App {
         }
     }
 
-    fn resize(&mut self) {
-        let winit::dpi::LogicalSize { width, height } = self.main_state.window.state.logical_size;
-
-        self.main_state.resize(&mut self.gpu, width, height);
-        self.game_scene.resize(&mut self.main_state, &mut self.gpu);
-        self.ui.resize(&self.main_state, &mut self.gpu);
-
-        let physical_size = self.main_state.window.state.physical_size;
-        self.main_state.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
-            iced_native::Size::new(physical_size.width, physical_size.height),
-            self.main_state.window.state.scale_factor,
-        );
-    }
-
     fn update(&mut self, control_flow: &mut ControlFlow) {
         self.fps_timer.update();
 
-        let event = self
-            .game_scene
-            .update(&mut self.main_state, &mut self.gpu, &mut self.ui);
+        let event = self.game_scene.update(&mut self.target);
 
         self.scene_event(event, control_flow);
 
@@ -198,15 +211,14 @@ impl App {
 
     fn render(&mut self) {
         let frame = self
-            .main_state
+            .target
             .window
             .get_current_frame()
             .expect("Could not get_current_frame()");
 
-        self.gpu.clear(&frame);
+        self.target.gpu.clear(&frame);
 
-        self.game_scene
-            .render(&mut self.main_state, &mut self.gpu, &frame);
+        self.game_scene.render(&mut self.target, &frame);
 
         // let _mouse_interaction = self.main_state.iced_manager.renderer.backend_mut().draw(
         //     &mut self.gpu.device,
@@ -217,9 +229,15 @@ impl App {
         //     &self.main_state.iced_manager.debug.overlay(),
         // );
 
-        self.ui.render(&mut self.main_state, &mut self.gpu, &frame);
+        self.target.ui.render(
+            &self.target.window,
+            &self.target.transform_uniform,
+            &self.target.state,
+            &mut self.target.gpu,
+            &frame,
+        );
 
-        self.gpu.submit().unwrap();
+        self.target.gpu.submit().unwrap();
     }
 
     fn queue_fps(&mut self) {
@@ -228,7 +246,7 @@ impl App {
             .with_color([1.0, 1.0, 1.0, 1.0])
             .with_scale(20.0)];
 
-        self.ui.queue_text(Section {
+        self.target.ui.queue_text(Section {
             text,
             screen_position: (0.0, 5.0),
             layout: wgpu_glyph::Layout::Wrap {
@@ -256,8 +274,6 @@ fn main_async() {
     let (window, gpu) = block_on(Window::new(winit_window)).unwrap();
 
     let mut app = App::new(gpu, window);
-    app.resize();
-    app.gpu.submit().unwrap();
 
     // Commented out control_flow stuff is related to:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
@@ -279,7 +295,7 @@ fn main_async() {
         //     }
         // };
 
-        app.main_state.window.on_event(&mut app.gpu, &event);
+        app.target.window.on_event(&mut app.target.gpu, &event);
 
         match &event {
             Event::MainEventsCleared => {
@@ -291,11 +307,11 @@ fn main_async() {
                 //     }
                 // }
 
-                let event = app.game_scene.main_events_cleared(&mut app.main_state);
+                let event = app.game_scene.main_events_cleared(&mut app.target);
                 app.scene_event(event, control_flow);
 
                 // #[cfg(target_arch = "wasm32")]
-                app.main_state.window.request_redraw();
+                app.target.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {
                 app.window_event(event, control_flow);

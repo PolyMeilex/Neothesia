@@ -1,6 +1,6 @@
 use super::keyboard_pipeline::{KeyInstance, KeyStateInstance, KeyboardPipeline};
 use crate::wgpu_jumpstart::{Color, Gpu};
-use crate::MainState;
+use crate::Target;
 
 // const KEY_C: u8 = 0;
 const KEY_CIS: u8 = 1;
@@ -27,19 +27,19 @@ pub struct PianoKeyboard {
 }
 
 impl PianoKeyboard {
-    pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
-        let keyboard_pipeline = KeyboardPipeline::new(state, gpu);
+    pub fn new(target: &mut Target) -> Self {
+        let keyboard_pipeline = KeyboardPipeline::new(target);
         let mut piano_keyboard = Self {
             keyboard_pipeline,
             all_keys: Vec::new(),
         };
-        piano_keyboard.resize(state, gpu);
+        piano_keyboard.resize(target);
 
         piano_keyboard
     }
-    pub fn resize(&mut self, state: &crate::MainState, gpu: &mut Gpu) {
+    pub fn resize(&mut self, target: &mut Target) {
         let (window_w, window_h) = {
-            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)
         };
 
@@ -113,7 +113,7 @@ impl PianoKeyboard {
         }
 
         self.keyboard_pipeline
-            .update_instance_buffer(gpu, rectangles);
+            .update_instance_buffer(&mut target.gpu, rectangles);
     }
     pub fn update_notes_state(&mut self, gpu: &mut Gpu, notes: [(bool, usize); 88]) {
         let mut white_keys = Vec::new();
@@ -176,8 +176,8 @@ impl PianoKeyboard {
         self.keyboard_pipeline
             .update_notes_state(&mut gpu.encoder, &gpu.device, notes_out);
     }
-    pub fn render(&mut self, state: &MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
-        let encoder = &mut gpu.encoder;
+    pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+        let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -190,7 +190,8 @@ impl PianoKeyboard {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.keyboard_pipeline.render(state, &mut render_pass);
+            self.keyboard_pipeline
+                .render(&target.transform_uniform, &mut render_pass);
         }
     }
 }

@@ -1,19 +1,17 @@
-use crate::ui::Ui;
-use crate::wgpu_jumpstart::Gpu;
-use crate::MainState;
+use crate::Target;
 
 use winit::event::WindowEvent;
 
 pub trait Scene {
     fn scene_type(&self) -> SceneType;
     fn start(&mut self) {}
-    fn resize(&mut self, _state: &mut MainState, _gpu: &mut Gpu) {}
-    fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent;
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame);
-    fn window_event(&mut self, _state: &mut MainState, _event: &WindowEvent) -> SceneEvent {
+    fn resize(&mut self, _target: &mut Target) {}
+    fn update(&mut self, target: &mut Target) -> SceneEvent;
+    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame);
+    fn window_event(&mut self, _target: &mut Target, _event: &WindowEvent) -> SceneEvent {
         SceneEvent::None
     }
-    fn main_events_cleared(&mut self, _state: &mut MainState) -> SceneEvent {
+    fn main_events_cleared(&mut self, _target: &mut Target) -> SceneEvent {
         SceneEvent::None
     }
 }

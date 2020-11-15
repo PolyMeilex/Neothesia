@@ -1,7 +1,11 @@
+use crate::wgpu_jumpstart::Window;
+use crate::Target;
+use crate::TransformUniform;
+
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use crate::rectangle_pipeline::{RectangleInstance, RectanglePipeline};
-use crate::wgpu_jumpstart::{self, Gpu};
+use crate::wgpu_jumpstart::{self, Gpu, Uniform};
 use crate::MainState;
 
 pub struct Ui {
@@ -14,9 +18,9 @@ pub struct Ui {
 }
 
 impl Ui {
-    pub fn new(state: &MainState, gpu: &mut Gpu) -> Self {
-        let rectangle_pipeline = RectanglePipeline::new(state, &gpu.device);
-        let transition_pipeline = RectanglePipeline::new(state, &gpu.device);
+    pub fn new(transform_uniform: &Uniform<TransformUniform>, gpu: &mut Gpu) -> Self {
+        let rectangle_pipeline = RectanglePipeline::new(&gpu, transform_uniform);
+        let transition_pipeline = RectanglePipeline::new(&gpu, transform_uniform);
         let font =
             wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("./Roboto-Regular.ttf"))
                 .expect("Load font");
@@ -46,7 +50,6 @@ impl Ui {
     pub fn queue_text(&mut self, section: Section) {
         self.glyph_brush.queue(section);
     }
-    pub fn resize(&mut self, _state: &crate::MainState, _gpu: &mut Gpu) {}
     fn update(&mut self, gpu: &mut Gpu) {
         self.rectangle_pipeline.update_instance_buffer(
             &mut gpu.encoder,
@@ -54,7 +57,14 @@ impl Ui {
             self.queue.clear_rectangles(),
         );
     }
-    pub fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
+    pub fn render(
+        &mut self,
+        window: &Window,
+        transform_uniform: &Uniform<TransformUniform>,
+        state: &MainState,
+        gpu: &mut Gpu,
+        frame: &wgpu::SwapChainFrame,
+    ) {
         self.update(gpu);
         let encoder = &mut gpu.encoder;
         {
@@ -69,11 +79,12 @@ impl Ui {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.rectangle_pipeline.render(state, &mut render_pass);
+            self.rectangle_pipeline
+                .render(transform_uniform, &mut render_pass);
         }
 
         let (window_w, window_h) = {
-            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            let winit::dpi::LogicalSize { width, height } = window.state.logical_size;
             (width, height)
         };
         self.glyph_brush
@@ -100,7 +111,8 @@ impl Ui {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.transition_pipeline.render(state, &mut render_pass);
+            self.transition_pipeline
+                .render(transform_uniform, &mut render_pass);
         }
     }
 }

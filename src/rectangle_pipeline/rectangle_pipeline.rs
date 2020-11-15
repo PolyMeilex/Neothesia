@@ -1,8 +1,7 @@
 use super::RectangleInstance;
+use crate::TransformUniform;
 
-use crate::wgpu_jumpstart::{Instances, RenderPipelineBuilder, Shape};
-
-use crate::MainState;
+use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
 
 pub struct RectanglePipeline {
     render_pipeline: wgpu::RenderPipeline,
@@ -13,16 +12,21 @@ pub struct RectanglePipeline {
 }
 
 impl<'a> RectanglePipeline {
-    pub fn new(state: &MainState, device: &wgpu::Device) -> Self {
-        let vs_module = device.create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module = device.create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
+    pub fn new(gpu: &Gpu, transform_uniform: &Uniform<TransformUniform>) -> Self {
+        let vs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+        let fs_module = gpu
+            .device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
-                bind_group_layouts: &[&state.transform_uniform.bind_group_layout],
-                push_constant_ranges: &[],
-            });
+            gpu.device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: None,
+                    bind_group_layouts: &[&transform_uniform.bind_group_layout],
+                    push_constant_ranges: &[],
+                });
 
         let ri_attrs = RectangleInstance::attributes();
 
@@ -32,10 +36,10 @@ impl<'a> RectanglePipeline {
                 Shape::vertex_buffer_descriptor(),
                 RectangleInstance::desc(&ri_attrs),
             ])
-            .build(device);
+            .build(&gpu.device);
 
-        let quad = Shape::new_quad(device);
-        let instances = Instances::new(device, 100_000);
+        let quad = Shape::new_quad(&gpu.device);
+        let instances = Instances::new(&gpu.device, 100_000);
 
         Self {
             render_pipeline,
@@ -45,9 +49,13 @@ impl<'a> RectanglePipeline {
             instances,
         }
     }
-    pub fn render(&'a self, state: &'a MainState, render_pass: &mut wgpu::RenderPass<'a>) {
+    pub fn render(
+        &'a self,
+        transform_uniform: &'a Uniform<TransformUniform>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &state.transform_uniform.bind_group, &[]);
+        render_pass.set_bind_group(0, &transform_uniform.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));

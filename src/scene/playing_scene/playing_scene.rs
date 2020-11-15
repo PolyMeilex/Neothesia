@@ -9,7 +9,7 @@ use crate::{
     time_manager::Timer,
     ui::Ui,
     wgpu_jumpstart::{Color, Gpu},
-    MainState,
+    MainState, Target,
 };
 
 use winit::event::WindowEvent;
@@ -22,26 +22,26 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(gpu: &mut Gpu, state: &mut MainState, port: MidiPortInfo) -> Self {
-        let piano_keyboard = PianoKeyboard::new(state, gpu);
+    pub fn new(target: &mut Target, port: MidiPortInfo) -> Self {
+        let piano_keyboard = PianoKeyboard::new(target);
         let mut notes = Notes::new(
-            state,
-            gpu,
+            target,
             &piano_keyboard.all_keys,
-            &state
+            &target
+                .state
                 .midi_file
                 .clone()
                 .expect("Expeced Midi File, no mifi file selected"),
         );
 
-        let player = Player::new(state.midi_file.clone().unwrap(), port);
-        notes.update(gpu, player.time);
+        let player = Player::new(target.state.midi_file.clone().unwrap(), port);
+        notes.update(&mut target.gpu, player.time);
 
         Self {
             piano_keyboard,
             notes,
             player,
-            rectangle_pipeline: RectanglePipeline::new(&state, &gpu.device),
+            rectangle_pipeline: RectanglePipeline::new(&target.gpu, &target.transform_uniform),
         }
     }
 }
@@ -53,29 +53,29 @@ impl Scene for PlayingScene {
     fn start(&mut self) {
         self.player.start();
     }
-    fn resize(&mut self, state: &mut MainState, gpu: &mut Gpu) {
-        self.piano_keyboard.resize(state, gpu);
+    fn resize(&mut self, target: &mut Target) {
+        self.piano_keyboard.resize(target);
         self.notes
-            .resize(state, gpu, &self.piano_keyboard.all_keys, &self.player.midi);
+            .resize(target, &self.piano_keyboard.all_keys, &self.player.midi);
     }
-    fn update(&mut self, state: &mut MainState, gpu: &mut Gpu, ui: &mut Ui) -> SceneEvent {
+    fn update(&mut self, target: &mut Target) -> SceneEvent {
         let (window_w, _) = {
-            let winit::dpi::LogicalSize { width, height } = state.window.state.logical_size;
+            let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)
         };
 
         let notes_on = self.player.update();
 
         let size_x = window_w * self.player.percentage;
-        ui.queue_rectangle(RectangleInstance {
+        target.ui.queue_rectangle(RectangleInstance {
             position: [0.0, 0.0],
             size: [size_x, 5.0],
             color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
         });
 
-        let pos = &state.window.state.cursor_logical_position;
+        let pos = &target.window.state.cursor_logical_position;
         if pos.y < 20.0
-            && state
+            && target
                 .window
                 .state
                 .mouse_is_pressed(winit::event::MouseButton::Left)
@@ -86,16 +86,17 @@ impl Scene for PlayingScene {
             self.player.set_time(p * self.player.midi_last_note_end)
         }
 
-        self.piano_keyboard.update_notes_state(gpu, notes_on);
-        self.notes.update(gpu, self.player.time);
+        self.piano_keyboard
+            .update_notes_state(&mut target.gpu, notes_on);
+        self.notes.update(&mut target.gpu, self.player.time);
 
         SceneEvent::None
     }
-    fn render(&mut self, state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
-        self.notes.render(state, gpu, frame);
-        self.piano_keyboard.render(state, gpu, frame);
+    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+        self.notes.render(target, frame);
+        self.piano_keyboard.render(target, frame);
 
-        let encoder = &mut gpu.encoder;
+        let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -108,10 +109,11 @@ impl Scene for PlayingScene {
                 }],
                 depth_stencil_attachment: None,
             });
-            self.rectangle_pipeline.render(state, &mut render_pass)
+            self.rectangle_pipeline
+                .render(&target.transform_uniform, &mut render_pass)
         }
     }
-    fn window_event(&mut self, _main_state: &mut MainState, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, _target: &mut Target, event: &WindowEvent) -> SceneEvent {
         match &event {
             winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(winit::event::VirtualKeyCode::Escape) => {

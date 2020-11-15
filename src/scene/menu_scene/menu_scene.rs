@@ -1,9 +1,8 @@
+use crate::Target;
 use crate::{
     midi_device::MidiPortInfo,
     scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
-    ui::Ui,
-    wgpu_jumpstart::Gpu,
     MainState,
 };
 
@@ -23,28 +22,28 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub fn new(state: &mut MainState, gpu: &mut Gpu) -> Self {
+    pub fn new(target: &mut Target) -> Self {
         let timer = Timer::new();
 
-        let menu = IcedMenu::new(state.midi_file.clone());
+        let menu = IcedMenu::new(target.state.midi_file.clone());
         let iced_state = iced_native::program::State::new(
             menu,
-            state.iced_manager.viewport.logical_size(),
+            target.iced_manager.viewport.logical_size(),
             crate::iced_conversion::cursor_position(
-                state.window.state.cursor_physical_position,
-                state.iced_manager.viewport.scale_factor(),
+                target.window.state.cursor_physical_position,
+                target.iced_manager.viewport.scale_factor(),
             ),
-            &mut state.iced_manager.renderer,
-            &mut state.iced_manager.debug,
+            &mut target.iced_manager.renderer,
+            &mut target.iced_manager.debug,
         );
 
         let mut scene = Self {
-            bg_pipeline: BgPipeline::new(&gpu),
+            bg_pipeline: BgPipeline::new(&target.gpu),
             timer,
             iced_state,
         };
 
-        scene.resize(state, gpu);
+        scene.resize(target);
         scene
     }
 }
@@ -54,17 +53,17 @@ impl Scene for MenuScene {
         SceneType::MainMenu
     }
 
-    fn update(&mut self, _state: &mut MainState, gpu: &mut Gpu, _ui: &mut Ui) -> SceneEvent {
+    fn update(&mut self, target: &mut Target) -> SceneEvent {
         self.timer.update();
         let time = self.timer.get_elapsed() / 1000.0;
 
-        self.bg_pipeline.update_time(gpu, time);
+        self.bg_pipeline.update_time(&mut target.gpu, time);
 
         SceneEvent::None
     }
 
-    fn render(&mut self, main_state: &mut MainState, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
-        let encoder = &mut gpu.encoder;
+    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+        let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -80,23 +79,23 @@ impl Scene for MenuScene {
             self.bg_pipeline.render(&mut render_pass);
         }
 
-        let _mouse_interaction = main_state.iced_manager.renderer.backend_mut().draw(
-            &mut gpu.device,
-            &mut gpu.staging_belt,
-            &mut gpu.encoder,
+        let _mouse_interaction = target.iced_manager.renderer.backend_mut().draw(
+            &mut target.gpu.device,
+            &mut target.gpu.staging_belt,
+            &mut target.gpu.encoder,
             &frame.output.view,
-            &main_state.iced_manager.viewport,
+            &target.iced_manager.viewport,
             self.iced_state.primitive(),
-            &main_state.iced_manager.debug.overlay(),
+            &target.iced_manager.debug.overlay(),
         );
     }
 
-    fn window_event(&mut self, main_state: &mut MainState, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         let modifiers = winit::event::ModifiersState::default();
 
         if let Some(event) = crate::iced_conversion::window_event(
             &event,
-            main_state.iced_manager.viewport.scale_factor(),
+            target.iced_manager.viewport.scale_factor(),
             modifiers,
         ) {
             self.iced_state.queue_event(event);
@@ -123,17 +122,17 @@ impl Scene for MenuScene {
         SceneEvent::None
     }
 
-    fn main_events_cleared(&mut self, main_state: &mut MainState) -> SceneEvent {
+    fn main_events_cleared(&mut self, target: &mut Target) -> SceneEvent {
         if !self.iced_state.is_queue_empty() {
             let event = self.iced_state.update(
-                main_state.iced_manager.viewport.logical_size(),
+                target.iced_manager.viewport.logical_size(),
                 crate::iced_conversion::cursor_position(
-                    main_state.window.state.cursor_physical_position,
-                    main_state.iced_manager.viewport.scale_factor(),
+                    target.window.state.cursor_physical_position,
+                    target.iced_manager.viewport.scale_factor(),
                 ),
                 None,
-                &mut main_state.iced_manager.renderer,
-                &mut main_state.iced_manager.debug,
+                &mut target.iced_manager.renderer,
+                &mut target.iced_manager.debug,
             );
 
             if let Some(event) = event {
@@ -142,7 +141,7 @@ impl Scene for MenuScene {
 
                     match event {
                         iced_menu::Message::MainMenuDone(f, p) => {
-                            main_state.midi_file = Some(f);
+                            target.state.midi_file = Some(f);
 
                             return SceneEvent::MainMenu(Event::MidiOpen(p.unwrap()));
                         }

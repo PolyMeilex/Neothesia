@@ -1,6 +1,6 @@
 use {
-    crate::{TempoEvent, MidiTrack},
-    midly::Event
+    crate::{MidiTrack, TempoEvent},
+    midly::TrackEvent,
 };
 
 pub struct TracksParser {
@@ -17,7 +17,7 @@ impl TracksParser {
             u_per_quarter_note,
         }
     }
-    pub fn parse(&mut self, tracks: &mut Vec<MidiTrack>, midly_tracks: &[Vec<Event>]) {
+    pub fn parse(&mut self, tracks: &mut Vec<MidiTrack>, midly_tracks: &[Vec<TrackEvent>]) {
         let mut tempo_track = 0;
         for (i, trk) in tracks.iter().enumerate() {
             if trk.has_tempo {
@@ -39,7 +39,6 @@ impl TracksParser {
         for trk in tracks.iter_mut() {
             trk.extract_notes(&midly_tracks[trk.track_id], self);
         }
-
     }
     fn p_to_ms(&self, time_in_units: f32, tempo: u32) -> f32 {
         let u_time = tempo as f32 / self.u_per_quarter_note;

@@ -433,9 +433,9 @@ mod neo_btn {
             messages: &mut Vec<Message>,
             _renderer: &Renderer<B>,
             _clipboard: Option<&dyn Clipboard>,
-        ) {
+        ) -> iced_native::event::Status {
             if self.disabled {
-                return;
+                return iced_native::event::Status::Ignored;
             };
 
             match event {
@@ -460,7 +460,9 @@ mod neo_btn {
                     }
                 }
                 _ => {}
-            }
+            };
+
+            iced_native::event::Status::Ignored
         }
 
         fn draw(
@@ -469,7 +471,8 @@ mod neo_btn {
             _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
-        ) -> (Primitive, mouse::Interaction) {
+            viewport: &Rectangle,
+        ) -> <Renderer<B> as iced_native::Renderer>::Output {
             let bounds = layout.bounds();
             let is_mouse_over = bounds.contains(cursor_position);
 
@@ -486,6 +489,7 @@ mod neo_btn {
                 },
                 layout,
                 cursor_position,
+                viewport,
             );
 
             let colors = if is_mouse_over {

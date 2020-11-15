@@ -11,15 +11,15 @@ record=[]
 
 [dependencies]
 zerocopy = "0.3.0"
-futures = "0.3.7"
+futures = "0.3.8"
 
-winit = { version="0.23.0"}
+winit = "0.23.0"
 
 wgpu = "0.6.0"
 wgpu_glyph = "0.10.0"
 
 
-log = "0.4"
+log = "0.4.11"
 env_logger = "0.8.1"
 
 nfd2 = "0.2.3"
@@ -39,7 +39,7 @@ iced_graphics = {git="https://github.com/hecrj/iced.git"}
 # console_log = "0.2.0"
 
 [build-dependencies]
-glsl-to-spirv = "0.1"
+glsl-to-spirv = "0.1.7"
 
 
 [patch.crates-io]

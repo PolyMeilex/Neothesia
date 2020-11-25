@@ -32,7 +32,7 @@ pub struct SoundManager {
     stream: rodio::OutputStream,
     stream_handle: rodio::OutputStreamHandle,
     sinks: Sinks,
-    samples: Vec<Vec<u8>>,
+    samples: Vec<(String, Vec<u8>)>,
 }
 impl SoundManager {
     pub fn new() -> Self {
@@ -44,12 +44,11 @@ impl SoundManager {
             let dir = get_oct(oct);
             for f in dir {
                 let path = format!("piano_samples/{}.mp3", f);
-                println!("{}", path);
-                let mut file = std::fs::File::open(&std::path::PathBuf::from(path)).unwrap();
+                let mut file = std::fs::File::open(&std::path::PathBuf::from(&path)).unwrap();
 
                 let mut buff = Vec::new();
                 file.read_to_end(&mut buff).unwrap();
-                samples.push(buff);
+                samples.push((path, buff));
             }
         }
 
@@ -64,12 +63,9 @@ impl SoundManager {
     }
 
     pub fn play(&mut self, id: usize) {
-        // for buff in self.samples.iter() {
+        println!("{},{}", id, self.samples[id].0);
         self.sinks
-            .play(&self.stream_handle, self.samples[id].clone());
-
-        // std::thread::sleep(std::time::Duration::from_millis(300));
-        // }
+            .play(&self.stream_handle, self.samples[id].1.clone());
     }
 }
 

@@ -237,7 +237,7 @@ impl Player {
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
                     self.active_notes.insert(n.id, n.note);
                     midi_out.send(&[0x90, n.note, n.vel]);
-                    sound_manager.play(n.note as usize - 21);
+                    sound_manager.play(n.note as usize - 24);
                 }
             } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
                 self.active_notes.remove(&n.id);

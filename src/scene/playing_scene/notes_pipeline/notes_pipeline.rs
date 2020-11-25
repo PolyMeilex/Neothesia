@@ -4,8 +4,6 @@ use crate::TransformUniform;
 
 use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
 
-use crate::MainState;
-
 use zerocopy::AsBytes;
 
 pub struct NotesPipeline {

@@ -1,9 +1,9 @@
-use crate::Target;
 use crate::{
     midi_device::MidiPortInfo,
     scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
-    MainState,
+    ui::iced_conversion,
+    Target,
 };
 
 use super::{bg_pipeline::BgPipeline, iced_menu, IcedMenu};
@@ -29,7 +29,7 @@ impl MenuScene {
         let iced_state = iced_native::program::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
-            crate::iced_conversion::cursor_position(
+            iced_conversion::cursor_position(
                 target.window.state.cursor_physical_position,
                 target.iced_manager.viewport.scale_factor(),
             ),
@@ -80,7 +80,7 @@ impl Scene for MenuScene {
         }
 
         let _mouse_interaction = target.iced_manager.renderer.backend_mut().draw(
-            &mut target.gpu.device,
+            &target.gpu.device,
             &mut target.gpu.staging_belt,
             &mut target.gpu.encoder,
             &frame.output.view,
@@ -93,7 +93,7 @@ impl Scene for MenuScene {
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         let modifiers = winit::event::ModifiersState::default();
 
-        if let Some(event) = crate::iced_conversion::window_event(
+        if let Some(event) = iced_conversion::window_event(
             &event,
             target.iced_manager.viewport.scale_factor(),
             modifiers,
@@ -126,7 +126,7 @@ impl Scene for MenuScene {
         if !self.iced_state.is_queue_empty() {
             let event = self.iced_state.update(
                 target.iced_manager.viewport.logical_size(),
-                crate::iced_conversion::cursor_position(
+                iced_conversion::cursor_position(
                     target.window.state.cursor_physical_position,
                     target.iced_manager.viewport.scale_factor(),
                 ),

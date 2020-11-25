@@ -1,3 +1,8 @@
-mod ui;
+mod text_renderer;
 
-pub use ui::Ui;
+pub mod iced_conversion;
+mod iced_manager;
+
+pub use iced_manager::IcedManager;
+
+pub use text_renderer::TextRenderer;

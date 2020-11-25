@@ -34,7 +34,7 @@ impl Gpu {
                 None,
             )
             .await
-            .map_err(|err| GpuInitError::DeviceRequest(err))?;
+            .map_err(GpuInitError::DeviceRequest)?;
 
         let encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });

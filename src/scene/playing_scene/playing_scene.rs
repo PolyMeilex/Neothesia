@@ -7,9 +7,8 @@ use super::{
 use crate::{
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
     time_manager::Timer,
-    ui::Ui,
-    wgpu_jumpstart::{Color, Gpu},
-    MainState, Target,
+    wgpu_jumpstart::Color,
+    Target,
 };
 
 use winit::event::WindowEvent;
@@ -67,11 +66,16 @@ impl Scene for PlayingScene {
         let notes_on = self.player.update();
 
         let size_x = window_w * self.player.percentage;
-        target.ui.queue_rectangle(RectangleInstance {
-            position: [0.0, 0.0],
-            size: [size_x, 5.0],
-            color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
-        });
+
+        self.rectangle_pipeline.update_instance_buffer(
+            &mut target.gpu.encoder,
+            &target.gpu.device,
+            vec![RectangleInstance {
+                position: [0.0, 0.0],
+                size: [size_x, 5.0],
+                color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
+            }],
+        );
 
         let pos = &target.window.state.cursor_logical_position;
         if pos.y < 20.0
@@ -137,6 +141,7 @@ impl Scene for PlayingScene {
 
 use crate::midi_device::MidiPortInfo;
 use std::{collections::HashMap, sync::Arc};
+
 struct Player {
     midi: Arc<lib_midi::Midi>,
     midi_first_note_start: f32,

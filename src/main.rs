@@ -2,7 +2,7 @@ mod wgpu_jumpstart;
 use wgpu_jumpstart::{Gpu, Uniform, Window};
 
 mod ui;
-use ui::Ui;
+use ui::{IcedManager, TextRenderer};
 
 mod scene;
 use scene::{Scene, SceneEvent, SceneType};
@@ -15,15 +15,12 @@ mod midi_device;
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 
-use wgpu_glyph::Section;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
 mod rectangle_pipeline;
-
-mod iced_conversion;
 
 pub struct MainState {
     pub midi_file: Option<Arc<lib_midi::Midi>>,
@@ -34,7 +31,7 @@ impl MainState {
         let args: Vec<String> = std::env::args().collect();
 
         let midi_file = if args.len() > 1 {
-            if let Some(midi) = lib_midi::Midi::new(&args[1]).ok() {
+            if let Ok(midi) = lib_midi::Midi::new(&args[1]) {
                 Some(Arc::new(midi))
             } else {
                 None
@@ -47,34 +44,6 @@ impl MainState {
     }
 }
 
-pub struct IcedManager {
-    renderer: iced_wgpu::Renderer,
-    viewport: iced_wgpu::Viewport,
-    debug: iced_native::Debug,
-}
-impl IcedManager {
-    fn new(device: &wgpu::Device, window: &Window) -> Self {
-        let debug = iced_native::Debug::new();
-
-        let mut settings = iced_wgpu::Settings::default();
-        settings.format = wgpu_jumpstart::TEXTURE_FORMAT;
-
-        let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
-
-        let physical_size = window.state.physical_size;
-        let viewport = iced_wgpu::Viewport::with_physical_size(
-            iced_native::Size::new(physical_size.width, physical_size.height),
-            window.state.scale_factor,
-        );
-
-        Self {
-            renderer,
-            viewport,
-            debug,
-        }
-    }
-}
-
 pub struct Target {
     pub state: MainState,
 
@@ -82,12 +51,12 @@ pub struct Target {
     pub gpu: Gpu,
     pub transform_uniform: Uniform<TransformUniform>,
 
-    pub ui: Ui,
+    pub text_renderer: TextRenderer,
     pub iced_manager: IcedManager,
 }
 
 impl Target {
-    pub fn new(window: Window, mut gpu: Gpu) -> Self {
+    pub fn new(window: Window, gpu: Gpu) -> Self {
         let state = MainState::new();
 
         let transform_uniform = Uniform::new(
@@ -96,7 +65,7 @@ impl Target {
             wgpu::ShaderStage::VERTEX,
         );
 
-        let ui = Ui::new(&transform_uniform, &mut gpu);
+        let text_renderer = TextRenderer::new(&gpu);
 
         let iced_manager = IcedManager::new(&gpu.device, &window);
 
@@ -107,7 +76,7 @@ impl Target {
             gpu,
             transform_uniform,
 
-            ui,
+            text_renderer,
             iced_manager,
         }
     }
@@ -141,9 +110,10 @@ impl App {
         let mut target = Target::new(window, gpu);
 
         let game_scene = scene::menu_scene::MenuScene::new(&mut target);
-        let mut game_scene = Box::new(scene::scene_transition::SceneTransition::new(Box::new(
-            game_scene,
-        )));
+        let mut game_scene = Box::new(scene::scene_transition::SceneTransition::new(
+            Box::new(game_scene),
+            &target,
+        ));
 
         target.resize();
         game_scene.resize(&mut target);
@@ -206,7 +176,7 @@ impl App {
 
         self.scene_event(event, control_flow);
 
-        self.target.ui.queue_fps(self.fps_timer.fps());
+        self.target.text_renderer.queue_fps(self.fps_timer.fps());
     }
 
     fn render(&mut self) {
@@ -220,21 +190,9 @@ impl App {
 
         self.game_scene.render(&mut self.target, &frame);
 
-        // let _mouse_interaction = self.main_state.iced_manager.renderer.backend_mut().draw(
-        //     &mut self.gpu.device,
-        //     &mut self.gpu.encoder,
-        //     &frame.view,
-        //     &self.main_state.iced_manager.viewport,
-        //     self.main_state.iced_manager.state.primitive(),
-        //     &self.main_state.iced_manager.debug.overlay(),
-        // );
-
-        self.target.ui.render(
-            &self.target.window,
-            &self.target.transform_uniform,
-            &mut self.target.gpu,
-            &frame,
-        );
+        self.target
+            .text_renderer
+            .render(&self.target.window, &mut self.target.gpu, &frame);
 
         self.target.gpu.submit().unwrap();
     }

@@ -87,7 +87,8 @@ impl Scene for PlayingScene {
             let x = pos.x;
             let p = x / window_w;
             log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
-            self.player.set_time(p * self.player.midi_last_note_end)
+            self.player
+                .set_time(p * (self.player.midi_last_note_end + 3.0))
         }
 
         self.piano_keyboard
@@ -97,9 +98,7 @@ impl Scene for PlayingScene {
         SceneEvent::None
     }
     fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
-        self.notes.render(target, frame);
-        self.piano_keyboard.render(target, frame);
-
+        let transform_uniform = &target.transform_uniform;
         let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -113,6 +112,12 @@ impl Scene for PlayingScene {
                 }],
                 depth_stencil_attachment: None,
             });
+
+            self.notes.render(&transform_uniform, &mut render_pass);
+
+            self.piano_keyboard
+                .render(&transform_uniform, &mut render_pass);
+
             self.rectangle_pipeline
                 .render(&target.transform_uniform, &mut render_pass)
         }
@@ -199,7 +204,7 @@ impl Player {
         };
         self.timer.update();
         let raw_time = self.timer.get_elapsed() / 1000.0;
-        self.percentage = raw_time / self.midi_last_note_end;
+        self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];

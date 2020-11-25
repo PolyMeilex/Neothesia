@@ -1,6 +1,8 @@
 use super::keyboard_pipeline::{KeyInstance, KeyStateInstance, KeyboardPipeline};
 use crate::wgpu_jumpstart::{Color, Gpu};
 use crate::Target;
+use crate::TransformUniform;
+use crate::Uniform;
 
 // const KEY_C: u8 = 0;
 const KEY_CIS: u8 = 1;
@@ -176,22 +178,27 @@ impl PianoKeyboard {
         self.keyboard_pipeline
             .update_notes_state(&mut gpu.encoder, &gpu.device, notes_out);
     }
-    pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
-        let encoder = &mut target.gpu.encoder;
+    pub fn render<'rpass>(
+        &'rpass mut self,
+        transform_uniform: &'rpass Uniform<TransformUniform>,
+        render_pass: &mut wgpu::RenderPass<'rpass>,
+    ) {
+        // pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+        // let encoder = &mut target.gpu.encoder;
         {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.output.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            });
+            // let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            //     color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+            //         attachment: &frame.output.view,
+            //         resolve_target: None,
+            //         ops: wgpu::Operations {
+            //             load: wgpu::LoadOp::Load,
+            //             store: true,
+            //         },
+            //     }],
+            //     depth_stencil_attachment: None,
+            // });
             self.keyboard_pipeline
-                .render(&target.transform_uniform, &mut render_pass);
+                .render(transform_uniform, render_pass);
         }
     }
 }

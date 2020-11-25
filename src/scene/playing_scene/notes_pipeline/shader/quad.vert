@@ -25,12 +25,12 @@ uniform Uniforms2 {
 
 #define speed 400.0
 void main() {
-    vec2 pos = i_pos;
-    float start = pos.y;
-    pos.y = u_size.y - u_size.y / 5.0;
-
     vec2 size = i_size;
     size.y = size.y * speed;
+
+    vec2 pos = i_pos;
+    float start = pos.y;
+    pos.y = u_size.y - u_size.y / 5.0 - size.y / 2.0;
     
     pos = pos - vec2(0.0,size.y/2.0);    
 

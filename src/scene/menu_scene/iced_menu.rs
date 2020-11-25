@@ -326,7 +326,7 @@ mod neo_btn {
         min_width: u32,
         min_height: u32,
         padding: u16,
-        border_radius: u16,
+        border_radius: f32,
         disabled: bool,
         content: Element<'a, Message, Renderer<B>>,
         on_press: Option<Message>,
@@ -345,7 +345,7 @@ mod neo_btn {
                 min_width: 0,
                 min_height: 0,
                 padding: 5,
-                border_radius: 7,
+                border_radius: 7.0,
                 disabled: false,
                 content: content.into(),
             }
@@ -510,7 +510,7 @@ mod neo_btn {
                         Primitive::Clip {
                             bounds: Rectangle {
                                 y: bounds.y,
-                                height: bounds.height - self.border_radius as f32,
+                                height: bounds.height - self.border_radius,
                                 ..bounds
                             },
                             offset: Vector::new(0, 0),
@@ -521,7 +521,7 @@ mod neo_btn {
                                 },
                                 background: Background::Color(colors.0),
                                 border_radius: self.border_radius,
-                                border_width: 0,
+                                border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
                             }),
                         },
@@ -539,7 +539,7 @@ mod neo_btn {
                                 },
                                 background: Background::Color(colors.1),
                                 border_radius: self.border_radius,
-                                border_width: 0,
+                                border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
                             }),
                         },

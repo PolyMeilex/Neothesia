@@ -3,6 +3,7 @@ use super::{
     keyboard::PianoKeyboard,
     notes::Notes,
 };
+use crate::audio_device::SoundManager;
 
 use crate::{
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
@@ -157,6 +158,8 @@ struct Player {
     percentage: f32,
     time: f32,
     active: bool,
+
+    sound_manager: SoundManager,
 }
 
 impl Player {
@@ -178,6 +181,8 @@ impl Player {
             0.0
         };
 
+        let sound_manager = SoundManager::new();
+
         let mut player = Self {
             midi,
             midi_first_note_start,
@@ -188,6 +193,8 @@ impl Player {
             percentage: 0.0,
             time: 0.0,
             active: true,
+
+            sound_manager,
         };
         player.update();
         player.active = false;
@@ -218,6 +225,7 @@ impl Player {
             .collect();
 
         let midi_out = &mut self.midi_device;
+        let sound_manager = &mut self.sound_manager;
         for n in filtered {
             use std::collections::hash_map::Entry;
 
@@ -229,6 +237,7 @@ impl Player {
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
                     self.active_notes.insert(n.id, n.note);
                     midi_out.send(&[0x90, n.note, n.vel]);
+                    sound_manager.play(n.note as usize - 21);
                 }
             } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
                 self.active_notes.remove(&n.id);

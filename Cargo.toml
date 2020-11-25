@@ -30,6 +30,7 @@ midir = "0.7.0"
 iced_native = {git="https://github.com/hecrj/iced.git"} 
 iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
 iced_graphics = {git="https://github.com/hecrj/iced.git"} 
+rodio = "0.13.0"
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

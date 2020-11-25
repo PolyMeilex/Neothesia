@@ -12,6 +12,8 @@ use time_manager::Fps;
 
 mod midi_device;
 
+mod audio_device;
+
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 

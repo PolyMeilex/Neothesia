@@ -90,20 +90,6 @@ impl Notes {
         transform_uniform: &'rpass Uniform<TransformUniform>,
         render_pass: &mut wgpu::RenderPass<'rpass>,
     ) {
-        // let encoder = &mut target.gpu.encoder;
-        {
-            // let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            //     color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            //         attachment: &frame.output.view,
-            //         resolve_target: None,
-            //         ops: wgpu::Operations {
-            //             load: wgpu::LoadOp::Load,
-            //             store: true,
-            //         },
-            //     }],
-            //     depth_stencil_attachment: None,
-            // });
-            self.notes_pipeline.render(transform_uniform, render_pass);
-        }
+        self.notes_pipeline.render(transform_uniform, render_pass);
     }
 }

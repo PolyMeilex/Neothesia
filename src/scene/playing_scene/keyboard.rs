@@ -183,22 +183,7 @@ impl PianoKeyboard {
         transform_uniform: &'rpass Uniform<TransformUniform>,
         render_pass: &mut wgpu::RenderPass<'rpass>,
     ) {
-        // pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
-        // let encoder = &mut target.gpu.encoder;
-        {
-            // let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            //     color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-            //         attachment: &frame.output.view,
-            //         resolve_target: None,
-            //         ops: wgpu::Operations {
-            //             load: wgpu::LoadOp::Load,
-            //             store: true,
-            //         },
-            //     }],
-            //     depth_stencil_attachment: None,
-            // });
-            self.keyboard_pipeline
-                .render(transform_uniform, render_pass);
-        }
+        self.keyboard_pipeline
+            .render(transform_uniform, render_pass);
     }
 }

@@ -3,9 +3,9 @@ use super::{
     keyboard::PianoKeyboard,
     notes::Notes,
 };
-use crate::audio_device::SoundManager;
 
 use crate::{
+    audio::Synth,
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
     time_manager::Timer,
     wgpu_jumpstart::Color,
@@ -159,7 +159,7 @@ struct Player {
     time: f32,
     active: bool,
 
-    sound_manager: SoundManager,
+    synth: Synth,
 }
 
 impl Player {
@@ -181,7 +181,7 @@ impl Player {
             0.0
         };
 
-        let sound_manager = SoundManager::new();
+        let synth = Synth::new();
 
         let mut player = Self {
             midi,
@@ -194,7 +194,7 @@ impl Player {
             time: 0.0,
             active: true,
 
-            sound_manager,
+            synth,
         };
         player.update();
         player.active = false;
@@ -225,7 +225,7 @@ impl Player {
             .collect();
 
         let midi_out = &mut self.midi_device;
-        let sound_manager = &mut self.sound_manager;
+        let synth = &mut self.synth;
         for n in filtered {
             use std::collections::hash_map::Entry;
 
@@ -237,11 +237,12 @@ impl Player {
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
                     self.active_notes.insert(n.id, n.note);
                     midi_out.send(&[0x90, n.note, n.vel]);
-                    sound_manager.play(n.note as usize - 24);
+                    synth.note_on(n.ch, n.note, n.vel);
                 }
             } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
                 self.active_notes.remove(&n.id);
                 midi_out.send(&[0x80, n.note, n.vel]);
+                synth.note_off(n.ch, n.note);
             }
         }
 

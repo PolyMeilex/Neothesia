@@ -4,50 +4,46 @@ use iced_native::{
 };
 use iced_wgpu::Renderer;
 
-use crate::midi_device::{MidiDevicesManager, MidiPortInfo};
+use crate::output_manager::OutputDescriptor;
 
-use std::sync::Arc;
 pub struct IcedMenu {
-    midi_device_menager: MidiDevicesManager,
-    selected_out_id: Option<usize>,
-    midi_file: Option<Arc<lib_midi::Midi>>,
+    midi_file: Option<lib_midi::Midi>,
+
+    carousel: Carousel,
 
     file_select_button: neo_btn::State,
     prev_button: neo_btn::State,
     next_button: neo_btn::State,
     play_button: neo_btn::State,
-
-    prev_out_exists: bool,
-    next_out_exists: bool,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    UpdateOuts,
-    UpdatePrevNext,
-
     FileSelectPressed,
+
     PrevPressed,
     NextPressed,
     PlayPressed,
 
-    MainMenuDone(Arc<lib_midi::Midi>, Option<MidiPortInfo>),
+    OutputsUpdated(Vec<OutputDescriptor>),
+
+    MainMenuDone(lib_midi::Midi, OutputDescriptor),
 }
 
 impl IcedMenu {
-    pub fn new(midi_file: Option<Arc<lib_midi::Midi>>) -> Self {
+    pub fn new(midi_file: Option<lib_midi::Midi>, outputs: Vec<OutputDescriptor>) -> Self {
+        let mut carousel = Carousel::new();
+        carousel.update(outputs);
+
         Self {
-            midi_device_menager: MidiDevicesManager::new(),
-            selected_out_id: None,
             midi_file,
+
+            carousel,
 
             file_select_button: neo_btn::State::new(),
             prev_button: neo_btn::State::new(),
             next_button: neo_btn::State::new(),
             play_button: neo_btn::State::new(),
-
-            prev_out_exists: false,
-            next_out_exists: false,
         }
     }
 }
@@ -75,98 +71,46 @@ impl Program for IcedMenu {
                         }
 
                         self.midi_file = if let Ok(midi) = midi {
-                            Some(Arc::new(midi))
+                            Some(midi)
                         } else {
                             None
-                        }
+                        };
                     }
                     _ => {
                         log::error!("User canceled dialog");
                     }
                 }
             }
-            // Next / Prev Logic
-            Message::UpdateOuts => {
-                self.midi_device_menager.update_outs();
 
-                self.selected_out_id = if let Some(id) = self.selected_out_id {
-                    // Check is selected out still exists
-                    let out_id = self.midi_device_menager.check_out_id(id);
-
-                    if out_id.is_some() {
-                        out_id
-                    } else {
-                        // try to reset selection to 0 id
-                        self.midi_device_menager.check_out_id(0)
-                    }
-                } else {
-                    // try to reset selection to 0 id
-                    self.midi_device_menager.check_out_id(0)
-                };
-
-                self.update(Message::UpdatePrevNext);
-            }
-            Message::UpdatePrevNext => {
-                self.next_out_exists = if let Some(id) = self.selected_out_id {
-                    self.midi_device_menager.check_out_id(id + 1).is_some()
-                } else {
-                    false
-                };
-
-                self.prev_out_exists = if let Some(id) = self.selected_out_id {
-                    if id > 0 {
-                        self.midi_device_menager.check_out_id(id - 1).is_some()
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                };
-            }
             Message::NextPressed => {
-                if let Some(id) = self.selected_out_id {
-                    if let Some(id) = self.midi_device_menager.check_out_id(id + 1) {
-                        self.selected_out_id = Some(id);
-                    }
-                }
-                self.update(Message::UpdatePrevNext);
+                self.carousel.next();
             }
             Message::PrevPressed => {
-                if let Some(id) = self.selected_out_id {
-                    // Make sure to not triger subtract with overflow
-                    if id > 0 {
-                        if let Some(id) = self.midi_device_menager.check_out_id(id - 1) {
-                            self.selected_out_id = Some(id);
-                        }
-                    }
-                }
-                self.update(Message::UpdatePrevNext);
+                self.carousel.prev();
             }
-            //
+
             Message::PlayPressed => {
+                // self.output_manager
+                //     .borrow_mut()
+                //     .connect(self.carousel.get_item().clone());
+
                 if self.midi_file.is_some() {
-                    async fn play(
-                        file: Arc<lib_midi::Midi>,
-                        port: Option<MidiPortInfo>,
-                    ) -> Message {
-                        Message::MainMenuDone(file, port)
+                    async fn play(midi: lib_midi::Midi, out: OutputDescriptor) -> Message {
+                        Message::MainMenuDone(midi, out)
                     }
 
-                    let port = if let Some(id) = self.selected_out_id {
-                        if let Some(out) = self.midi_device_menager.get_out(id) {
-                            Some(out.clone())
-                        } else {
-                            None
+                    if self.midi_file.is_some() {
+                        if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
+                            return Command::from(play(midi, self.carousel.get_item().clone()));
                         }
-                    } else {
-                        None
-                    };
-
-                    let midi =
-                        std::mem::replace(&mut self.midi_file, None).expect("No midi file!!");
-                    return Command::from(play(midi, port));
+                    }
                 }
             }
+
+            Message::OutputsUpdated(outs) => {
+                self.carousel.update(outs);
+            }
+
             Message::MainMenuDone(_, _) => {}
         }
 
@@ -174,8 +118,6 @@ impl Program for IcedMenu {
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
-        self.update(Message::UpdateOuts);
-
         let main: Element<_, _> = {
             let file_select_button = Row::new().height(Length::Units(100)).push(
                 NeoBtn::new(
@@ -190,19 +132,9 @@ impl Program for IcedMenu {
                 .on_press(Message::FileSelectPressed),
             );
 
-            let selected_out = if let Some(id) = self.selected_out_id {
-                self.midi_device_menager.get_out(id)
-            } else {
-                None
-            };
+            let item = self.carousel.get_item().to_string();
 
-            let text = if let Some(out) = selected_out {
-                out.name.clone()
-            } else {
-                "No Midi Devices".into()
-            };
-
-            let text = Text::new(text)
+            let text = Text::new(item)
                 .color(Color::WHITE)
                 // .height(Length::Units(100))
                 .size(30)
@@ -220,7 +152,7 @@ impl Program for IcedMenu {
                             .vertical_alignment(VerticalAlignment::Center),
                     )
                     .width(Length::Fill)
-                    .disabled(!self.prev_out_exists)
+                    .disabled(!self.carousel.check_prev())
                     .on_press(Message::PrevPressed),
                 )
                 .push(
@@ -232,7 +164,7 @@ impl Program for IcedMenu {
                             .vertical_alignment(VerticalAlignment::Center),
                     )
                     .width(Length::Fill)
-                    .disabled(!self.next_out_exists)
+                    .disabled(!self.carousel.check_next())
                     .on_press(Message::NextPressed),
                 );
 
@@ -303,6 +235,48 @@ impl Program for IcedMenu {
     }
 }
 
+struct Carousel {
+    outputs: Vec<OutputDescriptor>,
+    id: usize,
+}
+
+impl Carousel {
+    fn new() -> Self {
+        Self {
+            outputs: Vec::new(),
+            id: 0,
+        }
+    }
+
+    fn update(&mut self, outs: Vec<OutputDescriptor>) {
+        self.outputs = outs;
+    }
+
+    fn check_next(&self) -> bool {
+        self.id < self.outputs.len() - 1
+    }
+
+    fn check_prev(&self) -> bool {
+        self.id > 0
+    }
+
+    fn next(&mut self) {
+        if self.check_next() {
+            self.id = self.id + 1;
+        }
+    }
+
+    fn prev(&mut self) {
+        if self.check_prev() {
+            self.id = self.id - 1;
+        }
+    }
+
+    fn get_item(&self) -> &OutputDescriptor {
+        &self.outputs[self.id]
+    }
+}
+
 mod neo_btn {
     // For now, to implement a custom native widget you will need to add
     // `iced_native` and `iced_wgpu` to your dependencies.
@@ -361,10 +335,10 @@ mod neo_btn {
             self
         }
 
-        pub fn min_width(mut self, min_width: u32) -> Self {
-            self.min_width = min_width;
-            self
-        }
+        // pub fn min_width(mut self, min_width: u32) -> Self {
+        //     self.min_width = min_width;
+        //     self
+        // }
 
         pub fn min_height(mut self, min_height: u32) -> Self {
             self.min_height = min_height;

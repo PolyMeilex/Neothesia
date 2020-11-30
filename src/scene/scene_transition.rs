@@ -3,14 +3,16 @@ use crate::Gpu;
 use crate::{
     rectangle_pipeline::RectangleInstance,
     scene::{Scene, SceneEvent, SceneType},
-    Target,
+    MainState, Target,
 };
 
 use winit::event::WindowEvent;
 
+pub type SceneInitializer = dyn FnOnce(&mut Target, MainState) -> Box<dyn Scene>;
+
 enum TransitionMode {
     FadeIn(Box<dyn Scene>),
-    FadeOut(Box<dyn Scene>, Box<dyn Scene>),
+    FadeOut(Box<dyn Scene>, Box<SceneInitializer>),
     Static(Box<dyn Scene>),
     None,
 }
@@ -35,15 +37,24 @@ impl SceneTransition {
             curr_transition_alpha: 0.0,
         }
     }
-    pub fn transition_to(&mut self, game_scene: Box<dyn Scene>) {
+    pub fn transition_to(&mut self, initer: Box<SceneInitializer>) {
         let from = std::mem::replace(&mut self.mode, TransitionMode::None);
         match from {
             TransitionMode::Static(scene) => {
-                self.mode = TransitionMode::FadeOut(scene, game_scene);
+                self.mode = TransitionMode::FadeOut(scene, initer);
             }
             _ => unreachable!("Trans_to triggered while fade is in progress"),
         };
     }
+    // pub fn transition_to(&mut self, game_scene: Box<dyn Scene>) {
+    //     let from = std::mem::replace(&mut self.mode, TransitionMode::None);
+    //     match from {
+    //         TransitionMode::Static(scene) => {
+    //             self.mode = TransitionMode::FadeOut(scene, game_scene);
+    //         }
+    //         _ => unreachable!("Trans_to triggered while fade is in progress"),
+    //     };
+    // }
     pub fn set_transition_alpha(
         &mut self,
         gpu: &mut Gpu,
@@ -84,25 +95,25 @@ impl SceneTransition {
     }
 }
 
-impl Scene for SceneTransition {
-    fn scene_type(&self) -> SceneType {
+impl SceneTransition {
+    pub fn scene_type(&self) -> SceneType {
         match &self.mode {
             TransitionMode::Static(scene) => scene.scene_type(),
             _ => SceneType::Transition,
         }
     }
-    fn resize(&mut self, target: &mut Target) {
+    pub fn resize(&mut self, target: &mut Target) {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.resize(target),
             TransitionMode::FadeIn(scene) => scene.resize(target),
-            TransitionMode::FadeOut(from, to) => {
+            TransitionMode::FadeOut(from, _to) => {
                 from.resize(target);
-                to.resize(target);
+                // to.resize(target);
             }
             _ => {}
         }
     }
-    fn update(&mut self, target: &mut Target) -> SceneEvent {
+    pub fn update(&mut self, target: &mut Target) -> SceneEvent {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.update(target),
             TransitionMode::FadeIn(scene) => {
@@ -148,8 +159,9 @@ impl Scene for SceneTransition {
 
                     let next = std::mem::replace(&mut self.mode, TransitionMode::None);
 
-                    let game_scene = if let TransitionMode::FadeOut(_from, to) = next {
-                        to
+                    let game_scene = if let TransitionMode::FadeOut(from, to) = next {
+                        let state = from.done();
+                        to(target, state)
                     } else {
                         unreachable!("Expected Fade Out")
                     };
@@ -167,7 +179,7 @@ impl Scene for SceneTransition {
             _ => SceneEvent::None,
         }
     }
-    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+    pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
         match &mut self.mode {
             TransitionMode::FadeIn(scene) => scene.render(target, frame),
             TransitionMode::FadeOut(from, _to) => from.render(target, frame),
@@ -177,13 +189,13 @@ impl Scene for SceneTransition {
 
         self.render_transition(target, frame);
     }
-    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
+    pub fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.window_event(target, event),
             _ => SceneEvent::None,
         }
     }
-    fn main_events_cleared(&mut self, target: &mut Target) -> SceneEvent {
+    pub fn main_events_cleared(&mut self, target: &mut Target) -> SceneEvent {
         match &mut self.mode {
             TransitionMode::FadeIn(scene) => scene.main_events_cleared(target),
             TransitionMode::FadeOut(from, _to) => from.main_events_cleared(target),

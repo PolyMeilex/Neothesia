@@ -1,4 +1,5 @@
 mod wgpu_jumpstart;
+use futures::Future;
 use wgpu_jumpstart::{Gpu, Uniform, Window};
 
 mod ui;
@@ -10,9 +11,10 @@ use scene::{Scene, SceneEvent, SceneType};
 mod time_manager;
 use time_manager::Fps;
 
-mod midi_device;
-
 mod audio;
+mod midi_device;
+mod output_manager;
+pub use output_manager::OutputManager;
 
 mod transform_uniform;
 use transform_uniform::TransformUniform;
@@ -25,7 +27,8 @@ use winit::{
 mod rectangle_pipeline;
 
 pub struct MainState {
-    pub midi_file: Option<Arc<lib_midi::Midi>>,
+    pub midi_file: Option<lib_midi::Midi>,
+    pub output_manager: OutputManager,
 }
 
 impl MainState {
@@ -34,7 +37,7 @@ impl MainState {
 
         let midi_file = if args.len() > 1 {
             if let Ok(midi) = lib_midi::Midi::new(&args[1]) {
-                Some(Arc::new(midi))
+                Some(midi)
             } else {
                 None
             }
@@ -42,13 +45,15 @@ impl MainState {
             None
         };
 
-        Self { midi_file }
+        Self {
+            midi_file,
+            output_manager: OutputManager::new(),
+        }
     }
 }
 
 pub struct Target {
-    pub state: MainState,
-
+    // pub state: MainState,
     pub window: Window,
     pub gpu: Gpu,
     pub transform_uniform: Uniform<TransformUniform>,
@@ -59,8 +64,6 @@ pub struct Target {
 
 impl Target {
     pub fn new(window: Window, gpu: Gpu) -> Self {
-        let state = MainState::new();
-
         let transform_uniform = Uniform::new(
             &gpu.device,
             TransformUniform::default(),
@@ -72,8 +75,7 @@ impl Target {
         let iced_manager = IcedManager::new(&gpu.device, &window);
 
         Self {
-            state,
-
+            // state,
             window,
             gpu,
             transform_uniform,
@@ -104,18 +106,18 @@ struct App {
     target: Target,
 
     fps_timer: Fps,
-    game_scene: Box<scene::scene_transition::SceneTransition>,
+    game_scene: scene::scene_transition::SceneTransition,
 }
 
 impl App {
     fn new(gpu: Gpu, window: Window) -> Self {
         let mut target = Target::new(window, gpu);
 
-        let game_scene = scene::menu_scene::MenuScene::new(&mut target);
-        let mut game_scene = Box::new(scene::scene_transition::SceneTransition::new(
-            Box::new(game_scene),
-            &target,
-        ));
+        let state = MainState::new();
+
+        let game_scene = scene::menu_scene::MenuScene::new(&mut target, state);
+        let mut game_scene =
+            scene::scene_transition::SceneTransition::new(Box::new(game_scene), &target);
 
         target.resize();
         game_scene.resize(&mut target);
@@ -152,9 +154,15 @@ impl App {
     fn scene_event(&mut self, event: SceneEvent, control_flow: &mut ControlFlow) {
         match event {
             SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::MidiOpen(port) => {
-                    let state = scene::playing_scene::PlayingScene::new(&mut self.target, port);
-                    self.game_scene.transition_to(Box::new(state));
+                scene::menu_scene::Event::Play => {
+                    let to = |target: &mut Target, state: MainState| -> Box<dyn Scene> {
+                        let state = scene::playing_scene::PlayingScene::new(target, state);
+                        Box::new(state)
+                    };
+
+                    let to = Box::new(to);
+
+                    self.game_scene.transition_to(to);
                 }
             },
             SceneEvent::GoBack => match self.game_scene.scene_type() {
@@ -162,8 +170,16 @@ impl App {
                     *control_flow = ControlFlow::Exit;
                 }
                 SceneType::Playing => {
-                    let state = scene::menu_scene::MenuScene::new(&mut self.target);
-                    self.game_scene.transition_to(Box::new(state));
+                    // let file = self.target.state.midi_file.clone();
+
+                    let to = |target: &mut Target, state: MainState| -> Box<dyn Scene> {
+                        let state = scene::menu_scene::MenuScene::new(target, state);
+                        Box::new(state)
+                    };
+
+                    let to = Box::new(to);
+
+                    self.game_scene.transition_to(to);
                 }
                 SceneType::Transition => {}
             },
@@ -280,8 +296,6 @@ fn main() {
         }
     });
 }
-
-use std::{future::Future, sync::Arc};
 
 pub fn block_on<F>(f: F) -> <F as Future>::Output
 where

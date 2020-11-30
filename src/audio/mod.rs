@@ -1,5 +1,7 @@
 extern crate fluidlite_lib;
 
+use crate::output_manager::{OutputConnection, OutputDescriptor};
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use fluidlite::{IsSettings, Settings};
 
@@ -13,11 +15,11 @@ enum MidiEvent {
 pub struct Synth {
     _host: cpal::Host,
     device: cpal::Device,
-    stream_config: cpal::StreamConfig,
-    stream: Option<cpal::Stream>,
 
-    tx: std::sync::mpsc::Sender<MidiEvent>,
+    stream_config: cpal::StreamConfig,
+    sample_format: cpal::SampleFormat,
 }
+
 impl Synth {
     pub fn new() -> Self {
         let host = cpal::default_host();
@@ -32,27 +34,16 @@ impl Synth {
         let mut stream_config: cpal::StreamConfig = config.into();
         stream_config.sample_rate.0 = 44100;
 
-        let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
-
-        let mut out = Synth {
+        Self {
             _host: host,
             device,
+
             stream_config,
-            stream: None,
-
-            tx,
-        };
-
-        match sample_format {
-            cpal::SampleFormat::F32 => out.run::<f32>(rx),
-            cpal::SampleFormat::I16 => out.run::<i16>(rx),
-            cpal::SampleFormat::U16 => out.run::<u16>(rx),
+            sample_format,
         }
-
-        out
     }
 
-    fn run<T: cpal::Sample>(&mut self, rx: std::sync::mpsc::Receiver<MidiEvent>) {
+    fn run<T: cpal::Sample>(&self, rx: std::sync::mpsc::Receiver<MidiEvent>) -> cpal::Stream {
         let mut buff: [f32; SAMPLES_SIZE] = [0.0f32; SAMPLES_SIZE];
 
         let synth = {
@@ -62,8 +53,6 @@ impl Synth {
 
             let rate = settings.pick::<_, f64>("synth.sample-rate").unwrap();
             rate.set((sample_rate / 2) as f64);
-
-            println!("{:?},{:?}", rate.get(), sample_rate);
 
             let synth = fluidlite::Synth::new(settings).unwrap();
             synth.sfload("font.sf2", true).unwrap();
@@ -120,14 +109,35 @@ impl Synth {
             .unwrap();
         stream.play().unwrap();
 
-        self.stream = Some(stream);
+        stream
     }
 
-    pub fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
+    pub fn new_output_connection(&mut self) -> SynthOutConnection {
+        let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
+        let _stream = match self.sample_format {
+            cpal::SampleFormat::F32 => self.run::<f32>(rx),
+            cpal::SampleFormat::I16 => self.run::<i16>(rx),
+            cpal::SampleFormat::U16 => self.run::<u16>(rx),
+        };
+
+        SynthOutConnection { _stream, tx }
+    }
+
+    pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
+        vec![OutputDescriptor::Synth]
+    }
+}
+
+pub struct SynthOutConnection {
+    _stream: cpal::Stream,
+    tx: std::sync::mpsc::Sender<MidiEvent>,
+}
+
+impl OutputConnection for SynthOutConnection {
+    fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
         self.tx.send(MidiEvent::NoteOn { ch, key, vel }).ok();
     }
-
-    pub fn note_off(&mut self, ch: u8, key: u8) {
+    fn note_off(&mut self, ch: u8, key: u8) {
         self.tx.send(MidiEvent::NoteOff { ch, key }).ok();
     }
 }

@@ -1,9 +1,8 @@
 use crate::{
-    midi_device::MidiPortInfo,
     scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
     ui::iced_conversion,
-    Target,
+    MainState, Target,
 };
 
 use super::{bg_pipeline::BgPipeline, iced_menu, IcedMenu};
@@ -12,20 +11,25 @@ use winit::event::WindowEvent;
 
 #[derive(Debug)]
 pub enum Event {
-    MidiOpen(MidiPortInfo),
+    Play,
 }
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
     timer: Timer,
     iced_state: iced_native::program::State<IcedMenu>,
+
+    main_state: MainState,
 }
 
 impl MenuScene {
-    pub fn new(target: &mut Target) -> Self {
+    pub fn new(target: &mut Target, mut state: MainState) -> Self {
         let timer = Timer::new();
 
-        let menu = IcedMenu::new(target.state.midi_file.clone());
+        let menu = IcedMenu::new(
+            std::mem::replace(&mut state.midi_file, None),
+            state.output_manager.get_outputs(),
+        );
         let iced_state = iced_native::program::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
@@ -41,6 +45,8 @@ impl MenuScene {
             bg_pipeline: BgPipeline::new(&target.gpu),
             timer,
             iced_state,
+
+            main_state: state,
         };
 
         scene.resize(target);
@@ -49,6 +55,10 @@ impl MenuScene {
 }
 
 impl Scene for MenuScene {
+    fn done(self: Box<Self>) -> MainState {
+        self.main_state
+    }
+
     fn scene_type(&self) -> SceneType {
         SceneType::MainMenu
     }
@@ -58,6 +68,10 @@ impl Scene for MenuScene {
         let time = self.timer.get_elapsed() / 1000.0;
 
         self.bg_pipeline.update_time(&mut target.gpu, time);
+
+        let outs = self.main_state.output_manager.get_outputs();
+        self.iced_state
+            .queue_message(iced_menu::Message::OutputsUpdated(outs));
 
         SceneEvent::None
     }
@@ -140,10 +154,11 @@ impl Scene for MenuScene {
                     let event = crate::block_on(async { f.await });
 
                     match event {
-                        iced_menu::Message::MainMenuDone(f, p) => {
-                            target.state.midi_file = Some(f);
+                        iced_menu::Message::MainMenuDone(midi, out) => {
+                            self.main_state.midi_file = Some(midi);
+                            self.main_state.output_manager.connect(out);
 
-                            return SceneEvent::MainMenu(Event::MidiOpen(p.unwrap()));
+                            return SceneEvent::MainMenu(Event::Play);
                         }
                         _ => {}
                     }

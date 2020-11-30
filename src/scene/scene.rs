@@ -1,10 +1,14 @@
+use crate::MainState;
 use crate::Target;
 
 use winit::event::WindowEvent;
 
 pub trait Scene {
     fn scene_type(&self) -> SceneType;
+
     fn start(&mut self) {}
+    fn done(self: Box<Self>) -> MainState;
+
     fn resize(&mut self, _target: &mut Target) {}
     fn update(&mut self, target: &mut Target) -> SceneEvent;
     fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame);

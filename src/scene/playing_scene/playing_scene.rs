@@ -3,13 +3,13 @@ use super::{
     keyboard::PianoKeyboard,
     notes::Notes,
 };
+use lib_midi::MidiNote;
 
 use crate::{
-    audio::Synth,
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
     time_manager::Timer,
     wgpu_jumpstart::Color,
-    Target,
+    MainState, OutputManager, Target,
 };
 
 use winit::event::WindowEvent;
@@ -22,19 +22,16 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(target: &mut Target, port: MidiPortInfo) -> Self {
+    pub fn new(target: &mut Target, main_state: MainState) -> Self {
         let piano_keyboard = PianoKeyboard::new(target);
+
         let mut notes = Notes::new(
             target,
             &piano_keyboard.all_keys,
-            &target
-                .state
-                .midi_file
-                .clone()
-                .expect("Expeced Midi File, no mifi file selected"),
+            &main_state.midi_file.as_ref().unwrap(),
         );
 
-        let player = Player::new(target.state.midi_file.clone().unwrap(), port);
+        let player = Player::new(main_state);
         notes.update(&mut target.gpu, player.time);
 
         Self {
@@ -47,6 +44,15 @@ impl PlayingScene {
 }
 
 impl Scene for PlayingScene {
+    fn done(mut self: Box<Self>) -> MainState {
+        self.player.clear();
+
+        MainState {
+            midi_file: Some(self.player.midi_file),
+            output_manager: self.player.output_manager,
+        }
+    }
+
     fn scene_type(&self) -> SceneType {
         SceneType::Playing
     }
@@ -55,8 +61,11 @@ impl Scene for PlayingScene {
     }
     fn resize(&mut self, target: &mut Target) {
         self.piano_keyboard.resize(target);
-        self.notes
-            .resize(target, &self.piano_keyboard.all_keys, &self.player.midi);
+        self.notes.resize(
+            target,
+            &self.piano_keyboard.all_keys,
+            &self.player.midi_file,
+        );
     }
     fn update(&mut self, target: &mut Target) -> SceneEvent {
         let (window_w, _) = {
@@ -145,56 +154,47 @@ impl Scene for PlayingScene {
     }
 }
 
-use crate::midi_device::MidiPortInfo;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 struct Player {
-    midi: Arc<lib_midi::Midi>,
     midi_first_note_start: f32,
     midi_last_note_end: f32,
-    midi_device: crate::midi_device::MidiDevicesManager,
-    active_notes: HashMap<usize, u8>,
+    active_notes: HashMap<usize, MidiNote>,
     timer: Timer,
     percentage: f32,
     time: f32,
     active: bool,
 
-    synth: Synth,
+    midi_file: lib_midi::Midi,
+    output_manager: OutputManager,
 }
 
 impl Player {
-    fn new(midi: Arc<lib_midi::Midi>, port: MidiPortInfo) -> Self {
-        let mut midi_device = crate::midi_device::MidiDevicesManager::new();
+    fn new(main_state: MainState) -> Self {
+        let midi_file = main_state.midi_file.unwrap();
 
-        log::info!("{:?}", midi_device.get_outs());
-
-        midi_device.connect_out(port);
-
-        let midi_first_note_start = if let Some(note) = midi.merged_track.notes.first() {
+        let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
             note.start
         } else {
             0.0
         };
-        let midi_last_note_end = if let Some(note) = midi.merged_track.notes.last() {
+        let midi_last_note_end = if let Some(note) = midi_file.merged_track.notes.last() {
             note.start + note.duration
         } else {
             0.0
         };
 
-        let synth = Synth::new();
-
         let mut player = Self {
-            midi,
             midi_first_note_start,
             midi_last_note_end,
-            midi_device,
             active_notes: HashMap::new(),
             timer: Timer::new(),
             percentage: 0.0,
             time: 0.0,
             active: true,
 
-            synth,
+            midi_file,
+            output_manager: main_state.output_manager,
         };
         player.update();
         player.active = false;
@@ -217,15 +217,14 @@ impl Player {
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
 
         let filtered: Vec<&lib_midi::MidiNote> = self
-            .midi
+            .midi_file
             .merged_track
             .notes
             .iter()
             .filter(|n| n.start <= self.time && n.start + n.duration + 0.5 > self.time)
             .collect();
 
-        let midi_out = &mut self.midi_device;
-        let synth = &mut self.synth;
+        let output_manager = &mut self.output_manager;
         for n in filtered {
             use std::collections::hash_map::Entry;
 
@@ -235,14 +234,12 @@ impl Player {
                 }
 
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
-                    self.active_notes.insert(n.id, n.note);
-                    midi_out.send(&[0x90, n.note, n.vel]);
-                    synth.note_on(n.ch, n.note, n.vel);
+                    self.active_notes.insert(n.id, n.clone());
+                    output_manager.note_on(n.ch, n.note, n.vel);
                 }
             } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
                 self.active_notes.remove(&n.id);
-                midi_out.send(&[0x80, n.note, n.vel]);
-                synth.note_off(n.ch, n.note);
+                output_manager.note_off(n.ch, n.note);
             }
         }
 
@@ -258,14 +255,8 @@ impl Player {
     }
     fn clear(&mut self) {
         for (_id, n) in self.active_notes.iter() {
-            self.midi_device.send(&[0x80, *n, 0]);
+            self.output_manager.note_off(n.ch, n.note);
         }
         self.active_notes.clear();
-    }
-}
-
-impl Drop for Player {
-    fn drop(&mut self) {
-        self.clear();
     }
 }

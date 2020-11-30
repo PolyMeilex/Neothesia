@@ -823,8 +823,7 @@ dependencies = [
 [[package]]
 name = "fluidlite"
 version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65327750ecb3d4aff81e2367cd908f1dd968a08fbd1ecc4d1d509e695c129918"
+source = "git+https://github.com/PolyMeilex/fluidlite-rs.git#c4ddae55cf4c69d5d7fdbbeb86f81462faff8aa2"
 dependencies = [
  "bitflags",
  "fluidlite-sys",
@@ -835,8 +834,7 @@ dependencies = [
 [[package]]
 name = "fluidlite-lib"
 version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f336055db575917470300441947c40079d3128830ee32b53470def155baea69"
+source = "git+https://github.com/PolyMeilex/fluidlite-rs.git#c4ddae55cf4c69d5d7fdbbeb86f81462faff8aa2"
 dependencies = [
  "cmake",
  "fetch_unroll",
@@ -845,8 +843,7 @@ dependencies = [
 [[package]]
 name = "fluidlite-sys"
 version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fec2a0f42ff77c5eb75c9dd5bfc871bfd8ebdd098e405545b8317b32015dc555"
+source = "git+https://github.com/PolyMeilex/fluidlite-rs.git#c4ddae55cf4c69d5d7fdbbeb86f81462faff8aa2"
 
 [[package]]
 name = "fnv"

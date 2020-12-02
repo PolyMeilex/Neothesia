@@ -7,6 +7,7 @@ use iced_menu::IcedMenu;
 use winit::event::WindowEvent;
 
 use crate::{
+    output_manager::OutputDescriptor,
     scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
     ui::iced_conversion,
@@ -34,6 +35,7 @@ impl MenuScene {
             std::mem::replace(&mut state.midi_file, None),
             state.output_manager.get_outputs(),
             state.output_manager.selected_output_id,
+            state.output_manager.selected_font_path.clone(),
         );
         let iced_state = iced_native::program::State::new(
             menu,

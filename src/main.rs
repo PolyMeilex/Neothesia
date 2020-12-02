@@ -1,5 +1,6 @@
 mod wgpu_jumpstart;
 use futures::Future;
+
 use wgpu_jumpstart::{Gpu, Uniform, Window};
 
 mod ui;

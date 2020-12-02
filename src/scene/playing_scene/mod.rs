@@ -15,7 +15,7 @@ use crate::{
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
     time_manager::Timer,
     wgpu_jumpstart::Color,
-    MainState, OutputManager, Target,
+    MainState, Target,
 };
 
 use winit::event::WindowEvent;
@@ -53,10 +53,7 @@ impl Scene for PlayingScene {
     fn done(mut self: Box<Self>) -> MainState {
         self.player.clear();
 
-        MainState {
-            midi_file: Some(self.player.midi_file),
-            output_manager: self.player.output_manager,
-        }
+        self.player.main_state
     }
 
     fn scene_type(&self) -> SceneType {
@@ -70,7 +67,7 @@ impl Scene for PlayingScene {
         self.notes.resize(
             target,
             &self.piano_keyboard.all_keys,
-            &self.player.midi_file,
+            self.player.main_state.midi_file.as_ref().unwrap(),
         );
     }
     fn update(&mut self, target: &mut Target) -> SceneEvent {
@@ -171,13 +168,12 @@ struct Player {
     time: f32,
     active: bool,
 
-    midi_file: lib_midi::Midi,
-    output_manager: OutputManager,
+    main_state: MainState,
 }
 
 impl Player {
     fn new(main_state: MainState) -> Self {
-        let midi_file = main_state.midi_file.unwrap();
+        let midi_file = main_state.midi_file.as_ref().unwrap();
 
         let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
             note.start
@@ -199,8 +195,7 @@ impl Player {
             time: 0.0,
             active: true,
 
-            midi_file,
-            output_manager: main_state.output_manager,
+            main_state,
         };
         player.update();
         player.active = false;
@@ -223,14 +218,17 @@ impl Player {
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
 
         let filtered: Vec<&lib_midi::MidiNote> = self
+            .main_state
             .midi_file
+            .as_ref()
+            .unwrap()
             .merged_track
             .notes
             .iter()
             .filter(|n| n.start <= self.time && n.start + n.duration + 0.5 > self.time)
             .collect();
 
-        let output_manager = &mut self.output_manager;
+        let output_manager = &mut self.main_state.output_manager;
         for n in filtered {
             use std::collections::hash_map::Entry;
 
@@ -261,7 +259,7 @@ impl Player {
     }
     fn clear(&mut self) {
         for (_id, n) in self.active_notes.iter() {
-            self.output_manager.note_off(n.ch, n.note);
+            self.main_state.output_manager.note_off(n.ch, n.note);
         }
         self.active_notes.clear();
     }

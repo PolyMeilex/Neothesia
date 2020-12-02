@@ -40,6 +40,7 @@ impl IcedMenu {
         midi_file: Option<lib_midi::Midi>,
         outputs: Vec<OutputDescriptor>,
         out_id: Option<usize>,
+        font_path: Option<PathBuf>,
     ) -> Self {
         let mut carousel = Carousel::new();
         carousel.update(outputs);
@@ -50,7 +51,7 @@ impl IcedMenu {
 
         Self {
             midi_file,
-            font_path: None,
+            font_path,
 
             carousel,
 

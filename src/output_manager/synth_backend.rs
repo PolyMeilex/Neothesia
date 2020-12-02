@@ -45,7 +45,7 @@ impl SynthBackend {
         })
     }
 
-    fn run<T: cpal::Sample>(&self, rx: Receiver<MidiEvent>, path: PathBuf) -> cpal::Stream {
+    fn run<T: cpal::Sample>(&self, rx: Receiver<MidiEvent>, path: &PathBuf) -> cpal::Stream {
         let mut buff: [f32; SAMPLES_SIZE] = [0.0f32; SAMPLES_SIZE];
 
         let synth = {
@@ -114,7 +114,7 @@ impl SynthBackend {
         stream
     }
 
-    pub fn new_output_connection(&mut self, path: PathBuf) -> SynthOutputConnection {
+    pub fn new_output_connection(&mut self, path: &PathBuf) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
         let _stream = match self.sample_format {
             cpal::SampleFormat::F32 => self.run::<f32>(rx, path),

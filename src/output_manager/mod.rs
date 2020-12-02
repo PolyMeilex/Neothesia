@@ -41,6 +41,7 @@ pub struct OutputManager {
     output_connection: (OutputDescriptor, Box<dyn OutputConnection>),
 
     pub selected_output_id: Option<usize>,
+    pub selected_font_path: Option<PathBuf>,
 }
 
 impl OutputManager {
@@ -67,6 +68,7 @@ impl OutputManager {
 
             output_connection: (OutputDescriptor::DummyOutput, Box::new(DummyOutput {})),
             selected_output_id: None,
+            selected_font_path: None,
         }
     }
 
@@ -92,13 +94,15 @@ impl OutputManager {
                     if let Some(ref mut synth) = self.synth_backend {
                         if let Some(font) = font.clone() {
                             self.output_connection =
-                                (desc, Box::new(synth.new_output_connection(font)));
+                                (desc, Box::new(synth.new_output_connection(&font)));
+                            self.selected_font_path = Some(font);
                         } else {
-                            if Path::new("./default.sf2").exists() {
-                                self.output_connection = (
-                                    desc,
-                                    Box::new(synth.new_output_connection("./default.sf2".into())),
-                                );
+                            let path = Path::new("./default.sf2");
+                            if path.exists() {
+                                let path = path.into();
+                                self.output_connection =
+                                    (desc, Box::new(synth.new_output_connection(&path)));
+                                self.selected_font_path = Some(path);
                             }
                         }
                     }

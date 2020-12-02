@@ -15,17 +15,21 @@ impl MidiBackend {
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
         let ports = self.midi_out.ports();
-        for p in ports {
+        for (id, p) in ports.into_iter().enumerate() {
             let name = match self.midi_out.port_name(&p).ok() {
                 Some(name) => name,
                 None => String::from("Unknown"),
             };
-            outs.push(OutputDescriptor::MidiOut(MidiPortInfo { port: p, name }))
+            outs.push(OutputDescriptor::MidiOut(MidiPortInfo {
+                id,
+                port: p,
+                name,
+            }))
         }
         outs
     }
 
-    pub fn new_output_connection(port: MidiPortInfo) -> Option<MidiOutputConnection> {
+    pub fn new_output_connection(port: &MidiPortInfo) -> Option<MidiOutputConnection> {
         let midi_out = MidiOutput::new("midi_out_conn").ok();
 
         if let Some(midi_out) = midi_out {
@@ -47,8 +51,15 @@ impl OutputConnection for MidiOutputConnection {
 
 #[derive(Clone)]
 pub struct MidiPortInfo {
-    pub port: MidiOutputPort,
-    pub name: String,
+    id: usize,
+    port: MidiOutputPort,
+    name: String,
+}
+
+impl PartialEq for MidiPortInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.name == other.name
+    }
 }
 
 impl std::fmt::Display for MidiPortInfo {

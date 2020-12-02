@@ -9,7 +9,7 @@ use std::{
     path::Path,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OutputDescriptor {
     Synth,
     MidiOut(MidiPortInfo),
@@ -38,7 +38,9 @@ pub struct OutputManager {
     synth_backend: Option<SynthBackend>,
     midi_backend: Option<MidiBackend>,
 
-    output_connection: Box<dyn OutputConnection>,
+    output_connection: (OutputDescriptor, Box<dyn OutputConnection>),
+
+    pub selected_output_id: Option<usize>,
 }
 
 impl OutputManager {
@@ -62,7 +64,8 @@ impl OutputManager {
             synth_backend,
             midi_backend,
 
-            output_connection: Box::new(DummyOutput {}),
+            output_connection: (OutputDescriptor::DummyOutput, Box::new(DummyOutput {})),
+            selected_output_id: None,
         }
     }
 
@@ -82,28 +85,30 @@ impl OutputManager {
     }
 
     pub fn connect(&mut self, desc: OutputDescriptor) {
-        match desc {
-            OutputDescriptor::Synth => {
-                if let Some(ref mut synth) = self.synth_backend {
-                    self.output_connection = Box::new(synth.new_output_connection());
+        if desc != self.output_connection.0 {
+            match desc {
+                OutputDescriptor::Synth => {
+                    if let Some(ref mut synth) = self.synth_backend {
+                        self.output_connection = (desc, Box::new(synth.new_output_connection()));
+                    }
                 }
-            }
-            OutputDescriptor::MidiOut(info) => {
-                if let Some(conn) = MidiBackend::new_output_connection(info) {
-                    self.output_connection = Box::new(conn);
+                OutputDescriptor::MidiOut(ref info) => {
+                    if let Some(conn) = MidiBackend::new_output_connection(info) {
+                        self.output_connection = (desc, Box::new(conn));
+                    }
                 }
-            }
-            OutputDescriptor::DummyOutput => {
-                self.output_connection = Box::new(DummyOutput {});
+                OutputDescriptor::DummyOutput => {
+                    self.output_connection = (desc, Box::new(DummyOutput {}));
+                }
             }
         }
     }
 
     pub fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
-        self.output_connection.note_on(ch, key, vel);
+        self.output_connection.1.note_on(ch, key, vel);
     }
 
     pub fn note_off(&mut self, ch: u8, key: u8) {
-        self.output_connection.note_off(ch, key);
+        self.output_connection.1.note_off(ch, key);
     }
 }

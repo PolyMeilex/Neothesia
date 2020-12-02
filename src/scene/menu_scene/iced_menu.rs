@@ -27,13 +27,21 @@ pub enum Message {
 
     OutputsUpdated(Vec<OutputDescriptor>),
 
-    MainMenuDone(lib_midi::Midi, OutputDescriptor),
+    MainMenuDone(lib_midi::Midi, usize, OutputDescriptor),
 }
 
 impl IcedMenu {
-    pub fn new(midi_file: Option<lib_midi::Midi>, outputs: Vec<OutputDescriptor>) -> Self {
+    pub fn new(
+        midi_file: Option<lib_midi::Midi>,
+        outputs: Vec<OutputDescriptor>,
+        out_id: Option<usize>,
+    ) -> Self {
         let mut carousel = Carousel::new();
         carousel.update(outputs);
+
+        if let Some(id) = out_id {
+            carousel.id = id;
+        }
 
         Self {
             midi_file,
@@ -90,18 +98,20 @@ impl Program for IcedMenu {
             }
 
             Message::PlayPressed => {
-                // self.output_manager
-                //     .borrow_mut()
-                //     .connect(self.carousel.get_item().clone());
-
                 if self.midi_file.is_some() {
-                    async fn play(midi: lib_midi::Midi, out: OutputDescriptor) -> Message {
-                        Message::MainMenuDone(midi, out)
+                    async fn play(
+                        midi: lib_midi::Midi,
+                        id: usize,
+                        out: OutputDescriptor,
+                    ) -> Message {
+                        Message::MainMenuDone(midi, id, out)
                     }
 
                     if self.midi_file.is_some() {
                         if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
-                            return Command::from(play(midi, self.carousel.get_item().clone()));
+                            if let Some(port) = self.carousel.get_item() {
+                                return Command::from(play(midi, self.carousel.id, port.clone()));
+                            }
                         }
                     }
                 }
@@ -111,7 +121,7 @@ impl Program for IcedMenu {
                 self.carousel.update(outs);
             }
 
-            Message::MainMenuDone(_, _) => {}
+            Message::MainMenuDone(_, _, _) => {}
         }
 
         Command::none()
@@ -132,7 +142,11 @@ impl Program for IcedMenu {
                 .on_press(Message::FileSelectPressed),
             );
 
-            let item = self.carousel.get_item().to_string();
+            let item = self
+                .carousel
+                .get_item()
+                .map(|o| o.to_string())
+                .unwrap_or("Disconected".to_string());
 
             let text = Text::new(item)
                 .color(Color::WHITE)
@@ -203,24 +217,25 @@ impl Program for IcedMenu {
         };
 
         let footer: Element<_, _> = {
-            let content: Element<Self::Message, Self::Renderer> = if self.midi_file.is_some() {
-                let btn = NeoBtn::new(
-                    &mut self.play_button,
-                    Text::new("Play")
-                        .size(30)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center)
-                        .color(Color::WHITE),
-                )
-                .min_height(50)
-                .height(Length::Fill)
-                .width(Length::Units(150))
-                .on_press(Message::PlayPressed);
+            let content: Element<Self::Message, Self::Renderer> =
+                if self.midi_file.is_some() && self.carousel.get_item().is_some() {
+                    let btn = NeoBtn::new(
+                        &mut self.play_button,
+                        Text::new("Play")
+                            .size(30)
+                            .horizontal_alignment(HorizontalAlignment::Center)
+                            .vertical_alignment(VerticalAlignment::Center)
+                            .color(Color::WHITE),
+                    )
+                    .min_height(50)
+                    .height(Length::Fill)
+                    .width(Length::Units(150))
+                    .on_press(Message::PlayPressed);
 
-                btn.into()
-            } else {
-                Row::new().into()
-            };
+                    btn.into()
+                } else {
+                    Row::new().into()
+                };
 
             let footer = Container::new(content)
                 .padding(10)
@@ -272,8 +287,8 @@ impl Carousel {
         }
     }
 
-    fn get_item(&self) -> &OutputDescriptor {
-        &self.outputs[self.id]
+    fn get_item(&self) -> Option<&OutputDescriptor> {
+        self.outputs.get(self.id)
     }
 }
 

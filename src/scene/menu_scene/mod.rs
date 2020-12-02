@@ -33,6 +33,7 @@ impl MenuScene {
         let menu = IcedMenu::new(
             std::mem::replace(&mut state.midi_file, None),
             state.output_manager.get_outputs(),
+            state.output_manager.selected_output_id,
         );
         let iced_state = iced_native::program::State::new(
             menu,
@@ -119,22 +120,27 @@ impl Scene for MenuScene {
             self.iced_state.queue_event(event);
         }
 
-        match &event {
-            winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
-                Some(winit::event::VirtualKeyCode::Return) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        self.iced_state
-                            .queue_message(iced_menu::Message::PlayPressed)
+        if let winit::event::WindowEvent::KeyboardInput { input, .. } = &event {
+            if let winit::event::ElementState::Released = input.state {
+                if let Some(key) = input.virtual_keycode {
+                    match key {
+                        winit::event::VirtualKeyCode::Space => self
+                            .iced_state
+                            .queue_message(iced_menu::Message::FileSelectPressed),
+                        winit::event::VirtualKeyCode::Left => self
+                            .iced_state
+                            .queue_message(iced_menu::Message::PrevPressed),
+                        winit::event::VirtualKeyCode::Right => self
+                            .iced_state
+                            .queue_message(iced_menu::Message::NextPressed),
+                        winit::event::VirtualKeyCode::Return => self
+                            .iced_state
+                            .queue_message(iced_menu::Message::PlayPressed),
+                        winit::event::VirtualKeyCode::Escape => return SceneEvent::GoBack,
+                        _ => {}
                     }
                 }
-                Some(winit::event::VirtualKeyCode::Escape) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        return SceneEvent::GoBack;
-                    }
-                }
-                _ => {}
-            },
-            _ => {}
+            }
         }
 
         SceneEvent::None
@@ -158,8 +164,10 @@ impl Scene for MenuScene {
                     let event = crate::block_on(async { f.await });
 
                     match event {
-                        iced_menu::Message::MainMenuDone(midi, out) => {
+                        iced_menu::Message::MainMenuDone(midi, id, out) => {
                             self.main_state.midi_file = Some(midi);
+
+                            self.main_state.output_manager.selected_output_id = Some(id);
                             self.main_state.output_manager.connect(out);
 
                             return SceneEvent::MainMenu(Event::Play);

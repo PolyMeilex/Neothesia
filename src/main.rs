@@ -11,8 +11,6 @@ use scene::{Scene, SceneEvent, SceneType};
 mod time_manager;
 use time_manager::Fps;
 
-mod audio;
-mod midi_device;
 mod output_manager;
 pub use output_manager::OutputManager;
 

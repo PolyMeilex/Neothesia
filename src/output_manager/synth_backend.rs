@@ -12,7 +12,7 @@ enum MidiEvent {
     NoteOff { ch: u8, key: u8 },
 }
 
-pub struct Synth {
+pub struct SynthBackend {
     _host: cpal::Host,
     device: cpal::Device,
 
@@ -20,7 +20,7 @@ pub struct Synth {
     sample_format: cpal::SampleFormat,
 }
 
-impl Synth {
+impl SynthBackend {
     pub fn new() -> Self {
         let host = cpal::default_host();
 
@@ -112,7 +112,7 @@ impl Synth {
         stream
     }
 
-    pub fn new_output_connection(&mut self) -> SynthOutConnection {
+    pub fn new_output_connection(&mut self) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
         let _stream = match self.sample_format {
             cpal::SampleFormat::F32 => self.run::<f32>(rx),
@@ -120,7 +120,7 @@ impl Synth {
             cpal::SampleFormat::U16 => self.run::<u16>(rx),
         };
 
-        SynthOutConnection { _stream, tx }
+        SynthOutputConnection { _stream, tx }
     }
 
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
@@ -128,12 +128,12 @@ impl Synth {
     }
 }
 
-pub struct SynthOutConnection {
+pub struct SynthOutputConnection {
     _stream: cpal::Stream,
     tx: std::sync::mpsc::Sender<MidiEvent>,
 }
 
-impl OutputConnection for SynthOutConnection {
+impl OutputConnection for SynthOutputConnection {
     fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
         self.tx.send(MidiEvent::NoteOn { ch, key, vel }).ok();
     }

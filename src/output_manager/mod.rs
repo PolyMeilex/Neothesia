@@ -1,5 +1,8 @@
-use crate::audio::Synth;
-use crate::midi_device::{MidiDevicesManager, MidiPortInfo};
+mod midi_backend;
+mod synth_backend;
+
+use midi_backend::{MidiBackend, MidiPortInfo};
+use synth_backend::SynthBackend;
 
 use std::{
     fmt::{self, Display, Formatter},
@@ -32,8 +35,8 @@ struct DummyOutput {}
 impl OutputConnection for DummyOutput {}
 
 pub struct OutputManager {
-    synth_backend: Option<Synth>,
-    midi_backend: Option<MidiDevicesManager>,
+    synth_backend: Option<SynthBackend>,
+    midi_backend: Option<MidiBackend>,
 
     output_connection: Box<dyn OutputConnection>,
 }
@@ -41,13 +44,13 @@ pub struct OutputManager {
 impl OutputManager {
     pub fn new() -> Self {
         let synth_backend = if Path::new("./font.sf2").exists() {
-            Some(Synth::new())
+            Some(SynthBackend::new())
         } else {
             log::info!("./font.sf2 not found");
             None
         };
 
-        let midi_backend = match MidiDevicesManager::new() {
+        let midi_backend = match MidiBackend::new() {
             Ok(midi_device_manager) => Some(midi_device_manager),
             Err(e) => {
                 log::error!("{:?}", e);
@@ -86,7 +89,7 @@ impl OutputManager {
                 }
             }
             OutputDescriptor::MidiOut(info) => {
-                if let Some(conn) = MidiDevicesManager::new_output_connection(info) {
+                if let Some(conn) = MidiBackend::new_output_connection(info) {
                     self.output_connection = Box::new(conn);
                 }
             }

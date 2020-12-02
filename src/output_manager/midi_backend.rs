@@ -2,20 +2,14 @@ use crate::output_manager::{OutputConnection, OutputDescriptor};
 
 use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
-pub struct MidiDevicesManager {
+pub struct MidiBackend {
     midi_out: MidiOutput,
-    // midi_out_c: Option<MidiOutputConnection>,
-    pub outs: Vec<MidiPortInfo>,
 }
 
-impl MidiDevicesManager {
+impl MidiBackend {
     pub fn new() -> Result<Self, midir::InitError> {
         let midi_out = MidiOutput::new("midi_out")?;
-        Ok(Self {
-            midi_out,
-            // midi_out_c: None,
-            outs: Vec::new(),
-        })
+        Ok(Self { midi_out })
     }
 
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {

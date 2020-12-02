@@ -21,6 +21,8 @@ use crate::{
 use winit::event::WindowEvent;
 
 pub struct PlayingScene {
+    main_state: MainState,
+
     piano_keyboard: PianoKeyboard,
     notes: Notes,
     player: Player,
@@ -28,7 +30,7 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(target: &mut Target, main_state: MainState) -> Self {
+    pub fn new(target: &mut Target, mut main_state: MainState) -> Self {
         let piano_keyboard = PianoKeyboard::new(target);
 
         let mut notes = Notes::new(
@@ -37,10 +39,12 @@ impl PlayingScene {
             &main_state.midi_file.as_ref().unwrap(),
         );
 
-        let player = Player::new(main_state);
+        let player = Player::new(&mut main_state);
         notes.update(&mut target.gpu, player.time);
 
         Self {
+            main_state,
+
             piano_keyboard,
             notes,
             player,
@@ -51,9 +55,9 @@ impl PlayingScene {
 
 impl Scene for PlayingScene {
     fn done(mut self: Box<Self>) -> MainState {
-        self.player.clear();
+        self.player.clear(&mut self.main_state);
 
-        self.player.main_state
+        self.main_state
     }
 
     fn scene_type(&self) -> SceneType {
@@ -67,7 +71,7 @@ impl Scene for PlayingScene {
         self.notes.resize(
             target,
             &self.piano_keyboard.all_keys,
-            self.player.main_state.midi_file.as_ref().unwrap(),
+            self.main_state.midi_file.as_ref().unwrap(),
         );
     }
     fn update(&mut self, target: &mut Target) -> SceneEvent {
@@ -76,7 +80,7 @@ impl Scene for PlayingScene {
             (width, height)
         };
 
-        let notes_on = self.player.update();
+        let notes_on = self.player.update(&mut self.main_state);
 
         let size_x = window_w * self.player.percentage;
 
@@ -100,8 +104,10 @@ impl Scene for PlayingScene {
             let x = pos.x;
             let p = x / window_w;
             log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
-            self.player
-                .set_time(p * (self.player.midi_last_note_end + 3.0))
+            self.player.set_time(
+                &mut self.main_state,
+                p * (self.player.midi_last_note_end + 3.0),
+            )
         }
 
         self.piano_keyboard
@@ -145,7 +151,7 @@ impl Scene for PlayingScene {
                 }
                 Some(winit::event::VirtualKeyCode::Space) => {
                     if let winit::event::ElementState::Released = input.state {
-                        self.player.pause_resume();
+                        self.player.pause_resume(&mut self.main_state);
                     }
                 }
                 _ => {}
@@ -167,12 +173,10 @@ struct Player {
     percentage: f32,
     time: f32,
     active: bool,
-
-    main_state: MainState,
 }
 
 impl Player {
-    fn new(main_state: MainState) -> Self {
+    fn new(main_state: &mut MainState) -> Self {
         let midi_file = main_state.midi_file.as_ref().unwrap();
 
         let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
@@ -194,10 +198,8 @@ impl Player {
             percentage: 0.0,
             time: 0.0,
             active: true,
-
-            main_state,
         };
-        player.update();
+        player.update(main_state);
         player.active = false;
 
         player
@@ -206,7 +208,7 @@ impl Player {
         self.timer.start();
         self.active = true;
     }
-    fn update(&mut self) -> [(bool, usize); 88] {
+    fn update(&mut self, main_state: &mut MainState) -> [(bool, usize); 88] {
         if !self.active {
             return [(false, 0); 88];
         };
@@ -217,8 +219,7 @@ impl Player {
 
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
 
-        let filtered: Vec<&lib_midi::MidiNote> = self
-            .main_state
+        let filtered: Vec<&lib_midi::MidiNote> = main_state
             .midi_file
             .as_ref()
             .unwrap()
@@ -228,7 +229,7 @@ impl Player {
             .filter(|n| n.start <= self.time && n.start + n.duration + 0.5 > self.time)
             .collect();
 
-        let output_manager = &mut self.main_state.output_manager;
+        let output_manager = &mut main_state.output_manager;
         for n in filtered {
             use std::collections::hash_map::Entry;
 
@@ -249,17 +250,17 @@ impl Player {
 
         notes_state
     }
-    fn pause_resume(&mut self) {
-        self.clear();
+    fn pause_resume(&mut self, main_state: &mut MainState) {
+        self.clear(main_state);
         self.timer.pause_resume();
     }
-    fn set_time(&mut self, time: f32) {
+    fn set_time(&mut self, main_state: &mut MainState, time: f32) {
         self.timer.set_time(time * 1000.0);
-        self.clear();
+        self.clear(main_state);
     }
-    fn clear(&mut self) {
+    fn clear(&mut self, main_state: &mut MainState) {
         for (_id, n) in self.active_notes.iter() {
-            self.main_state.output_manager.note_off(n.ch, n.note);
+            main_state.output_manager.note_off(n.ch, n.note);
         }
         self.active_notes.clear();
     }

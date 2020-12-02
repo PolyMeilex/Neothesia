@@ -262,13 +262,13 @@ impl Carousel {
 
     fn next(&mut self) {
         if self.check_next() {
-            self.id = self.id + 1;
+            self.id += 1;
         }
     }
 
     fn prev(&mut self) {
         if self.check_prev() {
-            self.id = self.id - 1;
+            self.id -= 1;
         }
     }
 

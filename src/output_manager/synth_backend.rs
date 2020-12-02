@@ -1,5 +1,7 @@
 extern crate fluidlite_lib;
 
+use std::{error::Error, path::PathBuf, sync::mpsc::Receiver};
+
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -21,29 +23,29 @@ pub struct SynthBackend {
 }
 
 impl SynthBackend {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, Box<dyn Error>> {
         let host = cpal::default_host();
 
         let device = host
             .default_output_device()
-            .expect("failed to find a default output device");
+            .ok_or("failed to find a default output device")?;
 
-        let config = device.default_output_config().unwrap();
+        let config = device.default_output_config()?;
         let sample_format = config.sample_format();
 
         let mut stream_config: cpal::StreamConfig = config.into();
         stream_config.sample_rate.0 = 44100;
 
-        Self {
+        Ok(Self {
             _host: host,
             device,
 
             stream_config,
             sample_format,
-        }
+        })
     }
 
-    fn run<T: cpal::Sample>(&self, rx: std::sync::mpsc::Receiver<MidiEvent>) -> cpal::Stream {
+    fn run<T: cpal::Sample>(&self, rx: Receiver<MidiEvent>, path: PathBuf) -> cpal::Stream {
         let mut buff: [f32; SAMPLES_SIZE] = [0.0f32; SAMPLES_SIZE];
 
         let synth = {
@@ -55,7 +57,7 @@ impl SynthBackend {
             rate.set((sample_rate / 2) as f64);
 
             let synth = fluidlite::Synth::new(settings).unwrap();
-            synth.sfload("font.sf2", true).unwrap();
+            synth.sfload(path, true).unwrap();
             synth.set_sample_rate(sample_rate as f32);
             synth.set_gain(1.0);
 
@@ -112,19 +114,19 @@ impl SynthBackend {
         stream
     }
 
-    pub fn new_output_connection(&mut self) -> SynthOutputConnection {
+    pub fn new_output_connection(&mut self, path: PathBuf) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
         let _stream = match self.sample_format {
-            cpal::SampleFormat::F32 => self.run::<f32>(rx),
-            cpal::SampleFormat::I16 => self.run::<i16>(rx),
-            cpal::SampleFormat::U16 => self.run::<u16>(rx),
+            cpal::SampleFormat::F32 => self.run::<f32>(rx, path),
+            cpal::SampleFormat::I16 => self.run::<i16>(rx, path),
+            cpal::SampleFormat::U16 => self.run::<u16>(rx, path),
         };
 
         SynthOutputConnection { _stream, tx }
     }
 
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
-        vec![OutputDescriptor::Synth]
+        vec![OutputDescriptor::Synth(None)]
     }
 }
 

@@ -164,10 +164,13 @@ impl Scene for MenuScene {
                     let event = crate::block_on(async { f.await });
 
                     match event {
-                        iced_menu::Message::MainMenuDone(midi, id, out) => {
+                        iced_menu::Message::MainMenuDone(midi, out) => {
+                            let program = self.iced_state.program();
+
                             self.main_state.midi_file = Some(midi);
 
-                            self.main_state.output_manager.selected_output_id = Some(id);
+                            self.main_state.output_manager.selected_output_id =
+                                Some(program.carousel.id());
                             self.main_state.output_manager.connect(out);
 
                             return SceneEvent::MainMenu(Event::Play);

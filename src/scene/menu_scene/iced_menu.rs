@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use iced_native::{
     image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
     Program, Row, Text, VerticalAlignment,
@@ -8,10 +10,12 @@ use crate::output_manager::OutputDescriptor;
 
 pub struct IcedMenu {
     midi_file: Option<lib_midi::Midi>,
+    pub font_path: Option<PathBuf>,
 
-    carousel: Carousel,
+    pub carousel: Carousel,
 
     file_select_button: neo_btn::State,
+    synth_button: neo_btn::State,
     prev_button: neo_btn::State,
     next_button: neo_btn::State,
     play_button: neo_btn::State,
@@ -20,6 +24,7 @@ pub struct IcedMenu {
 #[derive(Debug, Clone)]
 pub enum Message {
     FileSelectPressed,
+    FontSelectPressed,
 
     PrevPressed,
     NextPressed,
@@ -27,7 +32,7 @@ pub enum Message {
 
     OutputsUpdated(Vec<OutputDescriptor>),
 
-    MainMenuDone(lib_midi::Midi, usize, OutputDescriptor),
+    MainMenuDone(lib_midi::Midi, OutputDescriptor),
 }
 
 impl IcedMenu {
@@ -45,10 +50,12 @@ impl IcedMenu {
 
         Self {
             midi_file,
+            font_path: None,
 
             carousel,
 
             file_select_button: neo_btn::State::new(),
+            synth_button: neo_btn::State::new(),
             prev_button: neo_btn::State::new(),
             next_button: neo_btn::State::new(),
             play_button: neo_btn::State::new(),
@@ -90,6 +97,24 @@ impl Program for IcedMenu {
                 }
             }
 
+            Message::FontSelectPressed => {
+                use nfd2::Response;
+
+                match nfd2::DialogBuilder::single()
+                    .filter("sf2")
+                    .open()
+                    .expect("Font Dialog Error")
+                {
+                    Response::Okay(path) => {
+                        log::info!("Font path = {:?}", path);
+                        self.font_path = Some(path);
+                    }
+                    _ => {
+                        log::error!("User canceled dialog");
+                    }
+                }
+            }
+
             Message::NextPressed => {
                 self.carousel.next();
             }
@@ -99,18 +124,23 @@ impl Program for IcedMenu {
 
             Message::PlayPressed => {
                 if self.midi_file.is_some() {
-                    async fn play(
-                        midi: lib_midi::Midi,
-                        id: usize,
-                        out: OutputDescriptor,
-                    ) -> Message {
-                        Message::MainMenuDone(midi, id, out)
+                    async fn play(m: Message) -> Message {
+                        m
                     }
 
                     if self.midi_file.is_some() {
                         if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
                             if let Some(port) = self.carousel.get_item() {
-                                return Command::from(play(midi, self.carousel.id, port.clone()));
+                                let port = if let OutputDescriptor::Synth(_) = port {
+                                    OutputDescriptor::Synth(std::mem::replace(
+                                        &mut self.font_path,
+                                        None,
+                                    ))
+                                } else {
+                                    port.clone()
+                                };
+                                let event = Message::MainMenuDone(midi, port);
+                                return Command::from(play(event));
                             }
                         }
                     }
@@ -121,7 +151,7 @@ impl Program for IcedMenu {
                 self.carousel.update(outs);
             }
 
-            Message::MainMenuDone(_, _, _) => {}
+            Message::MainMenuDone(_, _) => {}
         }
 
         Command::none()
@@ -142,52 +172,65 @@ impl Program for IcedMenu {
                 .on_press(Message::FileSelectPressed),
             );
 
-            let item = self
-                .carousel
-                .get_item()
+            let item = self.carousel.get_item();
+
+            let label = item
                 .map(|o| o.to_string())
                 .unwrap_or("Disconected".to_string());
 
-            let text = Text::new(item)
+            let output = Text::new(label)
                 .color(Color::WHITE)
-                // .height(Length::Units(100))
                 .size(30)
                 .horizontal_alignment(HorizontalAlignment::Center)
                 .vertical_alignment(VerticalAlignment::Center);
 
-            let select_row = Row::new()
-                .height(Length::Units(50))
-                .push(
-                    NeoBtn::new(
-                        &mut self.prev_button,
-                        Text::new("<")
-                            .size(40)
-                            .horizontal_alignment(HorizontalAlignment::Center)
-                            .vertical_alignment(VerticalAlignment::Center),
-                    )
-                    .width(Length::Fill)
-                    .disabled(!self.carousel.check_prev())
-                    .on_press(Message::PrevPressed),
+            let mut select_row = Row::new().height(Length::Units(50)).push(
+                NeoBtn::new(
+                    &mut self.prev_button,
+                    Text::new("<")
+                        .size(40)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .vertical_alignment(VerticalAlignment::Center),
                 )
-                .push(
+                .width(Length::Fill)
+                .disabled(!self.carousel.check_prev())
+                .on_press(Message::PrevPressed),
+            );
+
+            if let Some(OutputDescriptor::Synth(_)) = item {
+                select_row = select_row.push(
                     NeoBtn::new(
-                        &mut self.next_button,
-                        Text::new(">")
-                            .size(40)
+                        &mut self.synth_button,
+                        Text::new("Soundfont")
+                            .size(20)
                             .horizontal_alignment(HorizontalAlignment::Center)
                             .vertical_alignment(VerticalAlignment::Center),
                     )
-                    .width(Length::Fill)
-                    .disabled(!self.carousel.check_next())
-                    .on_press(Message::NextPressed),
+                    .width(Length::Units(100))
+                    .height(Length::Fill)
+                    .on_press(Message::FontSelectPressed),
                 );
+            }
+
+            select_row = select_row.push(
+                NeoBtn::new(
+                    &mut self.next_button,
+                    Text::new(">")
+                        .size(40)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .vertical_alignment(VerticalAlignment::Center),
+                )
+                .width(Length::Fill)
+                .disabled(!self.carousel.check_next())
+                .on_press(Message::NextPressed),
+            );
 
             let controls = Column::new()
                 .align_items(Align::Center)
                 .width(Length::Units(500))
                 .spacing(30)
                 .push(file_select_button)
-                .push(text)
+                .push(output)
                 .push(select_row);
 
             let controls = Container::new(controls).width(Length::Fill).center_x();
@@ -238,7 +281,6 @@ impl Program for IcedMenu {
                 };
 
             let footer = Container::new(content)
-                .padding(10)
                 .width(Length::Fill)
                 .height(Length::Units(70))
                 .align_x(Align::End)
@@ -250,7 +292,7 @@ impl Program for IcedMenu {
     }
 }
 
-struct Carousel {
+pub struct Carousel {
     outputs: Vec<OutputDescriptor>,
     id: usize,
 }
@@ -261,6 +303,10 @@ impl Carousel {
             outputs: Vec::new(),
             id: 0,
         }
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
     }
 
     fn update(&mut self, outs: Vec<OutputDescriptor>) {

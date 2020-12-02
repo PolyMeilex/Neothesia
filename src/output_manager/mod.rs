@@ -6,12 +6,12 @@ use synth_backend::SynthBackend;
 
 use std::{
     fmt::{self, Display, Formatter},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputDescriptor {
-    Synth,
+    Synth(Option<PathBuf>),
     MidiOut(MidiPortInfo),
     DummyOutput,
 }
@@ -19,7 +19,7 @@ pub enum OutputDescriptor {
 impl Display for OutputDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            OutputDescriptor::Synth => write!(f, "Buildin Synth"),
+            OutputDescriptor::Synth(_) => write!(f, "Buildin Synth"),
             OutputDescriptor::MidiOut(info) => write!(f, "{}", info),
             OutputDescriptor::DummyOutput => write!(f, "No Output"),
         }
@@ -45,11 +45,12 @@ pub struct OutputManager {
 
 impl OutputManager {
     pub fn new() -> Self {
-        let synth_backend = if Path::new("./font.sf2").exists() {
-            Some(SynthBackend::new())
-        } else {
-            log::info!("./font.sf2 not found");
-            None
+        let synth_backend = match SynthBackend::new() {
+            Ok(synth_backend) => Some(synth_backend),
+            Err(err) => {
+                log::error!("{:?}", err);
+                None
+            }
         };
 
         let midi_backend = match MidiBackend::new() {
@@ -72,6 +73,8 @@ impl OutputManager {
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
 
+        outs.push(OutputDescriptor::DummyOutput);
+
         if let Some(synth) = &self.synth_backend {
             outs.append(&mut synth.get_outputs());
         }
@@ -79,17 +82,25 @@ impl OutputManager {
             outs.append(&mut midi.get_outputs());
         }
 
-        outs.push(OutputDescriptor::DummyOutput);
-
         outs
     }
 
     pub fn connect(&mut self, desc: OutputDescriptor) {
         if desc != self.output_connection.0 {
             match desc {
-                OutputDescriptor::Synth => {
+                OutputDescriptor::Synth(ref font) => {
                     if let Some(ref mut synth) = self.synth_backend {
-                        self.output_connection = (desc, Box::new(synth.new_output_connection()));
+                        if let Some(font) = font.clone() {
+                            self.output_connection =
+                                (desc, Box::new(synth.new_output_connection(font)));
+                        } else {
+                            if Path::new("./default.sf2").exists() {
+                                self.output_connection = (
+                                    desc,
+                                    Box::new(synth.new_output_connection("./default.sf2".into())),
+                                );
+                            }
+                        }
                     }
                 }
                 OutputDescriptor::MidiOut(ref info) => {

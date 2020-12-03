@@ -5,9 +5,10 @@ authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["compile_shader"]
+default = ["compile_shader","synth"]
 compile_shader = []
 record=[]
+synth=["cpal","fluidlite","fluidlite-lib"]
 
 [dependencies]
 zerocopy = "0.3.0"
@@ -30,6 +31,10 @@ midir = "0.7.0"
 iced_native = {git="https://github.com/hecrj/iced.git"} 
 iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
 iced_graphics = {git="https://github.com/hecrj/iced.git"} 
+
+cpal = {version="0.13.1", optional = true}
+fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
+fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

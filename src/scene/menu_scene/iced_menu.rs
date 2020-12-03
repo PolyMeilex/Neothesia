@@ -132,13 +132,12 @@ impl Program for IcedMenu {
                     if self.midi_file.is_some() {
                         if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
                             if let Some(port) = self.carousel.get_item() {
-                                let port = if let OutputDescriptor::Synth(_) = port {
-                                    OutputDescriptor::Synth(std::mem::replace(
-                                        &mut self.font_path,
-                                        None,
-                                    ))
-                                } else {
-                                    port.clone()
+                                let port = match port {
+                                    #[cfg(feature = "synth")]
+                                    OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
+                                        std::mem::replace(&mut self.font_path, None),
+                                    ),
+                                    _ => port.clone(),
                                 };
                                 let event = Message::MainMenuDone(midi, port);
                                 return Command::from(play(event));
@@ -198,6 +197,7 @@ impl Program for IcedMenu {
                 .on_press(Message::PrevPressed),
             );
 
+            #[cfg(feature = "synth")]
             if let Some(OutputDescriptor::Synth(_)) = item {
                 select_row = select_row.push(
                     NeoBtn::new(

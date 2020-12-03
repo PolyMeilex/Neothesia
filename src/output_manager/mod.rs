@@ -1,16 +1,20 @@
 mod midi_backend;
+use midi_backend::{MidiBackend, MidiPortInfo};
+
+#[cfg(feature = "synth")]
 mod synth_backend;
 
-use midi_backend::{MidiBackend, MidiPortInfo};
+#[cfg(feature = "synth")]
 use synth_backend::SynthBackend;
 
 use std::{
     fmt::{self, Display, Formatter},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputDescriptor {
+    #[cfg(feature = "synth")]
     Synth(Option<PathBuf>),
     MidiOut(MidiPortInfo),
     DummyOutput,
@@ -19,6 +23,7 @@ pub enum OutputDescriptor {
 impl Display for OutputDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            #[cfg(feature = "synth")]
             OutputDescriptor::Synth(_) => write!(f, "Buildin Synth"),
             OutputDescriptor::MidiOut(info) => write!(f, "{}", info),
             OutputDescriptor::DummyOutput => write!(f, "No Output"),
@@ -35,6 +40,7 @@ struct DummyOutput {}
 impl OutputConnection for DummyOutput {}
 
 pub struct OutputManager {
+    #[cfg(feature = "synth")]
     synth_backend: Option<SynthBackend>,
     midi_backend: Option<MidiBackend>,
 
@@ -46,6 +52,7 @@ pub struct OutputManager {
 
 impl OutputManager {
     pub fn new() -> Self {
+        #[cfg(feature = "synth")]
         let synth_backend = match SynthBackend::new() {
             Ok(synth_backend) => Some(synth_backend),
             Err(err) => {
@@ -63,6 +70,7 @@ impl OutputManager {
         };
 
         Self {
+            #[cfg(feature = "synth")]
             synth_backend,
             midi_backend,
 
@@ -77,6 +85,7 @@ impl OutputManager {
 
         outs.push(OutputDescriptor::DummyOutput);
 
+        #[cfg(feature = "synth")]
         if let Some(synth) = &self.synth_backend {
             outs.append(&mut synth.get_outputs());
         }
@@ -90,6 +99,7 @@ impl OutputManager {
     pub fn connect(&mut self, desc: OutputDescriptor) {
         if desc != self.output_connection.0 {
             match desc {
+                #[cfg(feature = "synth")]
                 OutputDescriptor::Synth(ref font) => {
                     if let Some(ref mut synth) = self.synth_backend {
                         if let Some(font) = font.clone() {
@@ -97,7 +107,7 @@ impl OutputManager {
                                 (desc, Box::new(synth.new_output_connection(&font)));
                             self.selected_font_path = Some(font);
                         } else {
-                            let path = Path::new("./default.sf2");
+                            let path = std::path::Path::new("./default.sf2");
                             if path.exists() {
                                 let path = path.into();
                                 self.output_connection =

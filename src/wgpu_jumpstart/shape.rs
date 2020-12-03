@@ -40,10 +40,10 @@ impl Shape {
             },
         ];
 
-        #[cfg_attr(rustfmt, rustfmt_skip)] 
-        const INDICES: &[u16] = &[     
+        #[rustfmt::skip]
+        const INDICES: &[u16] = &[
             0, 1, 2,
-            2, 3, 0 
+            2, 3, 0
         ];
 
         Self::new(device, VERTICES, INDICES)
@@ -65,10 +65,10 @@ impl Shape {
             },
         ];
 
-        #[cfg_attr(rustfmt, rustfmt_skip)] 
-        const INDICES: &[u16] = &[     
+        #[rustfmt::skip]
+        const INDICES: &[u16] = &[
             0, 1, 2,
-            2, 3, 0 
+            2, 3, 0
         ];
 
         Self::new(device, VERTICES, INDICES)
@@ -90,7 +90,7 @@ impl Shape {
             },
         ];
 
-        #[cfg_attr(rustfmt, rustfmt_skip)]
+        #[rustfmt::skip]
         const INDICES: &[u16] = &[
             0, 1, 2,
             0, 2, 3

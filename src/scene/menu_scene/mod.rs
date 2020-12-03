@@ -7,7 +7,6 @@ use iced_menu::IcedMenu;
 use winit::event::WindowEvent;
 
 use crate::{
-    output_manager::OutputDescriptor,
     scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
     ui::iced_conversion,

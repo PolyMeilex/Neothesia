@@ -1,5 +1,5 @@
 use iced_native::{
-    keyboard::{self, KeyCode, ModifiersState},
+    keyboard::{self, KeyCode, Modifiers},
     mouse, window, Event, Point,
 };
 
@@ -112,8 +112,8 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     }
 }
 
-pub fn modifiers_state(modifiers: winit::event::ModifiersState) -> ModifiersState {
-    ModifiersState {
+pub fn modifiers_state(modifiers: winit::event::ModifiersState) -> Modifiers {
+    Modifiers {
         shift: modifiers.shift(),
         control: modifiers.ctrl(),
         alt: modifiers.alt(),

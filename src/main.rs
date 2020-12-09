@@ -238,9 +238,15 @@ fn main() {
         .with_inner_size(winit::dpi::LogicalSize {
             width: 1080.0,
             height: 720.0,
-        })
-        .build(&event_loop)
-        .unwrap();
+        });
+
+    #[cfg(target_os = "windows")]
+    let winit_window = {
+        use winit::platform::windows::WindowBuilderExtWindows;
+        winit_window.with_drag_and_drop(false)
+    };
+
+    let winit_window = winit_window.build(&event_loop).unwrap();
 
     let (window, gpu) = block_on(Window::new(winit_window)).unwrap();
 

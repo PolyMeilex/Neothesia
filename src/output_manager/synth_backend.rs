@@ -33,8 +33,7 @@ impl SynthBackend {
         let config = device.default_output_config()?;
         let sample_format = config.sample_format();
 
-        let mut stream_config: cpal::StreamConfig = config.into();
-        stream_config.sample_rate.0 = 44100;
+        let stream_config: cpal::StreamConfig = config.into();
 
         Ok(Self {
             _host: host,

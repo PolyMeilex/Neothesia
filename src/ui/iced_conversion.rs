@@ -1,8 +1,20 @@
+//! https://github.com/hecrj/iced/blob/master/winit/src/conversion.rs
 use iced_native::{
     keyboard::{self, KeyCode, Modifiers},
     mouse, window, Event, Point,
 };
 
+/// The mode of a window-based application.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    /// The application appears in its own window.
+    Windowed,
+
+    /// The application takes the whole screen of its current monitor.
+    Fullscreen,
+}
+
+/// Converts a winit window event into an iced event.
 pub fn window_event(
     event: &winit::event::WindowEvent<'_>,
     scale_factor: f64,
@@ -76,7 +88,7 @@ pub fn window_event(
             ..
         } => Some(Event::Keyboard({
             let key_code = key_code(*virtual_keycode);
-            let modifiers = modifiers_state(modifiers);
+            let modifiers = self::modifiers(modifiers);
 
             match state {
                 winit::event::ElementState::Pressed => keyboard::Event::KeyPressed {
@@ -90,7 +102,7 @@ pub fn window_event(
             }
         })),
         WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
-            keyboard::Event::ModifiersChanged(modifiers_state(*new_modifiers)),
+            keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
         )),
         WindowEvent::HoveredFile(path) => {
             Some(Event::Window(window::Event::FileHovered(path.clone())))
@@ -103,16 +115,58 @@ pub fn window_event(
     }
 }
 
+/// Converts a [`Mode`] to a [`winit`] fullscreen mode.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn fullscreen(
+    monitor: Option<winit::monitor::MonitorHandle>,
+    mode: Mode,
+) -> Option<winit::window::Fullscreen> {
+    match mode {
+        Mode::Windowed => None,
+        Mode::Fullscreen => Some(winit::window::Fullscreen::Borderless(monitor)),
+    }
+}
+
+/// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn mouse_interaction(interaction: mouse::Interaction) -> winit::window::CursorIcon {
+    use mouse::Interaction;
+
+    match interaction {
+        Interaction::Idle => winit::window::CursorIcon::Default,
+        Interaction::Pointer => winit::window::CursorIcon::Hand,
+        Interaction::Working => winit::window::CursorIcon::Progress,
+        Interaction::Grab => winit::window::CursorIcon::Grab,
+        Interaction::Grabbing => winit::window::CursorIcon::Grabbing,
+        Interaction::Crosshair => winit::window::CursorIcon::Crosshair,
+        Interaction::Text => winit::window::CursorIcon::Text,
+        Interaction::ResizingHorizontally => winit::window::CursorIcon::EwResize,
+        Interaction::ResizingVertically => winit::window::CursorIcon::NsResize,
+    }
+}
+
+/// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
         winit::event::MouseButton::Right => mouse::Button::Right,
         winit::event::MouseButton::Middle => mouse::Button::Middle,
-        winit::event::MouseButton::Other(other) => mouse::Button::Other(other),
+        winit::event::MouseButton::Other(other) => mouse::Button::Other(other as u8),
     }
 }
 
-pub fn modifiers_state(modifiers: winit::event::ModifiersState) -> Modifiers {
+/// Converts some `ModifiersState` from [`winit`] to an [`iced_native`]
+/// modifiers state.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn modifiers(modifiers: winit::event::ModifiersState) -> Modifiers {
     Modifiers {
         shift: modifiers.shift(),
         control: modifiers.ctrl(),
@@ -121,12 +175,17 @@ pub fn modifiers_state(modifiers: winit::event::ModifiersState) -> Modifiers {
     }
 }
 
+/// Converts a physical cursor position to a logical `Point`.
 pub fn cursor_position(position: winit::dpi::PhysicalPosition<f64>, scale_factor: f64) -> Point {
     let logical_position = position.to_logical(scale_factor);
 
     Point::new(logical_position.x, logical_position.y)
 }
 
+/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> KeyCode {
     match virtual_keycode {
         winit::event::VirtualKeyCode::Key1 => KeyCode::Key1,
@@ -295,6 +354,7 @@ pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> KeyCode {
     }
 }
 
+// As defined in: http://www.unicode.org/faq/private_use.html
 pub(crate) fn is_private_use_character(c: char) -> bool {
     match c {
         '\u{E000}'..='\u{F8FF}' | '\u{F0000}'..='\u{FFFFD}' | '\u{100000}'..='\u{10FFFD}' => true,

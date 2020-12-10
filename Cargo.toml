@@ -14,7 +14,7 @@ synth=["cpal","fluidlite","fluidlite-lib"]
 zerocopy = "0.3.0"
 futures = "0.3.8"
 
-winit = "0.23.0"
+winit = "0.24.0"
 
 wgpu = "0.6.2"
 wgpu_glyph = "0.10.0"
@@ -28,11 +28,11 @@ nfd2 = "0.2.3"
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = {git="https://github.com/hecrj/iced.git"} 
-iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
-iced_graphics = {git="https://github.com/hecrj/iced.git"} 
+iced_native = "0.3.0"
+iced_wgpu = {version="0.3.0", features=["image"]} 
+iced_graphics = "0.1.0"
 
-cpal = {version="0.13.1", optional = true}
+cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 
@@ -45,18 +45,3 @@ fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional
 
 [build-dependencies]
 glsl-to-spirv = "0.1.7"
-
-
-[patch.crates-io]
-iced_native = {git="https://github.com/hecrj/iced.git"} 
-iced_wgpu = {git="https://github.com/hecrj/iced.git", features=["image"]} 
-iced_graphics = {git="https://github.com/hecrj/iced.git"} 
-iced_core = {git="https://github.com/hecrj/iced.git"} 
-iced_futures = {git="https://github.com/hecrj/iced.git"} 
-iced_style = {git="https://github.com/hecrj/iced.git"} 
-
-# wgpu = {git ="https://github.com/gfx-rs/wgpu-rs.git"}
-# wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# wasm-bindgen-futures = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

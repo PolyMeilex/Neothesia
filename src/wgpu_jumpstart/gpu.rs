@@ -24,6 +24,9 @@ impl Gpu {
             .await
             .ok_or(GpuInitError::AdapterRequest)?;
 
+        let adapter_info = adapter.get_info();
+        log::info!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
+
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {

@@ -64,7 +64,7 @@ impl OutputManager {
         let midi_backend = match MidiBackend::new() {
             Ok(midi_device_manager) => Some(midi_device_manager),
             Err(e) => {
-                log::error!("{:?}", e);
+                log::error!("{}", e);
                 None
             }
         };

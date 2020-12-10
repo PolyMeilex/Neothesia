@@ -121,7 +121,7 @@ impl SceneTransition {
 
                 let mut alpha = 1.0 - self.n;
 
-                self.n += 0.03;
+                self.n += 0.05;
                 if self.n >= 1.0 {
                     self.n = 0.0;
                     self.active = false;
@@ -152,7 +152,7 @@ impl SceneTransition {
 
                 let alpha = 0.0 + self.n;
 
-                self.n += 0.03;
+                self.n += 0.05;
                 if self.n >= 1.0 {
                     self.n = 0.0;
                     self.active = false;

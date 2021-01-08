@@ -125,7 +125,7 @@ impl Scene for MenuScene {
             if let winit::event::ElementState::Released = input.state {
                 if let Some(key) = input.virtual_keycode {
                     match key {
-                        winit::event::VirtualKeyCode::Space => self
+                        winit::event::VirtualKeyCode::Tab => self
                             .iced_state
                             .queue_message(iced_menu::Message::FileSelectPressed),
                         winit::event::VirtualKeyCode::Left => self

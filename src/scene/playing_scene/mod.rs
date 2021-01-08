@@ -29,6 +29,7 @@ pub struct PlayingScene {
     rectangle_pipeline: RectanglePipeline,
 
     text_toast: Option<Toast>,
+    playback_offset: f32,
 }
 
 impl PlayingScene {
@@ -53,6 +54,7 @@ impl PlayingScene {
             rectangle_pipeline: RectanglePipeline::new(&target.gpu, &target.transform_uniform),
 
             text_toast: None,
+            playback_offset: 0.0,
         }
     }
 
@@ -61,6 +63,27 @@ impl PlayingScene {
             "Speed: {}",
             (self.main_state.speed_multiplier * 100.0).round() / 100.0
         );
+
+        self.text_toast = Some(Toast::new(move |target| {
+            let text = vec![wgpu_glyph::Text::new(&s)
+                .with_color([1.0, 1.0, 1.0, 1.0])
+                .with_scale(20.0)];
+
+            target.text_renderer.queue_text(wgpu_glyph::Section {
+                text,
+                screen_position: (0.0, 20.0),
+                layout: wgpu_glyph::Layout::Wrap {
+                    line_breaker: Default::default(),
+                    h_align: wgpu_glyph::HorizontalAlign::Left,
+                    v_align: wgpu_glyph::VerticalAlign::Top,
+                },
+                ..Default::default()
+            });
+        }));
+    }
+
+    fn offset_toast(&mut self) {
+        let s = format!("Offset: {}", (self.playback_offset * 100.0).round() / 100.0);
 
         self.text_toast = Some(Toast::new(move |target| {
             let text = vec![wgpu_glyph::Text::new(&s)
@@ -133,16 +156,22 @@ impl Scene for PlayingScene {
             let p = x / window_w;
             log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
             self.player.set_percentage_time(&mut self.main_state, p);
-            self.player.start_rewind(RewindControler::Mouse);
+
+            if !self.player.rewind_controler.is_rewinding() {
+                self.player.start_rewind(RewindControler::Mouse {
+                    was_paused: self.player.timer.paused,
+                });
+            }
         } else {
-            if let RewindControler::Mouse = self.player.rewind_controler {
+            if let RewindControler::Mouse { .. } = self.player.rewind_controler {
                 self.player.stop_rewind();
             }
         }
 
         self.piano_keyboard
             .update_notes_state(&mut target.gpu, notes_on);
-        self.notes.update(&mut target.gpu, self.player.time);
+        self.notes
+            .update(&mut target.gpu, self.player.time + self.playback_offset);
 
         // Toasts
         {
@@ -203,7 +232,12 @@ impl Scene for PlayingScene {
                             -0.0001
                         };
 
-                        self.player.start_rewind(RewindControler::Keyboard(speed));
+                        if !self.player.rewind_controler.is_rewinding() {
+                            self.player.start_rewind(RewindControler::Keyboard {
+                                speed,
+                                was_paused: self.player.timer.paused,
+                            });
+                        }
                     } else {
                         self.player.stop_rewind();
                     }
@@ -216,7 +250,12 @@ impl Scene for PlayingScene {
                             0.0001
                         };
 
-                        self.player.start_rewind(RewindControler::Keyboard(speed));
+                        if !self.player.rewind_controler.is_rewinding() {
+                            self.player.start_rewind(RewindControler::Keyboard {
+                                speed,
+                                was_paused: self.player.timer.paused,
+                            });
+                        }
                     } else {
                         self.player.stop_rewind();
                     }
@@ -240,6 +279,19 @@ impl Scene for PlayingScene {
                         }
 
                         self.speed_toast();
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Minus) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        self.playback_offset -= 0.1;
+                        self.offset_toast();
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Plus)
+                | Some(winit::event::VirtualKeyCode::Equals) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        self.playback_offset += 0.1;
+                        self.offset_toast();
                     }
                 }
                 _ => {}
@@ -298,8 +350,8 @@ impl Player {
     }
 
     fn update(&mut self, main_state: &mut MainState) -> [(bool, usize); 88] {
-        if let RewindControler::Keyboard(n) = self.rewind_controler {
-            let p = self.percentage + n;
+        if let RewindControler::Keyboard { speed, .. } = self.rewind_controler {
+            let p = self.percentage + speed;
             self.set_percentage_time(main_state, p);
         }
 
@@ -356,8 +408,17 @@ impl Player {
         self.rewind_controler = controler;
     }
     fn stop_rewind(&mut self) {
-        self.timer.resume();
-        self.rewind_controler = RewindControler::None;
+        let controler = std::mem::replace(&mut self.rewind_controler, RewindControler::None);
+
+        let was_paused = match controler {
+            RewindControler::Keyboard { was_paused, .. } => was_paused,
+            RewindControler::Mouse { was_paused } => was_paused,
+            RewindControler::None => return,
+        };
+
+        if !was_paused {
+            self.timer.resume();
+        }
     }
 
     fn set_time(&mut self, main_state: &mut MainState, time: f32) {
@@ -381,9 +442,17 @@ impl Player {
 }
 
 enum RewindControler {
-    Keyboard(f32),
-    Mouse,
+    Keyboard { speed: f32, was_paused: bool },
+    Mouse { was_paused: bool },
     None,
+}
+impl RewindControler {
+    fn is_rewinding(&self) -> bool {
+        match self {
+            RewindControler::None => false,
+            _ => true,
+        }
+    }
 }
 
 struct Toast {

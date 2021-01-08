@@ -108,7 +108,12 @@ impl Scene for PlayingScene {
             self.player.set_time(
                 &mut self.main_state,
                 p * (self.player.midi_last_note_end + 3.0),
-            )
+            );
+            self.player.start_rewind(RewindControler::Mouse);
+        } else {
+            if let RewindControler::Mouse = self.player.rewind_controler {
+                self.player.stop_rewind();
+            }
         }
 
         self.piano_keyboard
@@ -157,22 +162,26 @@ impl Scene for PlayingScene {
                 }
                 Some(winit::event::VirtualKeyCode::Left) => {
                     if let winit::event::ElementState::Pressed = input.state {
-                        if target.window.state.modifers_state.shift() {
-                            self.player.start_rewind(-0.0001 * 50.0);
+                        let speed = if target.window.state.modifers_state.shift() {
+                            -0.0001 * 50.0
                         } else {
-                            self.player.start_rewind(-0.0001);
-                        }
+                            -0.0001
+                        };
+
+                        self.player.start_rewind(RewindControler::Keyboard(speed));
                     } else {
                         self.player.stop_rewind();
                     }
                 }
                 Some(winit::event::VirtualKeyCode::Right) => {
                     if let winit::event::ElementState::Pressed = input.state {
-                        if target.window.state.modifers_state.shift() {
-                            self.player.start_rewind(0.0001 * 50.0);
+                        let speed = if target.window.state.modifers_state.shift() {
+                            0.0001 * 50.0
                         } else {
-                            self.player.start_rewind(0.0001);
-                        }
+                            0.0001
+                        };
+
+                        self.player.start_rewind(RewindControler::Keyboard(speed));
                     } else {
                         self.player.stop_rewind();
                     }
@@ -198,7 +207,7 @@ struct Player {
 
     active: bool,
 
-    rewind_speed: Option<f32>,
+    rewind_controler: RewindControler,
 }
 
 impl Player {
@@ -225,7 +234,7 @@ impl Player {
             time: 0.0,
             active: true,
 
-            rewind_speed: None,
+            rewind_controler: RewindControler::None,
         };
         player.update(main_state);
         player.active = false;
@@ -238,7 +247,7 @@ impl Player {
     }
 
     fn update(&mut self, main_state: &mut MainState) -> [(bool, usize); 88] {
-        if let Some(n) = self.rewind_speed {
+        if let RewindControler::Keyboard(n) = self.rewind_controler {
             let p = self.percentage + n;
             self.set_time(main_state, p * (self.midi_last_note_end + 3.0));
         }
@@ -248,7 +257,7 @@ impl Player {
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
-        if !self.active || self.rewind_speed.is_some() {
+        if !self.active || self.rewind_controler.is_rewinding() {
             return [(false, 0); 88];
         };
 
@@ -299,13 +308,13 @@ impl Player {
         self.timer.pause_resume();
     }
 
-    fn start_rewind(&mut self, speed: f32) {
+    fn start_rewind(&mut self, controler: RewindControler) {
         self.timer.pause();
-        self.rewind_speed = Some(speed);
+        self.rewind_controler = controler;
     }
     fn stop_rewind(&mut self) {
         self.timer.resume();
-        self.rewind_speed = None;
+        self.rewind_controler = RewindControler::None;
     }
 
     fn set_time(&mut self, main_state: &mut MainState, time: f32) {
@@ -317,5 +326,20 @@ impl Player {
             main_state.output_manager.note_off(n.ch, n.note);
         }
         self.active_notes.clear();
+    }
+}
+
+enum RewindControler {
+    Keyboard(f32),
+    Mouse,
+    None,
+}
+
+impl RewindControler {
+    fn is_rewinding(&self) -> bool {
+        match self {
+            RewindControler::Keyboard(_) | RewindControler::Mouse => true,
+            RewindControler::None => false,
+        }
     }
 }

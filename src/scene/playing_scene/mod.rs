@@ -295,14 +295,6 @@ impl Player {
         notes_state
     }
 
-    fn pause(&mut self, main_state: &mut MainState) {
-        self.clear(main_state);
-        self.timer.pause();
-    }
-    fn resume(&mut self, main_state: &mut MainState) {
-        self.clear(main_state);
-        self.timer.resume();
-    }
     fn pause_resume(&mut self, main_state: &mut MainState) {
         self.clear(main_state);
         self.timer.pause_resume();

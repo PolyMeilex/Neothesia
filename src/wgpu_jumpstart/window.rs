@@ -2,6 +2,7 @@ use super::{Gpu, GpuInitError};
 use std::collections::HashMap;
 use winit::dpi::LogicalPosition;
 use winit::dpi::PhysicalPosition;
+use winit::event::ModifiersState;
 use winit::event::MouseButton;
 
 use winit::{
@@ -116,6 +117,8 @@ pub struct WinitState {
 
     pub focused: bool,
 
+    pub modifers_state: ModifiersState,
+
     /// Mouse Was Clicked This Frame
     mouse_clicked_events: Vec<MouseButton>,
     mouse_buttons_state: HashMap<MouseButton, bool>,
@@ -141,6 +144,8 @@ impl WinitState {
             cursor_logical_position,
 
             focused: false,
+
+            modifers_state: ModifiersState::default(),
 
             mouse_clicked_events: Vec::new(),
             mouse_buttons_state: HashMap::new(),
@@ -201,6 +206,9 @@ impl WinitState {
                     if f == &false {
                         self.mouse_buttons_state.clear();
                     }
+                }
+                WindowEvent::ModifiersChanged(state) => {
+                    self.modifers_state = *state;
                 }
                 _ => {}
             },

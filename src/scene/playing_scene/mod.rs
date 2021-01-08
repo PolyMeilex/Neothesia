@@ -27,6 +27,8 @@ pub struct PlayingScene {
     notes: Notes,
     player: Player,
     rectangle_pipeline: RectanglePipeline,
+
+    text_toast: Option<Toast>,
 }
 
 impl PlayingScene {
@@ -49,7 +51,33 @@ impl PlayingScene {
             notes,
             player,
             rectangle_pipeline: RectanglePipeline::new(&target.gpu, &target.transform_uniform),
+
+            text_toast: None,
         }
+    }
+
+    fn speed_toast(&mut self) {
+        let s = format!(
+            "Speed: {}",
+            (self.main_state.speed_multiplier * 100.0).round() / 100.0
+        );
+
+        self.text_toast = Some(Toast::new(move |target| {
+            let text = vec![wgpu_glyph::Text::new(&s)
+                .with_color([1.0, 1.0, 1.0, 1.0])
+                .with_scale(20.0)];
+
+            target.text_renderer.queue_text(wgpu_glyph::Section {
+                text,
+                screen_position: (0.0, 20.0),
+                layout: wgpu_glyph::Layout::Wrap {
+                    line_breaker: Default::default(),
+                    h_align: wgpu_glyph::HorizontalAlign::Left,
+                    v_align: wgpu_glyph::VerticalAlign::Top,
+                },
+                ..Default::default()
+            });
+        }));
     }
 }
 
@@ -104,15 +132,28 @@ impl Scene for PlayingScene {
             let x = pos.x;
             let p = x / window_w;
             log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
-            self.player.set_time(
-                &mut self.main_state,
-                p * (self.player.midi_last_note_end + 3.0),
-            )
+            self.player.set_percentage_time(&mut self.main_state, p);
+            self.player.start_rewind(RewindControler::Mouse);
+        } else {
+            if let RewindControler::Mouse = self.player.rewind_controler {
+                self.player.stop_rewind();
+            }
         }
 
         self.piano_keyboard
             .update_notes_state(&mut target.gpu, notes_on);
         self.notes.update(&mut target.gpu, self.player.time);
+
+        // Toasts
+        {
+            if let Some(mut toast) = self.text_toast.take() {
+                self.text_toast = if toast.draw(target) {
+                    Some(toast)
+                } else {
+                    None
+                };
+            }
+        }
 
         SceneEvent::None
     }
@@ -141,7 +182,7 @@ impl Scene for PlayingScene {
                 .render(&target.transform_uniform, &mut render_pass)
         }
     }
-    fn window_event(&mut self, _target: &mut Target, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         match &event {
             winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(winit::event::VirtualKeyCode::Escape) => {
@@ -152,6 +193,53 @@ impl Scene for PlayingScene {
                 Some(winit::event::VirtualKeyCode::Space) => {
                     if let winit::event::ElementState::Released = input.state {
                         self.player.pause_resume(&mut self.main_state);
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Left) => {
+                    if let winit::event::ElementState::Pressed = input.state {
+                        let speed = if target.window.state.modifers_state.shift() {
+                            -0.0001 * 50.0
+                        } else {
+                            -0.0001
+                        };
+
+                        self.player.start_rewind(RewindControler::Keyboard(speed));
+                    } else {
+                        self.player.stop_rewind();
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Right) => {
+                    if let winit::event::ElementState::Pressed = input.state {
+                        let speed = if target.window.state.modifers_state.shift() {
+                            0.0001 * 50.0
+                        } else {
+                            0.0001
+                        };
+
+                        self.player.start_rewind(RewindControler::Keyboard(speed));
+                    } else {
+                        self.player.stop_rewind();
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Up) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        self.main_state.speed_multiplier += 0.1;
+                        self.player
+                            .set_percentage_time(&mut self.main_state, self.player.percentage);
+
+                        self.speed_toast();
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Down) => {
+                    if let winit::event::ElementState::Released = input.state {
+                        let new = self.main_state.speed_multiplier - 0.1;
+                        if new > 0.0 {
+                            self.main_state.speed_multiplier = new;
+                            self.player
+                                .set_percentage_time(&mut self.main_state, self.player.percentage);
+                        }
+
+                        self.speed_toast();
                     }
                 }
                 _ => {}
@@ -172,7 +260,8 @@ struct Player {
     timer: Timer,
     percentage: f32,
     time: f32,
-    active: bool,
+
+    rewind_controler: RewindControler,
 }
 
 impl Player {
@@ -197,25 +286,31 @@ impl Player {
             timer: Timer::new(),
             percentage: 0.0,
             time: 0.0,
-            active: true,
+
+            rewind_controler: RewindControler::None,
         };
         player.update(main_state);
-        player.active = false;
 
         player
     }
     fn start(&mut self) {
         self.timer.start();
-        self.active = true;
     }
+
     fn update(&mut self, main_state: &mut MainState) -> [(bool, usize); 88] {
-        if !self.active {
-            return [(false, 0); 88];
-        };
+        if let RewindControler::Keyboard(n) = self.rewind_controler {
+            let p = self.percentage + n;
+            self.set_percentage_time(main_state, p);
+        }
+
         self.timer.update();
-        let raw_time = self.timer.get_elapsed() / 1000.0;
+        let raw_time = self.timer.get_elapsed() / 1000.0 * main_state.speed_multiplier;
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
+
+        if self.timer.paused {
+            return [(false, 0); 88];
+        };
 
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
 
@@ -250,18 +345,69 @@ impl Player {
 
         notes_state
     }
+
     fn pause_resume(&mut self, main_state: &mut MainState) {
         self.clear(main_state);
         self.timer.pause_resume();
     }
+
+    fn start_rewind(&mut self, controler: RewindControler) {
+        self.timer.pause();
+        self.rewind_controler = controler;
+    }
+    fn stop_rewind(&mut self) {
+        self.timer.resume();
+        self.rewind_controler = RewindControler::None;
+    }
+
     fn set_time(&mut self, main_state: &mut MainState, time: f32) {
         self.timer.set_time(time * 1000.0);
         self.clear(main_state);
     }
+
+    fn set_percentage_time(&mut self, main_state: &mut MainState, p: f32) {
+        self.set_time(
+            main_state,
+            p * (self.midi_last_note_end + 3.0) / main_state.speed_multiplier,
+        );
+    }
+
     fn clear(&mut self, main_state: &mut MainState) {
         for (_id, n) in self.active_notes.iter() {
             main_state.output_manager.note_off(n.ch, n.note);
         }
         self.active_notes.clear();
+    }
+}
+
+enum RewindControler {
+    Keyboard(f32),
+    Mouse,
+    None,
+}
+
+struct Toast {
+    start_time: std::time::Instant,
+    inner_draw: Box<dyn Fn(&mut Target)>,
+}
+
+impl Toast {
+    fn new(draw: impl Fn(&mut Target) + 'static) -> Self {
+        Self {
+            start_time: std::time::Instant::now(),
+            inner_draw: Box::new(draw),
+        }
+    }
+
+    fn draw(&mut self, target: &mut Target) -> bool {
+        let time = self.start_time.elapsed().as_secs();
+
+        if time < 1 {
+            (*self.inner_draw)(target);
+
+            true
+        } else {
+            false
+        }
     }
 }

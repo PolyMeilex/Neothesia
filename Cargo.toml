@@ -14,7 +14,8 @@ synth=["cpal","fluidlite","fluidlite-lib"]
 zerocopy = "0.3.0"
 futures = "0.3.8"
 
-winit = "0.24.0"
+# winit = "0.24.0"
+winit = { git = "https://github.com/PolyMeilex/winit.git" } 
 
 wgpu = "0.6.2"
 wgpu_glyph = "0.10.0"

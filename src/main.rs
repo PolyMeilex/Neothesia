@@ -28,6 +28,7 @@ mod rectangle_pipeline;
 pub struct MainState {
     pub midi_file: Option<lib_midi::Midi>,
     pub output_manager: OutputManager,
+    pub speed_multiplier: f32,
 }
 
 impl MainState {
@@ -47,6 +48,7 @@ impl MainState {
         Self {
             midi_file,
             output_manager: OutputManager::new(),
+            speed_multiplier: 1.0,
         }
     }
 }
@@ -142,6 +144,24 @@ impl App {
                 self.target.resize();
                 self.game_scene.resize(&mut self.target);
             }
+            WindowEvent::KeyboardInput {
+                input:
+                    winit::event::KeyboardInput {
+                        state: winit::event::ElementState::Pressed,
+                        virtual_keycode: Some(winit::event::VirtualKeyCode::F),
+                        ..
+                    },
+                ..
+            } => {
+                if let Some(_) = self.target.window.winit_window.fullscreen() {
+                    self.target.window.winit_window.set_fullscreen(None);
+                } else {
+                    self.target
+                        .window
+                        .winit_window
+                        .set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+                }
+            }
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             _ => {}
         }
@@ -193,6 +213,7 @@ impl App {
 
         self.scene_event(event, control_flow);
 
+        #[cfg(debug_assertions)]
         self.target.text_renderer.queue_fps(self.fps_timer.fps());
     }
 

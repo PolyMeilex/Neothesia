@@ -262,7 +262,12 @@ impl Scene for PlayingScene {
                 }
                 Some(winit::event::VirtualKeyCode::Up) => {
                     if let winit::event::ElementState::Released = input.state {
-                        self.main_state.speed_multiplier += 0.1;
+                        if target.window.state.modifers_state.shift() {
+                            self.main_state.speed_multiplier += 0.5;
+                        } else {
+                            self.main_state.speed_multiplier += 0.1;
+                        }
+
                         self.player
                             .set_percentage_time(&mut self.main_state, self.player.percentage);
 
@@ -271,7 +276,12 @@ impl Scene for PlayingScene {
                 }
                 Some(winit::event::VirtualKeyCode::Down) => {
                     if let winit::event::ElementState::Released = input.state {
-                        let new = self.main_state.speed_multiplier - 0.1;
+                        let new = if target.window.state.modifers_state.shift() {
+                            self.main_state.speed_multiplier - 0.5
+                        } else {
+                            self.main_state.speed_multiplier - 0.1
+                        };
+
                         if new > 0.0 {
                             self.main_state.speed_multiplier = new;
                             self.player
@@ -283,14 +293,22 @@ impl Scene for PlayingScene {
                 }
                 Some(winit::event::VirtualKeyCode::Minus) => {
                     if let winit::event::ElementState::Released = input.state {
-                        self.playback_offset -= 0.1;
+                        if target.window.state.modifers_state.shift() {
+                            self.playback_offset -= 0.1;
+                        } else {
+                            self.playback_offset -= 0.01;
+                        }
                         self.offset_toast();
                     }
                 }
                 Some(winit::event::VirtualKeyCode::Plus)
                 | Some(winit::event::VirtualKeyCode::Equals) => {
                     if let winit::event::ElementState::Released = input.state {
-                        self.playback_offset += 0.1;
+                        if target.window.state.modifers_state.shift() {
+                            self.playback_offset += 0.1;
+                        } else {
+                            self.playback_offset += 0.01;
+                        }
                         self.offset_toast();
                     }
                 }

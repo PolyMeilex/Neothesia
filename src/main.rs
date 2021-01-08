@@ -142,6 +142,24 @@ impl App {
                 self.target.resize();
                 self.game_scene.resize(&mut self.target);
             }
+            WindowEvent::KeyboardInput {
+                input:
+                    winit::event::KeyboardInput {
+                        state: winit::event::ElementState::Pressed,
+                        virtual_keycode: Some(winit::event::VirtualKeyCode::F),
+                        ..
+                    },
+                ..
+            } => {
+                if let Some(_) = self.target.window.winit_window.fullscreen() {
+                    self.target.window.winit_window.set_fullscreen(None);
+                } else {
+                    self.target
+                        .window
+                        .winit_window
+                        .set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+                }
+            }
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             _ => {}
         }
@@ -193,6 +211,7 @@ impl App {
 
         self.scene_event(event, control_flow);
 
+        #[cfg(debug_assertions)]
         self.target.text_renderer.queue_fps(self.fps_timer.fps());
     }
 

@@ -2,6 +2,7 @@ mod keyboard;
 mod keyboard_pipeline;
 
 use keyboard::PianoKeyboard;
+use winit::event::ModifiersState;
 
 mod notes;
 mod notes_pipeline;
@@ -141,7 +142,7 @@ impl Scene for PlayingScene {
                 .render(&target.transform_uniform, &mut render_pass)
         }
     }
-    fn window_event(&mut self, _target: &mut Target, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         match &event {
             winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
                 Some(winit::event::VirtualKeyCode::Escape) => {
@@ -152,6 +153,28 @@ impl Scene for PlayingScene {
                 Some(winit::event::VirtualKeyCode::Space) => {
                     if let winit::event::ElementState::Released = input.state {
                         self.player.pause_resume(&mut self.main_state);
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Left) => {
+                    if let winit::event::ElementState::Pressed = input.state {
+                        if target.window.state.modifers_state.shift() {
+                            self.player.start_rewind(-0.0001 * 50.0);
+                        } else {
+                            self.player.start_rewind(-0.0001);
+                        }
+                    } else {
+                        self.player.stop_rewind();
+                    }
+                }
+                Some(winit::event::VirtualKeyCode::Right) => {
+                    if let winit::event::ElementState::Pressed = input.state {
+                        if target.window.state.modifers_state.shift() {
+                            self.player.start_rewind(0.0001 * 50.0);
+                        } else {
+                            self.player.start_rewind(0.0001);
+                        }
+                    } else {
+                        self.player.stop_rewind();
                     }
                 }
                 _ => {}
@@ -172,7 +195,10 @@ struct Player {
     timer: Timer,
     percentage: f32,
     time: f32,
+
     active: bool,
+
+    rewind_speed: Option<f32>,
 }
 
 impl Player {
@@ -198,6 +224,8 @@ impl Player {
             percentage: 0.0,
             time: 0.0,
             active: true,
+
+            rewind_speed: None,
         };
         player.update(main_state);
         player.active = false;
@@ -208,14 +236,21 @@ impl Player {
         self.timer.start();
         self.active = true;
     }
+
     fn update(&mut self, main_state: &mut MainState) -> [(bool, usize); 88] {
-        if !self.active {
-            return [(false, 0); 88];
-        };
+        if let Some(n) = self.rewind_speed {
+            let p = self.percentage + n;
+            self.set_time(main_state, p * (self.midi_last_note_end + 3.0));
+        }
+
         self.timer.update();
         let raw_time = self.timer.get_elapsed() / 1000.0;
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
+
+        if !self.active || self.rewind_speed.is_some() {
+            return [(false, 0); 88];
+        };
 
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
 
@@ -250,10 +285,29 @@ impl Player {
 
         notes_state
     }
+
+    fn pause(&mut self, main_state: &mut MainState) {
+        self.clear(main_state);
+        self.timer.pause();
+    }
+    fn resume(&mut self, main_state: &mut MainState) {
+        self.clear(main_state);
+        self.timer.resume();
+    }
     fn pause_resume(&mut self, main_state: &mut MainState) {
         self.clear(main_state);
         self.timer.pause_resume();
     }
+
+    fn start_rewind(&mut self, speed: f32) {
+        self.timer.pause();
+        self.rewind_speed = Some(speed);
+    }
+    fn stop_rewind(&mut self) {
+        self.timer.resume();
+        self.rewind_speed = None;
+    }
+
     fn set_time(&mut self, main_state: &mut MainState, time: f32) {
         self.timer.set_time(time * 1000.0);
         self.clear(main_state);

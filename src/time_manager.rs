@@ -34,12 +34,12 @@ impl Timer {
     pub fn get_elapsed(&self) -> f32 {
         self.time_elapsed as f32 / 1_000_000.0
     }
-    // pub fn pause(&mut self) {
-    //     self.paused = true;
-    // }
-    // pub fn resume(&mut self) {
-    //     self.paused = false;
-    // }
+    pub fn pause(&mut self) {
+        self.paused = true;
+    }
+    pub fn resume(&mut self) {
+        self.paused = false;
+    }
     pub fn pause_resume(&mut self) {
         if self.paused {
             self.paused = false;

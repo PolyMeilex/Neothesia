@@ -28,6 +28,7 @@ mod rectangle_pipeline;
 pub struct MainState {
     pub midi_file: Option<lib_midi::Midi>,
     pub output_manager: OutputManager,
+    pub speed_multiplier: f32,
 }
 
 impl MainState {
@@ -47,6 +48,7 @@ impl MainState {
         Self {
             midi_file,
             output_manager: OutputManager::new(),
+            speed_multiplier: 1.0,
         }
     }
 }

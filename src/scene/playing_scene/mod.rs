@@ -205,8 +205,6 @@ struct Player {
     percentage: f32,
     time: f32,
 
-    active: bool,
-
     rewind_controler: RewindControler,
 }
 
@@ -232,18 +230,15 @@ impl Player {
             timer: Timer::new(),
             percentage: 0.0,
             time: 0.0,
-            active: true,
 
             rewind_controler: RewindControler::None,
         };
         player.update(main_state);
-        player.active = false;
 
         player
     }
     fn start(&mut self) {
         self.timer.start();
-        self.active = true;
     }
 
     fn update(&mut self, main_state: &mut MainState) -> [(bool, usize); 88] {
@@ -257,7 +252,7 @@ impl Player {
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
-        if !self.active || self.rewind_controler.is_rewinding() {
+        if self.timer.paused {
             return [(false, 0); 88];
         };
 
@@ -327,11 +322,11 @@ enum RewindControler {
     None,
 }
 
-impl RewindControler {
-    fn is_rewinding(&self) -> bool {
-        match self {
-            RewindControler::Keyboard(_) | RewindControler::Mouse => true,
-            RewindControler::None => false,
-        }
-    }
-}
+// impl RewindControler {
+//     fn is_rewinding(&self) -> bool {
+//         match self {
+//             RewindControler::Keyboard(_) | RewindControler::Mouse => true,
+//             RewindControler::None => false,
+//         }
+//     }
+// }

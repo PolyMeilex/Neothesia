@@ -18,6 +18,9 @@ pub use output_manager::OutputManager;
 mod transform_uniform;
 use transform_uniform::TransformUniform;
 
+mod config;
+use config::Config;
+
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -28,7 +31,8 @@ mod rectangle_pipeline;
 pub struct MainState {
     pub midi_file: Option<lib_midi::Midi>,
     pub output_manager: OutputManager,
-    pub speed_multiplier: f32,
+
+    pub config: Config,
 }
 
 impl MainState {
@@ -48,7 +52,8 @@ impl MainState {
         Self {
             midi_file,
             output_manager: OutputManager::new(),
-            speed_multiplier: 1.0,
+
+            config: Config::new(),
         }
     }
 }

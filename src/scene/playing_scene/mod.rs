@@ -29,7 +29,6 @@ pub struct PlayingScene {
     rectangle_pipeline: RectanglePipeline,
 
     text_toast: Option<Toast>,
-    playback_offset: f32,
 }
 
 impl PlayingScene {
@@ -54,14 +53,13 @@ impl PlayingScene {
             rectangle_pipeline: RectanglePipeline::new(&target.gpu, &target.transform_uniform),
 
             text_toast: None,
-            playback_offset: 0.0,
         }
     }
 
     fn speed_toast(&mut self) {
         let s = format!(
             "Speed: {}",
-            (self.main_state.speed_multiplier * 100.0).round() / 100.0
+            (self.main_state.config.speed_multiplier * 100.0).round() / 100.0
         );
 
         self.text_toast = Some(Toast::new(move |target| {
@@ -83,7 +81,10 @@ impl PlayingScene {
     }
 
     fn offset_toast(&mut self) {
-        let s = format!("Offset: {}", (self.playback_offset * 100.0).round() / 100.0);
+        let s = format!(
+            "Offset: {}",
+            (self.main_state.config.playback_offset * 100.0).round() / 100.0
+        );
 
         self.text_toast = Some(Toast::new(move |target| {
             let text = vec![wgpu_glyph::Text::new(&s)
@@ -170,8 +171,10 @@ impl Scene for PlayingScene {
 
         self.piano_keyboard
             .update_notes_state(&mut target.gpu, notes_on);
-        self.notes
-            .update(&mut target.gpu, self.player.time + self.playback_offset);
+        self.notes.update(
+            &mut target.gpu,
+            self.player.time + self.main_state.config.playback_offset,
+        );
 
         // Toasts
         {
@@ -263,9 +266,9 @@ impl Scene for PlayingScene {
                 Some(winit::event::VirtualKeyCode::Up) => {
                     if let winit::event::ElementState::Released = input.state {
                         if target.window.state.modifers_state.shift() {
-                            self.main_state.speed_multiplier += 0.5;
+                            self.main_state.config.speed_multiplier += 0.5;
                         } else {
-                            self.main_state.speed_multiplier += 0.1;
+                            self.main_state.config.speed_multiplier += 0.1;
                         }
 
                         self.player
@@ -277,13 +280,13 @@ impl Scene for PlayingScene {
                 Some(winit::event::VirtualKeyCode::Down) => {
                     if let winit::event::ElementState::Released = input.state {
                         let new = if target.window.state.modifers_state.shift() {
-                            self.main_state.speed_multiplier - 0.5
+                            self.main_state.config.speed_multiplier - 0.5
                         } else {
-                            self.main_state.speed_multiplier - 0.1
+                            self.main_state.config.speed_multiplier - 0.1
                         };
 
                         if new > 0.0 {
-                            self.main_state.speed_multiplier = new;
+                            self.main_state.config.speed_multiplier = new;
                             self.player
                                 .set_percentage_time(&mut self.main_state, self.player.percentage);
                         }
@@ -294,10 +297,11 @@ impl Scene for PlayingScene {
                 Some(winit::event::VirtualKeyCode::Minus) => {
                     if let winit::event::ElementState::Released = input.state {
                         if target.window.state.modifers_state.shift() {
-                            self.playback_offset -= 0.1;
+                            self.main_state.config.playback_offset -= 0.1;
                         } else {
-                            self.playback_offset -= 0.01;
+                            self.main_state.config.playback_offset -= 0.01;
                         }
+
                         self.offset_toast();
                     }
                 }
@@ -305,10 +309,11 @@ impl Scene for PlayingScene {
                 | Some(winit::event::VirtualKeyCode::Equals) => {
                     if let winit::event::ElementState::Released = input.state {
                         if target.window.state.modifers_state.shift() {
-                            self.playback_offset += 0.1;
+                            self.main_state.config.playback_offset += 0.1;
                         } else {
-                            self.playback_offset += 0.01;
+                            self.main_state.config.playback_offset += 0.01;
                         }
+
                         self.offset_toast();
                     }
                 }
@@ -374,7 +379,7 @@ impl Player {
         }
 
         self.timer.update();
-        let raw_time = self.timer.get_elapsed() / 1000.0 * main_state.speed_multiplier;
+        let raw_time = self.timer.get_elapsed() / 1000.0 * main_state.config.speed_multiplier;
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
@@ -447,7 +452,7 @@ impl Player {
     fn set_percentage_time(&mut self, main_state: &mut MainState, p: f32) {
         self.set_time(
             main_state,
-            p * (self.midi_last_note_end + 3.0) / main_state.speed_multiplier,
+            p * (self.midi_last_note_end + 3.0) / main_state.config.speed_multiplier,
         );
     }
 

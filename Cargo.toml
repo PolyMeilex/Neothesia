@@ -37,6 +37,9 @@ cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 
+ron = "0.6.4"
+serde = {version="1.0.118",features = ["serde_derive"]}
+
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen" }

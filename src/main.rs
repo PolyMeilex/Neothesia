@@ -161,10 +161,20 @@ impl App {
                 if let Some(_) = self.target.window.winit_window.fullscreen() {
                     self.target.window.winit_window.set_fullscreen(None);
                 } else {
-                    self.target
-                        .window
-                        .winit_window
-                        .set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+                    let monitor = self.target.window.winit_window.current_monitor();
+                    let f = if let Some(monitor) = monitor {
+                        let mut modes = monitor.video_modes();
+                        if let Some(m) = modes.next() {
+                            log::info!("Video #{}: {}", 0, m);
+                            winit::window::Fullscreen::Exclusive(m)
+                        } else {
+                            winit::window::Fullscreen::Borderless(None)
+                        }
+                    } else {
+                        winit::window::Fullscreen::Borderless(None)
+                    };
+
+                    self.target.window.winit_window.set_fullscreen(Some(f));
                 }
             }
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,

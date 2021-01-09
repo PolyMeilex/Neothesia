@@ -12,7 +12,7 @@ synth=["cpal","fluidlite","fluidlite-lib"]
 
 [dependencies]
 zerocopy = "0.3.0"
-futures = "0.3.8"
+futures = "0.3.9"
 
 # winit = "0.24.0"
 winit = { git = "https://github.com/PolyMeilex/winit.git" } 
@@ -30,7 +30,7 @@ lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
 iced_native = "0.3.0"
-iced_wgpu = {version="0.3.0", features=["image"]} 
+iced_wgpu = { version = "0.3.0", features = ["image"] } 
 iced_graphics = "0.1.0"
 
 cpal = { version = "0.13.1", optional = true }
@@ -38,7 +38,7 @@ fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = t
 fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 
 ron = "0.6.4"
-serde = {version="1.0.118",features = ["serde_derive"]}
+serde = { version = "1.0.118", features = ["serde_derive"] }
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

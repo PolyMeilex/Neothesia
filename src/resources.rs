@@ -3,6 +3,7 @@ use std::path::PathBuf;
 pub fn default_sf2() -> PathBuf {
     #[cfg(not(target_os = "macos"))]
     return PathBuf::from("./default.sf2");
+
     #[cfg(target_os = "macos")]
     return bundled_resource_path("default", "sf2")
         .map(PathBuf::from)
@@ -12,6 +13,7 @@ pub fn default_sf2() -> PathBuf {
 pub fn settings_ron() -> PathBuf {
     #[cfg(not(target_os = "macos"))]
     return PathBuf::from("./settings.ron");
+
     #[cfg(target_os = "macos")]
     return bundled_resource_path("settings", "ron")
         .map(PathBuf::from)

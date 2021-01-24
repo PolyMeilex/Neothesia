@@ -83,8 +83,6 @@ impl OutputManager {
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
 
-        outs.push(OutputDescriptor::DummyOutput);
-
         #[cfg(feature = "synth")]
         if let Some(synth) = &self.synth_backend {
             outs.append(&mut synth.get_outputs());
@@ -92,6 +90,8 @@ impl OutputManager {
         if let Some(midi) = &self.midi_backend {
             outs.append(&mut midi.get_outputs());
         }
+
+        outs.push(OutputDescriptor::DummyOutput);
 
         outs
     }

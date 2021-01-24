@@ -117,10 +117,14 @@ impl Program for IcedMenu {
             }
 
             Message::NextPressed => {
-                self.carousel.next();
+                if self.carousel.check_next() {
+                    self.carousel.next();
+                }
             }
             Message::PrevPressed => {
-                self.carousel.prev();
+                if self.carousel.check_prev() {
+                    self.carousel.prev();
+                }
             }
 
             Message::PlayPressed => {
@@ -325,12 +329,16 @@ impl Carousel {
     fn next(&mut self) {
         if self.check_next() {
             self.id += 1;
+        } else {
+            self.id = 0;
         }
     }
 
     fn prev(&mut self) {
         if self.check_prev() {
             self.id -= 1;
+        } else {
+            self.id = self.outputs.len() - 1;
         }
     }
 

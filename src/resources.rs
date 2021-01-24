@@ -14,7 +14,7 @@ pub fn settings_ron() -> PathBuf {
     return PathBuf::from("./settings.ron");
     #[cfg(target_os = "macos")]
     return bundled_resource_path("settings", "ron")
-        .map(PathBuff::from)
+        .map(PathBuf::from)
         .unwrap_or(PathBuf::from("./settings.ron"));
 }
 

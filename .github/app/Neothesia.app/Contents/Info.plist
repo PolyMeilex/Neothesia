@@ -3,7 +3,7 @@
 <plist version="1.0">
     <dict>
         <key>CFBundleExecutable</key>
-        <string>Neothesia</string>
+        <string>neothesia</string>
         <key>CFBundleIdentifier</key>
         <string>io.github.polymeilex.neothesia</string>
         <key>CFBundleName</key>

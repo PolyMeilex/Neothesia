@@ -39,7 +39,9 @@ jobs:
         run: cargo build --release --verbose
       - name: copy binary
         run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
+      - name: zip binary
+        run: zip -r app.zip .github/app/Neothesia.app
       - uses: actions/upload-artifact@v2
         with:
           name: macos-artifact
-          path: .github/app
+          path: app.zip

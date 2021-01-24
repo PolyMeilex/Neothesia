@@ -16,7 +16,7 @@ jobs:
       - name: Chmod +x
         run: chmod +x target/release/neothesia
       - name: zip binary
-        run: zip -r app.zip target/release/neothesia
+        run: zip -rj app.zip target/release/neothesia
       - uses: actions/upload-artifact@v2
         with:
           name: ubuntu-artifact
@@ -42,8 +42,8 @@ jobs:
       - name: copy binary
         run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
       - name: zip binary
-        run: zip -r app.zip .github/app/Neothesia.app
+        run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
       - uses: actions/upload-artifact@v2
         with:
           name: macos-artifact
-          path: app.zip
+          path: .github/app/app.zip

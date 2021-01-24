@@ -1803,6 +1803,7 @@ dependencies = [
  "log",
  "midir",
  "nfd2",
+ "objc",
  "ron",
  "serde",
  "wgpu",

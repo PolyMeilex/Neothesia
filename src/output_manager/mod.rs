@@ -107,7 +107,7 @@ impl OutputManager {
                                 (desc, Box::new(synth.new_output_connection(&font)));
                             self.selected_font_path = Some(font);
                         } else {
-                            let path = std::path::Path::new("./default.sf2");
+                            let path = crate::resources::default_sf2();
                             if path.exists() {
                                 let path = path.into();
                                 self.output_connection =

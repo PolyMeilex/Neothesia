@@ -9,20 +9,24 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install alsa
         run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev
+      - uses: Swatinem/rust-cache@v1
       - name: Build
         run: cargo build --release --verbose
       # - name: Run tests
       #   run: cargo test --verbose
       - name: Chmod +x
         run: chmod +x target/release/neothesia
+      - name: zip binary
+        run: zip -rj app.zip target/release/neothesia
       - uses: actions/upload-artifact@v2
         with:
           name: ubuntu-artifact
-          path: target/release/neothesia
+          path: app.zip
   build_windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - name: Build
         run: cargo build --release --verbose
       # - name: Run tests
@@ -35,13 +39,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - name: Build
         run: cargo build --release --verbose
-      # - name: Run tests
-      #   run: cargo test --verbose
-      - name: Chmod +x
-        run: chmod +x target/release/neothesia
+      - name: copy binary
+        run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
+      - name: zip binary
+        run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
       - uses: actions/upload-artifact@v2
         with:
           name: macos-artifact
-          path: target/release/neothesia
+          path: .github/app/app.zip

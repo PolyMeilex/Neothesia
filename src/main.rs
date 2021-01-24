@@ -28,6 +28,8 @@ use winit::{
 
 mod rectangle_pipeline;
 
+mod resources;
+
 pub struct MainState {
     pub midi_file: Option<lib_midi::Midi>,
     pub output_manager: OutputManager,

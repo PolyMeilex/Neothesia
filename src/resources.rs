@@ -1,17 +1,21 @@
-pub fn default_sf2() -> PathBuff {
+use std::path::PathBuf;
+
+pub fn default_sf2() -> PathBuf {
     #[cfg(not(target_os = "macos"))]
-    return std::path::Path::new("./default.sf2");
+    return PathBuf::from("./default.sf2");
     #[cfg(target_os = "macos")]
     return bundled_resource_path("default", "sf2")
-        .unwrap_or(std::path::Path::new("./default.sf2"));
+        .map(PathBuf::from)
+        .unwrap_or(PathBuf::from("./default.sf2"));
 }
 
-pub fn settings_ron() -> PathBuff {
+pub fn settings_ron() -> PathBuf {
     #[cfg(not(target_os = "macos"))]
-    return std::path::Path::new("./settings.ron");
+    return PathBuf::from("./settings.ron");
     #[cfg(target_os = "macos")]
     return bundled_resource_path("settings", "ron")
-        .unwrap_or(std::path::Path::new("./settings.ron"));
+        .map(PathBuff::from)
+        .unwrap_or(PathBuf::from("./settings.ron"));
 }
 
 #[cfg(target_os = "macos")]

@@ -38,8 +38,8 @@ jobs:
       - name: Build
         run: cargo build --release --verbose
       - name: copy binary
-        run: cp target/release/neothesia .github/Neothesia.app/Contents/MacOS
+        run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
       - uses: actions/upload-artifact@v2
         with:
           name: macos-artifact
-          path: .github/Neothesia.app
+          path: .github/app

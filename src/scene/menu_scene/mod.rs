@@ -24,19 +24,17 @@ pub struct MenuScene {
     bg_pipeline: BgPipeline,
     timer: Timer,
     iced_state: iced_native::program::State<IcedMenu>,
-
-    main_state: MainState,
 }
 
 impl MenuScene {
-    pub fn new(target: &mut Target, mut state: MainState) -> Self {
+    pub fn new(target: &mut Target) -> Self {
         let timer = Timer::new();
 
         let menu = IcedMenu::new(
-            state.midi_file.is_some(),
-            state.output_manager.get_outputs(),
-            state.output_manager.selected_output_id,
-            state.output_manager.selected_font_path.clone(),
+            target.state.midi_file.is_some(),
+            target.state.output_manager.get_outputs(),
+            target.state.output_manager.selected_output_id,
+            target.state.output_manager.selected_font_path.clone(),
         );
         let iced_state = iced_native::program::State::new(
             menu,
@@ -53,8 +51,6 @@ impl MenuScene {
             bg_pipeline: BgPipeline::new(&target.gpu),
             timer,
             iced_state,
-
-            main_state: state,
         };
 
         scene.resize(target);
@@ -63,10 +59,6 @@ impl MenuScene {
 }
 
 impl Scene for MenuScene {
-    fn done(self: Box<Self>) -> MainState {
-        self.main_state
-    }
-
     fn scene_type(&self) -> SceneType {
         SceneType::MainMenu
     }
@@ -77,7 +69,7 @@ impl Scene for MenuScene {
 
         self.bg_pipeline.update_time(&mut target.gpu, time);
 
-        let outs = self.main_state.output_manager.get_outputs();
+        let outs = target.state.output_manager.get_outputs();
         self.iced_state
             .queue_message(iced_menu::Message::OutputsUpdated(outs));
 
@@ -177,19 +169,19 @@ impl Scene for MenuScene {
                                 log::error!("{}", e);
                             }
 
-                            self.main_state.midi_file = midi.ok();
+                            target.state.midi_file = midi.ok();
 
                             self.iced_state
                                 .queue_message(iced_menu::Message::MidiFileUpdate(
-                                    self.main_state.midi_file.is_some(),
+                                    target.state.midi_file.is_some(),
                                 ));
                         }
                         iced_menu::Message::MainMenuDone(out) => {
                             let program = self.iced_state.program();
 
-                            self.main_state.output_manager.selected_output_id =
+                            target.state.output_manager.selected_output_id =
                                 Some(program.carousel.id());
-                            self.main_state.output_manager.connect(out);
+                            target.state.output_manager.connect(out);
 
                             return SceneEvent::MainMenu(Event::Play);
                         }

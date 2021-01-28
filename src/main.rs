@@ -61,7 +61,7 @@ impl MainState {
 }
 
 pub struct Target {
-    // pub state: MainState,
+    pub state: MainState,
     pub window: Window,
     pub gpu: Gpu,
     pub transform_uniform: Uniform<TransformUniform>,
@@ -83,7 +83,7 @@ impl Target {
         let iced_manager = IcedManager::new(&gpu.device, &window);
 
         Self {
-            // state,
+            state: MainState::new(),
             window,
             gpu,
             transform_uniform,
@@ -121,9 +121,7 @@ impl App {
     fn new(gpu: Gpu, window: Window) -> Self {
         let mut target = Target::new(window, gpu);
 
-        let state = MainState::new();
-
-        let game_scene = scene::menu_scene::MenuScene::new(&mut target, state);
+        let game_scene = scene::menu_scene::MenuScene::new(&mut target);
         let mut game_scene =
             scene::scene_transition::SceneTransition::new(Box::new(game_scene), &target);
 
@@ -191,8 +189,8 @@ impl App {
         match event {
             SceneEvent::MainMenu(event) => match event {
                 scene::menu_scene::Event::Play => {
-                    let to = |target: &mut Target, state: MainState| -> Box<dyn Scene> {
-                        let state = scene::playing_scene::PlayingScene::new(target, state);
+                    let to = |target: &mut Target| -> Box<dyn Scene> {
+                        let state = scene::playing_scene::PlayingScene::new(target);
                         Box::new(state)
                     };
 
@@ -206,10 +204,8 @@ impl App {
                     *control_flow = ControlFlow::Exit;
                 }
                 SceneType::Playing => {
-                    // let file = self.target.state.midi_file.clone();
-
-                    let to = |target: &mut Target, state: MainState| -> Box<dyn Scene> {
-                        let state = scene::menu_scene::MenuScene::new(target, state);
+                    let to = |target: &mut Target| -> Box<dyn Scene> {
+                        let state = scene::menu_scene::MenuScene::new(target);
                         Box::new(state)
                     };
 

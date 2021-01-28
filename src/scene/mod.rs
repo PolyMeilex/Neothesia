@@ -11,7 +11,7 @@ pub trait Scene {
     fn scene_type(&self) -> SceneType;
 
     fn start(&mut self) {}
-    fn done(self: Box<Self>) -> MainState;
+    fn done(self: Box<Self>, target: &mut Target) {}
 
     fn resize(&mut self, _target: &mut Target) {}
     fn update(&mut self, target: &mut Target) -> SceneEvent;

@@ -8,7 +8,7 @@ use crate::{
 
 use winit::event::WindowEvent;
 
-pub type SceneInitializer = dyn FnOnce(&mut Target, MainState) -> Box<dyn Scene>;
+pub type SceneInitializer = dyn FnOnce(&mut Target) -> Box<dyn Scene>;
 
 enum TransitionMode {
     FadeIn(Box<dyn Scene>),
@@ -160,8 +160,8 @@ impl SceneTransition {
                     let next = std::mem::replace(&mut self.mode, TransitionMode::None);
 
                     let game_scene = if let TransitionMode::FadeOut(from, to) = next {
-                        let state = from.done();
-                        to(target, state)
+                        from.done(target);
+                        to(target)
                     } else {
                         unreachable!("Expected Fade Out")
                     };

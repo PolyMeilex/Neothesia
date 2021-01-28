@@ -9,18 +9,15 @@ pub struct Notes {
 }
 
 impl Notes {
-    pub fn new(target: &mut Target, keys: &[super::keyboard::Key], midi: &lib_midi::Midi) -> Self {
-        let notes_pipeline = NotesPipeline::new(target, midi);
+    pub fn new(target: &mut Target, keys: &[super::keyboard::Key]) -> Self {
+        let notes_pipeline = NotesPipeline::new(target, target.state.midi_file.as_ref().unwrap());
         let mut notes = Self { notes_pipeline };
-        notes.resize(target, keys, midi);
+        notes.resize(target, keys);
         notes
     }
-    pub fn resize(
-        &mut self,
-        target: &mut Target,
-        keys: &[super::keyboard::Key],
-        midi: &lib_midi::Midi,
-    ) {
+    pub fn resize(&mut self, target: &mut Target, keys: &[super::keyboard::Key]) {
+        let midi = &target.state.midi_file.as_ref().unwrap();
+
         let (window_w, window_h) = {
             let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)

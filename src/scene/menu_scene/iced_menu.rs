@@ -14,14 +14,6 @@ enum Controls {
     SongSelect(SongSelectControls),
     Exit(ExitControls),
 }
-impl Controls {
-    fn view(&mut self, carousel: &mut Carousel) -> Element<Message, Renderer> {
-        match self {
-            Controls::SongSelect(c) => c.view(carousel),
-            Controls::Exit(c) => c.view(),
-        }
-    }
-}
 
 pub struct IcedMenu {
     midi_file: bool,
@@ -37,19 +29,22 @@ pub struct IcedMenu {
 #[derive(Debug, Clone)]
 pub enum Message {
     FileSelectPressed,
-    FileSelected(PathBuf),
 
     FontSelectPressed,
 
     PrevPressed,
     NextPressed,
-    PlayPressed,
+
+    EnterPressed,
     EscPressed,
 
     MidiFileUpdate(bool),
     OutputsUpdated(Vec<OutputDescriptor>),
 
-    MainMenuDone(OutputDescriptor),
+    // Output
+    OutputFileSelected(PathBuf),
+    OutputMainMenuDone(OutputDescriptor),
+    OutputAppExit,
 }
 
 impl IcedMenu {
@@ -108,7 +103,7 @@ impl Program for IcedMenu {
                         // };
                         //
 
-                        return Command::from(async { Message::FileSelected(path) });
+                        return Command::from(async { Message::OutputFileSelected(path) });
                     }
                     _ => {
                         log::error!("User canceled dialog");
@@ -145,29 +140,34 @@ impl Program for IcedMenu {
                 }
             }
 
-            Message::PlayPressed => {
-                if self.midi_file {
-                    async fn play(m: Message) -> Message {
-                        m
-                    }
+            Message::EnterPressed => match self.controls {
+                Controls::SongSelect(_) => {
+                    if self.midi_file {
+                        async fn play(m: Message) -> Message {
+                            m
+                        }
 
-                    // if self.midi_file.is_some() {
-                    // if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
-                    if let Some(port) = self.carousel.get_item() {
-                        let port = match port {
-                            #[cfg(feature = "synth")]
-                            OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
-                                std::mem::replace(&mut self.font_path, None),
-                            ),
-                            _ => port.clone(),
-                        };
-                        let event = Message::MainMenuDone(port);
-                        return Command::from(play(event));
+                        // if self.midi_file.is_some() {
+                        // if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
+                        if let Some(port) = self.carousel.get_item() {
+                            let port = match port {
+                                #[cfg(feature = "synth")]
+                                OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
+                                    std::mem::replace(&mut self.font_path, None),
+                                ),
+                                _ => port.clone(),
+                            };
+                            let event = Message::OutputMainMenuDone(port);
+                            return Command::from(play(event));
+                        }
+                        //     }
+                        // }
                     }
-                    //     }
-                    // }
                 }
-            }
+                Controls::Exit(_) => {
+                    return Command::from(async { Message::OutputAppExit });
+                }
+            },
 
             Message::EscPressed => match self.controls {
                 Controls::SongSelect(_) => {
@@ -184,15 +184,22 @@ impl Program for IcedMenu {
                 self.carousel.update(outs);
             }
 
-            Message::FileSelected(_) => {}
-            Message::MainMenuDone(_) => {}
+            Message::OutputFileSelected(_) => {}
+            Message::OutputMainMenuDone(_) => {}
+            Message::OutputAppExit => {}
         }
 
         Command::none()
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
-        let controls = self.controls.view(&mut self.carousel);
+        let (controls, footer) = match &mut self.controls {
+            Controls::SongSelect(c) => {
+                let (content, footer) = c.view(&mut self.carousel, self.midi_file);
+                (content, Some(footer))
+            }
+            Controls::Exit(c) => (c.view(), None),
+        };
 
         let main: Element<_, _> = {
             let image = Image::new(image::Handle::from_memory(
@@ -219,36 +226,13 @@ impl Program for IcedMenu {
             centered_main.into()
         };
 
-        let footer: Element<_, _> = {
-            let content: Element<Self::Message, Self::Renderer> =
-                if self.midi_file && self.carousel.get_item().is_some() {
-                    let btn = NeoBtn::new(
-                        &mut self.play_button,
-                        Text::new("Play")
-                            .size(30)
-                            .horizontal_alignment(HorizontalAlignment::Center)
-                            .vertical_alignment(VerticalAlignment::Center)
-                            .color(Color::WHITE),
-                    )
-                    .min_height(50)
-                    .height(Length::Fill)
-                    .width(Length::Units(150))
-                    .on_press(Message::PlayPressed);
+        let mut out = Column::new().push(main);
 
-                    btn.into()
-                } else {
-                    Row::new().into()
-                };
+        if let Some(footer) = footer {
+            out = out.push(footer);
+        }
 
-            let footer = Container::new(content)
-                .width(Length::Fill)
-                .height(Length::Units(70))
-                .align_x(Align::End)
-                .align_y(Align::End);
-            footer.into()
-        };
-
-        Column::new().push(main).push(footer).into()
+        out.into()
     }
 }
 
@@ -315,7 +299,11 @@ impl SongSelectControls {
     fn new() -> Self {
         Default::default()
     }
-    fn view(&mut self, carousel: &mut Carousel) -> Element<Message, Renderer> {
+    fn view(
+        &mut self,
+        carousel: &mut Carousel,
+        midi_file: bool,
+    ) -> (Element<Message, Renderer>, Element<Message, Renderer>) {
         let file_select_button = Row::new().height(Length::Units(100)).push(
             NeoBtn::new(
                 &mut self.file_select_button,
@@ -392,9 +380,44 @@ impl SongSelectControls {
             .push(output)
             .push(select_row);
 
-        Container::new(controls)
+        (
+            Container::new(controls)
+                .width(Length::Fill)
+                .center_x()
+                .into(),
+            Self::footer(&mut self.play_button, &carousel, midi_file),
+        )
+    }
+
+    fn footer<'a>(
+        play_button: &'a mut neo_btn::State,
+        carousel: &Carousel,
+        midi_file: bool,
+    ) -> Element<'a, Message, Renderer> {
+        let content: Element<Message, Renderer> = if midi_file && carousel.get_item().is_some() {
+            let btn = NeoBtn::new(
+                play_button,
+                Text::new("Play")
+                    .size(30)
+                    .horizontal_alignment(HorizontalAlignment::Center)
+                    .vertical_alignment(VerticalAlignment::Center)
+                    .color(Color::WHITE),
+            )
+            .min_height(50)
+            .height(Length::Fill)
+            .width(Length::Units(150))
+            .on_press(Message::EnterPressed);
+
+            btn.into()
+        } else {
+            Row::new().into()
+        };
+
+        Container::new(content)
             .width(Length::Fill)
-            .center_x()
+            .height(Length::Units(70))
+            .align_x(Align::End)
+            .align_y(Align::End)
             .into()
     }
 }

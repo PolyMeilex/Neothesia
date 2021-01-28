@@ -130,7 +130,7 @@ impl Scene for MenuScene {
                             .queue_message(iced_menu::Message::NextPressed),
                         winit::event::VirtualKeyCode::Return => self
                             .iced_state
-                            .queue_message(iced_menu::Message::PlayPressed),
+                            .queue_message(iced_menu::Message::EnterPressed),
                         // winit::event::VirtualKeyCode::Escape => return SceneEvent::GoBack,
                         winit::event::VirtualKeyCode::Escape => self
                             .iced_state
@@ -162,7 +162,7 @@ impl Scene for MenuScene {
                     let event = crate::block_on(async { f.await });
 
                     match event {
-                        iced_menu::Message::FileSelected(path) => {
+                        iced_menu::Message::OutputFileSelected(path) => {
                             let midi = lib_midi::Midi::new(path.to_str().unwrap());
 
                             if let Err(e) = &midi {
@@ -176,7 +176,7 @@ impl Scene for MenuScene {
                                     target.state.midi_file.is_some(),
                                 ));
                         }
-                        iced_menu::Message::MainMenuDone(out) => {
+                        iced_menu::Message::OutputMainMenuDone(out) => {
                             let program = self.iced_state.program();
 
                             target.state.output_manager.selected_output_id =
@@ -184,6 +184,9 @@ impl Scene for MenuScene {
                             target.state.output_manager.connect(out);
 
                             return SceneEvent::MainMenu(Event::Play);
+                        }
+                        iced_menu::Message::OutputAppExit => {
+                            return SceneEvent::GoBack;
                         }
                         _ => {}
                     }

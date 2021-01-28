@@ -30,7 +30,7 @@ impl Notes {
 
         let mut longer_than_88 = false;
         for note in midi.merged_track.notes.iter() {
-            if note.note >= 21 && note.note <= 108 {
+            if note.note >= 21 && note.note <= 108 && note.ch != 9 {
                 let key = &keys[note.note as usize - 21];
                 let ar = window_w / window_h;
 

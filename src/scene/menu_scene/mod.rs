@@ -33,7 +33,7 @@ impl MenuScene {
         let timer = Timer::new();
 
         let menu = IcedMenu::new(
-            std::mem::replace(&mut state.midi_file, None),
+            state.midi_file.is_some(),
             state.output_manager.get_outputs(),
             state.output_manager.selected_output_id,
             state.output_manager.selected_font_path.clone(),
@@ -170,10 +170,22 @@ impl Scene for MenuScene {
                     let event = crate::block_on(async { f.await });
 
                     match event {
-                        iced_menu::Message::MainMenuDone(midi, out) => {
-                            let program = self.iced_state.program();
+                        iced_menu::Message::FileSelected(path) => {
+                            let midi = lib_midi::Midi::new(path.to_str().unwrap());
 
-                            self.main_state.midi_file = Some(midi);
+                            if let Err(e) = &midi {
+                                log::error!("{}", e);
+                            }
+
+                            self.main_state.midi_file = midi.ok();
+
+                            self.iced_state
+                                .queue_message(iced_menu::Message::MidiFileUpdate(
+                                    self.main_state.midi_file.is_some(),
+                                ));
+                        }
+                        iced_menu::Message::MainMenuDone(out) => {
+                            let program = self.iced_state.program();
 
                             self.main_state.output_manager.selected_output_id =
                                 Some(program.carousel.id());

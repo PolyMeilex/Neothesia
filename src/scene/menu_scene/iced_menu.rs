@@ -24,7 +24,7 @@ impl Controls {
 }
 
 pub struct IcedMenu {
-    midi_file: Option<lib_midi::Midi>,
+    midi_file: bool,
     pub font_path: Option<PathBuf>,
 
     pub carousel: Carousel,
@@ -37,6 +37,8 @@ pub struct IcedMenu {
 #[derive(Debug, Clone)]
 pub enum Message {
     FileSelectPressed,
+    FileSelected(PathBuf),
+
     FontSelectPressed,
 
     PrevPressed,
@@ -44,14 +46,15 @@ pub enum Message {
     PlayPressed,
     EscPressed,
 
+    MidiFileUpdate(bool),
     OutputsUpdated(Vec<OutputDescriptor>),
 
-    MainMenuDone(lib_midi::Midi, OutputDescriptor),
+    MainMenuDone(OutputDescriptor),
 }
 
 impl IcedMenu {
     pub fn new(
-        midi_file: Option<lib_midi::Midi>,
+        midi_file: bool,
         outputs: Vec<OutputDescriptor>,
         out_id: Option<usize>,
         font_path: Option<PathBuf>,
@@ -92,17 +95,20 @@ impl Program for IcedMenu {
                 {
                     Response::Okay(path) => {
                         log::info!("File path = {:?}", path);
-                        let midi = lib_midi::Midi::new(path.to_str().unwrap());
+                        // let midi = lib_midi::Midi::new(path.to_str().unwrap());
 
-                        if let Err(e) = &midi {
-                            log::error!("{}", e);
-                        }
+                        // if let Err(e) = &midi {
+                        //     log::error!("{}", e);
+                        // }
 
-                        self.midi_file = if let Ok(midi) = midi {
-                            Some(midi)
-                        } else {
-                            None
-                        };
+                        // self.midi_file = if let Ok(midi) = midi {
+                        //     Some(midi)
+                        // } else {
+                        //     None
+                        // };
+                        //
+
+                        return Command::from(async { Message::FileSelected(path) });
                     }
                     _ => {
                         log::error!("User canceled dialog");
@@ -140,26 +146,26 @@ impl Program for IcedMenu {
             }
 
             Message::PlayPressed => {
-                if self.midi_file.is_some() {
+                if self.midi_file {
                     async fn play(m: Message) -> Message {
                         m
                     }
 
-                    if self.midi_file.is_some() {
-                        if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
-                            if let Some(port) = self.carousel.get_item() {
-                                let port = match port {
-                                    #[cfg(feature = "synth")]
-                                    OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
-                                        std::mem::replace(&mut self.font_path, None),
-                                    ),
-                                    _ => port.clone(),
-                                };
-                                let event = Message::MainMenuDone(midi, port);
-                                return Command::from(play(event));
-                            }
-                        }
+                    // if self.midi_file.is_some() {
+                    // if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
+                    if let Some(port) = self.carousel.get_item() {
+                        let port = match port {
+                            #[cfg(feature = "synth")]
+                            OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
+                                std::mem::replace(&mut self.font_path, None),
+                            ),
+                            _ => port.clone(),
+                        };
+                        let event = Message::MainMenuDone(port);
+                        return Command::from(play(event));
                     }
+                    //     }
+                    // }
                 }
             }
 
@@ -172,11 +178,14 @@ impl Program for IcedMenu {
                 }
             },
 
+            Message::MidiFileUpdate(is) => self.midi_file = is,
+
             Message::OutputsUpdated(outs) => {
                 self.carousel.update(outs);
             }
 
-            Message::MainMenuDone(_, _) => {}
+            Message::FileSelected(_) => {}
+            Message::MainMenuDone(_) => {}
         }
 
         Command::none()
@@ -212,7 +221,7 @@ impl Program for IcedMenu {
 
         let footer: Element<_, _> = {
             let content: Element<Self::Message, Self::Renderer> =
-                if self.midi_file.is_some() && self.carousel.get_item().is_some() {
+                if self.midi_file && self.carousel.get_item().is_some() {
                     let btn = NeoBtn::new(
                         &mut self.play_button,
                         Text::new("Play")

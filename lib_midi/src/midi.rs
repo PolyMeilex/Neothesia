@@ -67,6 +67,12 @@ impl Midi {
             }
         }
 
+        // merged_track.notes = merged_track
+        //     .notes
+        //     .into_iter()
+        //     .filter(|n| n.ch == 9)
+        //     .collect();
+
         merged_track
             .notes
             .sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());

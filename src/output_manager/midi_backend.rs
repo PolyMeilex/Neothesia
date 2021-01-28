@@ -41,11 +41,15 @@ impl MidiBackend {
 }
 
 impl OutputConnection for MidiOutputConnection {
-    fn note_on(&mut self, _ch: u8, key: u8, vel: u8) {
-        self.send(&[0x90, key, vel]).ok();
+    fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
+        if ch <= 15 {
+            self.send(&[0x90 | ch, key, vel]).ok();
+        }
     }
-    fn note_off(&mut self, _ch: u8, key: u8) {
-        self.send(&[0x80, key, 0]).ok();
+    fn note_off(&mut self, ch: u8, key: u8) {
+        if ch <= 15 {
+            self.send(&[0x80 | ch, key, 0]).ok();
+        }
     }
 }
 

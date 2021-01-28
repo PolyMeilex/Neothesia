@@ -149,7 +149,6 @@ impl PianoKeyboard {
                 Color::from_rgba8(125, 69, 134, 1.0),
             ],
         ];
-
         let white_keys = white_keys.into_iter().map(|note| {
             let color = colors[note.1 % 2];
             if note.0 {

@@ -452,7 +452,7 @@ impl ExitControls {
                         .vertical_alignment(VerticalAlignment::Center),
                 )
                 .width(Length::Fill)
-                .on_press(Message::PrevPressed),
+                .on_press(Message::EscPressed),
             )
             .push(
                 NeoBtn::new(
@@ -463,7 +463,7 @@ impl ExitControls {
                         .vertical_alignment(VerticalAlignment::Center),
                 )
                 .width(Length::Fill)
-                .on_press(Message::NextPressed),
+                .on_press(Message::EnterPressed),
             );
 
         let controls = Column::new()

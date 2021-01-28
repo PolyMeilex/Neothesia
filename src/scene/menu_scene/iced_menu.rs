@@ -8,16 +8,29 @@ use iced_wgpu::Renderer;
 
 use crate::output_manager::OutputDescriptor;
 
+use super::neo_btn::{self, NeoBtn};
+
+enum Controls {
+    SongSelect(SongSelectControls),
+    Exit(ExitControls),
+}
+impl Controls {
+    fn view(&mut self, carousel: &mut Carousel) -> Element<Message, Renderer> {
+        match self {
+            Controls::SongSelect(c) => c.view(carousel),
+            Controls::Exit(c) => c.view(),
+        }
+    }
+}
+
 pub struct IcedMenu {
     midi_file: Option<lib_midi::Midi>,
     pub font_path: Option<PathBuf>,
 
     pub carousel: Carousel,
 
-    file_select_button: neo_btn::State,
-    synth_button: neo_btn::State,
-    prev_button: neo_btn::State,
-    next_button: neo_btn::State,
+    controls: Controls,
+
     play_button: neo_btn::State,
 }
 
@@ -29,6 +42,7 @@ pub enum Message {
     PrevPressed,
     NextPressed,
     PlayPressed,
+    EscPressed,
 
     OutputsUpdated(Vec<OutputDescriptor>),
 
@@ -55,11 +69,9 @@ impl IcedMenu {
 
             carousel,
 
-            file_select_button: neo_btn::State::new(),
-            synth_button: neo_btn::State::new(),
-            prev_button: neo_btn::State::new(),
-            next_button: neo_btn::State::new(),
-            play_button: neo_btn::State::new(),
+            controls: Controls::SongSelect(SongSelectControls::new()),
+
+            play_button: Default::default(),
         }
     }
 }
@@ -151,6 +163,15 @@ impl Program for IcedMenu {
                 }
             }
 
+            Message::EscPressed => match self.controls {
+                Controls::SongSelect(_) => {
+                    self.controls = Controls::Exit(ExitControls::new());
+                }
+                Controls::Exit(_) => {
+                    self.controls = Controls::SongSelect(SongSelectControls::new());
+                }
+            },
+
             Message::OutputsUpdated(outs) => {
                 self.carousel.update(outs);
             }
@@ -162,84 +183,9 @@ impl Program for IcedMenu {
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
+        let controls = self.controls.view(&mut self.carousel);
+
         let main: Element<_, _> = {
-            let file_select_button = Row::new().height(Length::Units(100)).push(
-                NeoBtn::new(
-                    &mut self.file_select_button,
-                    Text::new("Select File")
-                        .size(40)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
-                )
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .on_press(Message::FileSelectPressed),
-            );
-
-            let item = self.carousel.get_item();
-
-            let label = item
-                .map(|o| o.to_string())
-                .unwrap_or("Disconected".to_string());
-
-            let output = Text::new(label)
-                .color(Color::WHITE)
-                .size(30)
-                .horizontal_alignment(HorizontalAlignment::Center)
-                .vertical_alignment(VerticalAlignment::Center);
-
-            let mut select_row = Row::new().height(Length::Units(50)).push(
-                NeoBtn::new(
-                    &mut self.prev_button,
-                    Text::new("<")
-                        .size(40)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
-                )
-                .width(Length::Fill)
-                .disabled(!self.carousel.check_prev())
-                .on_press(Message::PrevPressed),
-            );
-
-            #[cfg(feature = "synth")]
-            if let Some(OutputDescriptor::Synth(_)) = item {
-                select_row = select_row.push(
-                    NeoBtn::new(
-                        &mut self.synth_button,
-                        Text::new("Soundfont")
-                            .size(20)
-                            .horizontal_alignment(HorizontalAlignment::Center)
-                            .vertical_alignment(VerticalAlignment::Center),
-                    )
-                    .width(Length::Units(100))
-                    .height(Length::Fill)
-                    .on_press(Message::FontSelectPressed),
-                );
-            }
-
-            select_row = select_row.push(
-                NeoBtn::new(
-                    &mut self.next_button,
-                    Text::new(">")
-                        .size(40)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
-                )
-                .width(Length::Fill)
-                .disabled(!self.carousel.check_next())
-                .on_press(Message::NextPressed),
-            );
-
-            let controls = Column::new()
-                .align_items(Align::Center)
-                .width(Length::Units(500))
-                .spacing(30)
-                .push(file_select_button)
-                .push(output)
-                .push(select_row);
-
-            let controls = Container::new(controls).width(Length::Fill).center_x();
-
             let image = Image::new(image::Handle::from_memory(
                 include_bytes!("./img/baner.png").to_vec(),
             ));
@@ -347,281 +293,159 @@ impl Carousel {
     }
 }
 
-mod neo_btn {
-    // For now, to implement a custom native widget you will need to add
-    // `iced_native` and `iced_wgpu` to your dependencies.
-    //
-    // Then, you simply need to define your widget type and implement the
-    // `iced_native::Widget` trait with the `iced_wgpu::Renderer`.
-    //
-    // Of course, you can choose to make the implementation renderer-agnostic,
-    // if you wish to, by creating your own `Renderer` trait, which could be
-    // implemented by `iced_wgpu` and other renderers.
-    use iced_graphics::{defaults, Backend, Defaults, Primitive, Rectangle, Renderer};
-    use iced_native::{
-        layout, mouse, Background, Clipboard, Color, Element, Event, Hasher, Layout, Length, Point,
-        Vector, Widget,
-    };
+#[derive(Default)]
+struct SongSelectControls {
+    file_select_button: neo_btn::State,
+    synth_button: neo_btn::State,
+    prev_button: neo_btn::State,
+    next_button: neo_btn::State,
+    play_button: neo_btn::State,
+}
 
-    pub struct NeoBtn<'a, Message: Clone, B: Backend> {
-        state: &'a mut State,
-        width: Length,
-        height: Length,
-        min_width: u32,
-        min_height: u32,
-        padding: u16,
-        border_radius: f32,
-        disabled: bool,
-        content: Element<'a, Message, Renderer<B>>,
-        on_press: Option<Message>,
+impl SongSelectControls {
+    fn new() -> Self {
+        Default::default()
     }
-
-    impl<'a, Message: Clone, B: Backend> NeoBtn<'a, Message, B> {
-        pub fn new<E>(state: &'a mut State, content: E) -> Self
-        where
-            E: Into<Element<'a, Message, Renderer<B>>>,
-        {
-            Self {
-                state,
-                on_press: None,
-                width: Length::Shrink,
-                height: Length::Shrink,
-                min_width: 0,
-                min_height: 0,
-                padding: 5,
-                border_radius: 7.0,
-                disabled: false,
-                content: content.into(),
-            }
-        }
-
-        pub fn width(mut self, width: Length) -> Self {
-            self.width = width;
-            self
-        }
-
-        pub fn height(mut self, height: Length) -> Self {
-            self.height = height;
-            self
-        }
-
-        // pub fn min_width(mut self, min_width: u32) -> Self {
-        //     self.min_width = min_width;
-        //     self
-        // }
-
-        pub fn min_height(mut self, min_height: u32) -> Self {
-            self.min_height = min_height;
-            self
-        }
-
-        pub fn disabled(mut self, disabled: bool) -> Self {
-            self.disabled = disabled;
-            self
-        }
-
-        pub fn on_press(mut self, msg: Message) -> Self {
-            self.on_press = Some(msg);
-            self
-        }
-    }
-
-    // impl<'a, Message, B> Widget<Message, Renderer<B>> for Circle<'a, Message, B>
-    // where
-    //     Message: Clone,
-    //     B: Backend,
-    // {
-    impl<'a, Message: Clone, B> Widget<Message, Renderer<B>> for NeoBtn<'a, Message, B>
-    where
-        B: Backend,
-    {
-        fn width(&self) -> Length {
-            self.width
-        }
-
-        fn height(&self) -> Length {
-            self.height
-        }
-
-        fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-            let padding = f32::from(self.padding);
-            let limits = limits
-                .min_width(self.min_width)
-                .min_height(self.min_height)
-                .width(self.width)
-                .height(self.height)
-                .pad(padding);
-
-            let mut content = self.content.layout(renderer, &limits);
-            content.move_to(Point::new(padding, padding));
-
-            let size = limits.resolve(content.size()).pad(padding);
-
-            layout::Node::with_children(size, vec![content])
-        }
-
-        fn hash_layout(&self, state: &mut Hasher) {
-            use std::hash::Hash;
-            struct Marker;
-            std::any::TypeId::of::<Marker>().hash(state);
-
-            self.width.hash(state);
-            self.content.hash_layout(state);
-        }
-
-        fn on_event(
-            &mut self,
-            event: Event,
-            layout: Layout<'_>,
-            cursor_position: Point,
-            messages: &mut Vec<Message>,
-            _renderer: &Renderer<B>,
-            _clipboard: Option<&dyn Clipboard>,
-        ) -> iced_native::event::Status {
-            if self.disabled {
-                return iced_native::event::Status::Ignored;
-            };
-
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                    if self.on_press.is_some() {
-                        let bounds = layout.bounds();
-
-                        self.state.is_pressed = bounds.contains(cursor_position);
-                    }
-                }
-                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                    if let Some(on_press) = self.on_press.clone() {
-                        let bounds = layout.bounds();
-
-                        let is_clicked = self.state.is_pressed && bounds.contains(cursor_position);
-
-                        self.state.is_pressed = false;
-
-                        if is_clicked {
-                            messages.push(on_press);
-                        }
-                    }
-                }
-                _ => {}
-            };
-
-            iced_native::event::Status::Ignored
-        }
-
-        fn draw(
-            &self,
-            renderer: &mut Renderer<B>,
-            _defaults: &Defaults,
-            layout: Layout<'_>,
-            cursor_position: Point,
-            viewport: &Rectangle,
-        ) -> <Renderer<B> as iced_native::Renderer>::Output {
-            let bounds = layout.bounds();
-            let is_mouse_over = bounds.contains(cursor_position);
-
-            let (content, _) = self.content.draw(
-                renderer,
-                &Defaults {
-                    text: defaults::Text {
-                        color: if self.disabled {
-                            Color::new(0.3, 0.3, 0.3, 1.0)
-                        } else {
-                            Color::WHITE
-                        },
-                    },
-                },
-                layout,
-                cursor_position,
-                viewport,
-            );
-
-            let colors = if is_mouse_over {
-                (
-                    Color::from_rgba8(9, 9, 9, 0.6),
-                    Color::from_rgba8(56, 145, 255, 1.0),
-                )
-            } else {
-                (
-                    Color::from_rgba8(17, 17, 17, 0.6),
-                    Color::from_rgba8(160, 81, 255, 1.0),
-                )
-            };
-
-            (
-                Primitive::Group {
-                    primitives: vec![
-                        Primitive::Clip {
-                            bounds: Rectangle {
-                                y: bounds.y,
-                                height: bounds.height - self.border_radius,
-                                ..bounds
-                            },
-                            offset: Vector::new(0, 0),
-                            content: Box::new(Primitive::Quad {
-                                bounds: Rectangle {
-                                    y: bounds.y,
-                                    ..bounds
-                                },
-                                background: Background::Color(colors.0),
-                                border_radius: self.border_radius,
-                                border_width: 0.0,
-                                border_color: Color::TRANSPARENT,
-                            }),
-                        },
-                        Primitive::Clip {
-                            bounds: Rectangle {
-                                y: bounds.y + bounds.height - self.border_radius as f32,
-                                height: self.border_radius as f32,
-                                ..bounds
-                            },
-                            offset: Vector::new(0, 0),
-                            content: Box::new(Primitive::Quad {
-                                bounds: Rectangle {
-                                    y: bounds.y,
-                                    ..bounds
-                                },
-                                background: Background::Color(colors.1),
-                                border_radius: self.border_radius,
-                                border_width: 0.0,
-                                border_color: Color::TRANSPARENT,
-                            }),
-                        },
-                        content,
-                    ],
-                },
-                if is_mouse_over {
-                    mouse::Interaction::Pointer
-                } else {
-                    mouse::Interaction::default()
-                },
+    fn view(&mut self, carousel: &mut Carousel) -> Element<Message, Renderer> {
+        let file_select_button = Row::new().height(Length::Units(100)).push(
+            NeoBtn::new(
+                &mut self.file_select_button,
+                Text::new("Select File")
+                    .size(40)
+                    .horizontal_alignment(HorizontalAlignment::Center)
+                    .vertical_alignment(VerticalAlignment::Center),
             )
-        }
-    }
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .on_press(Message::FileSelectPressed),
+        );
 
-    impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for NeoBtn<'a, Message, B>
-    where
-        B: 'a + Backend,
-        Message: 'a + Clone,
-    {
-        fn into(self) -> Element<'a, Message, Renderer<B>> {
-            Element::new(self)
-        }
-    }
+        let item = carousel.get_item();
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-    pub struct State {
-        is_pressed: bool,
-    }
+        let label = item
+            .map(|o| o.to_string())
+            .unwrap_or("Disconected".to_string());
 
-    impl State {
-        /// Creates a new [`State`].
-        ///
-        /// [`State`]: struct.State.html
-        pub fn new() -> State {
-            State::default()
+        let output = Text::new(label)
+            .color(Color::WHITE)
+            .size(30)
+            .horizontal_alignment(HorizontalAlignment::Center)
+            .vertical_alignment(VerticalAlignment::Center);
+
+        let mut select_row = Row::new().height(Length::Units(50)).push(
+            NeoBtn::new(
+                &mut self.prev_button,
+                Text::new("<")
+                    .size(40)
+                    .horizontal_alignment(HorizontalAlignment::Center)
+                    .vertical_alignment(VerticalAlignment::Center),
+            )
+            .width(Length::Fill)
+            .disabled(!carousel.check_prev())
+            .on_press(Message::PrevPressed),
+        );
+
+        #[cfg(feature = "synth")]
+        if let Some(OutputDescriptor::Synth(_)) = item {
+            select_row = select_row.push(
+                NeoBtn::new(
+                    &mut self.synth_button,
+                    Text::new("Soundfont")
+                        .size(20)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .vertical_alignment(VerticalAlignment::Center),
+                )
+                .width(Length::Units(100))
+                .height(Length::Fill)
+                .on_press(Message::FontSelectPressed),
+            );
         }
+
+        select_row = select_row.push(
+            NeoBtn::new(
+                &mut self.next_button,
+                Text::new(">")
+                    .size(40)
+                    .horizontal_alignment(HorizontalAlignment::Center)
+                    .vertical_alignment(VerticalAlignment::Center),
+            )
+            .width(Length::Fill)
+            .disabled(!carousel.check_next())
+            .on_press(Message::NextPressed),
+        );
+
+        let controls = Column::new()
+            .align_items(Align::Center)
+            .width(Length::Units(500))
+            .height(Length::Units(250))
+            .spacing(30)
+            .push(file_select_button)
+            .push(output)
+            .push(select_row);
+
+        Container::new(controls)
+            .width(Length::Fill)
+            .center_x()
+            .into()
     }
 }
 
-use neo_btn::NeoBtn;
+#[derive(Default)]
+struct ExitControls {
+    no_button: neo_btn::State,
+    yes_button: neo_btn::State,
+}
+
+impl ExitControls {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn view(&mut self) -> Element<Message, Renderer> {
+        let output = Text::new("Do you want to exit?")
+            .color(Color::WHITE)
+            .size(30)
+            .horizontal_alignment(HorizontalAlignment::Center)
+            .vertical_alignment(VerticalAlignment::Center);
+
+        let select_row = Row::new()
+            .spacing(5)
+            .height(Length::Units(50))
+            .push(
+                NeoBtn::new(
+                    &mut self.no_button,
+                    Text::new("No")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .vertical_alignment(VerticalAlignment::Center),
+                )
+                .width(Length::Fill)
+                .on_press(Message::PrevPressed),
+            )
+            .push(
+                NeoBtn::new(
+                    &mut self.yes_button,
+                    Text::new("Yes")
+                        .size(30)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .vertical_alignment(VerticalAlignment::Center),
+                )
+                .width(Length::Fill)
+                .on_press(Message::NextPressed),
+            );
+
+        let controls = Column::new()
+            .align_items(Align::Center)
+            .width(Length::Units(500))
+            .spacing(30)
+            .push(output)
+            .push(select_row);
+
+        Container::new(controls)
+            .width(Length::Fill)
+            .height(Length::Units(250))
+            .center_x()
+            .center_y()
+            .into()
+    }
+}

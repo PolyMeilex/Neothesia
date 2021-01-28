@@ -1,6 +1,8 @@
 mod bg_pipeline;
 mod iced_menu;
 
+mod neo_btn;
+
 use bg_pipeline::BgPipeline;
 use iced_menu::IcedMenu;
 
@@ -137,7 +139,10 @@ impl Scene for MenuScene {
                         winit::event::VirtualKeyCode::Return => self
                             .iced_state
                             .queue_message(iced_menu::Message::PlayPressed),
-                        winit::event::VirtualKeyCode::Escape => return SceneEvent::GoBack,
+                        // winit::event::VirtualKeyCode::Escape => return SceneEvent::GoBack,
+                        winit::event::VirtualKeyCode::Escape => self
+                            .iced_state
+                            .queue_message(iced_menu::Message::EscPressed),
                         _ => {}
                     }
                 }

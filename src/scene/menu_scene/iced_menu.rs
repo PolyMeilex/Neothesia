@@ -22,8 +22,6 @@ pub struct IcedMenu {
     pub carousel: Carousel,
 
     controls: Controls,
-
-    play_button: neo_btn::State,
 }
 
 #[derive(Debug, Clone)]
@@ -68,8 +66,6 @@ impl IcedMenu {
             carousel,
 
             controls: Controls::SongSelect(SongSelectControls::new()),
-
-            play_button: Default::default(),
         }
     }
 }
@@ -90,18 +86,6 @@ impl Program for IcedMenu {
                 {
                     Response::Okay(path) => {
                         log::info!("File path = {:?}", path);
-                        // let midi = lib_midi::Midi::new(path.to_str().unwrap());
-
-                        // if let Err(e) = &midi {
-                        //     log::error!("{}", e);
-                        // }
-
-                        // self.midi_file = if let Ok(midi) = midi {
-                        //     Some(midi)
-                        // } else {
-                        //     None
-                        // };
-                        //
 
                         return Command::from(async { Message::OutputFileSelected(path) });
                     }

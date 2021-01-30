@@ -390,7 +390,7 @@ impl Player {
             use std::collections::hash_map::Entry;
 
             if n.start + n.duration >= self.time {
-                if n.note >= 21 && n.note <= 108 {
+                if n.note >= 21 && n.note <= 108 && n.ch != 9 {
                     notes_state[n.note as usize - 21] = (true, n.track_id);
                 }
 

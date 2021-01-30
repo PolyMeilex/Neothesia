@@ -22,6 +22,9 @@ body {
 
 #wrapper {
   padding-bottom: 100px;
+
+  max-width: 935px;
+  width: 100%;
 }
 
 header {
@@ -30,11 +33,15 @@ header {
 }
 
 header > img {
-  width: 932px;
+  width: 100%;
   height: auto;
-  min-height: 166px;
+}
 
-  /* animation: floating 5s ease-in-out infinite; */
+@media screen and (max-width: 930px) {
+  header > img {
+    /* width: 100%;
+    min-height: auto; */
+  }
 }
 
 @keyframes floating {
@@ -58,6 +65,7 @@ main {
   font-size: 25px;
   font-weight: bold;
   text-align: center;
+  vertical-align: middle;
 
   border-bottom: solid 5px;
   border-radius: 5px;
@@ -65,8 +73,18 @@ main {
   background-color: rgba(9, 9, 9, 0.6);
   border-color: rgba(160, 81, 255, 1);
 
-  /* box-shadow: #a051ee 0px 5px 20px; */
-  /* box-shadow: 0 5px 15px rgba(145, 92, 182, 0.4); */
+  display: flex;
+  justify-content: center;
+
+  flex-wrap: wrap;
+}
+
+.btn > i {
+  margin-right: 6px;
+}
+
+.btn > span {
+  min-width: 115px;
 }
 
 .btn:hover {

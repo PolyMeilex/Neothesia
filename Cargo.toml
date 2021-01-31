@@ -5,7 +5,7 @@ authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["compile_shader","synth"]
+default = ["compile_shader","synth","play_along"]
 compile_shader = []
 record=[]
 play_along=[]

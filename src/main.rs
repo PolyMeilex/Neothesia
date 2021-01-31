@@ -435,7 +435,7 @@ async fn main_async() {
 
                             let result = mapping.await.unwrap();
                             let data: &[u8] = result.as_slice();
-                            encoder.encode_rgba(1920, 1080, data, false);
+                            encoder.encode_bgra(1920, 1080, data, false);
                         } else {
                             break;
                         }

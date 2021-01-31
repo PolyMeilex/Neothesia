@@ -29,7 +29,7 @@ midir = "0.6.2"
 
 # image = { version = "0.23.8", optional=true }
 # ffmpeg-next = { version = "4.3.6", optional=true }
-mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optional=true}
+mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", features=["build"], optional=true}
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

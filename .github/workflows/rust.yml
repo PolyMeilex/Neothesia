@@ -10,7 +10,7 @@ jobs:
       - name: Install alsa
         run: sudo apt-get install libasound2-dev libgtk-3-dev
       - name: Install ffmpeg
-        run: sudo apt-get install ffmpeg libavcodec-dev libavformat-dev libavdevice-dev
+        run: sudo apt-get install yasm ffmpeg libavcodec-dev libavformat-dev libavdevice-dev
       - name: Build
         run: cargo build --release --verbose
       - name: Run tests
@@ -37,6 +37,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Brew
+        run: brew install yasm
       - name: Build
         run: cargo build --release --verbose
       - name: Run tests

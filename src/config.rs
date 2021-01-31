@@ -2,8 +2,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
+    #[serde(default = "default_speed_multiplier")]
     pub speed_multiplier: f32,
+
+    #[serde(default = "default_playback_offset")]
     pub playback_offset: f32,
+
+    #[serde(default = "default_play_along")]
     pub play_along: bool,
 }
 
@@ -23,9 +28,9 @@ impl Config {
         };
 
         config.unwrap_or_else(|| Self {
-            speed_multiplier: 1.0,
-            playback_offset: 0.0,
-            play_along: false,
+            speed_multiplier: default_speed_multiplier(),
+            playback_offset: default_playback_offset(),
+            play_along: default_play_along(),
         })
     }
 }
@@ -37,4 +42,16 @@ impl Drop for Config {
             std::fs::write(path, &s).ok();
         }
     }
+}
+
+fn default_speed_multiplier() -> f32 {
+    1.0
+}
+
+fn default_playback_offset() -> f32 {
+    0.0
+}
+
+fn default_play_along() -> bool {
+    false
 }

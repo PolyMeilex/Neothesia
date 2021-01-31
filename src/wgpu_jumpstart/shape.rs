@@ -49,6 +49,7 @@ impl Shape {
         Self::new(device, VERTICES, INDICES)
     }
 
+    #[allow(dead_code)]
     pub fn new_centered_quad(device: &wgpu::Device) -> Self {
         const VERTICES: &[Vertex2D] = &[
             Vertex2D {

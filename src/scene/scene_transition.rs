@@ -3,7 +3,7 @@ use crate::Gpu;
 use crate::{
     rectangle_pipeline::RectangleInstance,
     scene::{Scene, SceneEvent, SceneType},
-    MainState, Target,
+    Target,
 };
 
 use winit::event::WindowEvent;

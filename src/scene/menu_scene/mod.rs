@@ -12,7 +12,7 @@ use crate::{
     scene::{Scene, SceneEvent, SceneType},
     time_manager::Timer,
     ui::iced_conversion,
-    MainState, Target,
+    Target,
 };
 
 #[derive(Debug)]
@@ -30,12 +30,7 @@ impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
         let timer = Timer::new();
 
-        let menu = IcedMenu::new(
-            target.state.midi_file.is_some(),
-            target.state.output_manager.get_outputs(),
-            target.state.output_manager.selected_output_id,
-            target.state.output_manager.selected_font_path.clone(),
-        );
+        let menu = IcedMenu::new(&mut target.state);
         let iced_state = iced_native::program::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
@@ -178,6 +173,8 @@ impl Scene for MenuScene {
                         }
                         iced_menu::Message::OutputMainMenuDone(out) => {
                             let program = self.iced_state.program();
+
+                            target.state.config.play_along = program.play_along;
 
                             target.state.output_manager.selected_output_id =
                                 Some(program.carousel.id());

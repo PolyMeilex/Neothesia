@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub speed_multiplier: f32,
     pub playback_offset: f32,
+    pub play_along: bool,
 }
 
 impl Config {
@@ -24,6 +25,7 @@ impl Config {
         config.unwrap_or_else(|| Self {
             speed_multiplier: 1.0,
             playback_offset: 0.0,
+            play_along: false,
         })
     }
 }

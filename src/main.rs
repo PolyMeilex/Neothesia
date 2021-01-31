@@ -265,7 +265,7 @@ impl App {
         }
     }
     #[cfg(feature = "record")]
-    async fn render<'a>(
+    fn render<'a>(
         &mut self,
         texture: &wgpu::Texture,
         view: &wgpu::TextureView,
@@ -454,8 +454,7 @@ async fn main_async() {
 
             let output_buffer = app.gpu.device.create_buffer(&output_buffer_desc);
 
-            app.render(&texture, &view, &texture_desc, &output_buffer, n)
-                .await;
+            app.render(&texture, &view, &texture_desc, &output_buffer, n);
 
             tx.send(Some(output_buffer)).ok();
         }

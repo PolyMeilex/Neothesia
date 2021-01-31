@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 //! https://github.com/hecrj/iced/blob/master/winit/src/conversion.rs
 use iced_native::{
     keyboard::{self, KeyCode, Modifiers},

@@ -7,6 +7,7 @@ use iced_native::{
 use iced_wgpu::Renderer;
 
 use crate::output_manager::OutputDescriptor;
+use crate::MainState;
 
 use super::neo_btn::{self, NeoBtn};
 
@@ -16,8 +17,10 @@ enum Controls {
 }
 
 pub struct IcedMenu {
+    pub play_along: bool,
+
     midi_file: bool,
-    pub font_path: Option<PathBuf>,
+    font_path: Option<PathBuf>,
 
     pub carousel: Carousel,
 
@@ -33,6 +36,9 @@ pub enum Message {
     PrevPressed,
     NextPressed,
 
+    #[cfg(feature = "play_along")]
+    TogglePlayAlong(bool),
+
     EnterPressed,
     EscPressed,
 
@@ -46,22 +52,24 @@ pub enum Message {
 }
 
 impl IcedMenu {
-    pub fn new(
-        midi_file: bool,
-        outputs: Vec<OutputDescriptor>,
-        out_id: Option<usize>,
-        font_path: Option<PathBuf>,
-    ) -> Self {
+    pub fn new(state: &mut MainState) -> Self {
         let mut carousel = Carousel::new();
+        let outputs = state.output_manager.get_outputs();
         carousel.update(outputs);
 
+        let out_id = state.output_manager.selected_output_id;
         if let Some(id) = out_id {
             carousel.id = id;
         }
 
         Self {
-            midi_file,
-            font_path,
+            #[cfg(feature = "play_along")]
+            play_along: state.config.play_along,
+            #[cfg(not(feature = "play_along"))]
+            play_along: false,
+
+            midi_file: state.midi_file.is_some(),
+            font_path: state.output_manager.selected_font_path.clone(),
 
             carousel,
 
@@ -123,6 +131,10 @@ impl Program for IcedMenu {
                     self.carousel.prev();
                 }
             }
+            #[cfg(feature = "play_along")]
+            Message::TogglePlayAlong(is) => {
+                self.play_along = is;
+            }
 
             Message::EnterPressed => match self.controls {
                 Controls::SongSelect(_) => {
@@ -131,8 +143,6 @@ impl Program for IcedMenu {
                             m
                         }
 
-                        // if self.midi_file.is_some() {
-                        // if let Some(midi) = std::mem::replace(&mut self.midi_file, None) {
                         if let Some(port) = self.carousel.get_item() {
                             let port = match port {
                                 #[cfg(feature = "synth")]
@@ -144,8 +154,6 @@ impl Program for IcedMenu {
                             let event = Message::OutputMainMenuDone(port);
                             return Command::from(play(event));
                         }
-                        //     }
-                        // }
                     }
                 }
                 Controls::Exit(_) => {
@@ -179,7 +187,7 @@ impl Program for IcedMenu {
     fn view(&mut self) -> Element<Message, Renderer> {
         let (controls, footer) = match &mut self.controls {
             Controls::SongSelect(c) => {
-                let (content, footer) = c.view(&mut self.carousel, self.midi_file);
+                let (content, footer) = c.view(&mut self.carousel, self.midi_file, self.play_along);
                 (content, Some(footer))
             }
             Controls::Exit(c) => (c.view(), None),
@@ -287,6 +295,7 @@ impl SongSelectControls {
         &mut self,
         carousel: &mut Carousel,
         midi_file: bool,
+        play_along: bool,
     ) -> (Element<Message, Renderer>, Element<Message, Renderer>) {
         let file_select_button = Row::new().height(Length::Units(100)).push(
             NeoBtn::new(
@@ -369,14 +378,16 @@ impl SongSelectControls {
                 .width(Length::Fill)
                 .center_x()
                 .into(),
-            Self::footer(&mut self.play_button, &carousel, midi_file),
+            Self::footer(&mut self.play_button, &carousel, midi_file, play_along),
         )
     }
 
+    #[allow(unused_variables)]
     fn footer<'a>(
         play_button: &'a mut neo_btn::State,
         carousel: &Carousel,
         midi_file: bool,
+        play_along: bool,
     ) -> Element<'a, Message, Renderer> {
         let content: Element<Message, Renderer> = if midi_file && carousel.get_item().is_some() {
             let btn = NeoBtn::new(
@@ -392,14 +403,32 @@ impl SongSelectControls {
             .width(Length::Units(150))
             .on_press(Message::EnterPressed);
 
-            btn.into()
+            #[allow(unused_mut)]
+            let mut coll = Column::new().spacing(10);
+
+            #[cfg(feature = "play_along")]
+            {
+                use iced_native::Checkbox;
+                coll = coll.push(
+                    Row::new()
+                        .height(Length::Shrink)
+                        .push(
+                            Checkbox::new(play_along, "", Message::TogglePlayAlong)
+                                .style(CheckboxStyle {}),
+                        )
+                        .push(Text::new("Play Along").color(Color::WHITE)),
+                );
+            }
+
+            coll.push(btn).into()
         } else {
             Row::new().into()
         };
 
         Container::new(content)
             .width(Length::Fill)
-            .height(Length::Units(70))
+            .height(Length::Units(100))
+            .padding(10)
             .align_x(Align::End)
             .align_y(Align::End)
             .into()
@@ -463,5 +492,38 @@ impl ExitControls {
             .center_x()
             .center_y()
             .into()
+    }
+}
+
+pub struct CheckboxStyle;
+
+const SURFACE: Color = Color::from_rgb(
+    0x30 as f32 / 255.0,
+    0x34 as f32 / 255.0,
+    0x3B as f32 / 255.0,
+);
+
+impl iced_graphics::checkbox::StyleSheet for CheckboxStyle {
+    fn active(&self, is_checked: bool) -> iced_graphics::checkbox::Style {
+        let active = Color::from_rgba8(160, 81, 255, 1.0);
+        iced_graphics::checkbox::Style {
+            background: if is_checked { active } else { SURFACE }.into(),
+            checkmark_color: Color::WHITE,
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: active,
+        }
+    }
+
+    fn hovered(&self, is_checked: bool) -> iced_graphics::checkbox::Style {
+        let active = Color::from_rgba8(160, 81, 255, 1.0);
+        iced_graphics::checkbox::Style {
+            background: Color {
+                a: 0.8,
+                ..if is_checked { active } else { SURFACE }
+            }
+            .into(),
+            ..self.active(is_checked)
+        }
     }
 }

@@ -174,7 +174,10 @@ impl Scene for MenuScene {
                         iced_menu::Message::OutputMainMenuDone(out) => {
                             let program = self.iced_state.program();
 
-                            target.state.config.play_along = program.play_along;
+                            #[cfg(feature = "play_along")]
+                            {
+                                target.state.config.play_along = program.play_along;
+                            }
 
                             target.state.output_manager.selected_output_id =
                                 Some(program.carousel.id());

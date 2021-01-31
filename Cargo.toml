@@ -8,6 +8,7 @@ edition = "2018"
 default = ["compile_shader","synth"]
 compile_shader = []
 record=[]
+play_along=[]
 synth=["cpal","fluidlite","fluidlite-lib"]
 
 [dependencies]

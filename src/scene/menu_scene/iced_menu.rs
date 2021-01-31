@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use iced_native::{
-    image, Align, Checkbox, Color, Column, Command, Container, Element, HorizontalAlignment, Image,
-    Length, Program, Row, Text, VerticalAlignment,
+    image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
+    Program, Row, Text, VerticalAlignment,
 };
 use iced_wgpu::Renderer;
 
@@ -36,6 +36,7 @@ pub enum Message {
     PrevPressed,
     NextPressed,
 
+    #[cfg(feature = "play_along")]
     TogglePlayAlong(bool),
 
     EnterPressed,
@@ -62,7 +63,10 @@ impl IcedMenu {
         }
 
         Self {
+            #[cfg(feature = "play_along")]
             play_along: state.config.play_along,
+            #[cfg(not(feature = "play_along"))]
+            play_along: false,
 
             midi_file: state.midi_file.is_some(),
             font_path: state.output_manager.selected_font_path.clone(),
@@ -127,6 +131,7 @@ impl Program for IcedMenu {
                     self.carousel.prev();
                 }
             }
+            #[cfg(feature = "play_along")]
             Message::TogglePlayAlong(is) => {
                 self.play_along = is;
             }
@@ -377,6 +382,7 @@ impl SongSelectControls {
         )
     }
 
+    #[allow(unused_variables)]
     fn footer<'a>(
         play_button: &'a mut neo_btn::State,
         carousel: &Carousel,
@@ -397,9 +403,13 @@ impl SongSelectControls {
             .width(Length::Units(150))
             .on_press(Message::EnterPressed);
 
-            Column::new()
-                .spacing(10)
-                .push(
+            #[allow(unused_mut)]
+            let mut coll = Column::new().spacing(10);
+
+            #[cfg(feature = "play_along")]
+            {
+                use iced_native::Checkbox;
+                coll = coll.push(
                     Row::new()
                         .height(Length::Shrink)
                         .push(
@@ -407,9 +417,10 @@ impl SongSelectControls {
                                 .style(CheckboxStyle {}),
                         )
                         .push(Text::new("Play Along").color(Color::WHITE)),
-                )
-                .push(btn)
-                .into()
+                );
+            }
+
+            coll.push(btn).into()
         } else {
             Row::new().into()
         };

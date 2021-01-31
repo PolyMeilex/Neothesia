@@ -25,6 +25,8 @@ body {
 
   max-width: 935px;
   width: 100%;
+
+  animation: floating 5s ease-in-out infinite;
 }
 
 header {
@@ -77,6 +79,8 @@ main {
   justify-content: center;
 
   flex-wrap: wrap;
+
+  cursor: pointer;
 }
 
 .btn > i {

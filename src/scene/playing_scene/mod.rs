@@ -344,7 +344,7 @@ impl Player {
 
         #[cfg(feature = "play_along")]
         let play_along_controler = if main_state.config.play_along {
-            Some(PlayAlongControler::new())
+            PlayAlongControler::new()
         } else {
             None
         };
@@ -513,7 +513,7 @@ struct PlayAlongControler {
 
 #[cfg(feature = "play_along")]
 impl PlayAlongControler {
-    fn new() -> Self {
+    fn new() -> Option<Self> {
         let input_pressed_keys = [false; 88];
         let required_notes = Arc::new(Mutex::new(HashMap::new()));
 
@@ -522,11 +522,33 @@ impl PlayAlongControler {
         let _midi_in_conn = {
             let midi_in = midir::MidiInput::new("Neothesia-in").unwrap();
             let in_ports = midi_in.ports();
-            let in_port = &in_ports[1];
 
-            for (i, p) in in_ports.iter().enumerate() {
-                println!("{}: {}", i, midi_in.port_name(p).unwrap());
-            }
+            use std::io::{stdin, stdout, Write};
+
+            let in_port = match in_ports.len() {
+                0 => return None,
+                1 => {
+                    println!(
+                        "Choosing the only available input port: {}",
+                        midi_in.port_name(&in_ports[0]).unwrap()
+                    );
+                    &in_ports[0]
+                }
+                _ => {
+                    println!("\nAvailable input ports:");
+                    for (i, p) in in_ports.iter().enumerate() {
+                        println!("{}: {}", i, midi_in.port_name(p).unwrap());
+                    }
+                    print!("Please select input port: ");
+                    stdout().flush().unwrap();
+                    let mut input = String::new();
+                    stdin().read_line(&mut input).unwrap();
+                    in_ports
+                        .get(input.trim().parse::<usize>().unwrap())
+                        .ok_or("invalid input port selected")
+                        .unwrap()
+                }
+            };
 
             let required_notes = required_notes.clone();
 
@@ -552,14 +574,14 @@ impl PlayAlongControler {
                 .unwrap()
         };
 
-        Self {
+        Some(Self {
             _midi_in_conn,
             midi_in_rec,
 
             input_pressed_keys,
             required_notes,
             waiting_for_note: false,
-        }
+        })
     }
 
     fn update(

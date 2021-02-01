@@ -8,9 +8,19 @@ layout(location=3) in float i_radius;
 
 layout(location=0) out vec4 o_color;
 
+layout(set=0, binding=0) 
+uniform Uniforms {
+    mat4 u_Transform;
+    vec2 u_size;
+};
 
 void main() {
     vec3 col = i_color;
+    
+    float keyboard_height = u_size.y / 5.0;
+    if(gl_FragCoord.y > u_size.y - keyboard_height){
+        discard;
+    }
 
     float alpha = 1.0;
 

@@ -75,7 +75,7 @@ impl Target {
         let transform_uniform = Uniform::new(
             &gpu.device,
             TransformUniform::default(),
-            wgpu::ShaderStage::VERTEX,
+            wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
         );
 
         let text_renderer = TextRenderer::new(&gpu);

@@ -117,7 +117,7 @@ impl PianoKeyboard {
         self.keyboard_pipeline
             .update_instance_buffer(&mut target.gpu, rectangles);
     }
-    pub fn update_notes_state(&mut self, gpu: &mut Gpu, notes: [(bool, usize); 88]) {
+    pub fn update_notes_state(&mut self, target: &mut Target, notes: [(bool, usize); 88]) {
         let mut white_keys = Vec::new();
         let mut black_keys = Vec::new();
 
@@ -174,8 +174,11 @@ impl PianoKeyboard {
             })
             .collect();
 
-        self.keyboard_pipeline
-            .update_notes_state(&mut gpu.encoder, &gpu.device, notes_out);
+        self.keyboard_pipeline.update_notes_state(
+            &mut target.gpu.encoder,
+            &target.gpu.device,
+            notes_out,
+        );
     }
     pub fn render<'rpass>(
         &'rpass mut self,

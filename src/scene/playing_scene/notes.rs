@@ -79,8 +79,8 @@ impl Notes {
         self.notes_pipeline
             .update_instance_buffer(&mut target.gpu, instances);
     }
-    pub fn update(&mut self, gpu: &mut Gpu, time: f32) {
-        self.notes_pipeline.update_time(gpu, time);
+    pub fn update(&mut self, target: &mut Target, time: f32) {
+        self.notes_pipeline.update_time(&mut target.gpu, time);
     }
     pub fn render<'rpass>(
         &'rpass mut self,

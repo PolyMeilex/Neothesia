@@ -36,7 +36,7 @@ impl PlayingScene {
         let mut notes = Notes::new(target, &piano_keyboard.all_keys);
 
         let player = Player::new(&mut target.state);
-        notes.update(&mut target.gpu, player.time);
+        notes.update(target, player.time);
 
         Self {
             piano_keyboard,
@@ -155,10 +155,9 @@ impl Scene for PlayingScene {
             }
         }
 
-        self.piano_keyboard
-            .update_notes_state(&mut target.gpu, notes_on);
+        self.piano_keyboard.update_notes_state(target, notes_on);
         self.notes.update(
-            &mut target.gpu,
+            target,
             self.player.time + target.state.config.playback_offset,
         );
 

@@ -63,7 +63,7 @@ impl Notes {
 
                 instances.push(NoteInstance {
                     position: [key.x, note.start],
-                    size: [key.w - 1.0, h],
+                    size: [key.w - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
                     color: color.into_linear_rgb(),
                     radius: 4.0 * ar,
                 });

@@ -139,29 +139,21 @@ impl PianoKeyboard {
             }
         }
 
-        let colors: [[Color; 2]; 2] = [
-            [
-                Color::from_rgba8(93, 188, 255, 1.0),
-                Color::from_rgba8(48, 124, 255, 1.0),
-            ],
-            [
-                Color::from_rgba8(210, 89, 222, 1.0),
-                Color::from_rgba8(125, 69, 134, 1.0),
-            ],
-        ];
+        let color_shema = &target.state.config.color_shema;
+
         let white_keys = white_keys.into_iter().map(|note| {
-            let color = colors[note.1 % 2];
+            let color = &color_shema[note.1 % color_shema.len()];
             if note.0 {
-                color[0]
+                color.base.into()
             } else {
                 Color::new(1.0, 1.0, 1.0, 1.0)
             }
         });
 
         let black_keys = black_keys.into_iter().map(|note| {
-            let color = colors[note.1 % 2];
+            let color = &color_shema[note.1 % color_shema.len()];
             if note.0 {
-                color[1]
+                color.dark.into()
             } else {
                 Color::new(0.1, 0.1, 0.1, 1.0)
             }

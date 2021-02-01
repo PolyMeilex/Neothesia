@@ -55,3 +55,9 @@ impl Color {
         ]
     }
 }
+
+impl From<(u8, u8, u8)> for Color {
+    fn from(f: (u8, u8, u8)) -> Self {
+        Self::from_rgba8(f.0, f.1, f.2, 1.0)
+    }
+}

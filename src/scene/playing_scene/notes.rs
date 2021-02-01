@@ -31,29 +31,11 @@ impl Notes {
                 let key = &keys[note.note as usize - 21];
                 let ar = window_w / window_h;
 
-                // let colors: [[[f32; 3]; 2]; 2] = [
-                //     [
-                //         [146.0 / 255.0, 255.0 / 255.0, 48.0 / 255.0],
-                //         [87.0 / 255.0, 183.0 / 255.0, 12.0 / 255.0],
-                //     ],
-                //     [
-                //         [118.0 / 255.0, 166.0 / 255.0, 211.0 / 255.0],
-                //         [54.0 / 255.0, 109.0 / 255.0, 173.0 / 255.0],
-                //     ],
-                // ];
-                let colors: [[Color; 2]; 2] = [
-                    [
-                        Color::from_rgba8(93, 188, 255, 1.0),
-                        Color::from_rgba8(48, 124, 255, 1.0),
-                    ],
-                    [
-                        Color::from_rgba8(210, 89, 222, 1.0),
-                        Color::from_rgba8(125, 69, 134, 1.0),
-                    ],
-                ];
+                let color_shema = &target.state.config.color_shema;
 
-                let color = colors[note.track_id % 2];
-                let color = if key.is_black { color[1] } else { color[0] };
+                let color = &color_shema[note.track_id % color_shema.len()];
+                let color = if key.is_black { color.dark } else { color.base };
+                let color: Color = color.into();
 
                 let h = if note.duration >= 0.1 {
                     note.duration

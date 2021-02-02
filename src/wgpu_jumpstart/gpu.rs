@@ -1,3 +1,4 @@
+use super::color::Color;
 use super::GpuInitError;
 
 pub struct Gpu {
@@ -57,16 +58,17 @@ impl Gpu {
         ))
     }
 
-    pub fn clear(&mut self, frame: &wgpu::SwapChainFrame) {
+    pub fn clear(&mut self, frame: &wgpu::SwapChainFrame, color: Color) {
+        let rgb = color.into_linear_rgb();
         self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: &frame.output.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
+                        r: rgb[0] as f64,
+                        g: rgb[1] as f64,
+                        b: rgb[2] as f64,
                         a: 1.0,
                     }),
                     store: true,

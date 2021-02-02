@@ -166,7 +166,9 @@ impl App {
             .get_current_frame()
             .expect("Could not get_current_frame()");
 
-        self.target.gpu.clear(&frame);
+        self.target
+            .gpu
+            .clear(&frame, self.target.state.config.background_color.into());
 
         self.game_scene.render(&mut self.target, &frame);
 

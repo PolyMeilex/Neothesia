@@ -20,6 +20,9 @@ pub struct Config {
 
     #[serde(default = "default_color_schema")]
     pub color_schema: Vec<ColorSchema>,
+
+    #[serde(default)]
+    pub background_color: (u8, u8, u8),
 }
 
 impl Config {
@@ -42,6 +45,7 @@ impl Config {
             playback_offset: default_playback_offset(),
             play_along: default_play_along(),
             color_schema: default_color_schema(),
+            background_color: Default::default(),
         })
     }
 }

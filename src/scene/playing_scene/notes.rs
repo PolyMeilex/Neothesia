@@ -31,9 +31,9 @@ impl Notes {
                 let key = &keys[note.note as usize - 21];
                 let ar = window_w / window_h;
 
-                let color_shema = &target.state.config.color_shema;
+                let color_schema = &target.state.config.color_schema;
 
-                let color = &color_shema[note.track_id % color_shema.len()];
+                let color = &color_schema[note.track_id % color_schema.len()];
                 let color = if key.is_black { color.dark } else { color.base };
                 let color: Color = color.into();
 

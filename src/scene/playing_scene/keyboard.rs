@@ -139,10 +139,10 @@ impl PianoKeyboard {
             }
         }
 
-        let color_shema = &target.state.config.color_shema;
+        let color_schema = &target.state.config.color_schema;
 
         let white_keys = white_keys.into_iter().map(|note| {
-            let color = &color_shema[note.1 % color_shema.len()];
+            let color = &color_schema[note.1 % color_schema.len()];
             if note.0 {
                 color.base.into()
             } else {
@@ -151,7 +151,7 @@ impl PianoKeyboard {
         });
 
         let black_keys = black_keys.into_iter().map(|note| {
-            let color = &color_shema[note.1 % color_shema.len()];
+            let color = &color_schema[note.1 % color_schema.len()];
             if note.0 {
                 color.dark.into()
             } else {

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default)]
-pub struct ColorShema {
+pub struct ColorSchema {
     pub base: (u8, u8, u8),
     pub dark: (u8, u8, u8),
 }
@@ -18,8 +18,8 @@ pub struct Config {
     #[serde(skip_serializing)]
     pub play_along: bool,
 
-    #[serde(default = "default_color_shema")]
-    pub color_shema: Vec<ColorShema>,
+    #[serde(default = "default_color_schema")]
+    pub color_schema: Vec<ColorSchema>,
 }
 
 impl Config {
@@ -41,7 +41,7 @@ impl Config {
             speed_multiplier: default_speed_multiplier(),
             playback_offset: default_playback_offset(),
             play_along: default_play_along(),
-            color_shema: default_color_shema(),
+            color_schema: default_color_schema(),
         })
     }
 }
@@ -67,13 +67,13 @@ fn default_play_along() -> bool {
     false
 }
 
-fn default_color_shema() -> Vec<ColorShema> {
+fn default_color_schema() -> Vec<ColorSchema> {
     vec![
-        ColorShema {
+        ColorSchema {
             base: (93, 188, 255),
             dark: (48, 124, 255),
         },
-        ColorShema {
+        ColorSchema {
             base: (210, 89, 222),
             dark: (125, 69, 134),
         },

@@ -3,7 +3,7 @@ mod instance_data;
 pub use instance_data::NoteInstance;
 
 use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
-use crate::{Target, TransformUniform};
+use crate::{target::Target, TransformUniform};
 
 use zerocopy::AsBytes;
 

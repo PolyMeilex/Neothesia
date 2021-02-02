@@ -1,6 +1,6 @@
 use super::keyboard_pipeline::{KeyInstance, KeyStateInstance, KeyboardPipeline};
-use crate::wgpu_jumpstart::{Color, Gpu};
-use crate::Target;
+use crate::target::Target;
+use crate::wgpu_jumpstart::Color;
 use crate::TransformUniform;
 use crate::Uniform;
 

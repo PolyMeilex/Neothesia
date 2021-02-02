@@ -10,9 +10,9 @@ use winit::event::WindowEvent;
 
 use crate::{
     scene::{Scene, SceneEvent, SceneType},
+    target::Target,
     time_manager::Timer,
     ui::iced_conversion,
-    Target,
 };
 
 #[derive(Debug)]

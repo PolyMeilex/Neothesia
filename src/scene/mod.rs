@@ -2,7 +2,7 @@ pub mod menu_scene;
 pub mod playing_scene;
 pub mod scene_transition;
 
-use crate::Target;
+use crate::target::Target;
 
 use winit::event::WindowEvent;
 

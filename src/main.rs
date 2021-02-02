@@ -4,13 +4,10 @@ use futures::Future;
 use wgpu_jumpstart::{Gpu, Uniform, Window};
 
 mod ui;
-use ui::{IcedManager, TextRenderer};
 
 mod scene;
-use scene::{Scene, SceneEvent, SceneType};
 
 mod time_manager;
-use time_manager::Fps;
 
 mod output_manager;
 pub use output_manager::OutputManager;
@@ -19,235 +16,17 @@ mod transform_uniform;
 use transform_uniform::TransformUniform;
 
 mod config;
-use config::Config;
 
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-};
+use winit::{event::Event, event_loop::EventLoop};
 
 mod rectangle_pipeline;
 
 mod resources;
 
-pub struct MainState {
-    pub midi_file: Option<lib_midi::Midi>,
-    pub output_manager: OutputManager,
+mod target;
 
-    pub config: Config,
-}
-
-impl MainState {
-    fn new() -> Self {
-        let args: Vec<String> = std::env::args().collect();
-
-        let midi_file = if args.len() > 1 {
-            if let Ok(midi) = lib_midi::Midi::new(&args[1]) {
-                Some(midi)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        Self {
-            midi_file,
-            output_manager: OutputManager::new(),
-
-            config: Config::new(),
-        }
-    }
-}
-
-pub struct Target {
-    pub state: MainState,
-    pub window: Window,
-    pub gpu: Gpu,
-    pub transform_uniform: Uniform<TransformUniform>,
-
-    pub text_renderer: TextRenderer,
-    pub iced_manager: IcedManager,
-}
-
-impl Target {
-    pub fn new(window: Window, gpu: Gpu) -> Self {
-        let transform_uniform = Uniform::new(
-            &gpu.device,
-            TransformUniform::default(),
-            wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-        );
-
-        let text_renderer = TextRenderer::new(&gpu);
-
-        let iced_manager = IcedManager::new(&gpu.device, &window);
-
-        Self {
-            state: MainState::new(),
-            window,
-            gpu,
-            transform_uniform,
-
-            text_renderer,
-            iced_manager,
-        }
-    }
-    fn resize(&mut self) {
-        {
-            let winit::dpi::LogicalSize { width, height } = self.window.state.logical_size;
-            self.transform_uniform.data.update(width, height);
-            self.transform_uniform
-                .update(&mut self.gpu.encoder, &self.gpu.device);
-        }
-
-        {
-            let physical_size = self.window.state.physical_size;
-            self.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
-                iced_native::Size::new(physical_size.width, physical_size.height),
-                self.window.state.scale_factor,
-            );
-        }
-    }
-}
-
-struct App {
-    target: Target,
-
-    fps_timer: Fps,
-    game_scene: scene::scene_transition::SceneTransition,
-}
-
-impl App {
-    fn new(gpu: Gpu, window: Window) -> Self {
-        let mut target = Target::new(window, gpu);
-
-        let game_scene = scene::menu_scene::MenuScene::new(&mut target);
-        let mut game_scene =
-            scene::scene_transition::SceneTransition::new(Box::new(game_scene), &target);
-
-        target.resize();
-        game_scene.resize(&mut target);
-        target.gpu.submit().unwrap();
-
-        Self {
-            target,
-            fps_timer: Fps::new(),
-            game_scene,
-        }
-    }
-
-    fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
-        match &event {
-            WindowEvent::Resized(_) => {
-                self.target.resize();
-                self.game_scene.resize(&mut self.target);
-
-                self.target.gpu.submit().unwrap();
-            }
-            WindowEvent::ScaleFactorChanged { .. } => {
-                // TODO: Check if this update is needed;
-                self.target.resize();
-                self.game_scene.resize(&mut self.target);
-            }
-            WindowEvent::KeyboardInput {
-                input:
-                    winit::event::KeyboardInput {
-                        state: winit::event::ElementState::Pressed,
-                        virtual_keycode: Some(winit::event::VirtualKeyCode::F),
-                        ..
-                    },
-                ..
-            } => {
-                if let Some(_) = self.target.window.winit_window.fullscreen() {
-                    self.target.window.winit_window.set_fullscreen(None);
-                } else {
-                    let monitor = self.target.window.winit_window.current_monitor();
-                    let f = if let Some(monitor) = monitor {
-                        let mut modes = monitor.video_modes();
-                        if let Some(m) = modes.next() {
-                            log::info!("Video #{}: {}", 0, m);
-                            winit::window::Fullscreen::Exclusive(m)
-                        } else {
-                            winit::window::Fullscreen::Borderless(None)
-                        }
-                    } else {
-                        winit::window::Fullscreen::Borderless(None)
-                    };
-
-                    self.target.window.winit_window.set_fullscreen(Some(f));
-                }
-            }
-            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-            _ => {}
-        }
-
-        let scene_event = self.game_scene.window_event(&mut self.target, event);
-        self.scene_event(scene_event, control_flow);
-    }
-
-    fn scene_event(&mut self, event: SceneEvent, control_flow: &mut ControlFlow) {
-        match event {
-            SceneEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::Play => {
-                    let to = |target: &mut Target| -> Box<dyn Scene> {
-                        let state = scene::playing_scene::PlayingScene::new(target);
-                        Box::new(state)
-                    };
-
-                    let to = Box::new(to);
-
-                    self.game_scene.transition_to(to);
-                }
-            },
-            SceneEvent::GoBack => match self.game_scene.scene_type() {
-                SceneType::MainMenu => {
-                    *control_flow = ControlFlow::Exit;
-                }
-                SceneType::Playing => {
-                    let to = |target: &mut Target| -> Box<dyn Scene> {
-                        let state = scene::menu_scene::MenuScene::new(target);
-                        Box::new(state)
-                    };
-
-                    let to = Box::new(to);
-
-                    self.game_scene.transition_to(to);
-                }
-                SceneType::Transition => {}
-            },
-            _ => {}
-        }
-    }
-
-    fn update(&mut self, control_flow: &mut ControlFlow) {
-        self.fps_timer.update();
-
-        let event = self.game_scene.update(&mut self.target);
-
-        self.scene_event(event, control_flow);
-
-        #[cfg(debug_assertions)]
-        self.target.text_renderer.queue_fps(self.fps_timer.fps());
-    }
-
-    fn render(&mut self) {
-        let frame = self
-            .target
-            .window
-            .get_current_frame()
-            .expect("Could not get_current_frame()");
-
-        self.target.gpu.clear(&frame);
-
-        self.game_scene.render(&mut self.target, &frame);
-
-        self.target
-            .text_renderer
-            .render(&self.target.window, &mut self.target.gpu, &frame);
-
-        self.target.gpu.submit().unwrap();
-    }
-}
+mod app;
+use app::{App, MainState};
 
 fn main() {
     {

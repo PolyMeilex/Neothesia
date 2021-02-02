@@ -2,7 +2,7 @@ mod instance_data;
 
 pub use instance_data::{KeyInstance, KeyStateInstance};
 
-use crate::{Target, TransformUniform};
+use crate::{target::Target, TransformUniform};
 
 use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
 

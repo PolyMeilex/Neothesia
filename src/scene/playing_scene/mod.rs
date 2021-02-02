@@ -12,10 +12,11 @@ use super::{Scene, SceneEvent, SceneType};
 use lib_midi::MidiNote;
 
 use crate::{
+    app::MainState,
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
+    target::Target,
     time_manager::Timer,
     wgpu_jumpstart::Color,
-    MainState, Target,
 };
 
 use winit::event::WindowEvent;

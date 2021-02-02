@@ -8,7 +8,7 @@ If you have any questions, feel free to join my Discord
 
 [<img alt="Discord" src="https://img.shields.io/discord/273176778946641920?logo=discord&style=for-the-badge&color=%23a051ee">](https://discord.gg/sgeZuVA)
 ## Screenshots
-[![IMG](https://i.snag.gy/F8SCbv.jpg)](https://youtu.be/ReE9nVuMCSE)
+[![IMG](https://i.imgur.com/WUO61EN.png)](https://youtu.be/ReE9nVuMCSE)
 [Video](https://youtu.be/ReE9nVuMCSE)
 [![Video](https://i.imgur.com/1R5uOnA.png)](https://youtu.be/ReE9nVuMCSE)
 ## Download

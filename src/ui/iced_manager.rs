@@ -10,8 +10,10 @@ impl IcedManager {
     pub fn new(device: &wgpu::Device, window: &Window) -> Self {
         let debug = iced_native::Debug::new();
 
-        let mut settings = iced_wgpu::Settings::default();
-        settings.format = wgpu_jumpstart::TEXTURE_FORMAT;
+        let settings = iced_wgpu::Settings {
+            format: wgpu_jumpstart::TEXTURE_FORMAT,
+            ..Default::default()
+        };
 
         let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
 

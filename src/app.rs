@@ -87,7 +87,7 @@ impl App {
                     },
                 ..
             } => {
-                if let Some(_) = self.target.window.winit_window.fullscreen() {
+                if self.target.window.winit_window.fullscreen().is_some() {
                     self.target.window.winit_window.set_fullscreen(None);
                 } else {
                     let monitor = self.target.window.winit_window.current_monitor();

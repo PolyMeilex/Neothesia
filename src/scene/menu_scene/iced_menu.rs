@@ -314,7 +314,7 @@ impl SongSelectControls {
 
         let label = item
             .map(|o| o.to_string())
-            .unwrap_or("Disconected".to_string());
+            .unwrap_or_else(|| "Disconected".to_string());
 
         let output = Text::new(label)
             .color(Color::WHITE)

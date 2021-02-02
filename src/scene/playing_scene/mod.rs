@@ -150,10 +150,8 @@ impl Scene for PlayingScene {
                     was_paused: self.player.timer.paused,
                 });
             }
-        } else {
-            if let RewindControler::Mouse { .. } = self.player.rewind_controler {
-                self.player.stop_rewind();
-            }
+        } else if let RewindControler::Mouse { .. } = self.player.rewind_controler {
+            self.player.stop_rewind();
         }
 
         self.piano_keyboard.update_notes_state(target, notes_on);

@@ -1,6 +1,6 @@
+use crate::main_state::MainState;
 use crate::ui::{IcedManager, TextRenderer};
 use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
-use crate::MainState;
 use crate::TransformUniform;
 
 pub struct Target {

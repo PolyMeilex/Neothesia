@@ -166,15 +166,18 @@ impl App {
             .get_current_frame()
             .expect("Could not get_current_frame()");
 
-        self.target
-            .gpu
-            .clear(&frame, self.target.state.config.background_color.into());
+        self.target.gpu.clear(
+            &frame.output.view,
+            self.target.state.config.background_color.into(),
+        );
 
-        self.game_scene.render(&mut self.target, &frame);
+        self.game_scene.render(&mut self.target, &frame.output.view);
 
-        self.target
-            .text_renderer
-            .render(&self.target.window, &mut self.target.gpu, &frame);
+        self.target.text_renderer.render(
+            &self.target.window,
+            &mut self.target.gpu,
+            &frame.output.view,
+        );
 
         self.target.gpu.submit().unwrap();
     }

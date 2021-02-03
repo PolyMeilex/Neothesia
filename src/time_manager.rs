@@ -17,6 +17,8 @@ impl Timer {
         self.last_time = Instant::now();
         self.time_elapsed = 0;
     }
+
+    #[cfg(not(feature = "record"))]
     pub fn update(&mut self) {
         if !self.paused {
             // We use nanos only because when using secs timing error quickly piles up
@@ -26,6 +28,14 @@ impl Timer {
         }
         self.last_time = Instant::now();
     }
+
+    /// Got to next frame (60FPS)
+    #[cfg(feature = "record")]
+    pub fn update(&mut self) {
+        // 60FPS per 1s (in nanos)
+        self.time_elapsed += 1000000000 / 60;
+    }
+
     pub fn set_time(&mut self, time: f32) {
         if time > 0.0 {
             self.time_elapsed = (time * 1_000_000.0).round() as u128;

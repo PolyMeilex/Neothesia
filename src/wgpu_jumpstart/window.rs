@@ -38,13 +38,16 @@ impl Window {
         let (gpu, surface) = Gpu::for_window(&winit_window).await?;
 
         let (swap_chain, swap_chain_descriptor) = {
-            let size = winit_window.inner_size();
+            #[cfg(feature = "record")]
+            let PhysicalSize { width, height } = winit_window.inner_size();
+            #[cfg(not(feature = "record"))]
+            let (width, height) = { (1920, 1080) };
 
             let swap_chain_descriptor = wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: super::TEXTURE_FORMAT,
-                width: size.width,
-                height: size.height,
+                width: width,
+                height: height,
                 present_mode: wgpu::PresentMode::Fifo,
             };
 
@@ -128,8 +131,18 @@ impl WinitState {
     fn new(window: &winit::window::Window) -> Self {
         let scale_factor = window.scale_factor();
 
-        let physical_size = window.inner_size();
-        let logical_size = physical_size.to_logical::<f32>(scale_factor);
+        #[cfg(not(feature = "record"))]
+        let (physical_size, logical_size) = {
+            let physical_size = window.inner_size();
+            let logical_size = physical_size.to_logical::<f32>(scale_factor);
+            (physical_size, logical_size)
+        };
+        #[cfg(feature = "record")]
+        let (physical_size, logical_size) = {
+            let physical_size = PhysicalSize::new(1920, 1080);
+            let logical_size = physical_size.to_logical::<f32>(scale_factor);
+            (physical_size, logical_size)
+        };
 
         let cursor_physical_position = PhysicalPosition::new(0.0, 0.0);
         let cursor_logical_position = LogicalPosition::new(0.0, 0.0);

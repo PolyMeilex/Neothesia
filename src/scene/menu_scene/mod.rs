@@ -71,12 +71,12 @@ impl Scene for MenuScene {
         SceneEvent::None
     }
 
-    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+    fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
         let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.output.view,
+                    attachment: view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
@@ -92,7 +92,7 @@ impl Scene for MenuScene {
             &target.gpu.device,
             &mut target.gpu.staging_belt,
             &mut target.gpu.encoder,
-            &frame.output.view,
+            view,
             &target.iced_manager.viewport,
             self.iced_state.primitive(),
             &target.iced_manager.debug.overlay(),

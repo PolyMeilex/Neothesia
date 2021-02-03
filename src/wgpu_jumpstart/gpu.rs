@@ -3,6 +3,7 @@ use super::GpuInitError;
 
 pub struct Gpu {
     pub device: wgpu::Device,
+
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
     pub staging_belt: wgpu::util::StagingBelt,
@@ -58,11 +59,11 @@ impl Gpu {
         ))
     }
 
-    pub fn clear(&mut self, frame: &wgpu::SwapChainFrame, color: Color) {
+    pub fn clear(&mut self, view: &wgpu::TextureView, color: Color) {
         let rgb = color.into_linear_rgb();
         self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: &frame.output.view,
+                attachment: view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {

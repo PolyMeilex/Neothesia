@@ -72,7 +72,7 @@ impl SceneTransition {
             .update_instance_buffer(&mut gpu.encoder, &gpu.device, vec![rect]);
     }
 
-    pub fn render_transition(&self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+    pub fn render_transition(&self, target: &mut Target, view: &wgpu::TextureView) {
         if self.curr_transition_alpha != 0.0 {
             let mut render_pass =
                 target
@@ -80,7 +80,7 @@ impl SceneTransition {
                     .encoder
                     .begin_render_pass(&wgpu::RenderPassDescriptor {
                         color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: &frame.output.view,
+                            attachment: view,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Load,
@@ -179,15 +179,15 @@ impl SceneTransition {
             _ => SceneEvent::None,
         }
     }
-    pub fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+    pub fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
         match &mut self.mode {
-            TransitionMode::FadeIn(scene) => scene.render(target, frame),
-            TransitionMode::FadeOut(from, _to) => from.render(target, frame),
-            TransitionMode::Static(scene) => scene.render(target, frame),
+            TransitionMode::FadeIn(scene) => scene.render(target, view),
+            TransitionMode::FadeOut(from, _to) => from.render(target, view),
+            TransitionMode::Static(scene) => scene.render(target, view),
             _ => {}
         }
 
-        self.render_transition(target, frame);
+        self.render_transition(target, view);
     }
     pub fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         match &mut self.mode {

@@ -5,9 +5,9 @@ authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["compile_shader","synth"]
+default = ["compile_shader", "synth"]
 compile_shader = []
-record=[]
+record=["mpeg_encoder"]
 play_along=[]
 synth=["cpal","fluidlite","fluidlite-lib"]
 
@@ -40,6 +40,9 @@ fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional
 
 ron = "0.6.4"
 serde = { version = "1.0.118", features = ["serde_derive"] }
+
+mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optional=true}
+# mpeg_encoder = {path="../mpeg_encoder_next", optional=true}
 
 # js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
 # web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }

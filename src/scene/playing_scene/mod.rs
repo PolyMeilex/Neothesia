@@ -12,7 +12,7 @@ use super::{Scene, SceneEvent, SceneType};
 use lib_midi::MidiNote;
 
 use crate::{
-    app::MainState,
+    main_state::MainState,
     rectangle_pipeline::{RectangleInstance, RectanglePipeline},
     target::Target,
     time_manager::Timer,
@@ -173,13 +173,13 @@ impl Scene for PlayingScene {
 
         SceneEvent::None
     }
-    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame) {
+    fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
         let transform_uniform = &target.transform_uniform;
         let encoder = &mut target.gpu.encoder;
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.output.view,
+                    attachment: view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,

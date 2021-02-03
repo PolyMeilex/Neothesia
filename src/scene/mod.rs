@@ -1,4 +1,5 @@
 pub mod menu_scene;
+
 pub mod playing_scene;
 pub mod scene_transition;
 
@@ -14,7 +15,7 @@ pub trait Scene {
 
     fn resize(&mut self, _target: &mut Target) {}
     fn update(&mut self, target: &mut Target) -> SceneEvent;
-    fn render(&mut self, target: &mut Target, frame: &wgpu::SwapChainFrame);
+    fn render(&mut self, target: &mut Target, view: &wgpu::TextureView);
     fn window_event(&mut self, _target: &mut Target, _event: &WindowEvent) -> SceneEvent {
         SceneEvent::None
     }

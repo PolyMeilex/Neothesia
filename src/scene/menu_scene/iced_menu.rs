@@ -6,8 +6,8 @@ use iced_native::{
 };
 use iced_wgpu::Renderer;
 
+use crate::main_state::MainState;
 use crate::output_manager::OutputDescriptor;
-use crate::MainState;
 
 use super::neo_btn::{self, NeoBtn};
 

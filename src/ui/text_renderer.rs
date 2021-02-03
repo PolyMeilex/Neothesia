@@ -41,7 +41,7 @@ impl TextRenderer {
         });
     }
 
-    pub fn render(&mut self, window: &Window, gpu: &mut Gpu, frame: &wgpu::SwapChainFrame) {
+    pub fn render(&mut self, window: &Window, gpu: &mut Gpu, view: &wgpu::TextureView) {
         let encoder = &mut gpu.encoder;
 
         let (window_w, window_h) = {
@@ -53,7 +53,7 @@ impl TextRenderer {
                 &gpu.device,
                 &mut gpu.staging_belt,
                 encoder,
-                &frame.output.view,
+                view,
                 window_w.round() as u32,
                 window_h.round() as u32,
             )

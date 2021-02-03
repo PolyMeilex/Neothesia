@@ -169,12 +169,12 @@ fn run_recorder() {
         };
 
         std::fs::create_dir("./out").ok();
-        let mut encoder = mpeg_encoder::Encoder::new("./out/test.mp4", 1920, 1080);
+        let mut encoder = mpeg_encoder::Encoder::new("./out/video.mp4", 1920, 1080);
         encoder.init();
         let start = std::time::Instant::now();
 
-        let duration = 60 * 60; // 1m
-        for n in 0..duration {
+        let mut n = 1;
+        while recorder.scene.playback_progress() < 101.0 {
             let output_buffer = recorder
                 .target
                 .gpu
@@ -198,13 +198,16 @@ fn run_recorder() {
                     let data: &[u8] = &mapping;
                     encoder.encode_bgra(1920, 1080, data, false);
                     println!(
-                        "Encoded {} frames ({}s) in {}s",
+                        "Encoded {} frames ({}s, {}%) in {}s",
                         n,
-                        (n as f32 / 60.0 * 100.0).round() / 100.0,
-                        start.elapsed().as_secs_f32()
+                        (n as f32 / 60.0).round(),
+                        recorder.scene.playback_progress().round(),
+                        start.elapsed().as_secs()
                     );
                 });
             }
+
+            n += 1;
         }
     }
 }

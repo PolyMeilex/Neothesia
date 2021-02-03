@@ -7,7 +7,7 @@ use crate::{
 pub struct Recorder {
     pub target: Target,
 
-    scene: PlayingScene,
+    pub scene: PlayingScene,
 }
 
 impl Recorder {

@@ -1814,7 +1814,7 @@ dependencies = [
 [[package]]
 name = "mpeg_encoder"
 version = "0.2.1"
-source = "git+https://github.com/PolyMeilex/mpeg_encoder_next.git#48fbfef7b9ce03b62674526a919899eb5c7e9875"
+source = "git+https://github.com/PolyMeilex/mpeg_encoder_next.git#0af423190bcc69e9a2b0fd982a0ab1e19a0d35ef"
 dependencies = [
  "ffmpeg-sys",
 ]

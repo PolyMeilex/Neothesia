@@ -170,7 +170,10 @@ fn run_recorder() {
 
         std::fs::create_dir("./out").ok();
         let mut encoder = mpeg_encoder::Encoder::new("./out/video.mp4", 1920, 1080);
-        encoder.init();
+
+        encoder.init(Some(0.0),Some("medium"));
+
+
         let start = std::time::Instant::now();
 
         let mut n = 1;

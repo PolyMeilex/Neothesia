@@ -21,7 +21,7 @@ If you have any questions, feel free to join my Discord
 - To encode video you need to install [rust](https://www.rust-lang.org/)
 - You also need to install [ffmpeg](https://ffmpeg.org/)
 - And compile the project with `record` flag, like so `cargo build --release --no-default-features --features record` (if you have make: `make build-recorder`)
-- It will compile `neothesia` in recorder mode, from no one it is used as a comand line tool
+- It will compile `neothesia` in recorder mode, from now on it is used as a comand line tool
 - To encode a `test.mid` file run `./target/release/neothesia ./test.mid`
 - Video will be outputed to `./out` directory`
 

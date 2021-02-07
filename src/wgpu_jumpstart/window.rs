@@ -44,7 +44,7 @@ impl Window {
             let (width, height) = { (1920, 1080) };
 
             let swap_chain_descriptor = wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: super::TEXTURE_FORMAT,
                 width: width,
                 height: height,

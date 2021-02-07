@@ -12,17 +12,17 @@ play_along=[]
 synth=["cpal","fluidlite","fluidlite-lib"]
 
 [dependencies]
-zerocopy = "0.3.0"
-futures = "0.3.9"
+bytemuck = "1.5.0"
+futures = "0.3.12"
 
 # winit = "0.24.0"
 winit = { git = "https://github.com/PolyMeilex/winit.git" } 
 
-wgpu = "0.6.2"
-wgpu_glyph = "0.10.0"
+wgpu = "0.7.0"
+wgpu_glyph = "0.11.0"
 
 
-log = "0.4.11"
+log = "0.4.14"
 env_logger = "0.8.2"
 
 nfd2 = "0.2.3"
@@ -30,16 +30,16 @@ nfd2 = "0.2.3"
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = "0.3.0"
-iced_wgpu = { version = "0.3.0", features = ["image"] } 
-iced_graphics = "0.1.0"
+iced_native = {git="https://github.com/hecrj/iced.git", rev="2f10a1f2a2c92aada5d167d82e008588256b590f"} 
+iced_wgpu = {git="https://github.com/hecrj/iced.git", rev="2f10a1f2a2c92aada5d167d82e008588256b590f", features = ["image"]} 
+iced_graphics = {git="https://github.com/hecrj/iced.git", rev="2f10a1f2a2c92aada5d167d82e008588256b590f"} 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 
 ron = "0.6.4"
-serde = { version = "1.0.118", features = ["serde_derive"] }
+serde = { version = "1.0.123", features = ["serde_derive"] }
 
 mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optional=true}
 # mpeg_encoder = {path="../mpeg_encoder_next", optional=true}

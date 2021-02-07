@@ -1,5 +1,7 @@
 use wgpu::util::DeviceExt;
-use zerocopy::AsBytes;
+
+use bytemuck::{Pod, Zeroable};
+
 pub struct Shape {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
@@ -9,12 +11,12 @@ impl Shape {
     pub fn new(device: &wgpu::Device, vertices: &[Vertex2D], indices: &[u16]) -> Self {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: &vertices.as_bytes(),
+            contents: bytemuck::cast_slice(&vertices),
             usage: wgpu::BufferUsage::VERTEX,
         });
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: &indices.as_bytes(),
+            contents: bytemuck::cast_slice(&indices),
             usage: wgpu::BufferUsage::INDEX,
         });
         Self {
@@ -100,22 +102,22 @@ impl Shape {
         Self::new(device, VERTICES, INDICES)
     }
 
-    pub fn vertex_buffer_descriptor<'a>() -> wgpu::VertexBufferDescriptor<'a> {
-        Vertex2D::desc()
+    pub fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
+        Vertex2D::layout()
     }
 }
 #[repr(C)]
-#[derive(Copy, Clone, Debug, AsBytes)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Vertex2D {
     position: [f32; 2],
 }
 impl Vertex2D {
-    fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
+    fn layout<'a>() -> wgpu::VertexBufferLayout<'a> {
         use std::mem;
-        wgpu::VertexBufferDescriptor {
-            stride: mem::size_of::<Vertex2D>() as wgpu::BufferAddress,
+        wgpu::VertexBufferLayout {
+            array_stride: mem::size_of::<Vertex2D>() as wgpu::BufferAddress,
             step_mode: wgpu::InputStepMode::Vertex,
-            attributes: &[wgpu::VertexAttributeDescriptor {
+            attributes: &[wgpu::VertexAttribute {
                 offset: 0,
                 shader_location: 0,
                 format: wgpu::VertexFormat::Float2,

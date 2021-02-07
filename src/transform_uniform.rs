@@ -1,7 +1,7 @@
-use zerocopy::AsBytes;
+use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
-#[derive(Clone, Copy, AsBytes)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 pub struct TransformUniform {
     transform: [f32; 16],
     size: [f32; 2],

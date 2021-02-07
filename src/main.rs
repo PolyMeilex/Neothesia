@@ -143,7 +143,7 @@ fn run_recorder() {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu_jumpstart::TEXTURE_FORMAT,
-            usage: wgpu::TextureUsage::COPY_SRC | wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            usage: wgpu::TextureUsage::COPY_SRC | wgpu::TextureUsage::RENDER_ATTACHMENT,
             label: None,
         };
         let texture = recorder.target.gpu.device.create_texture(&texture_desc);
@@ -171,8 +171,7 @@ fn run_recorder() {
         std::fs::create_dir("./out").ok();
         let mut encoder = mpeg_encoder::Encoder::new("./out/video.mp4", 1920, 1080);
 
-        encoder.init(Some(0.0),Some("medium"));
-
+        encoder.init(Some(0.0), Some("medium"));
 
         let start = std::time::Instant::now();
 

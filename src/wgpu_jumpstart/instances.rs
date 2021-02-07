@@ -1,16 +1,17 @@
 use wgpu::util::DeviceExt;
-use zerocopy::AsBytes;
+
+use bytemuck::Pod;
 
 pub struct Instances<I>
 where
-    I: 'static + Copy + AsBytes,
+    I: Pod,
 {
     pub data: Vec<I>,
     pub buffer: wgpu::Buffer,
 }
 impl<I> Instances<I>
 where
-    I: 'static + Copy + AsBytes,
+    I: Pod,
 {
     pub fn new(device: &wgpu::Device, max_size: usize) -> Self {
         let instance_size = std::mem::size_of::<I>();
@@ -34,7 +35,7 @@ where
 
         let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: &self.data.as_bytes(),
+            contents: bytemuck::cast_slice(&self.data),
             usage: wgpu::BufferUsage::COPY_SRC,
         });
 

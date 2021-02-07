@@ -2,9 +2,19 @@
 
 //! https://github.com/hecrj/iced/blob/master/winit/src/conversion.rs
 use iced_native::{
-    keyboard::{self, KeyCode, Modifiers},
-    mouse, window, Event, Point,
+    keyboard::{self},
+    mouse, touch, window, Event, Point,
 };
+
+// //! Convert [`winit`] types into [`iced_native`] types, and viceversa.
+// //!
+// //! [`winit`]: https://github.com/rust-windowing/winit
+// //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+// use crate::keyboard;
+// use crate::mouse;
+// use crate::touch;
+// use crate::window;
+// use crate::{Event, Mode, Point};
 
 /// The mode of a window-based application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,8 +55,7 @@ pub fn window_event(
             let position = position.to_logical::<f64>(scale_factor);
 
             Some(Event::Mouse(mouse::Event::CursorMoved {
-                x: position.x as f32,
-                y: position.y as f32,
+                position: Point::new(position.x as f32, position.y as f32),
             }))
         }
         WindowEvent::CursorEntered { .. } => Some(Event::Mouse(mouse::Event::CursorEntered)),
@@ -106,6 +115,11 @@ pub fn window_event(
         WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
             keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
         )),
+        WindowEvent::Focused(focused) => Some(Event::Window(if *focused {
+            window::Event::Focused
+        } else {
+            window::Event::Unfocused
+        })),
         WindowEvent::HoveredFile(path) => {
             Some(Event::Window(window::Event::FileHovered(path.clone())))
         }
@@ -113,6 +127,7 @@ pub fn window_event(
             Some(Event::Window(window::Event::FileDropped(path.clone())))
         }
         WindowEvent::HoveredFileCancelled => Some(Event::Window(window::Event::FilesHoveredLeft)),
+        WindowEvent::Touch(touch) => Some(Event::Touch(touch_event(*touch, scale_factor))),
         _ => None,
     }
 }
@@ -168,8 +183,8 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn modifiers(modifiers: winit::event::ModifiersState) -> Modifiers {
-    Modifiers {
+pub fn modifiers(modifiers: winit::event::ModifiersState) -> keyboard::Modifiers {
+    keyboard::Modifiers {
         shift: modifiers.shift(),
         control: modifiers.ctrl(),
         alt: modifiers.alt(),
@@ -184,11 +199,33 @@ pub fn cursor_position(position: winit::dpi::PhysicalPosition<f64>, scale_factor
     Point::new(logical_position.x, logical_position.y)
 }
 
+/// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn touch_event(touch: winit::event::Touch, scale_factor: f64) -> touch::Event {
+    let id = touch::Finger(touch.id);
+    let position = {
+        let location = touch.location.to_logical::<f64>(scale_factor);
+
+        Point::new(location.x as f32, location.y as f32)
+    };
+
+    match touch.phase {
+        winit::event::TouchPhase::Started => touch::Event::FingerPressed { id, position },
+        winit::event::TouchPhase::Moved => touch::Event::FingerMoved { id, position },
+        winit::event::TouchPhase::Ended => touch::Event::FingerLifted { id, position },
+        winit::event::TouchPhase::Cancelled => touch::Event::FingerLost { id, position },
+    }
+}
+
 /// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> KeyCode {
+pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> keyboard::KeyCode {
+    use keyboard::KeyCode;
+
     match virtual_keycode {
         winit::event::VirtualKeyCode::Key1 => KeyCode::Key1,
         winit::event::VirtualKeyCode::Key2 => KeyCode::Key2,

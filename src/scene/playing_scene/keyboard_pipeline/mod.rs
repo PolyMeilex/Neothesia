@@ -19,11 +19,11 @@ impl<'a> KeyboardPipeline {
         let vs_module = target
             .gpu
             .device
-            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+            .create_shader_module(&wgpu::include_spirv!("shader/quad.vert.spv"));
         let fs_module = target
             .gpu
             .device
-            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
+            .create_shader_module(&wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let render_pipeline_layout =
             &target
@@ -36,14 +36,15 @@ impl<'a> KeyboardPipeline {
                 });
         let ki_attrs = KeyInstance::attributes();
 
-        let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
-            .fragment_stage(&fs_module)
-            .vertex_buffers(&[
-                Shape::vertex_buffer_descriptor(),
-                KeyInstance::desc(&ki_attrs),
-                KeyStateInstance::vertex_buffer_descriptor(),
-            ])
-            .build(&target.gpu.device);
+        let render_pipeline =
+            RenderPipelineBuilder::new(&render_pipeline_layout, "main", &vs_module)
+                .fragment("main", &fs_module)
+                .vertex_buffers(&[
+                    Shape::layout(),
+                    KeyInstance::layout(&ki_attrs),
+                    KeyStateInstance::layout(),
+                ])
+                .build(&target.gpu.device);
 
         let quad = Shape::new_quad(&target.gpu.device);
         let instances = Instances::new(&target.gpu.device, 88);
@@ -68,7 +69,7 @@ impl<'a> KeyboardPipeline {
         render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));
         render_pass.set_vertex_buffer(2, self.instances_state.buffer.slice(..));
 
-        render_pass.set_index_buffer(self.quad.index_buffer.slice(..));
+        render_pass.set_index_buffer(self.quad.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }

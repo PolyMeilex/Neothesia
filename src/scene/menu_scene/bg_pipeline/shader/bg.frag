@@ -16,7 +16,7 @@ mat2 rotZ(float angle) {
   return mat2(ca, -sa, sa, ca);
 }
 
-void note_render(vec2 uv, float pos, inout vec3 color) {
+vec3 note_render(vec2 uv, float pos, vec3 color) {
   float mod_x = mod(uv.x, 0.1 * 2.5 * 2.0);
 
   vec3 col = vec3(0.35,0.08,0.85);
@@ -31,6 +31,8 @@ void note_render(vec2 uv, float pos, inout vec3 color) {
     color = mix(color, col,
                 smoothstep(-0.002, 0., 127. / 5800. - abs(mod_x - pos)));
   }
+  
+  return color;
 }
 
 #define speed -0.5
@@ -53,32 +55,32 @@ void main() {
     vec2 pos = st;
 
     pos.y -= mod((u_time * speed + off) / 5.0, 1.0) * liveTime;
-    note_render(pos, 0.1, color);
+    color = note_render(pos, 0.1, color);
 
     off = 1.0;
     pos = st;
     pos.y -= mod((u_time * speed + off) / 5.0, 1.0) * liveTime;
-    note_render(pos, 0.1 * 2.0, color);
+    color = note_render(pos, 0.1 * 2.0, color);
 
     off = 3.0;
     pos = st;
     pos.y -= mod((u_time * speed + off) / 5.0, 1.0) * liveTime;
-    note_render(pos, 0.1 * 3.0, color);
+    color = note_render(pos, 0.1 * 3.0, color);
 
     off = 2.0;
     pos = st;
     pos.y -= mod((u_time * speed + off) / 5.0, 1.0) * liveTime;
-    note_render(pos, 0.1 * 4.0, color);
+    color = note_render(pos, 0.1 * 4.0, color);
 
     off = 0.0;
     pos = st;
     pos.y -= mod((u_time * speed + off) / 5.0, 1.0) * liveTime;
-    note_render(pos, 0.1 * 5.0, color);
+    color = note_render(pos, 0.1 * 5.0, color);
 
     off = 4.0;
     pos = st;
     pos.y -= mod((u_time * speed + off) / 5.0, 1.0) * liveTime;
-    note_render(pos, 0.1 * 5.0, color);
+    color = note_render(pos, 0.1 * 5.0, color);
   }
 
   f_color = vec4(color / 2.5, 0.5);

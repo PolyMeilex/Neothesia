@@ -1,9 +1,10 @@
 use wgpu::util::DeviceExt;
-use zerocopy::AsBytes;
+
+use bytemuck::Pod;
 
 pub struct Uniform<U>
 where
-    U: 'static + Copy + AsBytes,
+    U: Pod,
 {
     pub data: U,
     buffer: wgpu::Buffer,
@@ -12,7 +13,7 @@ where
 }
 impl<U> Uniform<U>
 where
-    U: 'static + Copy + AsBytes,
+    U: Pod,
 {
     pub fn new(device: &wgpu::Device, data: U, visibility: wgpu::ShaderStage) -> Self {
         let bind_group_layout_descriptor = wgpu::BindGroupLayoutDescriptor {
@@ -20,8 +21,9 @@ where
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility,
-                ty: wgpu::BindingType::UniformBuffer {
-                    dynamic: false,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
                     min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<U>() as u64),
                 },
                 count: None,
@@ -30,7 +32,7 @@ where
 
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: &data.as_bytes(),
+            contents: bytemuck::cast_slice(&[data]),
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -41,7 +43,11 @@ where
             layout: &bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer(buffer.slice(..)),
+                resource: wgpu::BindingResource::Buffer {
+                    buffer: &buffer,
+                    offset: 0,
+                    size: None,
+                },
             }],
         });
 
@@ -55,7 +61,7 @@ where
     pub fn update(&self, command_encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device) {
         let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: &self.data.as_bytes(),
+            contents: bytemuck::cast_slice(&[self.data]),
             usage: wgpu::BufferUsage::COPY_SRC,
         });
 

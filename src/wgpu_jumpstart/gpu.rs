@@ -30,14 +30,7 @@ impl Gpu {
         log::info!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: Default::default(),
-                    shader_validation: false,
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor::default(), None)
             .await
             .map_err(GpuInitError::DeviceRequest)?;
 
@@ -62,6 +55,7 @@ impl Gpu {
     pub fn clear(&mut self, view: &wgpu::TextureView, color: Color) {
         let rgb = color.into_linear_rgb();
         self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: view,
                 resolve_target: None,

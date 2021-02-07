@@ -1,5 +1,6 @@
 use crate::wgpu_jumpstart::{Gpu, RenderPipelineBuilder, Shape, Uniform};
-use zerocopy::AsBytes;
+
+use bytemuck::{Pod, Zeroable};
 
 pub struct BgPipeline {
     render_pipeline: wgpu::RenderPipeline,
@@ -13,10 +14,10 @@ impl<'a> BgPipeline {
     pub fn new(gpu: &Gpu) -> Self {
         let vs_module = gpu
             .device
-            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
+            .create_shader_module(&wgpu::include_spirv!("./shader/bg.vert.spv"));
         let fs_module = gpu
             .device
-            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
+            .create_shader_module(&wgpu::include_spirv!("./shader/bg.frag.spv"));
 
         let time_uniform = Uniform::new(
             &gpu.device,
@@ -32,10 +33,11 @@ impl<'a> BgPipeline {
                     push_constant_ranges: &[],
                 });
 
-        let render_pipeline = RenderPipelineBuilder::new(&render_pipeline_layout, &vs_module)
-            .fragment_stage(&fs_module)
-            .vertex_buffers(&[Shape::vertex_buffer_descriptor()])
-            .build(&gpu.device);
+        let render_pipeline =
+            RenderPipelineBuilder::new(&render_pipeline_layout, "main", &vs_module)
+                .fragment("main", &fs_module)
+                .vertex_buffers(&[Shape::layout()])
+                .build(&gpu.device);
 
         let fullscreen_quad = Shape::new_fullscreen_quad(&gpu.device);
 
@@ -53,7 +55,10 @@ impl<'a> BgPipeline {
 
         render_pass.set_vertex_buffer(0, self.fullscreen_quad.vertex_buffer.slice(..));
 
-        render_pass.set_index_buffer(self.fullscreen_quad.index_buffer.slice(..));
+        render_pass.set_index_buffer(
+            self.fullscreen_quad.index_buffer.slice(..),
+            wgpu::IndexFormat::Uint16,
+        );
 
         render_pass.draw_indexed(0..self.fullscreen_quad.indices_len, 0, 0..1);
     }
@@ -64,7 +69,7 @@ impl<'a> BgPipeline {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, AsBytes)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 struct TimeUniform {
     time: f32,
 }

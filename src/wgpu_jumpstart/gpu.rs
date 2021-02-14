@@ -27,7 +27,14 @@ impl Gpu {
             .ok_or(GpuInitError::AdapterRequest)?;
 
         let adapter_info = adapter.get_info();
-        log::info!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
+        let format = adapter.get_swap_chain_preferred_format(&surface);
+
+        log::info!(
+            "Using {} ({:?}, Prefered Format: {:?})",
+            adapter_info.name,
+            adapter_info.backend,
+            format
+        );
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor::default(), None)

@@ -30,9 +30,9 @@ nfd2 = "0.2.3"
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = {git="https://github.com/hecrj/iced.git", rev="2f10a1f2a2c92aada5d167d82e008588256b590f"} 
-iced_wgpu = {git="https://github.com/hecrj/iced.git", rev="2f10a1f2a2c92aada5d167d82e008588256b590f", features = ["image"]} 
-iced_graphics = {git="https://github.com/hecrj/iced.git", rev="2f10a1f2a2c92aada5d167d82e008588256b590f"} 
+iced_native = {git="https://github.com/hecrj/iced.git", rev="842d54732bce8f9c8b070d9bed9809b70ed728a7"} 
+iced_wgpu = {git="https://github.com/hecrj/iced.git", rev="842d54732bce8f9c8b070d9bed9809b70ed728a7", features = ["png"]} 
+iced_graphics = {git="https://github.com/hecrj/iced.git", rev="842d54732bce8f9c8b070d9bed9809b70ed728a7"} 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
@@ -43,13 +43,6 @@ serde = { version = "1.0.123", features = ["serde_derive"] }
 
 mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optional=true}
 # mpeg_encoder = {path="../mpeg_encoder_next", optional=true}
-
-# js-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# web-sys = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# wasm-bindgen-futures = { git = "https://github.com/rustwasm/wasm-bindgen" }
-# console_error_panic_hook = "0.1.6"
-# console_log = "0.2.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"

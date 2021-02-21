@@ -38,9 +38,9 @@ impl Window {
         let (gpu, surface) = Gpu::for_window(&winit_window).await?;
 
         let (swap_chain, swap_chain_descriptor) = {
-            #[cfg(feature = "record")]
-            let PhysicalSize { width, height } = winit_window.inner_size();
             #[cfg(not(feature = "record"))]
+            let PhysicalSize { width, height } = winit_window.inner_size();
+            #[cfg(feature = "record")]
             let (width, height) = { (1920, 1080) };
 
             let swap_chain_descriptor = wgpu::SwapChainDescriptor {

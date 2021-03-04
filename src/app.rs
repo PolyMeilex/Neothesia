@@ -160,7 +160,7 @@ impl App {
     }
 
     pub fn render(&mut self) {
-        let fame = loop {
+        let frame = loop {
             let swap_chain_output = self.target.window.get_current_frame();
             match swap_chain_output {
                 Ok(s) => break s,

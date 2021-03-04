@@ -160,11 +160,13 @@ impl App {
     }
 
     pub fn render(&mut self) {
-        let frame = self
-            .target
-            .window
-            .get_current_frame()
-            .expect("Could not get_current_frame()");
+        let fame = loop {
+            let swap_chain_output = self.target.window.get_current_frame();
+            match swap_chain_output {
+                Ok(s) => break s,
+                Err(err) => log::warn!("{:?}", err),
+            }
+        };
 
         self.target.gpu.clear(
             &frame.output.view,

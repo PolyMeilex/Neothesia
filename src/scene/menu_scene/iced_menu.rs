@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::ui::DumyClipboard;
 use iced_native::{
     image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
     Program, Row, Text, VerticalAlignment,
@@ -81,8 +82,9 @@ impl IcedMenu {
 impl Program for IcedMenu {
     type Renderer = Renderer;
     type Message = Message;
+    type Clipboard = DumyClipboard;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _: &mut DumyClipboard) -> Command<Message> {
         match message {
             Message::FileSelectPressed => {
                 use nfd2::Response;
@@ -301,6 +303,7 @@ impl SongSelectControls {
             NeoBtn::new(
                 &mut self.file_select_button,
                 Text::new("Select File")
+                    .color(Color::WHITE)
                     .size(40)
                     .horizontal_alignment(HorizontalAlignment::Center)
                     .vertical_alignment(VerticalAlignment::Center),

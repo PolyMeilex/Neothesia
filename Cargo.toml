@@ -30,9 +30,9 @@ nfd2 = "0.2.3"
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = {git="https://github.com/hecrj/iced.git", rev="842d54732bce8f9c8b070d9bed9809b70ed728a7"} 
-iced_wgpu = {git="https://github.com/hecrj/iced.git", rev="842d54732bce8f9c8b070d9bed9809b70ed728a7", features = ["png"]} 
-iced_graphics = {git="https://github.com/hecrj/iced.git", rev="842d54732bce8f9c8b070d9bed9809b70ed728a7"} 
+iced_native = "0.4.0"
+iced_wgpu = {version="0.4.0", features = ["png"]} 
+iced_graphics ="0.2.0" 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}

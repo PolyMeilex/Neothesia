@@ -4,45 +4,48 @@
   box-sizing: border-box;
 }
 
-html {
-  height: 100%;
-}
-
 body {
   background-color: #0c0c0c;
   color: white;
 
   font-family: "Roboto", sans-serif;
+}
 
+#main-page,
+#about-page {
   display: flex;
   height: 100%;
   justify-content: center;
   align-items: center;
 }
 
-#wrapper {
-  padding-bottom: 100px;
-
-  max-width: 935px;
-  width: 100%;
-
-  animation: floating 5s ease-in-out infinite;
-}
-
-header {
-  display: flex;
-  justify-content: center;
-}
-
-header > img {
+#main-page .floater__head img {
   width: 100%;
   height: auto;
 }
 
-@media screen and (max-width: 930px) {
-  header > img {
-    /* width: 100%;
-    min-height: auto; */
+#about-page {
+  font-size: 30px;
+}
+
+neo-floater {
+  padding-bottom: 100px;
+
+  max-width: 935px;
+  width: 100%;
+}
+
+.floater--animated {
+  animation: floating 5s ease-in-out infinite;
+}
+
+.floater__main {
+  padding: 50px;
+}
+
+@media screen and (max-width: 500px) {
+  .floater__main {
+    padding: 5px;
   }
 }
 
@@ -58,11 +61,7 @@ header > img {
   }
 }
 
-main {
-  padding: 50px;
-}
-
-.btn {
+neo-button {
   padding: 20px;
   font-size: 25px;
   font-weight: bold;
@@ -83,15 +82,15 @@ main {
   cursor: pointer;
 }
 
-.btn > i {
+neo-button > i {
   margin-right: 6px;
 }
 
-.btn > span {
+neo-button > span {
   min-width: 115px;
 }
 
-.btn:hover {
+neo-button:hover {
   background-color: rgba(17, 17, 17, 0.6);
   border-color: rgba(56, 145, 255, 1);
 }

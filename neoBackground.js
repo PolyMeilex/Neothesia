@@ -1,4 +1,4 @@
-class Bg {
+class BackgroundGL {
   constructor(gl, time) {
     const vertices = [
       //
@@ -167,43 +167,57 @@ class Bg {
 
     this.timeLocation = timeLocation;
     this.indices = indices;
+    this.gl = gl;
   }
 
   updateTime(time) {
-    gl.uniform1f(this.timeLocation, time / 1000.0);
+    this.gl.uniform1f(this.timeLocation, time / 1000.0);
   }
 
   draw() {
-    gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0);
+    this.gl.drawElements(
+      this.gl.TRIANGLES,
+      this.indices.length,
+      this.gl.UNSIGNED_SHORT,
+      0
+    );
   }
 }
 
-function main() {
-  const canvas = document.querySelector("#gl-canvas");
-  canvas.width = document.documentElement.clientWidth;
-  canvas.height = document.documentElement.clientHeight;
+class NeoBackground extends HTMLElement {
+  constructor() {
+    super();
 
-  gl = canvas.getContext("webgl");
+    const canvas = document.createElement("canvas");
+    canvas.style.width = "inherit";
+    canvas.style.height = "inherit";
 
-  if (gl === null) {
-    return;
-  }
+    this.appendChild(canvas);
 
-  gl.viewport(0, 0, canvas.width, canvas.height);
+    canvas.width = document.documentElement.clientWidth;
+    canvas.height = document.documentElement.clientHeight;
 
-  gl.clearColor(12.0 / 255.0, 12.0 / 255.0, 12.0 / 255.0, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+    const gl = canvas.getContext("webgl");
 
-  let bg = new Bg(gl, 0.0);
+    if (gl === null) {
+      return;
+    }
 
-  function loop(time) {
-    bg.updateTime(time);
-    bg.draw();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    gl.clearColor(12.0 / 255.0, 12.0 / 255.0, 12.0 / 255.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    let bg = new BackgroundGL(gl, 0.0);
+
+    function loop(time) {
+      bg.updateTime(time);
+      bg.draw();
+
+      window.requestAnimationFrame(loop);
+    }
 
     window.requestAnimationFrame(loop);
   }
-
-  window.requestAnimationFrame(loop);
 }
-
-main();
+customElements.define("neo-background", NeoBackground);

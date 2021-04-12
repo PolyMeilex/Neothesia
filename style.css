@@ -2,6 +2,8 @@
 
 * {
   box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 body {
@@ -93,4 +95,31 @@ neo-button > span {
 neo-button:hover {
   background-color: rgba(17, 17, 17, 0.6);
   border-color: rgba(56, 145, 255, 1);
+}
+
+#about-floater {
+  display: flex;
+}
+
+#about-floater > img {
+  width: 40%;
+  height: auto;
+  border-radius: 5px;
+  margin-right: 20px;
+}
+#about-floater > div {
+  width: 60%;
+}
+
+@media screen and (max-width: 800px) {
+  #about-floater {
+    flex-wrap: wrap;
+    padding: 20px;
+  }
+  #about-floater > img {
+    width: 100%;
+  }
+  #about-floater > div {
+    width: 100%;
+  }
 }

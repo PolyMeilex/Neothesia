@@ -202,24 +202,29 @@ where
             Primitive::Group {
                 primitives: vec![
                     // Something related to order broke after last update...
-                    // Primitive::Clip {
-                    //     bounds: Rectangle {
-                    //         y: bounds.y,
-                    //         height: bounds.height - self.border_radius,
-                    //         ..bounds
-                    //     },
-                    //     offset: Vector::new(0, 0),
-                    //     content: Box::new(Primitive::Quad {
-                    //         bounds: Rectangle {
-                    //             y: bounds.y,
-                    //             ..bounds
-                    //         },
-                    //         background: Background::Color(colors.0),
-                    //         border_radius: self.border_radius,
-                    //         border_width: 0.0,
-                    //         border_color: Color::TRANSPARENT,
-                    //     }),
-                    // },
+                    Primitive::Clip {
+                        bounds: Rectangle {
+                            y: bounds.y,
+                            height: bounds.height - self.border_radius,
+                            ..bounds
+                        },
+                        offset: Vector::new(0, 0),
+                        content: Box::new(Primitive::Group {
+                            primitives: vec![
+                                Primitive::Quad {
+                                    bounds: Rectangle {
+                                        y: bounds.y,
+                                        ..bounds
+                                    },
+                                    background: Background::Color(colors.0),
+                                    border_radius: self.border_radius,
+                                    border_width: 0.0,
+                                    border_color: Color::TRANSPARENT,
+                                },
+                                content,
+                            ],
+                        }),
+                    },
                     Primitive::Clip {
                         bounds: Rectangle {
                             y: bounds.y + bounds.height - self.border_radius as f32,
@@ -238,7 +243,6 @@ where
                             border_color: Color::TRANSPARENT,
                         }),
                     },
-                    content,
                 ],
             },
             if is_mouse_over {

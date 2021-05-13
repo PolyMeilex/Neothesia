@@ -13,7 +13,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release 
+          args: --release
       - name: Chmod +x
         run: chmod +x target/release/neothesia
       - name: zip binary
@@ -30,7 +30,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release 
+          args: --release
       - uses: actions/upload-artifact@v2
         with:
           name: windows-artifact
@@ -43,7 +43,25 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release 
+          args: --release
+      - name: copy binary
+        run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
+      - name: zip binary
+        run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
+      - uses: actions/upload-artifact@v2
+        with:
+          name: macos-artifact
+          path: .github/app/app.zip
+  build_macos_arm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target aarch64-apple-darwin
       - name: copy binary
         run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
       - name: zip binary

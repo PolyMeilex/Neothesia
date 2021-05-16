@@ -92,9 +92,15 @@ impl App {
                 } else {
                     let monitor = self.target.window.winit_window.current_monitor();
                     let f = if let Some(monitor) = monitor {
-                        let mut modes = monitor.video_modes();
-                        if let Some(m) = modes.next() {
-                            log::info!("Video #{}: {}", 0, m);
+                        let modes: Vec<_> = monitor.video_modes().collect();
+
+                        log::info!(
+                            "Avalible Video Modes: {:#?}",
+                            modes.iter().map(|m| format!("{}", m)).collect::<Vec<_>>()
+                        );
+
+                        if let Some(m) = modes.into_iter().next() {
+                            log::info!("Selected Video Mode #{}: {}", 0, m);
                             winit::window::Fullscreen::Exclusive(m)
                         } else {
                             winit::window::Fullscreen::Borderless(None)

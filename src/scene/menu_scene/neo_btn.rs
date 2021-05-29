@@ -124,9 +124,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         _renderer: &Renderer<B>,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> iced_native::event::Status {
         if self.disabled {
             return iced_native::event::Status::Ignored;
@@ -201,6 +201,7 @@ where
         (
             Primitive::Group {
                 primitives: vec![
+                    // Something related to order broke after last update...
                     Primitive::Clip {
                         bounds: Rectangle {
                             y: bounds.y,
@@ -208,15 +209,20 @@ where
                             ..bounds
                         },
                         offset: Vector::new(0, 0),
-                        content: Box::new(Primitive::Quad {
-                            bounds: Rectangle {
-                                y: bounds.y,
-                                ..bounds
-                            },
-                            background: Background::Color(colors.0),
-                            border_radius: self.border_radius,
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
+                        content: Box::new(Primitive::Group {
+                            primitives: vec![
+                                Primitive::Quad {
+                                    bounds: Rectangle {
+                                        y: bounds.y,
+                                        ..bounds
+                                    },
+                                    background: Background::Color(colors.0),
+                                    border_radius: self.border_radius,
+                                    border_width: 0.0,
+                                    border_color: Color::TRANSPARENT,
+                                },
+                                content,
+                            ],
                         }),
                     },
                     Primitive::Clip {
@@ -237,7 +243,6 @@ where
                             border_color: Color::TRANSPARENT,
                         }),
                     },
-                    content,
                 ],
             },
             if is_mouse_over {

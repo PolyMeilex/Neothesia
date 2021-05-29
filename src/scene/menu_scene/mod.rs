@@ -8,12 +8,7 @@ use iced_menu::IcedMenu;
 
 use winit::event::WindowEvent;
 
-use crate::{
-    scene::{Scene, SceneEvent, SceneType},
-    target::Target,
-    time_manager::Timer,
-    ui::iced_conversion,
-};
+use crate::{scene::{Scene, SceneEvent, SceneType}, target::Target, time_manager::Timer, ui::{DumyClipboard, iced_conversion}};
 
 #[derive(Debug)]
 pub enum Event {
@@ -148,8 +143,8 @@ impl Scene for MenuScene {
                     target.window.state.cursor_physical_position,
                     target.iced_manager.viewport.scale_factor(),
                 ),
-                None,
                 &mut target.iced_manager.renderer,
+                &mut DumyClipboard{},
                 &mut target.iced_manager.debug,
             );
 

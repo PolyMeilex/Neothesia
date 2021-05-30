@@ -5,12 +5,15 @@ use bytemuck::{Pod, Zeroable};
 pub struct TransformUniform {
     transform: [f32; 16],
     size: [f32; 2],
+    // must be aligned to largest member (vec4),
+    _padding: [f32; 2],
 }
 impl Default for TransformUniform {
     fn default() -> Self {
         Self {
             transform: orthographic_projection(1080.0, 720.0),
             size: [1080.0, 720.0],
+            _padding: [0.0; 2],
         }
     }
 }

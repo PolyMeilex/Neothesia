@@ -3,9 +3,10 @@ name = "neothesia"
 version = "0.0.8"
 authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
+default-run = "neothesia"
 
 [features]
-default = ["compile_shader", "synth"]
+default = ["synth"]
 compile_shader = []
 record=["mpeg_encoder"]
 play_along=[]
@@ -18,21 +19,21 @@ futures = "0.3.12"
 # winit = "0.24.0"
 winit = { git = "https://github.com/PolyMeilex/winit.git" } 
 
-wgpu = "0.7.0"
-wgpu_glyph = "0.11.0"
+wgpu = "0.8.1"
+wgpu_glyph = "0.12.0"
 
 
 log = "0.4.14"
 env_logger = "0.8.2"
 
-nfd2 = "0.2.3"
+nfd2 = "0.3.0"
 
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = "0.4.0"
-iced_wgpu = {version="0.4.0", features = ["png"]} 
-iced_graphics ="0.2.0" 
+iced_native = { git="https://github.com/hecrj/iced.git", rev="e292821c3780fc5a57c835815efc7a232ce4dc32" }
+iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="e292821c3780fc5a57c835815efc7a232ce4dc32", features = ["png"]} 
+iced_graphics = { git="https://github.com/hecrj/iced.git", rev="e292821c3780fc5a57c835815efc7a232ce4dc32" } 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
@@ -47,5 +48,6 @@ mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optio
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"
 
-[build-dependencies]
-glsl-to-spirv = "0.1.7"
+[[bin]]
+name="neothesia-cli"
+required-features = ["record"]

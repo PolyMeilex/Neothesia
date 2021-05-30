@@ -18,14 +18,16 @@ pub struct NotesPipeline {
 
 impl<'a> NotesPipeline {
     pub fn new(target: &Target, midi: &lib_midi::Midi) -> Self {
-        let vs_module = target
+        let shader = target
             .gpu
             .device
-            .create_shader_module(&wgpu::include_spirv!("shader/quad.vert.spv"));
-        let fs_module = target
-            .gpu
-            .device
-            .create_shader_module(&wgpu::include_spirv!("shader/quad.frag.spv"));
+            .create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("RectanglePipeline::shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
+                    "./shader/note.wgsl"
+                ))),
+                flags: wgpu::ShaderFlags::all(),
+            });
 
         let time_uniform = Uniform::new(
             &target.gpu.device,
@@ -49,8 +51,8 @@ impl<'a> NotesPipeline {
         let ni_attrs = NoteInstance::attributes();
 
         let render_pipeline =
-            RenderPipelineBuilder::new(&render_pipeline_layout, "main", &vs_module)
-                .fragment("main", &fs_module)
+            RenderPipelineBuilder::new(&render_pipeline_layout, "vs_main", &shader)
+                .fragment("fs_main", &shader)
                 .vertex_buffers(&[Shape::layout(), NoteInstance::layout(&ni_attrs)])
                 .build(&target.gpu.device);
 

@@ -34,7 +34,11 @@ impl Notes {
                 let color_schema = &target.state.config.color_schema;
 
                 let color = &color_schema[note.track_id % color_schema.len()];
-                let color = if key.is_black { color.dark } else { color.base };
+                let color = if key.is_black() {
+                    color.dark
+                } else {
+                    color.base
+                };
                 let color: Color = color.into();
 
                 let h = if note.duration >= 0.1 {
@@ -44,8 +48,8 @@ impl Notes {
                 };
 
                 instances.push(NoteInstance {
-                    position: [key.x, note.start],
-                    size: [key.w - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
+                    position: [key.x_position(), note.start],
+                    size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
                     color: color.into_linear_rgb(),
                     radius: 4.0 * ar,
                 });

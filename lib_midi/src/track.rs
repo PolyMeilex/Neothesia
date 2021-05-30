@@ -1,6 +1,6 @@
 use {
     crate::TracksParser,
-    midly::{TrackEvent, TrackEventKind, MetaMessage, MidiMessage},
+    midly::{MetaMessage, MidiMessage, TrackEvent, TrackEventKind},
     std::collections::HashMap,
 };
 
@@ -73,7 +73,7 @@ impl MidiTrack {
             time_in_units: f32,
             vel: u8,
             channel: u8,
-        };
+        }
         let mut current_notes: HashMap<u8, Note> = HashMap::new();
 
         macro_rules! end_note {

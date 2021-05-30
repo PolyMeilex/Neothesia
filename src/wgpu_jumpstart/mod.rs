@@ -9,9 +9,11 @@ mod shape;
 mod uniform;
 mod window;
 
+mod transform_uniform;
+
 pub use {
     color::Color, gpu::Gpu, instances::Instances, render_pipeline_builder::RenderPipelineBuilder,
-    shape::Shape, uniform::Uniform, window::Window,
+    shape::Shape, transform_uniform::TransformUniform, uniform::Uniform, window::Window,
 };
 
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;

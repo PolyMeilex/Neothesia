@@ -8,7 +8,12 @@ use iced_menu::IcedMenu;
 
 use winit::event::WindowEvent;
 
-use crate::{scene::{Scene, SceneEvent, SceneType}, target::Target, time_manager::Timer, ui::{DumyClipboard, iced_conversion}};
+use crate::{
+    scene::{Scene, SceneEvent, SceneType},
+    target::Target,
+    ui::{iced_conversion, DumyClipboard},
+    utils::timer::Timer,
+};
 
 #[derive(Debug)]
 pub enum Event {
@@ -71,8 +76,8 @@ impl Scene for MenuScene {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: view,
+                color_attachments: &[wgpu::RenderPassColorAttachment {
+                    view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
@@ -144,7 +149,7 @@ impl Scene for MenuScene {
                     target.iced_manager.viewport.scale_factor(),
                 ),
                 &mut target.iced_manager.renderer,
-                &mut DumyClipboard{},
+                &mut DumyClipboard {},
                 &mut target.iced_manager.debug,
             );
 

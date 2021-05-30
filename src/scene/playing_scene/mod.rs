@@ -1,5 +1,4 @@
 mod keyboard;
-mod keyboard_pipeline;
 
 use keyboard::PianoKeyboard;
 
@@ -13,9 +12,9 @@ use lib_midi::MidiNote;
 
 use crate::{
     main_state::MainState,
-    rectangle_pipeline::{RectangleInstance, RectanglePipeline},
+    quad_pipeline::{QuadInstance, QuadPipeline},
     target::Target,
-    time_manager::Timer,
+    utils::timer::Timer,
     wgpu_jumpstart::Color,
 };
 
@@ -25,7 +24,7 @@ pub struct PlayingScene {
     piano_keyboard: PianoKeyboard,
     notes: Notes,
     player: Player,
-    rectangle_pipeline: RectanglePipeline,
+    rectangle_pipeline: QuadPipeline,
 
     text_toast: Option<Toast>,
 }
@@ -34,7 +33,7 @@ impl PlayingScene {
     pub fn new(target: &mut Target) -> Self {
         let piano_keyboard = PianoKeyboard::new(target);
 
-        let mut notes = Notes::new(target, &piano_keyboard.all_keys);
+        let mut notes = Notes::new(target, &piano_keyboard.keys);
 
         let player = Player::new(&mut target.state);
         notes.update(target, player.time);
@@ -43,7 +42,7 @@ impl PlayingScene {
             piano_keyboard,
             notes,
             player,
-            rectangle_pipeline: RectanglePipeline::new(&target.gpu, &target.transform_uniform),
+            rectangle_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
 
             text_toast: None,
         }
@@ -116,7 +115,7 @@ impl Scene for PlayingScene {
     }
     fn resize(&mut self, target: &mut Target) {
         self.piano_keyboard.resize(target);
-        self.notes.resize(target, &self.piano_keyboard.all_keys);
+        self.notes.resize(target, &self.piano_keyboard.keys);
     }
     fn update(&mut self, target: &mut Target) -> SceneEvent {
         let (window_w, _) = {
@@ -131,10 +130,11 @@ impl Scene for PlayingScene {
         self.rectangle_pipeline.update_instance_buffer(
             &mut target.gpu.encoder,
             &target.gpu.device,
-            vec![RectangleInstance {
+            vec![QuadInstance {
                 position: [0.0, 0.0],
                 size: [size_x, 5.0],
                 color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
+                ..Default::default()
             }],
         );
 
@@ -184,8 +184,8 @@ impl Scene for PlayingScene {
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: view,
+                color_attachments: &[wgpu::RenderPassColorAttachment {
+                    view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,

@@ -63,8 +63,8 @@ impl Gpu {
         let rgb = color.into_linear_rgb();
         self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: view,
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {

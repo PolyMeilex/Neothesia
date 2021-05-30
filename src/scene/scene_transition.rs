@@ -1,7 +1,7 @@
-use crate::rectangle_pipeline::RectanglePipeline;
+use crate::quad_pipeline::QuadPipeline;
 use crate::Gpu;
 use crate::{
-    rectangle_pipeline::RectangleInstance,
+    quad_pipeline::QuadInstance,
     scene::{Scene, SceneEvent, SceneType},
     target::Target,
 };
@@ -22,13 +22,13 @@ pub struct SceneTransition {
     n: f32,
     mode: TransitionMode,
 
-    transition_pipeline: RectanglePipeline,
+    transition_pipeline: QuadPipeline,
     curr_transition_alpha: f32,
 }
 
 impl SceneTransition {
     pub fn new(game_scene: Box<dyn Scene>, target: &Target) -> Self {
-        let transition_pipeline = RectanglePipeline::new(&target.gpu, &target.transform_uniform);
+        let transition_pipeline = QuadPipeline::new(&target.gpu, &target.transform_uniform);
         Self {
             active: true,
             n: 0.0,
@@ -37,6 +37,7 @@ impl SceneTransition {
             curr_transition_alpha: 0.0,
         }
     }
+
     pub fn transition_to(&mut self, initer: Box<SceneInitializer>) {
         let from = std::mem::replace(&mut self.mode, TransitionMode::None);
         match from {
@@ -46,27 +47,14 @@ impl SceneTransition {
             _ => unreachable!("Trans_to triggered while fade is in progress"),
         };
     }
-    // pub fn transition_to(&mut self, game_scene: Box<dyn Scene>) {
-    //     let from = std::mem::replace(&mut self.mode, TransitionMode::None);
-    //     match from {
-    //         TransitionMode::Static(scene) => {
-    //             self.mode = TransitionMode::FadeOut(scene, game_scene);
-    //         }
-    //         _ => unreachable!("Trans_to triggered while fade is in progress"),
-    //     };
-    // }
-    pub fn set_transition_alpha(
-        &mut self,
-        gpu: &mut Gpu,
-        alpha: f32,
-        window_w: f32,
-        window_h: f32,
-    ) {
+
+    fn set_transition_alpha(&mut self, gpu: &mut Gpu, alpha: f32, window_w: f32, window_h: f32) {
         self.curr_transition_alpha = alpha;
-        let rect = RectangleInstance {
+        let rect = QuadInstance {
             color: [0.0, 0.0, 0.0, alpha],
             size: [window_w, window_h],
             position: [0.0, 0.0],
+            ..Default::default()
         };
         self.transition_pipeline
             .update_instance_buffer(&mut gpu.encoder, &gpu.device, vec![rect]);
@@ -80,8 +68,8 @@ impl SceneTransition {
                     .encoder
                     .begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: None,
-                        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: view,
+                        color_attachments: &[wgpu::RenderPassColorAttachment {
+                            view,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Load,

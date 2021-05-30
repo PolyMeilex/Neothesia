@@ -107,7 +107,7 @@ impl OutputManager {
                                 (desc, Box::new(synth.new_output_connection(&font)));
                             self.selected_font_path = Some(font);
                         } else {
-                            let path = crate::resources::default_sf2();
+                            let path = crate::utils::resources::default_sf2();
                             if path.exists() {
                                 self.output_connection =
                                     (desc, Box::new(synth.new_output_connection(&path)));

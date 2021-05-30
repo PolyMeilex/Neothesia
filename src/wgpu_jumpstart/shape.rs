@@ -120,7 +120,7 @@ impl Vertex2D {
             attributes: &[wgpu::VertexAttribute {
                 offset: 0,
                 shader_location: 0,
-                format: wgpu::VertexFormat::Float2,
+                format: wgpu::VertexFormat::Float32x2,
             }],
         }
     }

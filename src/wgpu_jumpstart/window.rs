@@ -11,7 +11,7 @@ use winit::{
 };
 
 pub struct Window {
-    pub winit_window: winit::window::Window,
+    winit_window: winit::window::Window,
     pub state: WinitState,
 
     surface: wgpu::Surface,
@@ -95,6 +95,20 @@ impl Window {
     #[inline]
     pub fn get_current_frame(&mut self) -> Result<wgpu::SwapChainFrame, wgpu::SwapChainError> {
         self.swap_chain.get_current_frame()
+    }
+
+    #[inline]
+    pub fn fullscreen(&self) -> Option<winit::window::Fullscreen> {
+        self.winit_window.fullscreen()
+    }
+
+    #[inline]
+    pub fn set_fullscreen(&mut self, fullscreen: Option<winit::window::Fullscreen>) {
+        self.winit_window.set_fullscreen(fullscreen)
+    }
+
+    pub fn current_monitor(&self) -> Option<winit::monitor::MonitorHandle> {
+        self.winit_window.current_monitor()
     }
 
     fn resize_swap_chain(&mut self, gpu: &mut Gpu) {

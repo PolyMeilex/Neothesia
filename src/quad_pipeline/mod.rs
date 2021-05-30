@@ -1,35 +1,28 @@
 mod instance_data;
-pub use instance_data::RectangleInstance;
+pub use instance_data::QuadInstance;
 
 use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
 use crate::TransformUniform;
 
-pub struct RectanglePipeline {
+pub struct QuadPipeline {
     render_pipeline: wgpu::RenderPipeline,
 
     quad: Shape,
 
-    instances: Instances<RectangleInstance>,
+    instances: Instances<QuadInstance>,
 }
 
-impl<'a> RectanglePipeline {
+impl<'a> QuadPipeline {
     pub fn new(gpu: &Gpu, transform_uniform: &Uniform<TransformUniform>) -> Self {
-        let vs_module = gpu
+        let shader = gpu
             .device
-            .create_shader_module(&wgpu::include_spirv!("./shader/quad.vert.spv"));
-        let fs_module = gpu
-            .device
-            .create_shader_module(&wgpu::include_spirv!("./shader/quad.frag.spv"));
-
-        // let shader = gpu
-        //     .device
-        //     .create_shader_module(&wgpu::ShaderModuleDescriptor {
-        //         label: None,
-        //         source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
-        //             "./shader/shader.wgsl"
-        //         ))),
-        //         flags: wgpu::ShaderFlags::all(),
-        //     });
+            .create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("RectanglePipeline::shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
+                    "./shader/quad.wgsl"
+                ))),
+                flags: wgpu::ShaderFlags::all(),
+            });
 
         let render_pipeline_layout =
             gpu.device
@@ -39,12 +32,12 @@ impl<'a> RectanglePipeline {
                     push_constant_ranges: &[],
                 });
 
-        let ri_attrs = RectangleInstance::attributes();
+        let ri_attrs = QuadInstance::attributes();
 
         let render_pipeline =
-            RenderPipelineBuilder::new(&render_pipeline_layout, "main", &vs_module)
-                .fragment("main", &fs_module)
-                .vertex_buffers(&[Shape::layout(), RectangleInstance::layout(&ri_attrs)])
+            RenderPipelineBuilder::new(&render_pipeline_layout, "vs_main", &shader)
+                .fragment("fs_main", &shader)
+                .vertex_buffers(&[Shape::layout(), QuadInstance::layout(&ri_attrs)])
                 .build(&gpu.device);
 
         let quad = Shape::new_quad(&gpu.device);
@@ -73,15 +66,26 @@ impl<'a> RectanglePipeline {
 
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
+
     pub fn update_instance_buffer(
         &mut self,
         command_encoder: &mut wgpu::CommandEncoder,
         device: &wgpu::Device,
-        instances: Vec<RectangleInstance>,
+        instances: Vec<QuadInstance>,
     ) {
         if self.instances.data != instances {
             self.instances.data = instances;
             self.instances.update(command_encoder, device);
         }
+    }
+
+    pub fn instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(
+        &mut self,
+        command_encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
+        cb: F,
+    ) {
+        cb(&mut self.instances.data);
+        self.instances.update(command_encoder, device);
     }
 }

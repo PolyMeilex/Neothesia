@@ -27,7 +27,7 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        let path = crate::resources::settings_ron();
+        let path = crate::utils::resources::settings_ron();
         let config: Option<Config> = if let Ok(file) = std::fs::read_to_string(path) {
             match ron::from_str(&file) {
                 Ok(config) => Some(config),
@@ -53,7 +53,7 @@ impl Config {
 impl Drop for Config {
     fn drop(&mut self) {
         if let Ok(s) = ron::ser::to_string_pretty(self, Default::default()) {
-            let path = crate::resources::settings_ron();
+            let path = crate::utils::resources::settings_ron();
             std::fs::write(path, &s).ok();
         }
     }

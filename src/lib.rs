@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod wgpu_jumpstart;
 use target::Target;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, Window};

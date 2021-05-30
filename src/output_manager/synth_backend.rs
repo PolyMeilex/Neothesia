@@ -1,11 +1,15 @@
+#[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 extern crate fluidlite_lib;
 
-use std::{error::Error, path::PathBuf, sync::mpsc::Receiver};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+    sync::mpsc::Receiver,
+};
 
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use fluidlite::{IsSettings, Settings};
 
 const SAMPLES_SIZE: usize = 1410;
 
@@ -44,49 +48,86 @@ impl SynthBackend {
         })
     }
 
-    fn run<T: cpal::Sample>(&self, rx: Receiver<MidiEvent>, path: &PathBuf) -> cpal::Stream {
-        let mut buff: [f32; SAMPLES_SIZE] = [0.0f32; SAMPLES_SIZE];
+    fn run<T: cpal::Sample>(&self, rx: Receiver<MidiEvent>, path: &Path) -> cpal::Stream {
+        #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
+        let mut next_value = {
+            use fluidlite::{IsSettings, Settings};
 
-        let synth = {
-            let sample_rate = self.stream_config.sample_rate.0;
+            let synth = {
+                let sample_rate = self.stream_config.sample_rate.0;
 
-            let settings = Settings::new().unwrap();
+                let settings = Settings::new().unwrap();
 
-            let rate = settings.pick::<_, f64>("synth.sample-rate").unwrap();
-            rate.set((sample_rate / 2) as f64);
+                let rate = settings.pick::<_, f64>("synth.sample-rate").unwrap();
+                rate.set(sample_rate as f64);
 
-            let synth = fluidlite::Synth::new(settings).unwrap();
-            synth.sfload(path, true).unwrap();
-            synth.set_sample_rate(sample_rate as f32);
-            synth.set_gain(1.0);
+                let synth = fluidlite::Synth::new(settings).unwrap();
+                synth.sfload(path, true).unwrap();
+                synth.set_gain(1.0);
 
-            synth
-        };
+                synth
+            };
 
-        let mut sample_clock = 0;
+            let mut sample_clock = 0;
+            let mut buff: [f32; SAMPLES_SIZE] = [0.0f32; SAMPLES_SIZE];
 
-        let mut next_value = move || {
-            let out = buff[sample_clock];
+            move || {
+                let l = buff[sample_clock];
+                let r = buff[sample_clock + 1];
 
-            sample_clock += 1;
+                sample_clock += 2;
 
-            if sample_clock == SAMPLES_SIZE {
-                synth.write(buff.as_mut()).unwrap();
-                sample_clock = 0;
-            }
+                if sample_clock == SAMPLES_SIZE {
+                    synth.write(buff.as_mut()).unwrap();
+                    sample_clock = 0;
+                }
 
-            if let Ok(e) = rx.try_recv() {
-                match e {
-                    MidiEvent::NoteOn { ch, key, vel } => {
-                        synth.note_on(ch as u32, key as u32, vel as u32).ok();
-                    }
-                    MidiEvent::NoteOff { ch, key } => {
-                        synth.note_off(ch as u32, key as u32).ok();
+                if let Ok(e) = rx.try_recv() {
+                    match e {
+                        MidiEvent::NoteOn { ch, key, vel } => {
+                            synth.note_on(ch as u32, key as u32, vel as u32).ok();
+                        }
+                        MidiEvent::NoteOff { ch, key } => {
+                            synth.note_off(ch as u32, key as u32).ok();
+                        }
                     }
                 }
+
+                (l, r)
+            }
+        };
+
+        #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+        let mut next_value = {
+            let sample_rate = self.stream_config.sample_rate.0 as f32;
+
+            let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
+                sample_rate,
+                gain: 1.0,
+                ..Default::default()
+            })
+            .unwrap();
+
+            {
+                let mut file = std::fs::File::open(path).unwrap();
+                let font = oxisynth::SoundFont::load(&mut file).unwrap();
+                synth.add_font(font, true);
             }
 
-            out
+            move || {
+                let (l, r) = synth.read_next();
+
+                if let Ok(e) = rx.try_recv() {
+                    match e {
+                        MidiEvent::NoteOn { ch, key, vel } => {
+                            synth.note_on(ch, key, vel).ok();
+                        }
+                        MidiEvent::NoteOff { ch, key } => synth.note_off(ch, key),
+                    }
+                }
+
+                (l, r)
+            }
         };
 
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
@@ -99,9 +140,15 @@ impl SynthBackend {
                 &self.stream_config,
                 move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
                     for frame in output.chunks_mut(channels) {
-                        let value: T = cpal::Sample::from::<f32>(&next_value());
-                        for sample in frame.iter_mut() {
-                            *sample = value;
+                        let (l, r) = next_value();
+
+                        let l: T = cpal::Sample::from::<f32>(&l);
+                        let r: T = cpal::Sample::from::<f32>(&r);
+
+                        let channels = [l, r];
+
+                        for (id, sample) in frame.iter_mut().enumerate() {
+                            *sample = channels[id % 2];
                         }
                     }
                 },

@@ -223,6 +223,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63396b8a4b9de3f4fdfb320ab6080762242f66a8ef174c49d8e19b674db4cdbe"
 
 [[package]]
+name = "byte-slice-cast"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65c1bf4a04a88c54f589125563643d773f3254b5c38571395e2b591c693bbc81"
+
+[[package]]
 name = "bytemuck"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -442,6 +448,22 @@ name = "copyless"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2df960f5d869b2dd8532793fde43eb5427cceb126c929747a26823ab0eeb536"
+
+[[package]]
+name = "core"
+version = "0.1.0"
+source = "git+https://github.com/PolyMeilex/OxiSynth.git#630d9eff95d484fdf17c5768c6d142e548b5e4fb"
+dependencies = [
+ "bitflags",
+ "byte-slice-cast",
+ "byteorder",
+ "generational-arena",
+ "lazy_static",
+ "log",
+ "num-derive",
+ "num-traits",
+ "soundfont",
+]
 
 [[package]]
 name = "core-foundation"
@@ -1028,6 +1050,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "generational-arena"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e1d3b771574f62d0548cee0ad9057857e9fc25d7a3335f140c84f6acd0bf601"
+dependencies = [
+ "cfg-if 0.1.10",
 ]
 
 [[package]]
@@ -1886,6 +1917,7 @@ dependencies = [
  "mpeg_encoder",
  "nfd2",
  "objc",
+ "oxisynth",
  "ron",
  "serde",
  "wgpu",
@@ -2152,6 +2184,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxisynth"
+version = "0.1.0"
+source = "git+https://github.com/PolyMeilex/OxiSynth.git#630d9eff95d484fdf17c5768c6d142e548b5e4fb"
+dependencies = [
+ "bitflags",
+ "core",
+ "soundfont",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2412,6 +2454,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24d5f089152e60f62d28b835fbff2cd2e8dc0baf1ac13343bef92ab7eed84548"
 
 [[package]]
+name = "riff"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9b1a3d5f46d53f4a3478e2be4a5a5ce5108ea58b100dcd139830eae7f79a3a1"
+
+[[package]]
 name = "ring"
 version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2611,6 +2659,14 @@ dependencies = [
  "wayland-client",
  "wayland-cursor",
  "wayland-protocols",
+]
+
+[[package]]
+name = "soundfont"
+version = "0.0.0"
+source = "git+https://github.com/PolyMeilex/OxiSynth.git#630d9eff95d484fdf17c5768c6d142e548b5e4fb"
+dependencies = [
+ "riff",
 ]
 
 [[package]]

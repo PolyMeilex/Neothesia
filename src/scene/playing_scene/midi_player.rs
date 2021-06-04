@@ -68,7 +68,10 @@ impl MidiPlayer {
         player
     }
 
-    pub fn update(&mut self, main_state: &mut MainState) -> Vec<MidiEvent> {
+    /// When playing: returns midi events
+    ///
+    /// When paused: returns None
+    pub fn update(&mut self, main_state: &mut MainState) -> Option<Vec<MidiEvent>> {
         if let RewindControler::Keyboard { speed, .. } = self.rewind_controler {
             let p = self.percentage + speed;
             self.set_percentage_time(main_state, p);
@@ -80,7 +83,6 @@ impl MidiPlayer {
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
         let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
-        let mut events = Vec::new();
 
         #[cfg(feature = "play_along")]
         if let Some(controler) = &mut self.play_along_controler {
@@ -88,8 +90,10 @@ impl MidiPlayer {
         }
 
         if self.timer.paused {
-            return events;
+            return None;
         };
+
+        let mut events = Vec::new();
 
         let filtered: Vec<&lib_midi::MidiNote> = main_state
             .midi_file
@@ -144,7 +148,7 @@ impl MidiPlayer {
             }
         }
 
-        events
+        Some(events)
     }
 
     pub fn clear(&mut self, main_state: &mut MainState) {

@@ -141,6 +141,19 @@ impl PianoKeyboard {
             .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
     }
 
+    pub fn reset_notes(&mut self, target: &mut Target) {
+        let keys = &mut self.keys;
+        let updater = |instances: &mut Vec<QuadInstance>| {
+            for key in keys.iter_mut() {
+                key.reset_color();
+                instances[key.instance_id] = QuadInstance::from(&*key);
+            }
+        };
+
+        self.keyboard_pipeline
+            .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
+    }
+
     pub fn render<'rpass>(
         &'rpass mut self,
         transform_uniform: &'rpass Uniform<TransformUniform>,

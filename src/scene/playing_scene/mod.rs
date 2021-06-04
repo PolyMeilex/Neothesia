@@ -151,8 +151,12 @@ impl Scene for PlayingScene {
             self.player.stop_rewind();
         }
 
-        self.piano_keyboard.update_note_events(target, &midi_events);
-        // self.piano_keyboard.update_notes_state(target, notes_on);
+        if let Some(midi_events) = midi_events {
+            self.piano_keyboard.update_note_events(target, &midi_events);
+        } else {
+            self.piano_keyboard.reset_notes(target);
+        }
+
         self.notes.update(
             target,
             self.player.time() + target.state.config.playback_offset,

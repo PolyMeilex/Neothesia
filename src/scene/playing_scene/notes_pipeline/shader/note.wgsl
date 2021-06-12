@@ -102,12 +102,6 @@ fn fragment_alpha(
 
 [[stage(fragment)]]
 fn fs_main(in: VertexOutput) ->  [[location(0)]] vec4<f32> {
-    // let keyboard_height = view_uniform.size.y / 5.0;
-    // if(in.position.y > view_uniform.size.y - keyboard_height){
-    //     discard;
-    // }
-
-
     let alpha: f32 = fragment_alpha(
         in.src_position.xy,
         in.size,

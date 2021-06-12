@@ -11,7 +11,7 @@ mod key;
 pub use key::Key;
 
 pub struct PianoKeyboard {
-    pub keyboard_pipeline: QuadPipeline,
+    pub quad_pipeline: QuadPipeline,
     pub keys: Vec<Key>,
 
     range: KeyboardRange,
@@ -21,9 +21,12 @@ impl PianoKeyboard {
     pub fn new(target: &mut Target) -> Self {
         let range = KeyboardRange::standard_88_keys();
 
-        let mut keyboard_pipeline = QuadPipeline::new(&mut target.gpu, &target.transform_uniform);
+        let mut quad_pipeline = QuadPipeline::new(&mut target.gpu, &target.transform_uniform);
 
         let mut keys = Vec::new();
+
+        // 0 is reserverd fo keyboard background, so it starts from 1
+        let first_instance_id = 1;
 
         {
             let mut white_key_id: usize = 0;
@@ -31,23 +34,27 @@ impl PianoKeyboard {
 
             for id in range.iter() {
                 if id.is_black() {
-                    keys.push(Key::new(range.white_count() + black_key_id, true));
+                    keys.push(Key::new(
+                        first_instance_id + range.white_count() + black_key_id,
+                        true,
+                    ));
                     black_key_id += 1;
                 } else {
-                    keys.push(Key::new(white_key_id, false));
+                    keys.push(Key::new(first_instance_id + white_key_id, false));
                     white_key_id += 1;
                 }
             }
         }
 
-        keyboard_pipeline.update_instance_buffer(
+        quad_pipeline.update_instance_buffer(
             &mut target.gpu.encoder,
             &target.gpu.device,
-            vec![QuadInstance::default(); range.count()],
+            // BG + keys
+            vec![QuadInstance::default(); 1 + keys.len()],
         );
 
         let mut piano_keyboard = Self {
-            keyboard_pipeline,
+            quad_pipeline,
             keys,
 
             range,
@@ -72,6 +79,13 @@ impl PianoKeyboard {
         let keys = &mut self.keys;
 
         let updater = |instances: &mut Vec<QuadInstance>| {
+            // Keyboard background
+            instances[0] = QuadInstance {
+                position: [0.0, window_h - white_height],
+                size: [window_w, white_height],
+                ..Default::default()
+            };
+
             for key in keys.iter_mut() {
                 let x = white_key_id as f32 * white_width;
                 let y = window_h - white_height;
@@ -92,7 +106,7 @@ impl PianoKeyboard {
             }
         };
 
-        self.keyboard_pipeline
+        self.quad_pipeline
             .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
     }
 
@@ -138,7 +152,7 @@ impl PianoKeyboard {
             }
         };
 
-        self.keyboard_pipeline
+        self.quad_pipeline
             .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
     }
 
@@ -151,7 +165,7 @@ impl PianoKeyboard {
             }
         };
 
-        self.keyboard_pipeline
+        self.quad_pipeline
             .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
     }
 
@@ -160,7 +174,6 @@ impl PianoKeyboard {
         transform_uniform: &'rpass Uniform<TransformUniform>,
         render_pass: &mut wgpu::RenderPass<'rpass>,
     ) {
-        self.keyboard_pipeline
-            .render(transform_uniform, render_pass);
+        self.quad_pipeline.render(transform_uniform, render_pass);
     }
 }

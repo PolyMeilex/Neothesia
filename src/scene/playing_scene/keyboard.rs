@@ -103,6 +103,7 @@ impl PianoKeyboard {
 
         let keys = &mut self.keys;
         let color_schema = &target.state.config.color_schema;
+        let range = &self.range;
 
         let updater = |instances: &mut Vec<QuadInstance>| {
             for e in events {
@@ -113,7 +114,7 @@ impl PianoKeyboard {
                         track_id,
                         ..
                     } => {
-                        if key >= 21 && key <= 108 && channel != 9 {
+                        if range.contains(key) && channel != 9 {
                             let id = key as usize - 21;
                             let key = &mut keys[id];
 
@@ -124,7 +125,7 @@ impl PianoKeyboard {
                         }
                     }
                     &MidiEvent::NoteOff { key, channel } => {
-                        if key >= 21 && key <= 108 && channel != 9 {
+                        if range.contains(key) && channel != 9 {
                             let id = key as usize - 21;
                             let key = &mut keys[id];
 

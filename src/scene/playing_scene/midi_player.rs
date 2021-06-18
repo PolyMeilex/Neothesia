@@ -82,8 +82,6 @@ impl MidiPlayer {
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
-        let mut notes_state: [(bool, usize); 88] = [(false, 0); 88];
-
         #[cfg(feature = "play_along")]
         if let Some(controler) = &mut self.play_along_controler {
             controler.update(main_state, &mut notes_state, &mut self.timer);
@@ -105,24 +103,16 @@ impl MidiPlayer {
             .filter(|n| n.start <= self.time && n.start + n.duration + 0.5 > self.time)
             .collect();
 
-        let output_manager = &mut main_state.output_manager;
-
         for n in filtered {
             use std::collections::hash_map::Entry;
 
             if n.start + n.duration >= self.time {
-                if n.note >= 21 && n.note <= 108 && n.ch != 9 {
-                    notes_state[n.note as usize - 21] = (true, n.track_id);
-                }
-
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
                     self.active_notes.insert(n.id, n.clone());
 
                     #[cfg(feature = "play_along")]
                     if let Some(controler) = &mut self.play_along_controler {
                         controler.require_note(&mut self.timer, &n);
-                    } else {
-                        output_manager.note_on(n.ch, n.note, n.vel);
                     }
 
                     events.push(MidiEvent::NoteOn {
@@ -131,8 +121,6 @@ impl MidiPlayer {
                         key: n.note,
                         vel: n.vel,
                     });
-                    #[cfg(not(feature = "play_along"))]
-                    output_manager.note_on(n.ch, n.note, n.vel);
                 }
             } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
                 self.active_notes.remove(&n.id);
@@ -141,10 +129,6 @@ impl MidiPlayer {
                     channel: n.ch,
                     key: n.note,
                 });
-
-                if !main_state.config.play_along {
-                    output_manager.note_off(n.ch, n.note);
-                }
             }
         }
 

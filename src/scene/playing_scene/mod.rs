@@ -153,6 +153,19 @@ impl Scene for PlayingScene {
 
         if let Some(midi_events) = midi_events {
             self.piano_keyboard.update_note_events(target, &midi_events);
+
+            for event in midi_events {
+                match event {
+                    midi_player::MidiEvent::NoteOn {
+                        channel, key, vel, ..
+                    } => {
+                        target.state.output_manager.note_on(channel, key, vel);
+                    }
+                    midi_player::MidiEvent::NoteOff { channel, key } => {
+                        target.state.output_manager.note_off(channel, key);
+                    }
+                }
+            }
         } else {
             self.piano_keyboard.reset_notes(target);
         }

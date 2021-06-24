@@ -1,6 +1,6 @@
 pub mod wgpu_jumpstart;
 use target::Target;
-use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, Window};
+pub use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, Window};
 
 pub mod ui;
 

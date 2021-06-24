@@ -1,6 +1,9 @@
+#[cfg(feature = "app")]
 pub mod menu_scene;
 
 pub mod playing_scene;
+
+#[cfg(feature = "app")]
 pub mod scene_transition;
 
 use crate::target::Target;
@@ -33,6 +36,7 @@ pub enum SceneType {
 
 #[derive(Debug)]
 pub enum SceneEvent {
+    #[cfg(feature = "app")]
     MainMenu(menu_scene::Event),
     GoBack,
     None,

@@ -6,11 +6,11 @@ edition = "2018"
 default-run = "neothesia"
 
 [features]
-# default = ["oxi-synth"]
-default = ["fluid-synth"]
+default = [ "app" ]
 
-compile_shader = []
+app = ["nfd2", "fluid-synth"]
 record=["mpeg_encoder"]
+
 play_along=[]
 
 synth=[]
@@ -31,7 +31,7 @@ wgpu_glyph = "0.12.0"
 log = "0.4.14"
 env_logger = "0.8.2"
 
-nfd2 = "0.3.0"
+nfd2 = { version="0.3.0", optional = true }
 
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
@@ -57,3 +57,7 @@ objc = "0.2.7"
 [[bin]]
 name="neothesia-cli"
 required-features = ["record"]
+
+[[bin]]
+name="neothesia"
+required-features = ["app"]

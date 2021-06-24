@@ -1,3 +1,5 @@
+#![cfg(feature = "app")]
+
 use neothesia::{
     scene::{self, Scene, SceneEvent, SceneType},
     target::Target,

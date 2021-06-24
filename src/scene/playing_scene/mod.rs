@@ -87,7 +87,7 @@ impl PlayingScene {
 
     #[cfg(feature = "record")]
     pub fn playback_progress(&self) -> f32 {
-        self.player.percentage * 100.0
+        self.player.percentage() * 100.0
     }
 }
 

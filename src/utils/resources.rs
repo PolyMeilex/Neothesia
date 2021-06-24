@@ -1,23 +1,39 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
-pub fn default_sf2() -> PathBuf {
-    #[cfg(not(target_os = "macos"))]
-    return PathBuf::from("./default.sf2");
-
-    #[cfg(target_os = "macos")]
-    return bundled_resource_path("default", "sf2")
-        .map(PathBuf::from)
-        .unwrap_or(PathBuf::from("./default.sf2"));
+fn home() -> Option<PathBuf> {
+    return env::var_os("HOME")
+        .and_then(|h| if h.is_empty() { None } else { Some(h) })
+        .map(PathBuf::from);
 }
 
-pub fn settings_ron() -> PathBuf {
-    #[cfg(not(target_os = "macos"))]
-    return PathBuf::from("./settings.ron");
+fn xdg_config() -> Option<PathBuf> {
+    env::var_os("XDG_CONFIG_HOME")
+        .and_then(|h| if h.is_empty() { None } else { Some(h) })
+        .map(PathBuf::from)
+        .map(|p| p.join("neothesia"))
+        .or_else(|| home().map(|h| h.join(".config").join("neothesia")))
+}
+
+pub fn default_sf2() -> Option<PathBuf> {
+    #[cfg(all(target_family = "unix", not(target_os = "macos")))]
+    return xdg_config().map(|p| p.join("default.sf2"));
+
+    #[cfg(target_os = "windows")]
+    return Some(PathBuf::from("./default.sf2"));
 
     #[cfg(target_os = "macos")]
-    return bundled_resource_path("settings", "ron")
-        .map(PathBuf::from)
-        .unwrap_or(PathBuf::from("./settings.ron"));
+    return bundled_resource_path("default", "sf2").map(PathBuf::from);
+}
+
+pub fn settings_ron() -> Option<PathBuf> {
+    #[cfg(all(target_family = "unix", not(target_os = "macos")))]
+    return xdg_config().map(|p| p.join("settings.ron"));
+
+    #[cfg(target_os = "windows")]
+    return Some(PathBuf::from("./settings.ron"));
+
+    #[cfg(target_os = "macos")]
+    return bundled_resource_path("settings", "ron").map(PathBuf::from);
 }
 
 #[cfg(target_os = "macos")]

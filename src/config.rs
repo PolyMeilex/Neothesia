@@ -27,14 +27,17 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        let path = crate::utils::resources::settings_ron();
-        let config: Option<Config> = if let Ok(file) = std::fs::read_to_string(path) {
-            match ron::from_str(&file) {
-                Ok(config) => Some(config),
-                Err(err) => {
-                    log::error!("{:#?}", err);
-                    None
+        let config: Option<Config> = if let Some(path) = crate::utils::resources::settings_ron() {
+            if let Ok(file) = std::fs::read_to_string(path) {
+                match ron::from_str(&file) {
+                    Ok(config) => Some(config),
+                    Err(err) => {
+                        log::error!("{:#?}", err);
+                        None
+                    }
                 }
+            } else {
+                None
             }
         } else {
             None
@@ -53,8 +56,10 @@ impl Config {
 impl Drop for Config {
     fn drop(&mut self) {
         if let Ok(s) = ron::ser::to_string_pretty(self, Default::default()) {
-            let path = crate::utils::resources::settings_ron();
-            std::fs::write(path, &s).ok();
+            if let Some(path) = crate::utils::resources::settings_ron() {
+                std::fs::create_dir_all(path.parent().unwrap()).ok();
+                std::fs::write(path, &s).ok();
+            }
         }
     }
 }

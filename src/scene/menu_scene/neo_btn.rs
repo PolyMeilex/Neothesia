@@ -9,8 +9,8 @@
 // implemented by `iced_wgpu` and other renderers.
 use iced_graphics::{defaults, Backend, Defaults, Primitive, Rectangle, Renderer};
 use iced_native::{
-    layout, mouse, Background, Clipboard, Color, Element, Event, Hasher, Layout, Length, Point,
-    Vector, Widget,
+    layout, mouse, Background, Clipboard, Color, Element, Event, Hasher, Layout, Length, Padding,
+    Point, Vector, Widget,
 };
 
 pub struct NeoBtn<'a, Message: Clone, B: Backend> {
@@ -94,18 +94,19 @@ where
     }
 
     fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
-        let padding = f32::from(self.padding);
         let limits = limits
             .min_width(self.min_width)
             .min_height(self.min_height)
             .width(self.width)
             .height(self.height)
-            .pad(padding);
+            .pad(Padding::new(self.padding));
 
         let mut content = self.content.layout(renderer, &limits);
-        content.move_to(Point::new(padding, padding));
+        content.move_to(Point::new(self.padding as _, self.padding as _));
 
-        let size = limits.resolve(content.size()).pad(padding);
+        let size = limits
+            .resolve(content.size())
+            .pad(Padding::new(self.padding));
 
         layout::Node::with_children(size, vec![content])
     }

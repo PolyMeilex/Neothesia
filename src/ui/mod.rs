@@ -1,9 +1,13 @@
 mod text_renderer;
-
-mod iced_clipboard;
-pub mod iced_conversion;
-mod iced_manager;
-
-pub use iced_clipboard::DumyClipboard;
-pub use iced_manager::IcedManager;
 pub use text_renderer::TextRenderer;
+
+#[cfg(feature = "app")]
+mod iced_clipboard;
+#[cfg(feature = "app")]
+pub use iced_clipboard::DumyClipboard;
+#[cfg(feature = "app")]
+pub mod iced_conversion;
+#[cfg(feature = "app")]
+mod iced_manager;
+#[cfg(feature = "app")]
+pub use iced_manager::IcedManager;

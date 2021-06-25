@@ -1,5 +1,5 @@
 use crate::main_state::MainState;
-use crate::ui::{IcedManager, TextRenderer};
+use crate::ui::{self, TextRenderer};
 use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
 use crate::TransformUniform;
 
@@ -10,7 +10,8 @@ pub struct Target {
     pub transform_uniform: Uniform<TransformUniform>,
 
     pub text_renderer: TextRenderer,
-    pub iced_manager: IcedManager,
+    #[cfg(feature = "app")]
+    pub iced_manager: ui::IcedManager,
 }
 
 impl Target {
@@ -23,7 +24,8 @@ impl Target {
 
         let text_renderer = TextRenderer::new(&gpu);
 
-        let iced_manager = IcedManager::new(&gpu.device, &window);
+        #[cfg(feature = "app")]
+        let iced_manager = ui::IcedManager::new(&gpu.device, &window);
 
         Self {
             state: MainState::new(),
@@ -32,6 +34,7 @@ impl Target {
             transform_uniform,
 
             text_renderer,
+            #[cfg(feature = "app")]
             iced_manager,
         }
     }
@@ -44,6 +47,7 @@ impl Target {
                 .update(&mut self.gpu.encoder, &self.gpu.device);
         }
 
+        #[cfg(feature = "app")]
         {
             let physical_size = self.window.state.physical_size;
             self.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(

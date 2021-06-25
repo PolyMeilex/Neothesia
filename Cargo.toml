@@ -8,7 +8,7 @@ default-run = "neothesia"
 [features]
 default = [ "app" ]
 
-app = ["nfd2", "fluid-synth"]
+app = ["nfd2", "fluid-synth", "iced_native", "iced_wgpu", "iced_graphics"]
 record=["mpeg_encoder"]
 
 play_along=[]
@@ -36,9 +36,9 @@ nfd2 = { version="0.3.0", optional = true }
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = { git="https://github.com/hecrj/iced.git", rev="d2c8a3e04b02a1fcf54504bcbd41c488a8bba88a" }
-iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="d2c8a3e04b02a1fcf54504bcbd41c488a8bba88a", features = ["png"]} 
-iced_graphics = { git="https://github.com/hecrj/iced.git", rev="d2c8a3e04b02a1fcf54504bcbd41c488a8bba88a" } 
+iced_native = { git="https://github.com/hecrj/iced.git", rev="d2c8a3e04b02a1fcf54504bcbd41c488a8bba88a", optional = true }
+iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="d2c8a3e04b02a1fcf54504bcbd41c488a8bba88a", features = ["png"], optional = true} 
+iced_graphics = { git="https://github.com/hecrj/iced.git", rev="d2c8a3e04b02a1fcf54504bcbd41c488a8bba88a", optional = true} 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}

@@ -1,7 +1,10 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::main_state::MainState;
 use crate::ui::{self, TextRenderer};
 use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
-use crate::TransformUniform;
+use crate::{OutputManager, TransformUniform};
 
 pub struct Target {
     pub state: MainState,
@@ -12,6 +15,8 @@ pub struct Target {
     pub text_renderer: TextRenderer,
     #[cfg(feature = "app")]
     pub iced_manager: ui::IcedManager,
+
+    pub output_manager: Rc<RefCell<OutputManager>>,
 }
 
 impl Target {
@@ -36,6 +41,8 @@ impl Target {
             text_renderer,
             #[cfg(feature = "app")]
             iced_manager,
+
+            output_manager: Default::default(),
         }
     }
 

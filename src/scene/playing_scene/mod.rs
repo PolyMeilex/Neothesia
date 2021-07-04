@@ -35,7 +35,7 @@ impl PlayingScene {
 
         let mut notes = Notes::new(target, &piano_keyboard.keys);
 
-        let player = MidiPlayer::new(&mut target.state);
+        let player = MidiPlayer::new(target);
         notes.update(target, player.time());
 
         Self {
@@ -92,10 +92,6 @@ impl PlayingScene {
 }
 
 impl Scene for PlayingScene {
-    fn done(mut self: Box<Self>, target: &mut Target) {
-        self.player.clear(&mut target.state);
-    }
-
     fn scene_type(&self) -> SceneType {
         SceneType::Playing
     }
@@ -130,42 +126,8 @@ impl Scene for PlayingScene {
             }],
         );
 
-        let pos = &target.window.state.cursor_logical_position;
-        if pos.y < 20.0
-            && target
-                .window
-                .state
-                .mouse_is_pressed(winit::event::MouseButton::Left)
-        {
-            let x = pos.x;
-            let p = x / window_w;
-            log::debug!("Progressbar Clicked: x:{},p:{}", x, p);
-            self.player.set_percentage_time(&mut target.state, p);
-
-            if !self.player.is_rewinding() {
-                self.player.start_rewind(RewindController::Mouse {
-                    was_paused: self.player.is_paused(),
-                });
-            }
-        } else if let RewindController::Mouse { .. } = self.player.rewind_controller() {
-            self.player.stop_rewind();
-        }
-
         if let Some(midi_events) = midi_events {
             self.piano_keyboard.update_note_events(target, &midi_events);
-
-            for event in midi_events {
-                match event {
-                    midi_player::MidiEvent::NoteOn {
-                        channel, key, vel, ..
-                    } => {
-                        target.state.output_manager.note_on(channel, key, vel);
-                    }
-                    midi_player::MidiEvent::NoteOff { channel, key } => {
-                        target.state.output_manager.note_off(channel, key);
-                    }
-                }
-            }
         } else {
             self.piano_keyboard.reset_notes(target);
         }
@@ -217,110 +179,156 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
+        use winit::event::WindowEvent::{CursorMoved, KeyboardInput, MouseInput};
+        use winit::event::{ElementState, MouseButton, VirtualKeyCode};
+
         match &event {
-            winit::event::WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
-                Some(winit::event::VirtualKeyCode::Escape) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        return SceneEvent::GoBack;
-                    }
-                }
-                Some(winit::event::VirtualKeyCode::Space) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        self.player.pause_resume(&mut target.state);
-                    }
-                }
-                Some(winit::event::VirtualKeyCode::Left) => {
-                    if let winit::event::ElementState::Pressed = input.state {
-                        let speed = if target.window.state.modifers_state.shift() {
-                            -0.0001 * 50.0
-                        } else {
-                            -0.0001
-                        };
+            KeyboardInput { input, .. } => {
+                if let Some(virtual_keycode) = input.virtual_keycode {
+                    match virtual_keycode {
+                        VirtualKeyCode::Escape => {
+                            if let ElementState::Released = input.state {
+                                return SceneEvent::GoBack;
+                            }
+                        }
+                        VirtualKeyCode::Space => {
+                            if let ElementState::Released = input.state {
+                                self.player.pause_resume();
+                            }
+                        }
+                        VirtualKeyCode::Left => {
+                            if let winit::event::ElementState::Pressed = input.state {
+                                let speed = if target.window.state.modifers_state.shift() {
+                                    -0.0001 * 50.0
+                                } else {
+                                    -0.0001
+                                };
 
+                                if !self.player.is_rewinding() {
+                                    self.player.start_rewind(RewindController::Keyboard {
+                                        speed,
+                                        was_paused: self.player.is_paused(),
+                                    });
+                                }
+                            } else {
+                                if let RewindController::Keyboard { .. } =
+                                    self.player.rewind_controller()
+                                {
+                                    self.player.stop_rewind();
+                                }
+                            }
+                        }
+                        VirtualKeyCode::Right => {
+                            if let winit::event::ElementState::Pressed = input.state {
+                                let speed = if target.window.state.modifers_state.shift() {
+                                    0.0001 * 50.0
+                                } else {
+                                    0.0001
+                                };
+
+                                if !self.player.is_rewinding() {
+                                    self.player.start_rewind(RewindController::Keyboard {
+                                        speed,
+                                        was_paused: self.player.is_paused(),
+                                    });
+                                }
+                            } else {
+                                if let RewindController::Keyboard { .. } =
+                                    self.player.rewind_controller()
+                                {
+                                    self.player.stop_rewind();
+                                }
+                            }
+                        }
+                        VirtualKeyCode::Up => {
+                            if let winit::event::ElementState::Released = input.state {
+                                if target.window.state.modifers_state.shift() {
+                                    target.state.config.speed_multiplier += 0.5;
+                                } else {
+                                    target.state.config.speed_multiplier += 0.1;
+                                }
+
+                                self.player.set_percentage_time(
+                                    &mut target.state,
+                                    self.player.percentage(),
+                                );
+
+                                self.speed_toast(target);
+                            }
+                        }
+                        VirtualKeyCode::Down => {
+                            if let winit::event::ElementState::Released = input.state {
+                                let new = if target.window.state.modifers_state.shift() {
+                                    target.state.config.speed_multiplier - 0.5
+                                } else {
+                                    target.state.config.speed_multiplier - 0.1
+                                };
+
+                                if new > 0.0 {
+                                    target.state.config.speed_multiplier = new;
+                                    self.player.set_percentage_time(
+                                        &mut target.state,
+                                        self.player.percentage(),
+                                    );
+                                }
+
+                                self.speed_toast(target);
+                            }
+                        }
+                        VirtualKeyCode::Minus => {
+                            if let winit::event::ElementState::Released = input.state {
+                                if target.window.state.modifers_state.shift() {
+                                    target.state.config.playback_offset -= 0.1;
+                                } else {
+                                    target.state.config.playback_offset -= 0.01;
+                                }
+
+                                self.offset_toast(target);
+                            }
+                        }
+                        VirtualKeyCode::Plus | VirtualKeyCode::Equals => {
+                            if let winit::event::ElementState::Released = input.state {
+                                if target.window.state.modifers_state.shift() {
+                                    target.state.config.playback_offset += 0.1;
+                                } else {
+                                    target.state.config.playback_offset += 0.01;
+                                }
+
+                                self.offset_toast(target);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            MouseInput { state, button, .. } => {
+                if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
+                    let pos = &target.window.state.cursor_logical_position;
+
+                    if pos.y < 20.0 {
                         if !self.player.is_rewinding() {
-                            self.player.start_rewind(RewindController::Keyboard {
-                                speed,
+                            self.player.start_rewind(RewindController::Mouse {
                                 was_paused: self.player.is_paused(),
                             });
                         }
-                    } else {
+                    }
+                } else if let (ElementState::Released, MouseButton::Left) = (state, button) {
+                    if let RewindController::Mouse { .. } = self.player.rewind_controller() {
                         self.player.stop_rewind();
                     }
                 }
-                Some(winit::event::VirtualKeyCode::Right) => {
-                    if let winit::event::ElementState::Pressed = input.state {
-                        let speed = if target.window.state.modifers_state.shift() {
-                            0.0001 * 50.0
-                        } else {
-                            0.0001
-                        };
+            }
+            CursorMoved { position, .. } => {
+                if let RewindController::Mouse { .. } = self.player.rewind_controller() {
+                    let pos = position.to_logical::<f32>(target.window.state.scale_factor);
+                    let win_size = &target.window.state.logical_size;
 
-                        if !self.player.is_rewinding() {
-                            self.player.start_rewind(RewindController::Keyboard {
-                                speed,
-                                was_paused: self.player.is_paused(),
-                            });
-                        }
-                    } else {
-                        self.player.stop_rewind();
-                    }
+                    let x = pos.x;
+                    let p = x / win_size.width;
+                    log::debug!("Progressbar: x:{},p:{}", x, p);
+                    self.player.set_percentage_time(&mut target.state, p);
                 }
-                Some(winit::event::VirtualKeyCode::Up) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        if target.window.state.modifers_state.shift() {
-                            target.state.config.speed_multiplier += 0.5;
-                        } else {
-                            target.state.config.speed_multiplier += 0.1;
-                        }
-
-                        self.player
-                            .set_percentage_time(&mut target.state, self.player.percentage());
-
-                        self.speed_toast(target);
-                    }
-                }
-                Some(winit::event::VirtualKeyCode::Down) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        let new = if target.window.state.modifers_state.shift() {
-                            target.state.config.speed_multiplier - 0.5
-                        } else {
-                            target.state.config.speed_multiplier - 0.1
-                        };
-
-                        if new > 0.0 {
-                            target.state.config.speed_multiplier = new;
-                            self.player
-                                .set_percentage_time(&mut target.state, self.player.percentage());
-                        }
-
-                        self.speed_toast(target);
-                    }
-                }
-                Some(winit::event::VirtualKeyCode::Minus) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        if target.window.state.modifers_state.shift() {
-                            target.state.config.playback_offset -= 0.1;
-                        } else {
-                            target.state.config.playback_offset -= 0.01;
-                        }
-
-                        self.offset_toast(target);
-                    }
-                }
-                Some(winit::event::VirtualKeyCode::Plus)
-                | Some(winit::event::VirtualKeyCode::Equals) => {
-                    if let winit::event::ElementState::Released = input.state {
-                        if target.window.state.modifers_state.shift() {
-                            target.state.config.playback_offset += 0.1;
-                        } else {
-                            target.state.config.playback_offset += 0.01;
-                        }
-
-                        self.offset_toast(target);
-                    }
-                }
-                _ => {}
-            },
+            }
             _ => {}
         }
 

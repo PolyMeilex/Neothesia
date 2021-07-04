@@ -30,7 +30,7 @@ impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
         let timer = Timer::new();
 
-        let menu = IcedMenu::new(&mut target.state);
+        let menu = IcedMenu::new(target);
         let iced_state = iced_native::program::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
@@ -64,7 +64,7 @@ impl Scene for MenuScene {
 
         self.bg_pipeline.update_time(&mut target.gpu, time);
 
-        let outs = target.state.output_manager.get_outputs();
+        let outs = target.output_manager.borrow().get_outputs();
         self.iced_state
             .queue_message(iced_menu::Message::OutputsUpdated(outs));
 
@@ -101,7 +101,9 @@ impl Scene for MenuScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
-        let modifiers = winit::event::ModifiersState::default();
+        use winit::event::{ElementState, ModifiersState, VirtualKeyCode};
+
+        let modifiers = ModifiersState::default();
 
         if let Some(event) = iced_conversion::window_event(
             &event,
@@ -111,24 +113,23 @@ impl Scene for MenuScene {
             self.iced_state.queue_event(event);
         }
 
-        if let winit::event::WindowEvent::KeyboardInput { input, .. } = &event {
-            if let winit::event::ElementState::Released = input.state {
+        if let WindowEvent::KeyboardInput { input, .. } = &event {
+            if let ElementState::Released = input.state {
                 if let Some(key) = input.virtual_keycode {
                     match key {
-                        winit::event::VirtualKeyCode::Tab => self
+                        VirtualKeyCode::Tab => self
                             .iced_state
                             .queue_message(iced_menu::Message::FileSelectPressed),
-                        winit::event::VirtualKeyCode::Left => self
+                        VirtualKeyCode::Left => self
                             .iced_state
                             .queue_message(iced_menu::Message::PrevPressed),
-                        winit::event::VirtualKeyCode::Right => self
+                        VirtualKeyCode::Right => self
                             .iced_state
                             .queue_message(iced_menu::Message::NextPressed),
-                        winit::event::VirtualKeyCode::Return => self
+                        VirtualKeyCode::Return => self
                             .iced_state
                             .queue_message(iced_menu::Message::EnterPressed),
-                        // winit::event::VirtualKeyCode::Escape => return SceneEvent::GoBack,
-                        winit::event::VirtualKeyCode::Escape => self
+                        VirtualKeyCode::Escape => self
                             .iced_state
                             .queue_message(iced_menu::Message::EscPressed),
                         _ => {}
@@ -180,9 +181,9 @@ impl Scene for MenuScene {
                                 target.state.config.play_along = program.play_along;
                             }
 
-                            target.state.output_manager.selected_output_id =
-                                Some(program.carousel.id());
-                            target.state.output_manager.connect(out);
+                            let output_manager = &mut *target.output_manager.borrow_mut();
+                            output_manager.selected_output_id = Some(program.carousel.id());
+                            output_manager.connect(out);
 
                             return SceneEvent::MainMenu(Event::Play);
                         }

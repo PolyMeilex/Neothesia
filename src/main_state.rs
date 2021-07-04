@@ -1,8 +1,7 @@
-use crate::{config::Config, output_manager::OutputManager};
+use crate::config::Config;
 
 pub struct MainState {
     pub midi_file: Option<lib_midi::Midi>,
-    pub output_manager: OutputManager,
 
     pub config: Config,
 }
@@ -29,7 +28,6 @@ impl MainState {
 
         Self {
             midi_file,
-            output_manager: OutputManager::new(),
 
             config: Config::new(),
         }

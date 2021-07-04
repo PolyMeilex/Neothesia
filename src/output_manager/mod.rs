@@ -32,8 +32,7 @@ impl Display for OutputDescriptor {
 }
 
 pub trait OutputConnection {
-    fn note_on(&mut self, _ch: u8, _key: u8, _vel: u8) {}
-    fn note_off(&mut self, _ch: u8, _key: u8) {}
+    fn midi_event(&mut self, _msg: midi::Message) {}
 }
 
 struct DummyOutput {}
@@ -133,11 +132,7 @@ impl OutputManager {
         }
     }
 
-    pub fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
-        self.output_connection.1.note_on(ch, key, vel);
-    }
-
-    pub fn note_off(&mut self, ch: u8, key: u8) {
-        self.output_connection.1.note_off(ch, key);
+    pub fn midi_event(&mut self, msg: midi::Message) {
+        self.output_connection.1.midi_event(msg);
     }
 }

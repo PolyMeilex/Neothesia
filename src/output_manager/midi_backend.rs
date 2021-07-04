@@ -1,5 +1,6 @@
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
+use midi::ToRawMessages;
 use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 pub struct MidiBackend {
@@ -41,14 +42,14 @@ impl MidiBackend {
 }
 
 impl OutputConnection for MidiOutputConnection {
-    fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
-        if ch <= 15 {
-            self.send(&[0x90 | ch, key, vel]).ok();
-        }
-    }
-    fn note_off(&mut self, ch: u8, key: u8) {
-        if ch <= 15 {
-            self.send(&[0x80 | ch, key, 0]).ok();
+    fn midi_event(&mut self, msg: midi::Message) {
+        if let Some(msg) = msg.to_raw_messages().first() {
+            match *msg {
+                midi::RawMessage::StatusDataData(a, b, c) => {
+                    self.send(&[a, b, c]).ok();
+                }
+                _ => {}
+            }
         }
     }
 }

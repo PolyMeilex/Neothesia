@@ -1,20 +1,9 @@
 use super::RewindController;
-use crate::{main_state::MainState, utils::timer::Timer};
+use crate::{main_state::MainState, target::Target, utils::timer::Timer, OutputManager};
 use lib_midi::MidiNote;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-pub enum MidiEvent {
-    NoteOn {
-        channel: u8,
-        track_id: usize,
-        key: u8,
-        vel: u8,
-    },
-    NoteOff {
-        channel: u8,
-        key: u8,
-    },
-}
+use crate::midi_event::MidiEvent;
 
 pub struct MidiPlayer {
     midi_first_note_start: f32,
@@ -27,11 +16,13 @@ pub struct MidiPlayer {
     rewind_controller: RewindController,
     #[cfg(feature = "play_along")]
     play_along_controller: Option<PlayAlongController>,
+
+    output_manager: Rc<RefCell<OutputManager>>,
 }
 
 impl MidiPlayer {
-    pub fn new(main_state: &mut MainState) -> Self {
-        let midi_file = main_state.midi_file.as_ref().unwrap();
+    pub fn new(target: &mut Target) -> Self {
+        let midi_file = target.state.midi_file.as_ref().unwrap();
 
         let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
             note.start
@@ -45,7 +36,7 @@ impl MidiPlayer {
         };
 
         #[cfg(feature = "play_along")]
-        let play_along_controller = if main_state.config.play_along {
+        let play_along_controller = if target.state.config.play_along {
             PlayAlongController::new()
         } else {
             None
@@ -62,8 +53,10 @@ impl MidiPlayer {
             rewind_controller: RewindController::None,
             #[cfg(feature = "play_along")]
             play_along_controller,
+
+            output_manager: target.output_manager.clone(),
         };
-        player.update(main_state);
+        player.update(&mut target.state);
 
         player
     }
@@ -132,13 +125,26 @@ impl MidiPlayer {
             }
         }
 
+        for event in events.iter() {
+            self.output_manager
+                .borrow_mut()
+                .midi_event(event.clone().into());
+        }
+
         Some(events)
     }
 
-    pub fn clear(&mut self, main_state: &mut MainState) {
-        for (_id, n) in self.active_notes.iter() {
-            main_state.output_manager.note_off(n.ch, n.note);
+    pub fn clear(&mut self) {
+        for (_, n) in self.active_notes.iter() {
+            self.output_manager.borrow_mut().midi_event(
+                MidiEvent::NoteOff {
+                    channel: n.ch,
+                    key: n.note,
+                }
+                .into(),
+            )
         }
+
         self.active_notes.clear();
 
         #[cfg(feature = "play_along")]
@@ -153,8 +159,8 @@ impl MidiPlayer {
         self.timer.start();
     }
 
-    pub fn pause_resume(&mut self, main_state: &mut MainState) {
-        self.clear(main_state);
+    pub fn pause_resume(&mut self) {
+        self.clear();
         self.timer.pause_resume();
     }
 
@@ -177,16 +183,13 @@ impl MidiPlayer {
         }
     }
 
-    pub fn set_time(&mut self, main_state: &mut MainState, time: f32) {
+    pub fn set_time(&mut self, time: f32) {
         self.timer.set_time(time * 1000.0);
-        self.clear(main_state);
+        self.clear();
     }
 
     pub fn set_percentage_time(&mut self, main_state: &mut MainState, p: f32) {
-        self.set_time(
-            main_state,
-            p * (self.midi_last_note_end + 3.0) / main_state.config.speed_multiplier,
-        );
+        self.set_time(p * (self.midi_last_note_end + 3.0) / main_state.config.speed_multiplier);
     }
 
     pub fn percentage(&self) -> f32 {
@@ -207,6 +210,12 @@ impl MidiPlayer {
 
     pub fn is_paused(&self) -> bool {
         self.timer.paused
+    }
+}
+
+impl Drop for MidiPlayer {
+    fn drop(&mut self) {
+        self.clear();
     }
 }
 

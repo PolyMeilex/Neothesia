@@ -178,10 +178,21 @@ pub struct SynthOutputConnection {
 }
 
 impl OutputConnection for SynthOutputConnection {
-    fn note_on(&mut self, ch: u8, key: u8, vel: u8) {
-        self.tx.send(MidiEvent::NoteOn { ch, key, vel }).ok();
-    }
-    fn note_off(&mut self, ch: u8, key: u8) {
-        self.tx.send(MidiEvent::NoteOff { ch, key }).ok();
+    fn midi_event(&mut self, msg: midi::Message) {
+        match msg {
+            midi::NoteOn(ch, key, vel) => {
+                self.tx
+                    .send(MidiEvent::NoteOn {
+                        ch: ch as u8,
+                        key,
+                        vel,
+                    })
+                    .ok();
+            }
+            midi::NoteOff(ch, key, _vel) => {
+                self.tx.send(MidiEvent::NoteOff { ch: ch as u8, key }).ok();
+            }
+            _ => {}
+        }
     }
 }

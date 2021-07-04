@@ -1,4 +1,4 @@
-use super::midi_player::MidiEvent;
+use crate::midi_event::MidiEvent;
 use crate::quad_pipeline::{QuadInstance, QuadPipeline};
 use crate::target::Target;
 use crate::TransformUniform;

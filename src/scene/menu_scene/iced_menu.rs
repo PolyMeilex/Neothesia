@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::target::Target;
 use crate::ui::DummyClipboard;
 use iced_native::{
     image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
@@ -7,7 +8,6 @@ use iced_native::{
 };
 use iced_wgpu::Renderer;
 
-use crate::main_state::MainState;
 use crate::output_manager::OutputDescriptor;
 
 use super::neo_btn::{self, NeoBtn};
@@ -53,12 +53,15 @@ pub enum Message {
 }
 
 impl IcedMenu {
-    pub fn new(state: &mut MainState) -> Self {
+    pub fn new(target: &mut Target) -> Self {
         let mut carousel = Carousel::new();
-        let outputs = state.output_manager.get_outputs();
+
+        let output_manager = target.output_manager.borrow();
+
+        let outputs = output_manager.get_outputs();
         carousel.update(outputs);
 
-        let out_id = state.output_manager.selected_output_id;
+        let out_id = output_manager.selected_output_id;
         if let Some(id) = out_id {
             carousel.id = id;
         }
@@ -69,8 +72,8 @@ impl IcedMenu {
             #[cfg(not(feature = "play_along"))]
             play_along: false,
 
-            midi_file: state.midi_file.is_some(),
-            font_path: state.output_manager.selected_font_path.clone(),
+            midi_file: target.state.midi_file.is_some(),
+            font_path: output_manager.selected_font_path.clone(),
 
             carousel,
 

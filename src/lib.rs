@@ -19,6 +19,8 @@ pub mod target;
 
 pub mod main_state;
 
+pub mod midi_event;
+
 use futures::Future;
 use winit::event_loop::EventLoop;
 

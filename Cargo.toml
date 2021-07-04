@@ -49,6 +49,8 @@ ron = "0.6.4"
 serde = { version = "1.0.123", features = ["serde_derive"] }
 
 mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optional=true}
+midi = "0.1.0"
+num = "0.4.0"
 # mpeg_encoder = {path="../mpeg_encoder_next", optional=true}
 
 [target.'cfg(target_os = "macos")'.dependencies]

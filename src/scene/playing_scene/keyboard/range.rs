@@ -42,10 +42,6 @@ impl KeyboardRange {
             }
         }
 
-        assert_eq!(white_keys.len(), 52);
-        assert_eq!(black_keys.len(), 36);
-        assert_eq!(white_keys.len() + black_keys.len(), 88);
-
         Self {
             range,
 
@@ -94,9 +90,4 @@ impl Default for KeyboardRange {
     fn default() -> Self {
         Self::standard_88_keys()
     }
-}
-
-#[test]
-fn range() {
-    KeyboardRange::new(21..=108);
 }

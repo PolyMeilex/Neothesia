@@ -77,7 +77,7 @@ impl Midi {
             .notes
             .sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
 
-        // Asign Unique Id
+        // Assign Unique Id
         for (i, note) in merged_track.notes.iter_mut().enumerate() {
             note.id = i;
         }

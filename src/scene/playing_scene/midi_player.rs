@@ -1,4 +1,4 @@
-use super::RewindControler;
+use super::RewindController;
 use crate::{main_state::MainState, utils::timer::Timer};
 use lib_midi::MidiNote;
 use std::collections::HashMap;
@@ -24,9 +24,9 @@ pub struct MidiPlayer {
     percentage: f32,
     time: f32,
 
-    rewind_controler: RewindControler,
+    rewind_controller: RewindController,
     #[cfg(feature = "play_along")]
-    play_along_controler: Option<PlayAlongControler>,
+    play_along_controller: Option<PlayAlongController>,
 }
 
 impl MidiPlayer {
@@ -45,8 +45,8 @@ impl MidiPlayer {
         };
 
         #[cfg(feature = "play_along")]
-        let play_along_controler = if main_state.config.play_along {
-            PlayAlongControler::new()
+        let play_along_controller = if main_state.config.play_along {
+            PlayAlongController::new()
         } else {
             None
         };
@@ -59,9 +59,9 @@ impl MidiPlayer {
             percentage: 0.0,
             time: 0.0,
 
-            rewind_controler: RewindControler::None,
+            rewind_controller: RewindController::None,
             #[cfg(feature = "play_along")]
-            play_along_controler,
+            play_along_controller,
         };
         player.update(main_state);
 
@@ -72,7 +72,7 @@ impl MidiPlayer {
     ///
     /// When paused: returns None
     pub fn update(&mut self, main_state: &mut MainState) -> Option<Vec<MidiEvent>> {
-        if let RewindControler::Keyboard { speed, .. } = self.rewind_controler {
+        if let RewindController::Keyboard { speed, .. } = self.rewind_controller {
             let p = self.percentage + speed;
             self.set_percentage_time(main_state, p);
         }
@@ -83,8 +83,8 @@ impl MidiPlayer {
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
         #[cfg(feature = "play_along")]
-        if let Some(controler) = &mut self.play_along_controler {
-            controler.update(main_state, &mut notes_state, &mut self.timer);
+        if let Some(controller) = &mut self.play_along_controller {
+            controller.update(main_state, &mut notes_state, &mut self.timer);
         }
 
         if self.timer.paused {
@@ -111,8 +111,8 @@ impl MidiPlayer {
                     self.active_notes.insert(n.id, n.clone());
 
                     #[cfg(feature = "play_along")]
-                    if let Some(controler) = &mut self.play_along_controler {
-                        controler.require_note(&mut self.timer, &n);
+                    if let Some(controller) = &mut self.play_along_controller {
+                        controller.require_note(&mut self.timer, &n);
                     }
 
                     events.push(MidiEvent::NoteOn {
@@ -142,8 +142,8 @@ impl MidiPlayer {
         self.active_notes.clear();
 
         #[cfg(feature = "play_along")]
-        if let Some(controler) = &mut self.play_along_controler {
-            controler.clear();
+        if let Some(controller) = &mut self.play_along_controller {
+            controller.clear();
         }
     }
 }
@@ -158,18 +158,18 @@ impl MidiPlayer {
         self.timer.pause_resume();
     }
 
-    pub fn start_rewind(&mut self, controler: RewindControler) {
+    pub fn start_rewind(&mut self, controller: RewindController) {
         self.timer.pause();
-        self.rewind_controler = controler;
+        self.rewind_controller = controller;
     }
 
     pub fn stop_rewind(&mut self) {
-        let controler = std::mem::replace(&mut self.rewind_controler, RewindControler::None);
+        let controller = std::mem::replace(&mut self.rewind_controller, RewindController::None);
 
-        let was_paused = match controler {
-            RewindControler::Keyboard { was_paused, .. } => was_paused,
-            RewindControler::Mouse { was_paused } => was_paused,
-            RewindControler::None => return,
+        let was_paused = match controller {
+            RewindController::Keyboard { was_paused, .. } => was_paused,
+            RewindController::Mouse { was_paused } => was_paused,
+            RewindController::None => return,
         };
 
         if !was_paused {
@@ -197,12 +197,12 @@ impl MidiPlayer {
         self.time
     }
 
-    pub fn rewind_controler(&self) -> &RewindControler {
-        &self.rewind_controler
+    pub fn rewind_controller(&self) -> &RewindController {
+        &self.rewind_controller
     }
 
     pub fn is_rewinding(&self) -> bool {
-        self.rewind_controler.is_rewinding()
+        self.rewind_controller.is_rewinding()
     }
 
     pub fn is_paused(&self) -> bool {
@@ -214,7 +214,7 @@ impl MidiPlayer {
 use std::sync::{mpsc, Arc, Mutex};
 
 #[cfg(feature = "play_along")]
-struct PlayAlongControler {
+struct PlayAlongController {
     _midi_in_conn: midir::MidiInputConnection<()>,
     midi_in_rec: mpsc::Receiver<(bool, u8, u8)>,
 
@@ -224,7 +224,7 @@ struct PlayAlongControler {
 }
 
 #[cfg(feature = "play_along")]
-impl PlayAlongControler {
+impl PlayAlongController {
     fn new() -> Option<Self> {
         let input_pressed_keys = [false; 88];
         let required_notes = Arc::new(Mutex::new(HashMap::new()));

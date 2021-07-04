@@ -143,11 +143,11 @@ impl Scene for PlayingScene {
             self.player.set_percentage_time(&mut target.state, p);
 
             if !self.player.is_rewinding() {
-                self.player.start_rewind(RewindControler::Mouse {
+                self.player.start_rewind(RewindController::Mouse {
                     was_paused: self.player.is_paused(),
                 });
             }
-        } else if let RewindControler::Mouse { .. } = self.player.rewind_controler() {
+        } else if let RewindController::Mouse { .. } = self.player.rewind_controller() {
             self.player.stop_rewind();
         }
 
@@ -238,7 +238,7 @@ impl Scene for PlayingScene {
                         };
 
                         if !self.player.is_rewinding() {
-                            self.player.start_rewind(RewindControler::Keyboard {
+                            self.player.start_rewind(RewindController::Keyboard {
                                 speed,
                                 was_paused: self.player.is_paused(),
                             });
@@ -256,7 +256,7 @@ impl Scene for PlayingScene {
                         };
 
                         if !self.player.is_rewinding() {
-                            self.player.start_rewind(RewindControler::Keyboard {
+                            self.player.start_rewind(RewindController::Keyboard {
                                 speed,
                                 was_paused: self.player.is_paused(),
                             });
@@ -328,15 +328,15 @@ impl Scene for PlayingScene {
     }
 }
 
-pub enum RewindControler {
+pub enum RewindController {
     Keyboard { speed: f32, was_paused: bool },
     Mouse { was_paused: bool },
     None,
 }
 
-impl RewindControler {
+impl RewindController {
     pub fn is_rewinding(&self) -> bool {
-        !matches!(self, RewindControler::None)
+        !matches!(self, RewindController::None)
     }
 }
 

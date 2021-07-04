@@ -44,7 +44,7 @@ impl Gpu {
         let format = adapter.get_swap_chain_preferred_format(&surface);
 
         log::info!(
-            "Using {} ({:?}, Prefered Format: {:?})",
+            "Using {} ({:?}, Preferred Format: {:?})",
             adapter_info.name,
             adapter_info.backend,
             format

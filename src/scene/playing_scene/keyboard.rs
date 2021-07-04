@@ -25,7 +25,7 @@ impl PianoKeyboard {
 
         let mut keys = Vec::new();
 
-        // 0 is reserverd fo keyboard background, so it starts from 1
+        // 0 is reserved fo keyboard background, so it starts from 1
         let first_instance_id = 1;
 
         {

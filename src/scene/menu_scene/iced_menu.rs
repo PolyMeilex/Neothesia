@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::ui::DumyClipboard;
+use crate::ui::DummyClipboard;
 use iced_native::{
     image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
     Program, Row, Text, VerticalAlignment,
@@ -82,9 +82,9 @@ impl IcedMenu {
 impl Program for IcedMenu {
     type Renderer = Renderer;
     type Message = Message;
-    type Clipboard = DumyClipboard;
+    type Clipboard = DummyClipboard;
 
-    fn update(&mut self, message: Message, _: &mut DumyClipboard) -> Command<Message> {
+    fn update(&mut self, message: Message, _: &mut DummyClipboard) -> Command<Message> {
         match message {
             Message::FileSelectPressed => {
                 use nfd2::Response;
@@ -197,7 +197,7 @@ impl Program for IcedMenu {
 
         let main: Element<_, _> = {
             let image = Image::new(image::Handle::from_memory(
-                include_bytes!("./img/baner.png").to_vec(),
+                include_bytes!("./img/banner.png").to_vec(),
             ));
             let image = Container::new(image)
                 .center_x()
@@ -317,7 +317,7 @@ impl SongSelectControls {
 
         let label = item
             .map(|o| o.to_string())
-            .unwrap_or_else(|| "Disconected".to_string());
+            .unwrap_or_else(|| "Disconnected".to_string());
 
         let output = Text::new(label)
             .color(Color::WHITE)

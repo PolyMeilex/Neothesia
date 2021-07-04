@@ -11,7 +11,7 @@ use winit::event::WindowEvent;
 use crate::{
     scene::{Scene, SceneEvent, SceneType},
     target::Target,
-    ui::{iced_conversion, DumyClipboard},
+    ui::{iced_conversion, DummyClipboard},
     utils::timer::Timer,
 };
 
@@ -149,7 +149,7 @@ impl Scene for MenuScene {
                     target.iced_manager.viewport.scale_factor(),
                 ),
                 &mut target.iced_manager.renderer,
-                &mut DumyClipboard {},
+                &mut DummyClipboard {},
                 &mut target.iced_manager.debug,
             );
 

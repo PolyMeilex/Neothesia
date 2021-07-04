@@ -1,8 +1,8 @@
 use iced_native::Clipboard;
 
-pub struct DumyClipboard {}
+pub struct DummyClipboard {}
 
-impl Clipboard for DumyClipboard {
+impl Clipboard for DummyClipboard {
     fn read(&self) -> Option<String> {
         None
     }

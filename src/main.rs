@@ -62,7 +62,7 @@ impl Neothesia {
                         let modes: Vec<_> = monitor.video_modes().collect();
 
                         log::info!(
-                            "Avalible Video Modes: {:#?}",
+                            "Available Video Modes: {:#?}",
                             modes.iter().map(|m| format!("{}", m)).collect::<Vec<_>>()
                         );
 

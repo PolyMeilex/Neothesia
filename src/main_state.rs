@@ -7,6 +7,12 @@ pub struct MainState {
     pub config: Config,
 }
 
+impl Default for MainState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MainState {
     pub fn new() -> Self {
         let args: Vec<String> = std::env::args().collect();

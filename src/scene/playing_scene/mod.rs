@@ -336,10 +336,7 @@ pub enum RewindControler {
 
 impl RewindControler {
     pub fn is_rewinding(&self) -> bool {
-        match self {
-            RewindControler::None => false,
-            _ => true,
-        }
+        !matches!(self, RewindControler::None)
     }
 }
 

@@ -27,6 +27,7 @@ where
             buffer,
         }
     }
+
     pub fn update(&self, command_encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device) {
         if self.data.is_empty() {
             return;
@@ -41,7 +42,12 @@ where
 
         command_encoder.copy_buffer_to_buffer(&staging_buffer, 0, &self.buffer, 0, buffer_size);
     }
+
     pub fn len(&self) -> u32 {
         self.data.len() as u32
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
     }
 }

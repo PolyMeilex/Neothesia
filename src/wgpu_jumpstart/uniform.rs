@@ -53,9 +53,9 @@ where
 
         Self {
             data,
-            bind_group,
-            bind_group_layout,
             buffer,
+            bind_group_layout,
+            bind_group,
         }
     }
     pub fn update(&self, command_encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device) {

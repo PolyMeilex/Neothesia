@@ -25,6 +25,12 @@ pub struct Config {
     pub background_color: (u8, u8, u8),
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Config {
     pub fn new() -> Self {
         let config: Option<Config> = if let Some(path) = crate::utils::resources::settings_ron() {

@@ -5,6 +5,13 @@ pub struct Timer {
     last_time: Instant,
     pub paused: bool,
 }
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Timer {
     pub fn new() -> Self {
         Self {
@@ -64,6 +71,13 @@ pub struct Fps {
     fps_counter: i32,
     last_time: Instant,
 }
+
+impl Default for Fps {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Fps {
     pub fn new() -> Self {
         Self {

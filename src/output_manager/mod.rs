@@ -50,6 +50,12 @@ pub struct OutputManager {
     pub selected_font_path: Option<PathBuf>,
 }
 
+impl Default for OutputManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OutputManager {
     pub fn new() -> Self {
         #[cfg(feature = "synth")]
@@ -106,13 +112,11 @@ impl OutputManager {
                             self.output_connection =
                                 (desc, Box::new(synth.new_output_connection(&font)));
                             self.selected_font_path = Some(font);
-                        } else {
-                            if let Some(path) = crate::utils::resources::default_sf2() {
-                                if path.exists() {
-                                    self.output_connection =
-                                        (desc, Box::new(synth.new_output_connection(&path)));
-                                    self.selected_font_path = Some(path);
-                                }
+                        } else if let Some(path) = crate::utils::resources::default_sf2() {
+                            if path.exists() {
+                                self.output_connection =
+                                    (desc, Box::new(synth.new_output_connection(&path)));
+                                self.selected_font_path = Some(path);
                             }
                         }
                     }

@@ -21,7 +21,7 @@ impl PianoKeyboard {
     pub fn new(target: &mut Target) -> Self {
         let range = KeyboardRange::standard_88_keys();
 
-        let mut quad_pipeline = QuadPipeline::new(&mut target.gpu, &target.transform_uniform);
+        let mut quad_pipeline = QuadPipeline::new(&target.gpu, &target.transform_uniform);
 
         let mut keys = Vec::new();
 
@@ -121,8 +121,8 @@ impl PianoKeyboard {
 
         let updater = |instances: &mut Vec<QuadInstance>| {
             for e in events {
-                match e {
-                    &MidiEvent::NoteOn {
+                match *e {
+                    MidiEvent::NoteOn {
                         key,
                         channel,
                         track_id,
@@ -138,7 +138,7 @@ impl PianoKeyboard {
                             instances[key.instance_id] = QuadInstance::from(&*key);
                         }
                     }
-                    &MidiEvent::NoteOff { key, channel } => {
+                    MidiEvent::NoteOff { key, channel } => {
                         if range.contains(key) && channel != 9 {
                             let id = key as usize - 21;
                             let key = &mut keys[id];

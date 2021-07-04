@@ -1,11 +1,7 @@
 #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 extern crate fluidlite_lib;
 
-use std::{
-    error::Error,
-    path::{Path, PathBuf},
-    sync::mpsc::Receiver,
-};
+use std::{error::Error, path::Path, sync::mpsc::Receiver};
 
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
@@ -160,7 +156,7 @@ impl SynthBackend {
         stream
     }
 
-    pub fn new_output_connection(&mut self, path: &PathBuf) -> SynthOutputConnection {
+    pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
         let _stream = match self.sample_format {
             cpal::SampleFormat::F32 => self.run::<f32>(rx, path),

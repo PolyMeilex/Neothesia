@@ -255,13 +255,13 @@ where
     }
 }
 
-impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for NeoBtn<'a, Message, B>
+impl<'a, Message, B> From<NeoBtn<'a, Message, B>> for Element<'a, Message, Renderer<B>>
 where
     B: 'a + Backend,
     Message: 'a + Clone,
 {
-    fn into(self) -> Element<'a, Message, Renderer<B>> {
-        Element::new(self)
+    fn from(from: NeoBtn<'a, Message, B>) -> Element<'a, Message, Renderer<B>> {
+        Element::new(from)
     }
 }
 

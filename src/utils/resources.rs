@@ -1,9 +1,9 @@
 use std::{env, path::PathBuf};
 
 fn home() -> Option<PathBuf> {
-    return env::var_os("HOME")
+    env::var_os("HOME")
         .and_then(|h| if h.is_empty() { None } else { Some(h) })
-        .map(PathBuf::from);
+        .map(PathBuf::from)
 }
 
 fn xdg_config() -> Option<PathBuf> {

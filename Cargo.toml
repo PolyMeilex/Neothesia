@@ -37,7 +37,7 @@ lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
 iced_native = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", optional = true }
-iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", features = ["png"], optional = true} 
+iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", optional = true} 
 iced_graphics = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", optional = true} 
 
 cpal = { version = "0.13.1", optional = true }

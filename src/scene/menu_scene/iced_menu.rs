@@ -199,19 +199,19 @@ impl Program for IcedMenu {
         };
 
         let main: Element<_, _> = {
-            let image = Image::new(image::Handle::from_memory(
-                include_bytes!("./img/banner.png").to_vec(),
-            ));
-            let image = Container::new(image)
-                .center_x()
-                .center_y()
-                .width(Length::Fill);
+            // let image = Image::new(image::Handle::from_memory(
+            //     include_bytes!("./img/banner.png").to_vec(),
+            // ));
+            // let image = Container::new(image)
+            //     .center_x()
+            //     .center_y()
+            //     .width(Length::Fill);
 
             let main = Column::new()
                 .width(Length::Fill)
                 .spacing(40)
                 .max_width(650)
-                .push(image)
+                // .push(image)
                 .push(controls);
 
             let centered_main = Container::new(main)

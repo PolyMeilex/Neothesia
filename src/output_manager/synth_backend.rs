@@ -116,9 +116,22 @@ impl SynthBackend {
                 if let Ok(e) = rx.try_recv() {
                     match e {
                         MidiEvent::NoteOn { ch, key, vel } => {
-                            synth.note_on(ch, key, vel).ok();
+                            synth
+                                .send_event(oxisynth::MidiEvent::NoteOn {
+                                    channel: ch as _,
+                                    key: key as _,
+                                    vel: vel as _,
+                                })
+                                .ok();
                         }
-                        MidiEvent::NoteOff { ch, key } => synth.note_off(ch, key),
+                        MidiEvent::NoteOff { ch, key } => {
+                            synth
+                                .send_event(oxisynth::MidiEvent::NoteOff {
+                                    channel: ch as _,
+                                    key: key as _,
+                                })
+                                .ok();
+                        }
                     }
                 }
 

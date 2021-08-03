@@ -29,16 +29,16 @@ wgpu_glyph = "0.13.0"
 
 
 log = "0.4.14"
-env_logger = "0.8.2"
+env_logger = "0.9.0"
 
 nfd2 = { version="0.3.0", optional = true }
 
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", optional = true }
-iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", features = ["png"], optional = true} 
-iced_graphics = { git="https://github.com/hecrj/iced.git", rev="4994d34abab3222f9a8fd7a9a3e63f969ca97ffc", optional = true} 
+iced_native = { git="https://github.com/hecrj/iced.git", rev="cdd2f247f8c22775a5035be03715775c96cd1037", optional = true }
+iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="cdd2f247f8c22775a5035be03715775c96cd1037", features = ["png"], optional = true} 
+iced_graphics = { git="https://github.com/hecrj/iced.git", rev="cdd2f247f8c22775a5035be03715775c96cd1037", optional = true} 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}

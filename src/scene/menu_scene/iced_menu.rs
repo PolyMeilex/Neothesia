@@ -90,38 +90,32 @@ impl Program for IcedMenu {
     fn update(&mut self, message: Message, _: &mut DummyClipboard) -> Command<Message> {
         match message {
             Message::FileSelectPressed => {
-                use nfd2::Response;
-
-                match nfd2::DialogBuilder::single()
-                    .filter("mid,midi")
-                    .open()
-                    .expect("File Dialog Error")
+                match rfd::FileDialog::new()
+                    .add_filter("midi", &["mid", "midi"])
+                    .pick_file()
                 {
-                    Response::Okay(path) => {
+                    Some(path) => {
                         log::info!("File path = {:?}", path);
 
                         return Command::from(async { Message::OutputFileSelected(path) });
                     }
                     _ => {
-                        log::error!("User canceled dialog");
+                        log::warn!("User canceled dialog");
                     }
                 }
             }
 
             Message::FontSelectPressed => {
-                use nfd2::Response;
-
-                match nfd2::DialogBuilder::single()
-                    .filter("sf2")
-                    .open()
-                    .expect("Font Dialog Error")
+                match rfd::FileDialog::new()
+                    .add_filter("SoundFont2", &["sf2"])
+                    .pick_file()
                 {
-                    Response::Okay(path) => {
+                    Some(path) => {
                         log::info!("Font path = {:?}", path);
                         self.font_path = Some(path);
                     }
                     _ => {
-                        log::error!("User canceled dialog");
+                        log::warn!("User canceled dialog");
                     }
                 }
             }

@@ -118,6 +118,7 @@ impl OutputManager {
                                 self.selected_font_path = Some(path);
                             }
                         }
+                        log::info!("SoundFont: {:?}", self.selected_font_path);
                     }
                 }
                 OutputDescriptor::MidiOut(ref info) => {

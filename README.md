@@ -16,7 +16,9 @@ If you have any questions, feel free to join my Discord
 [![Video](https://i.imgur.com/1R5uOnA.png)](https://youtu.be/ReE9nVuMCSE)
 
 ## Download
+<a href="https://flathub.org/apps/details/com.github.polymeilex.neothesia"><img width="240" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.png"/></a>
 
+Or binary releases:
 [https://github.com/PolyMeilex/Neothesia/releases](https://github.com/PolyMeilex/Neothesia/releases)
 
 ## FAQ

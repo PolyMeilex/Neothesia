@@ -130,6 +130,7 @@ fn main() {
 
     let start = std::time::Instant::now();
 
+    println!("Encoding started:");
     let mut n = 1;
     while recorder.scene.playback_progress() < 101.0 {
         let output_buffer = recorder
@@ -154,8 +155,8 @@ fn main() {
 
                 let data: &[u8] = &mapping;
                 encoder.encode_bgra(1920, 1080, data, false);
-                println!(
-                    "Encoded {} frames ({}s, {}%) in {}s",
+                print!(
+                    "\r Encoded {} frames ({}s, {}%) in {}s",
                     n,
                     (n as f32 / 60.0).round(),
                     recorder.scene.playback_progress().round(),

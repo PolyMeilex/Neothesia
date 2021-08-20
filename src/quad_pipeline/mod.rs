@@ -21,7 +21,6 @@ impl<'a> QuadPipeline {
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
                     "./shader/quad.wgsl"
                 ))),
-                flags: wgpu::ShaderFlags::all(),
             });
 
         let render_pipeline_layout =

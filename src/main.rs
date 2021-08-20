@@ -141,18 +141,20 @@ impl Neothesia {
             }
         };
 
-        self.target.gpu.clear(
-            &frame.output.view,
-            self.target.state.config.background_color.into(),
-        );
+        let view = &frame
+            .output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.game_scene.render(&mut self.target, &frame.output.view);
+        self.target
+            .gpu
+            .clear(&view, self.target.state.config.background_color.into());
 
-        self.target.text_renderer.render(
-            &self.target.window,
-            &mut self.target.gpu,
-            &frame.output.view,
-        );
+        self.game_scene.render(&mut self.target, &view);
+
+        self.target
+            .text_renderer
+            .render(&self.target.window, &mut self.target.gpu, &view);
 
         self.target.gpu.submit().unwrap();
     }

@@ -18,7 +18,7 @@ where
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: (instance_size * max_size) as u64,
-            usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -37,7 +37,7 @@ where
         let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&self.data),
-            usage: wgpu::BufferUsage::COPY_SRC,
+            usage: wgpu::BufferUsages::COPY_SRC,
         });
 
         command_encoder.copy_buffer_to_buffer(&staging_buffer, 0, &self.buffer, 0, buffer_size);

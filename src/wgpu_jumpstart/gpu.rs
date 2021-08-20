@@ -8,6 +8,8 @@ pub struct Gpu {
     pub encoder: wgpu::CommandEncoder,
     pub staging_belt: wgpu::util::StagingBelt,
     pub local_pool: futures::executor::LocalPool,
+
+    pub backend: wgpu::Backend,
 }
 
 impl Gpu {
@@ -16,16 +18,18 @@ impl Gpu {
     ) -> Result<(Self, wgpu::Surface), GpuInitError> {
         let backend = if let Ok(backend) = std::env::var("WGPU_BACKEND") {
             match backend.to_lowercase().as_str() {
-                "vulkan" => wgpu::BackendBit::VULKAN,
-                "metal" => wgpu::BackendBit::METAL,
-                "dx12" => wgpu::BackendBit::DX12,
-                "dx11" => wgpu::BackendBit::DX11,
-                "gl" => wgpu::BackendBit::GL,
-                "webgpu" => wgpu::BackendBit::BROWSER_WEBGPU,
+                "vulkan" => wgpu::Backends::VULKAN,
+                "metal" => wgpu::Backends::METAL,
+                "dx12" => wgpu::Backends::DX12,
+                "dx11" => wgpu::Backends::DX11,
+                "gl" => wgpu::Backends::GL,
+                "webgpu" => wgpu::Backends::BROWSER_WEBGPU,
                 other => panic!("Unknown backend: {}", other),
             }
         } else {
-            wgpu::BackendBit::PRIMARY
+            use wgpu::Backends;
+            // DX12 disabled because of: https://github.com/gfx-rs/naga/issues/1261
+            Backends::VULKAN | Backends::METAL | Backends::BROWSER_WEBGPU
         };
 
         let instance = wgpu::Instance::new(backend);
@@ -41,7 +45,7 @@ impl Gpu {
             .ok_or(GpuInitError::AdapterRequest)?;
 
         let adapter_info = adapter.get_info();
-        let format = adapter.get_swap_chain_preferred_format(&surface);
+        let format = surface.get_preferred_format(&adapter);
 
         log::info!(
             "Using {} ({:?}, Preferred Format: {:?})",
@@ -68,6 +72,8 @@ impl Gpu {
                 encoder,
                 staging_belt,
                 local_pool,
+
+                backend: adapter_info.backend,
             },
             surface,
         ))

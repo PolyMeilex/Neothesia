@@ -26,6 +26,8 @@ pub struct IcedMenu {
     pub carousel: Carousel,
 
     controls: Controls,
+
+    logo_handle: image::Handle,
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +80,8 @@ impl IcedMenu {
             carousel,
 
             controls: Controls::SongSelect(SongSelectControls::new()),
+
+            logo_handle: image::Handle::from_memory(include_bytes!("./img/banner.png").to_vec()),
         }
     }
 }
@@ -199,9 +203,7 @@ impl Program for IcedMenu {
         };
 
         let main: Element<_, _> = {
-            let image = Image::new(image::Handle::from_memory(
-                include_bytes!("./img/banner.png").to_vec(),
-            ));
+            let image = Image::new(self.logo_handle.clone());
             let image = Container::new(image)
                 .center_x()
                 .center_y()

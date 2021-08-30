@@ -21,7 +21,7 @@ pub enum Event {
 }
 
 pub struct MenuScene {
-    bg_pipeline: Option<BgPipeline>,
+    bg_pipeline: BgPipeline,
     timer: Timer,
     iced_state: iced_native::program::State<IcedMenu>,
 }
@@ -42,15 +42,8 @@ impl MenuScene {
             &mut target.iced_manager.debug,
         );
 
-        // Don't initialize BgPipeline on OpenGl because of: https://github.com/gfx-rs/naga/issues/1266
-        let bg_pipeline = if let wgpu::Backend::Gl = target.gpu.backend {
-            None
-        } else {
-            Some(BgPipeline::new(&target.gpu))
-        };
-
         let mut scene = Self {
-            bg_pipeline,
+            bg_pipeline: BgPipeline::new(&target.gpu),
             timer,
             iced_state,
         };
@@ -69,9 +62,7 @@ impl Scene for MenuScene {
         self.timer.update();
         let time = self.timer.get_elapsed() / 1000.0;
 
-        if let Some(bg_pipeline) = self.bg_pipeline.as_mut() {
-            bg_pipeline.update_time(&mut target.gpu, time);
-        }
+        self.bg_pipeline.update_time(&mut target.gpu, time);
 
         let outs = target.output_manager.borrow().get_outputs();
         self.iced_state
@@ -95,9 +86,8 @@ impl Scene for MenuScene {
                 }],
                 depth_stencil_attachment: None,
             });
-            if let Some(bg_pipeline) = self.bg_pipeline.as_mut() {
-                bg_pipeline.render(&mut render_pass);
-            }
+
+            self.bg_pipeline.render(&mut render_pass);
         }
 
         let _mouse_interaction = target.iced_manager.renderer.backend_mut().draw(

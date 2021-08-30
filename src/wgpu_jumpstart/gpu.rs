@@ -27,9 +27,7 @@ impl Gpu {
                 other => panic!("Unknown backend: {}", other),
             }
         } else {
-            use wgpu::Backends;
-            // DX12 disabled because of: https://github.com/gfx-rs/naga/issues/1261
-            Backends::VULKAN | Backends::METAL | Backends::GL | Backends::BROWSER_WEBGPU
+            wgpu::Backends::all()
         };
 
         let instance = wgpu::Instance::new(backend);

@@ -4,6 +4,7 @@ version = "0.0.8"
 authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2018"
 default-run = "neothesia"
+resolver = "2"
 
 [features]
 default = [ "app" ]
@@ -24,8 +25,8 @@ futures = "0.3.12"
 # winit = "0.24.0"
 winit = { git = "https://github.com/PolyMeilex/winit.git" } 
 
-wgpu = "0.9.0"
-wgpu_glyph = "0.13.0"
+wgpu = "0.10"
+wgpu_glyph = "0.14"
 
 
 log = "0.4.14"
@@ -36,9 +37,9 @@ nfd2 = { version="0.3.0", optional = true }
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
 
-iced_native = { git="https://github.com/hecrj/iced.git", rev="cdd2f247f8c22775a5035be03715775c96cd1037", optional = true }
-iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="cdd2f247f8c22775a5035be03715775c96cd1037", features = ["png"], optional = true} 
-iced_graphics = { git="https://github.com/hecrj/iced.git", rev="cdd2f247f8c22775a5035be03715775c96cd1037", optional = true} 
+iced_native = { git="https://github.com/hecrj/iced.git", rev="73f288156899ddd51ae686e95bdf09f9bd129df4", optional = true }
+iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="73f288156899ddd51ae686e95bdf09f9bd129df4", features = ["png"], optional = true} 
+iced_graphics = { git="https://github.com/hecrj/iced.git", rev="73f288156899ddd51ae686e95bdf09f9bd129df4", optional = true} 
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}

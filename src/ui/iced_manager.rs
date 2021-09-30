@@ -10,12 +10,13 @@ impl IcedManager {
     pub fn new(device: &wgpu::Device, window: &Window) -> Self {
         let debug = iced_native::Debug::new();
 
-        let settings = iced_wgpu::Settings {
-            format: wgpu_jumpstart::TEXTURE_FORMAT,
-            ..Default::default()
-        };
+        let settings = iced_wgpu::Settings::default();
 
-        let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(device, settings));
+        let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(
+            device,
+            settings,
+            wgpu_jumpstart::TEXTURE_FORMAT,
+        ));
 
         let physical_size = window.state.physical_size;
         let viewport = iced_wgpu::Viewport::with_physical_size(

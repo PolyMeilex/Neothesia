@@ -18,14 +18,13 @@ impl<'a> BgPipeline {
                 label: Some("RectanglePipeline::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
                     "./shader/bg.wgsl"
-                ))),
-                flags: wgpu::ShaderFlags::all(),
+                )))
             });
 
         let time_uniform = Uniform::new(
             &gpu.device,
             TimeUniform::default(),
-            wgpu::ShaderStage::FRAGMENT,
+            wgpu::ShaderStages::FRAGMENT,
         );
 
         let render_pipeline_layout =

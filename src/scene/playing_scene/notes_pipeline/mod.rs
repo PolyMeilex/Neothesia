@@ -25,14 +25,13 @@ impl<'a> NotesPipeline {
                 label: Some("RectanglePipeline::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
                     "./shader/note.wgsl"
-                ))),
-                flags: wgpu::ShaderFlags::all(),
+                )))
             });
 
         let time_uniform = Uniform::new(
             &target.gpu.device,
             TimeUniform::default(),
-            wgpu::ShaderStage::VERTEX,
+            wgpu::ShaderStages::VERTEX,
         );
 
         let render_pipeline_layout =

@@ -30,7 +30,7 @@ impl QuadInstance {
     pub fn layout(attributes: &[wgpu::VertexAttribute]) -> wgpu::VertexBufferLayout {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<QuadInstance>() as wgpu::BufferAddress,
-            step_mode: wgpu::InputStepMode::Instance,
+            step_mode: wgpu::VertexStepMode::Instance,
             attributes,
         }
     }

@@ -6,6 +6,7 @@ use neothesia::{
     utils::timer::Fps,
 };
 
+use wgpu::TextureViewDescriptor;
 use winit::{event::WindowEvent, event_loop::ControlFlow};
 
 pub struct Neothesia {
@@ -140,18 +141,19 @@ impl Neothesia {
                 Err(err) => log::warn!("{:?}", err),
             }
         };
+        let texture_descriptor = TextureViewDescriptor::default();
 
         self.target.gpu.clear(
-            &frame.output.view,
+            &frame.output.texture.create_view(&texture_descriptor),
             self.target.state.config.background_color.into(),
         );
 
-        self.game_scene.render(&mut self.target, &frame.output.view);
+        self.game_scene.render(&mut self.target, &frame.output.texture.create_view(&texture_descriptor));
 
         self.target.text_renderer.render(
             &self.target.window,
             &mut self.target.gpu,
-            &frame.output.view,
+            &frame.output.texture.create_view(&texture_descriptor),
         );
 
         self.target.gpu.submit().unwrap();

@@ -16,8 +16,7 @@ pub struct Window {
 
     surface: wgpu::Surface,
 
-    swap_chain: wgpu::SwapChain,
-    swap_chain_descriptor: wgpu::SwapChainDescriptor,
+    surface_configuration: wgpu::SurfaceConfiguration,
 }
 
 impl Window {
@@ -37,24 +36,22 @@ impl Window {
 
         let (gpu, surface) = Gpu::for_window(&winit_window).await?;
 
-        let (swap_chain, swap_chain_descriptor) = {
+        let surface_configuration = {
             #[cfg(not(feature = "record"))]
             let PhysicalSize { width, height } = winit_window.inner_size();
             #[cfg(feature = "record")]
             let (width, height) = { (1920, 1080) };
 
-            let swap_chain_descriptor = wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+            let surface_configuration = wgpu::SurfaceConfiguration {
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 format: super::TEXTURE_FORMAT,
                 width,
                 height,
                 present_mode: wgpu::PresentMode::Fifo,
             };
 
-            let swap_chain = gpu
-                .device
-                .create_swap_chain(&surface, &swap_chain_descriptor);
-            (swap_chain, swap_chain_descriptor)
+            surface.configure(&gpu.device, &surface_configuration);
+            surface_configuration
         };
 
         let state = WinitState::new(&winit_window);
@@ -66,8 +63,7 @@ impl Window {
 
                 surface,
 
-                swap_chain,
-                swap_chain_descriptor,
+                surface_configuration,
             },
             gpu,
         ))
@@ -93,8 +89,8 @@ impl Window {
     }
 
     #[inline]
-    pub fn get_current_frame(&mut self) -> Result<wgpu::SwapChainFrame, wgpu::SwapChainError> {
-        self.swap_chain.get_current_frame()
+    pub fn get_current_frame(&mut self) -> Result<wgpu::SurfaceFrame, wgpu::SurfaceError> {
+        self.surface.get_current_frame()
     }
 
     #[inline]
@@ -114,12 +110,10 @@ impl Window {
     fn resize_swap_chain(&mut self, gpu: &mut Gpu) {
         let size = &self.state.physical_size;
 
-        self.swap_chain_descriptor.width = size.width;
-        self.swap_chain_descriptor.height = size.height;
+        self.surface_configuration.width = size.width;
+        self.surface_configuration.height = size.height;
 
-        self.swap_chain = gpu
-            .device
-            .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
+        self.surface.configure(&gpu.device, &self.surface_configuration);
     }
 }
 

@@ -20,8 +20,7 @@ impl<'a> QuadPipeline {
                 label: Some("RectanglePipeline::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
                     "./shader/quad.wgsl"
-                ))),
-                flags: wgpu::ShaderFlags::all(),
+                )))
             });
 
         let render_pipeline_layout =

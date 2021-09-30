@@ -51,7 +51,7 @@ impl<'a> RenderPipelineBuilder<'a> {
                         operation: wgpu::BlendOperation::Add,
                     },
                 }),
-                write_mask: wgpu::ColorWrite::ALL,
+                write_mask: wgpu::ColorWrites::ALL,
             }],
         });
         self

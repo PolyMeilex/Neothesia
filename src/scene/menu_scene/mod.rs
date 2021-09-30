@@ -155,43 +155,46 @@ impl Scene for MenuScene {
             );
 
             if let Some(event) = event {
-                for f in event.futures() {
-                    let event = crate::block_on(async { f.await });
+                for f in event.actions() {
+                    if let iced_native::command::Action::Future(f) = f {
+                        let event = crate::block_on(async { f.await });
 
-                    match event {
-                        iced_menu::Message::OutputFileSelected(path) => {
-                            let midi = lib_midi::Midi::new(path.to_str().unwrap());
-
-                            if let Err(e) = &midi {
-                                log::error!("{}", e);
+                        match event {
+                            iced_menu::Message::OutputFileSelected(path) => {
+                                let midi = lib_midi::Midi::new(path.to_str().unwrap());
+    
+                                if let Err(e) = &midi {
+                                    log::error!("{}", e);
+                                }
+    
+                                target.state.midi_file = midi.ok();
+    
+                                self.iced_state
+                                    .queue_message(iced_menu::Message::MidiFileUpdate(
+                                        target.state.midi_file.is_some(),
+                                    ));
                             }
-
-                            target.state.midi_file = midi.ok();
-
-                            self.iced_state
-                                .queue_message(iced_menu::Message::MidiFileUpdate(
-                                    target.state.midi_file.is_some(),
-                                ));
-                        }
-                        iced_menu::Message::OutputMainMenuDone(out) => {
-                            let program = self.iced_state.program();
-
-                            #[cfg(feature = "play_along")]
-                            {
-                                target.state.config.play_along = program.play_along;
+                            iced_menu::Message::OutputMainMenuDone(out) => {
+                                let program = self.iced_state.program();
+    
+                                #[cfg(feature = "play_along")]
+                                {
+                                    target.state.config.play_along = program.play_along;
+                                }
+    
+                                let output_manager = &mut *target.output_manager.borrow_mut();
+                                output_manager.selected_output_id = Some(program.carousel.id());
+                                output_manager.connect(out);
+    
+                                return SceneEvent::MainMenu(Event::Play);
                             }
-
-                            let output_manager = &mut *target.output_manager.borrow_mut();
-                            output_manager.selected_output_id = Some(program.carousel.id());
-                            output_manager.connect(out);
-
-                            return SceneEvent::MainMenu(Event::Play);
+                            iced_menu::Message::OutputAppExit => {
+                                return SceneEvent::GoBack;
+                            }
+                            _ => {}
                         }
-                        iced_menu::Message::OutputAppExit => {
-                            return SceneEvent::GoBack;
-                        }
-                        _ => {}
                     }
+
                 }
             }
         }

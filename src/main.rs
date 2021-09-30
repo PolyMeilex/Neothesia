@@ -141,7 +141,6 @@ impl Neothesia {
                 Err(err) => log::warn!("{:?}", err),
             }
         };
-        let texture_descriptor = TextureViewDescriptor::default();
 
         let view = &frame
             .output

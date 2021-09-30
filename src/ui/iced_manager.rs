@@ -10,9 +10,7 @@ impl IcedManager {
     pub fn new(device: &wgpu::Device, window: &Window) -> Self {
         let debug = iced_native::Debug::new();
 
-        let settings = iced_wgpu::Settings {
-            ..Default::default()
-        };
+        let settings = iced_wgpu::Settings::default();
 
         let renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(
             device,

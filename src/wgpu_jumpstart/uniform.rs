@@ -15,7 +15,7 @@ impl<U> Uniform<U>
 where
     U: Pod,
 {
-    pub fn new(device: &wgpu::Device, data: U, visibility: wgpu::ShaderStage) -> Self {
+    pub fn new(device: &wgpu::Device, data: U, visibility: wgpu::ShaderStages) -> Self {
         let bind_group_layout_descriptor = wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[wgpu::BindGroupLayoutEntry {
@@ -33,7 +33,7 @@ where
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&[data]),
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         let bind_group_layout = device.create_bind_group_layout(&bind_group_layout_descriptor);
@@ -62,7 +62,7 @@ where
         let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&[self.data]),
-            usage: wgpu::BufferUsage::COPY_SRC,
+            usage: wgpu::BufferUsages::COPY_SRC,
         });
 
         command_encoder.copy_buffer_to_buffer(

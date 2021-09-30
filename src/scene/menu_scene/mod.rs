@@ -86,6 +86,7 @@ impl Scene for MenuScene {
                 }],
                 depth_stencil_attachment: None,
             });
+
             self.bg_pipeline.render(&mut render_pass);
         }
 

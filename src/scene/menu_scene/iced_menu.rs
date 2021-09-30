@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 
 use crate::target::Target;
-use crate::ui::DummyClipboard;
 use iced_native::{
-    image, Align, Color, Column, Command, Container, Element, HorizontalAlignment, Image, Length,
-    Program, Row, Text, VerticalAlignment,
+    alignment::Horizontal, alignment::Vertical, command::Action, image, Alignment, Color, Column,
+    Command, Container, Element, Image, Length, Program, Row, Text,
 };
 use iced_wgpu::Renderer;
 
@@ -89,9 +88,8 @@ impl IcedMenu {
 impl Program for IcedMenu {
     type Renderer = Renderer;
     type Message = Message;
-    type Clipboard = DummyClipboard;
 
-    fn update(&mut self, message: Message, _: &mut DummyClipboard) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::FileSelectPressed => {
                 use nfd2::Response;
@@ -104,7 +102,7 @@ impl Program for IcedMenu {
                     Response::Okay(path) => {
                         log::info!("File path = {:?}", path);
 
-                        return Command::from(async { Message::OutputFileSelected(path) });
+                        return Command::perform(async { path }, Message::OutputFileSelected);
                     }
                     _ => {
                         log::error!("User canceled dialog");
@@ -148,10 +146,6 @@ impl Program for IcedMenu {
             Message::EnterPressed => match self.controls {
                 Controls::SongSelect(_) => {
                     if self.midi_file {
-                        async fn play(m: Message) -> Message {
-                            m
-                        }
-
                         if let Some(port) = self.carousel.get_item() {
                             let port = match port {
                                 #[cfg(feature = "synth")]
@@ -160,13 +154,14 @@ impl Program for IcedMenu {
                                 ),
                                 _ => port.clone(),
                             };
-                            let event = Message::OutputMainMenuDone(port);
-                            return Command::from(play(event));
+                            return Command::perform(async { port }, Message::OutputMainMenuDone);
                         }
                     }
                 }
                 Controls::Exit(_) => {
-                    return Command::from(async { Message::OutputAppExit });
+                    return Command::single(Action::Future(Box::pin(async {
+                        Message::OutputAppExit
+                    })));
                 }
             },
 
@@ -310,8 +305,8 @@ impl SongSelectControls {
                 Text::new("Select File")
                     .color(Color::WHITE)
                     .size(40)
-                    .horizontal_alignment(HorizontalAlignment::Center)
-                    .vertical_alignment(VerticalAlignment::Center),
+                    .horizontal_alignment(Horizontal::Center)
+                    .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
             .height(Length::Fill)
@@ -327,16 +322,16 @@ impl SongSelectControls {
         let output = Text::new(label)
             .color(Color::WHITE)
             .size(30)
-            .horizontal_alignment(HorizontalAlignment::Center)
-            .vertical_alignment(VerticalAlignment::Center);
+            .horizontal_alignment(Horizontal::Center)
+            .vertical_alignment(Vertical::Center);
 
         let mut select_row = Row::new().height(Length::Units(50)).push(
             NeoBtn::new(
                 &mut self.prev_button,
                 Text::new("<")
                     .size(40)
-                    .horizontal_alignment(HorizontalAlignment::Center)
-                    .vertical_alignment(VerticalAlignment::Center),
+                    .horizontal_alignment(Horizontal::Center)
+                    .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
             .disabled(!carousel.check_prev())
@@ -350,8 +345,8 @@ impl SongSelectControls {
                     &mut self.synth_button,
                     Text::new("Soundfont")
                         .size(20)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .vertical_alignment(Vertical::Center),
                 )
                 .width(Length::Units(100))
                 .height(Length::Fill)
@@ -364,8 +359,8 @@ impl SongSelectControls {
                 &mut self.next_button,
                 Text::new(">")
                     .size(40)
-                    .horizontal_alignment(HorizontalAlignment::Center)
-                    .vertical_alignment(VerticalAlignment::Center),
+                    .horizontal_alignment(Horizontal::Center)
+                    .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
             .disabled(!carousel.check_next())
@@ -373,7 +368,7 @@ impl SongSelectControls {
         );
 
         let controls = Column::new()
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .width(Length::Units(500))
             .height(Length::Units(250))
             .spacing(30)
@@ -402,8 +397,8 @@ impl SongSelectControls {
                 play_button,
                 Text::new("Play")
                     .size(30)
-                    .horizontal_alignment(HorizontalAlignment::Center)
-                    .vertical_alignment(VerticalAlignment::Center)
+                    .horizontal_alignment(Horizontal::Center)
+                    .vertical_alignment(Vertical::Center)
                     .color(Color::WHITE),
             )
             .min_height(50)
@@ -437,8 +432,8 @@ impl SongSelectControls {
             .width(Length::Fill)
             .height(Length::Units(100))
             .padding(10)
-            .align_x(Align::End)
-            .align_y(Align::End)
+            .align_x(Horizontal::Right)
+            .align_y(Vertical::Bottom)
             .into()
     }
 }
@@ -458,8 +453,8 @@ impl ExitControls {
         let output = Text::new("Do you want to exit?")
             .color(Color::WHITE)
             .size(30)
-            .horizontal_alignment(HorizontalAlignment::Center)
-            .vertical_alignment(VerticalAlignment::Center);
+            .horizontal_alignment(Horizontal::Center)
+            .vertical_alignment(Vertical::Center);
 
         let select_row = Row::new()
             .spacing(5)
@@ -469,8 +464,8 @@ impl ExitControls {
                     &mut self.no_button,
                     Text::new("No")
                         .size(30)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .vertical_alignment(Vertical::Center),
                 )
                 .width(Length::Fill)
                 .on_press(Message::EscPressed),
@@ -480,15 +475,15 @@ impl ExitControls {
                     &mut self.yes_button,
                     Text::new("Yes")
                         .size(30)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Center),
+                        .horizontal_alignment(Horizontal::Center)
+                        .vertical_alignment(Vertical::Center),
                 )
                 .width(Length::Fill)
                 .on_press(Message::EnterPressed),
             );
 
         let controls = Column::new()
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .width(Length::Units(500))
             .spacing(30)
             .push(output)

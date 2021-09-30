@@ -6,6 +6,7 @@ use neothesia::{
     utils::timer::Fps,
 };
 
+use wgpu::TextureViewDescriptor;
 use winit::{event::WindowEvent, event_loop::ControlFlow};
 
 pub struct Neothesia {
@@ -140,6 +141,7 @@ impl Neothesia {
                 Err(err) => log::warn!("{:?}", err),
             }
         };
+        let texture_descriptor = TextureViewDescriptor::default();
 
         let view = &frame
             .output

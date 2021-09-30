@@ -6,7 +6,6 @@ use neothesia::{
     utils::timer::Fps,
 };
 
-use wgpu::TextureViewDescriptor;
 use winit::{event::WindowEvent, event_loop::ControlFlow};
 
 pub struct Neothesia {

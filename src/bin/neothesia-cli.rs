@@ -1,6 +1,6 @@
 #![cfg(feature = "record")]
 
-use std::num::NonZeroU32;
+use std::{default::Default, num::NonZeroU32};
 
 use neothesia::{
     scene::{playing_scene::PlayingScene, Scene},
@@ -59,6 +59,7 @@ impl Recorder {
                     texture: &texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d::ZERO,
+                    aspect: Default::default(),
                 },
                 wgpu::ImageCopyBuffer {
                     buffer: &output_buffer,
@@ -98,7 +99,7 @@ fn main() {
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu_jumpstart::TEXTURE_FORMAT,
-        usage: wgpu::TextureUsage::COPY_SRC | wgpu::TextureUsage::RENDER_ATTACHMENT,
+        usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
         label: None,
     };
     let texture = recorder.target.gpu.device.create_texture(&texture_desc);
@@ -118,7 +119,7 @@ fn main() {
 
     let output_buffer_desc = wgpu::BufferDescriptor {
         size: output_buffer_size,
-        usage: wgpu::BufferUsage::COPY_DST | wgpu::BufferUsage::MAP_READ,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
         label: None,
         mapped_at_creation: false,
     };

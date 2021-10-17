@@ -9,21 +9,21 @@ resolver = "2"
 [features]
 default = [ "app" ]
 
-app = ["rfd", "fluid-synth", "iced_native", "iced_wgpu", "iced_graphics"]
+app = ["rfd", "oxi-synth", "iced_native", "iced_wgpu", "iced_graphics"]
 record=["mpeg_encoder"]
 
 play_along=[]
 
 synth=[]
-fluid-synth=["synth", "cpal", "fluidlite","fluidlite-lib"]
+# fluid-synth=["synth", "cpal", "fluidlite-lib"]
 oxi-synth=["synth", "cpal", "oxisynth"]
 
 [dependencies]
 bytemuck = "1.5.0"
 futures = "0.3.12"
 
-# winit = "0.24.0"
-winit = { git = "https://github.com/PolyMeilex/winit.git" } 
+winit = "0.25.0"
+# winit = { git = "https://github.com/PolyMeilex/winit.git" } 
 
 wgpu = "0.11.0"
 wgpu_glyph = "0.15.1"
@@ -32,7 +32,7 @@ wgpu_glyph = "0.15.1"
 log = "0.4.14"
 env_logger = "0.9.0"
 
-rfd = { version="0.5", optional = true }
+rfd = { version="0.4.0", optional = true }
 
 lib_midi = {path="./lib_midi"}
 midir = "0.7.0"
@@ -42,8 +42,8 @@ iced_wgpu = { git="https://github.com/hecrj/iced.git", rev="20177e423cd2bdc08f80
 iced_graphics = { git="https://github.com/hecrj/iced.git", rev="20177e423cd2bdc08f8060b31c379a6f764e3df6", optional = true} 
 
 cpal = { version = "0.13.1", optional = true }
-fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
-fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
+# fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
+# fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
 oxisynth = {git= "https://github.com/PolyMeilex/OxiSynth.git", optional = true}
 
 ron = "0.6.4"

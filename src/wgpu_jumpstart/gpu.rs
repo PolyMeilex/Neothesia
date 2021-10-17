@@ -38,6 +38,7 @@ impl Gpu {
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
             })
             .await
             .ok_or(GpuInitError::AdapterRequest)?;

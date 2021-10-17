@@ -134,7 +134,7 @@ impl Neothesia {
 
     pub fn render(&mut self) {
         let frame = loop {
-            let swap_chain_output = self.target.window.get_current_frame();
+            let swap_chain_output = self.target.window.get_current_texture();
             match swap_chain_output {
                 Ok(s) => break s,
                 Err(err) => log::warn!("{:?}", err),
@@ -142,7 +142,6 @@ impl Neothesia {
         };
 
         let view = &frame
-            .output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -157,6 +156,7 @@ impl Neothesia {
             .render(&self.target.window, &mut self.target.gpu, &view);
 
         self.target.gpu.submit().unwrap();
+        frame.present();
     }
 }
 

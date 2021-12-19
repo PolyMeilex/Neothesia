@@ -56,7 +56,7 @@ impl MidiPlayer {
 
             output_manager: target.output_manager.clone(),
         };
-        player.update(&mut target.state);
+        player.update(target);
 
         player
     }
@@ -64,20 +64,20 @@ impl MidiPlayer {
     /// When playing: returns midi events
     ///
     /// When paused: returns None
-    pub fn update(&mut self, main_state: &mut MainState) -> Option<Vec<MidiEvent>> {
+    pub fn update(&mut self, target: &mut Target) -> Option<Vec<MidiEvent>> {
         if let RewindController::Keyboard { speed, .. } = self.rewind_controller {
             let p = self.percentage + speed;
-            self.set_percentage_time(main_state, p);
+            self.set_percentage_time(&mut target.state, p);
         }
 
         self.timer.update();
-        let raw_time = self.timer.get_elapsed() / 1000.0 * main_state.config.speed_multiplier;
+        let raw_time = self.timer.get_elapsed() / 1000.0 * target.state.config.speed_multiplier;
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
         #[cfg(feature = "play_along")]
         if let Some(controller) = &mut self.play_along_controller {
-            controller.update(main_state, &mut notes_state, &mut self.timer);
+            // controller.update(target, &mut notes_state, &mut self.timer);
         }
 
         if self.timer.paused {
@@ -86,7 +86,7 @@ impl MidiPlayer {
 
         let mut events = Vec::new();
 
-        let filtered: Vec<&lib_midi::MidiNote> = main_state
+        let filtered: Vec<&lib_midi::MidiNote> = target.state
             .midi_file
             .as_ref()
             .unwrap()
@@ -307,7 +307,7 @@ impl PlayAlongController {
 
     fn update(
         &mut self,
-        main_state: &mut MainState,
+        target: &mut Target,
         notes_state: &mut [(bool, usize); 88],
         timer: &mut Timer,
     ) {
@@ -318,10 +318,24 @@ impl PlayAlongController {
         if let Ok(event) = self.midi_in_rec.try_recv() {
             if event.0 {
                 self.input_pressed_keys[event.1 as usize - 21] = true;
-                main_state.output_manager.note_on(0, event.1, event.2)
+                target
+                    .output_manager
+                    .borrow_mut()
+                    .midi_event(MidiEvent::NoteOn {
+                        ch: 0,
+                        track_id: 0,
+                        key: event.1,
+                        vel: event.2,
+                    })
             } else {
                 self.input_pressed_keys[event.1 as usize - 21] = false;
-                main_state.output_manager.note_off(0, event.1)
+                target
+                    .output_manager
+                    .borrow_mut()
+                    .midi_event(MidiEvent::NoteOff {
+                        ch: 0,
+                        key: event.1,
+                    })
             }
         }
         if self.required_notes.lock().unwrap().len() == 0 && self.waiting_for_note == true {

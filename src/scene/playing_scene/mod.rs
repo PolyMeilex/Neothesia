@@ -111,7 +111,7 @@ impl Scene for PlayingScene {
             (width, height)
         };
 
-        let midi_events = self.player.update(&mut target.state);
+        let midi_events = self.player.update(target);
 
         let size_x = window_w * self.player.percentage();
 

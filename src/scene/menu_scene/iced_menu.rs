@@ -69,7 +69,7 @@ impl IcedMenu {
 
         Self {
             #[cfg(feature = "play_along")]
-            play_along: state.config.play_along,
+            play_along: target.state.config.play_along,
             #[cfg(not(feature = "play_along"))]
             play_along: false,
 

@@ -2,7 +2,8 @@ use iced_graphics::{
     alignment::{Horizontal, Vertical},
     Alignment, Color,
 };
-use iced_native::{Column, Container, Element, Length, Row, Text};
+use iced_native::widget::{Column, Container, Row, Text};
+use iced_native::{Element, Length};
 use iced_wgpu::Renderer;
 
 use crate::{
@@ -185,6 +186,7 @@ impl iced_graphics::checkbox::StyleSheet for CheckboxStyle {
         let active = Color::from_rgba8(160, 81, 255, 1.0);
         iced_graphics::checkbox::Style {
             background: if is_checked { active } else { SURFACE }.into(),
+            text_color: Color::WHITE,
             checkmark_color: Color::WHITE,
             border_radius: 2.0,
             border_width: 1.0,

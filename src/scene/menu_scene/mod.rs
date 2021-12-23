@@ -6,6 +6,7 @@ mod neo_btn;
 use bg_pipeline::BgPipeline;
 use iced_menu::IcedMenu;
 
+use wgpu::util::StagingBelt;
 use winit::event::WindowEvent;
 
 use crate::{
@@ -34,10 +35,6 @@ impl MenuScene {
         let iced_state = iced_native::program::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
-            iced_conversion::cursor_position(
-                target.window.state.cursor_physical_position,
-                target.iced_manager.viewport.scale_factor(),
-            ),
             &mut target.iced_manager.renderer,
             &mut target.iced_manager.debug,
         );
@@ -90,15 +87,24 @@ impl Scene for MenuScene {
             self.bg_pipeline.render(&mut render_pass);
         }
 
-        let _mouse_interaction = target.iced_manager.renderer.backend_mut().draw(
-            &target.gpu.device,
-            &mut target.gpu.staging_belt,
-            &mut target.gpu.encoder,
-            view,
-            &target.iced_manager.viewport,
-            self.iced_state.primitive(),
-            &target.iced_manager.debug.overlay(),
-        );
+        let iced_renderer = &mut target.iced_manager.renderer;
+        let device = &mut target.gpu.device;
+        let staging_belt = &mut target.gpu.staging_belt;
+        let encoder = &mut target.gpu.encoder;
+        let viewport = &target.iced_manager.viewport;
+        let overlay = &target.iced_manager.debug.overlay();
+
+        iced_renderer.with_primitives(|backend, primitive| {
+            backend.present(
+                device,
+                staging_belt,
+                encoder,
+                view,
+                primitive,
+                viewport,
+                overlay,
+            )
+        })
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {

@@ -7,10 +7,10 @@
 // Of course, you can choose to make the implementation renderer-agnostic,
 // if you wish to, by creating your own `Renderer` trait, which could be
 // implemented by `iced_wgpu` and other renderers.
-use iced_graphics::{defaults, Backend, Defaults, Primitive, Rectangle, Renderer};
+use iced_graphics::{Backend, Primitive, Rectangle, Renderer};
 use iced_native::{
-    layout, mouse, Background, Clipboard, Color, Element, Event, Hasher, Layout, Length, Padding,
-    Point, Vector, Widget,
+    layout, mouse, renderer::Style, Background, Clipboard, Color, Element, Event, Hasher, Layout,
+    Length, Padding, Point, Shell, Vector, Widget,
 };
 
 pub struct NeoBtn<'a, Message: Clone, B: Backend> {
@@ -127,7 +127,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer<B>,
         _clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> iced_native::event::Status {
         if self.disabled {
             return iced_native::event::Status::Ignored;
@@ -150,7 +150,7 @@ where
                     self.state.is_pressed = false;
 
                     if is_clicked {
-                        messages.push(on_press);
+                        shell.publish(on_press);
                     }
                 }
             }
@@ -163,29 +163,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer<B>,
-        _defaults: &Defaults,
+        _style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> <Renderer<B> as iced_native::Renderer>::Output {
+    ) {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
-
-        let (content, _) = self.content.draw(
-            renderer,
-            &Defaults {
-                text: defaults::Text {
-                    color: if self.disabled {
-                        Color::new(0.3, 0.3, 0.3, 1.0)
-                    } else {
-                        Color::WHITE
-                    },
-                },
-            },
-            layout,
-            cursor_position,
-            viewport,
-        );
 
         let colors = if is_mouse_over {
             (
@@ -199,59 +183,56 @@ where
             )
         };
 
-        (
-            Primitive::Group {
-                primitives: vec![
-                    // Something related to order broke after last update...
-                    Primitive::Clip {
-                        bounds: Rectangle {
-                            y: bounds.y,
-                            height: bounds.height - self.border_radius,
-                            ..bounds
-                        },
-                        offset: Vector::new(0, 0),
-                        content: Box::new(Primitive::Group {
-                            primitives: vec![
-                                Primitive::Quad {
-                                    bounds: Rectangle {
-                                        y: bounds.y,
-                                        ..bounds
-                                    },
-                                    background: Background::Color(colors.0),
-                                    border_radius: self.border_radius,
-                                    border_width: 0.0,
-                                    border_color: Color::TRANSPARENT,
-                                },
-                                content,
-                            ],
-                        }),
-                    },
-                    Primitive::Clip {
-                        bounds: Rectangle {
-                            y: bounds.y + bounds.height - self.border_radius as f32,
-                            height: self.border_radius as f32,
-                            ..bounds
-                        },
-                        offset: Vector::new(0, 0),
-                        content: Box::new(Primitive::Quad {
-                            bounds: Rectangle {
-                                y: bounds.y,
-                                ..bounds
-                            },
-                            background: Background::Color(colors.1),
-                            border_radius: self.border_radius,
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        }),
-                    },
-                ],
+        let bg = Primitive::Quad {
+            bounds: Rectangle {
+                y: bounds.y,
+                ..bounds
             },
-            if is_mouse_over {
-                mouse::Interaction::Pointer
-            } else {
-                mouse::Interaction::default()
+            background: Background::Color(colors.0),
+            border_radius: self.border_radius,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        };
+        renderer.draw_primitive(bg);
+
+        let btn_bar = Primitive::Clip {
+            bounds: Rectangle {
+                y: bounds.y + bounds.height - self.border_radius as f32,
+                height: self.border_radius as f32,
+                ..bounds
             },
-        )
+            content: Box::new(Primitive::Quad {
+                bounds: Rectangle {
+                    y: bounds.y,
+                    ..bounds
+                },
+                background: Background::Color(colors.1),
+                border_radius: self.border_radius,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            }),
+        };
+        renderer.draw_primitive(btn_bar);
+
+        if is_mouse_over {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        };
+
+        self.content.draw(
+            renderer,
+            &Style {
+                text_color: if self.disabled {
+                    Color::new(0.3, 0.3, 0.3, 1.0)
+                } else {
+                    Color::WHITE
+                },
+            },
+            layout,
+            cursor_position,
+            viewport,
+        );
     }
 }
 

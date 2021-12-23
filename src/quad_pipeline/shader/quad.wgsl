@@ -1,4 +1,3 @@
-[[block]]
 struct ViewUniform {
     transform: mat4x4<f32>;
     size: vec2<f32>;
@@ -70,11 +69,11 @@ fn fragment_alpha(
 
     if (pos.x < tl.x && pos.y < tl.y) {
         return corrner_alpha(radius.x, pos, tl);
-    } elseif (pos.x > tr.x && pos.y < tr.y){
+    } else if (pos.x > tr.x && pos.y < tr.y){
         return corrner_alpha(radius.y, pos, tr);
-    } elseif (pos.x < bl.x && pos.y > bl.y){
+    } else if (pos.x < bl.x && pos.y > bl.y){
         return corrner_alpha(radius.z, pos, bl);
-    } elseif (pos.x > br.x && pos.y > br.y){
+    } else if (pos.x > br.x && pos.y > br.y){
         return corrner_alpha(radius.w, pos, br);
     } else {
         return 1.0;

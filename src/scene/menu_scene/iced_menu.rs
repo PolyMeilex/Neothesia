@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
 use crate::target::Target;
+use iced_native::widget::{Column, Container, Image, Row, Text};
 use iced_native::{
-    alignment::Horizontal, alignment::Vertical, command::Action, image, Alignment, Color, Column,
-    Command, Container, Element, Image, Length, Program, Row, Text,
+    alignment::Horizontal, alignment::Vertical, command::Action, image, Alignment, Color, Command,
+    Element, Length, Program,
 };
 use iced_wgpu::Renderer;
 use midir::MidiInputPort;

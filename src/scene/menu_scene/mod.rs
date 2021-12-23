@@ -184,7 +184,7 @@ impl Scene for MenuScene {
                                 }
 
                                 let output_manager = &mut *target.output_manager.borrow_mut();
-                                output_manager.selected_output_id = Some(program.carousel.id());
+                                output_manager.selected_output_id = Some(program.out_carousel.id());
                                 output_manager.connect(out);
 
                                 return SceneEvent::MainMenu(Event::Play);

@@ -6,13 +6,27 @@ use iced_native::{
     Command, Container, Element, Image, Length, Program, Row, Text,
 };
 use iced_wgpu::Renderer;
+use midir::MidiInputPort;
 
 use crate::output_manager::OutputDescriptor;
 
 use super::neo_btn::{self, NeoBtn};
 
+mod carousel;
+use carousel::Carousel;
+
+mod song_select;
+use song_select::SongSelectControls;
+
+#[cfg(feature = "play_along")]
+mod input_select;
+#[cfg(feature = "play_along")]
+use input_select::InputSelectControls;
+
 enum Controls {
     SongSelect(SongSelectControls),
+    #[cfg(feature = "play_along")]
+    InputSelect(InputSelectControls),
     Exit(ExitControls),
 }
 
@@ -22,7 +36,8 @@ pub struct IcedMenu {
     midi_file: bool,
     font_path: Option<PathBuf>,
 
-    pub carousel: Carousel,
+    pub out_carousel: Carousel<OutputDescriptor>,
+    pub in_carousel: Carousel<MidiInputPort>,
 
     controls: Controls,
 
@@ -55,17 +70,26 @@ pub enum Message {
 
 impl IcedMenu {
     pub fn new(target: &mut Target) -> Self {
-        let mut carousel = Carousel::new();
+        let mut out_carousel = Carousel::new();
 
         let output_manager = target.output_manager.borrow();
 
         let outputs = output_manager.get_outputs();
-        carousel.update(outputs);
+        out_carousel.update(outputs);
 
         let out_id = output_manager.selected_output_id;
         if let Some(id) = out_id {
-            carousel.id = id;
+            out_carousel.select(id);
         }
+
+        let in_carousel = {
+            let midi_in = midir::MidiInput::new("Neothesia-in").unwrap();
+            let ports: Vec<_> = midi_in.ports().into_iter().collect();
+
+            let mut in_carousel = Carousel::new();
+            in_carousel.update(ports);
+            in_carousel
+        };
 
         Self {
             #[cfg(feature = "play_along")]
@@ -76,7 +100,8 @@ impl IcedMenu {
             midi_file: target.state.midi_file.is_some(),
             font_path: output_manager.selected_font_path.clone(),
 
-            carousel,
+            out_carousel,
+            in_carousel,
 
             controls: Controls::SongSelect(SongSelectControls::new()),
 
@@ -122,16 +147,34 @@ impl Program for IcedMenu {
                 }
             }
 
-            Message::NextPressed => {
-                if self.carousel.check_next() {
-                    self.carousel.next();
+            Message::NextPressed => match self.controls {
+                Controls::SongSelect(_) => {
+                    if self.out_carousel.check_next() {
+                        self.out_carousel.next();
+                    }
                 }
-            }
-            Message::PrevPressed => {
-                if self.carousel.check_prev() {
-                    self.carousel.prev();
+                #[cfg(feature = "play_along")]
+                Controls::InputSelect(_) => {
+                    if self.in_carousel.check_next() {
+                        self.in_carousel.next();
+                    }
                 }
-            }
+                _ => {}
+            },
+            Message::PrevPressed => match self.controls {
+                Controls::SongSelect(_) => {
+                    if self.out_carousel.check_prev() {
+                        self.out_carousel.prev();
+                    }
+                }
+                #[cfg(feature = "play_along")]
+                Controls::InputSelect(_) => {
+                    if self.in_carousel.check_prev() {
+                        self.in_carousel.prev();
+                    }
+                }
+                _ => {}
+            },
             #[cfg(feature = "play_along")]
             Message::TogglePlayAlong(is) => {
                 self.play_along = is;
@@ -140,18 +183,31 @@ impl Program for IcedMenu {
             Message::EnterPressed => match self.controls {
                 Controls::SongSelect(_) => {
                     if self.midi_file {
-                        if let Some(port) = self.carousel.get_item() {
-                            let port = match port {
-                                #[cfg(feature = "synth")]
-                                OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
-                                    std::mem::replace(&mut self.font_path, None),
-                                ),
-                                _ => port.clone(),
-                            };
-                            return Command::perform(async { port }, Message::OutputMainMenuDone);
+                        if let Some(port) = self.out_carousel.get_item() {
+                            if self.play_along {
+                                #[cfg(feature = "play_along")]
+                                {
+                                    self.controls =
+                                        Controls::InputSelect(InputSelectControls::new())
+                                }
+                            } else {
+                                let port = match port {
+                                    #[cfg(feature = "synth")]
+                                    OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
+                                        std::mem::replace(&mut self.font_path, None),
+                                    ),
+                                    _ => port.clone(),
+                                };
+                                return Command::perform(
+                                    async { port },
+                                    Message::OutputMainMenuDone,
+                                );
+                            }
                         }
                     }
                 }
+                #[cfg(feature = "play_along")]
+                Controls::InputSelect(_) => {}
                 Controls::Exit(_) => {
                     return Command::single(Action::Future(Box::pin(async {
                         Message::OutputAppExit
@@ -163,6 +219,10 @@ impl Program for IcedMenu {
                 Controls::SongSelect(_) => {
                     self.controls = Controls::Exit(ExitControls::new());
                 }
+                #[cfg(feature = "play_along")]
+                Controls::InputSelect(_) => {
+                    self.controls = Controls::SongSelect(SongSelectControls::new());
+                }
                 Controls::Exit(_) => {
                     self.controls = Controls::SongSelect(SongSelectControls::new());
                 }
@@ -171,7 +231,7 @@ impl Program for IcedMenu {
             Message::MidiFileUpdate(is) => self.midi_file = is,
 
             Message::OutputsUpdated(outs) => {
-                self.carousel.update(outs);
+                self.out_carousel.update(outs);
             }
 
             Message::OutputFileSelected(_) => {}
@@ -185,7 +245,14 @@ impl Program for IcedMenu {
     fn view(&mut self) -> Element<Message, Renderer> {
         let (controls, footer) = match &mut self.controls {
             Controls::SongSelect(c) => {
-                let (content, footer) = c.view(&mut self.carousel, self.midi_file, self.play_along);
+                let (content, footer) =
+                    c.view(&mut self.out_carousel, self.midi_file, self.play_along);
+                (content, Some(footer))
+            }
+            #[cfg(feature = "play_along")]
+            Controls::InputSelect(c) => {
+                let (content, footer) =
+                    c.view(&mut self.in_carousel, self.midi_file, self.play_along);
                 (content, Some(footer))
             }
             Controls::Exit(c) => (c.view(), None),
@@ -221,214 +288,6 @@ impl Program for IcedMenu {
         }
 
         out.into()
-    }
-}
-
-pub struct Carousel {
-    outputs: Vec<OutputDescriptor>,
-    id: usize,
-}
-
-impl Carousel {
-    fn new() -> Self {
-        Self {
-            outputs: Vec::new(),
-            id: 0,
-        }
-    }
-
-    pub fn id(&self) -> usize {
-        self.id
-    }
-
-    fn update(&mut self, outs: Vec<OutputDescriptor>) {
-        self.outputs = outs;
-    }
-
-    fn check_next(&self) -> bool {
-        self.id < self.outputs.len() - 1
-    }
-
-    fn check_prev(&self) -> bool {
-        self.id > 0
-    }
-
-    fn next(&mut self) {
-        if self.check_next() {
-            self.id += 1;
-        } else {
-            self.id = 0;
-        }
-    }
-
-    fn prev(&mut self) {
-        if self.check_prev() {
-            self.id -= 1;
-        } else {
-            self.id = self.outputs.len() - 1;
-        }
-    }
-
-    fn get_item(&self) -> Option<&OutputDescriptor> {
-        self.outputs.get(self.id)
-    }
-}
-
-#[derive(Default)]
-struct SongSelectControls {
-    file_select_button: neo_btn::State,
-    synth_button: neo_btn::State,
-    prev_button: neo_btn::State,
-    next_button: neo_btn::State,
-    play_button: neo_btn::State,
-}
-
-impl SongSelectControls {
-    fn new() -> Self {
-        Default::default()
-    }
-    fn view(
-        &mut self,
-        carousel: &mut Carousel,
-        midi_file: bool,
-        play_along: bool,
-    ) -> (Element<Message, Renderer>, Element<Message, Renderer>) {
-        let file_select_button = Row::new().height(Length::Units(100)).push(
-            NeoBtn::new(
-                &mut self.file_select_button,
-                Text::new("Select File")
-                    .color(Color::WHITE)
-                    .size(40)
-                    .horizontal_alignment(Horizontal::Center)
-                    .vertical_alignment(Vertical::Center),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .on_press(Message::FileSelectPressed),
-        );
-
-        let item = carousel.get_item();
-
-        let label = item
-            .map(|o| o.to_string())
-            .unwrap_or_else(|| "Disconnected".to_string());
-
-        let output = Text::new(label)
-            .color(Color::WHITE)
-            .size(30)
-            .horizontal_alignment(Horizontal::Center)
-            .vertical_alignment(Vertical::Center);
-
-        let mut select_row = Row::new().height(Length::Units(50)).push(
-            NeoBtn::new(
-                &mut self.prev_button,
-                Text::new("<")
-                    .size(40)
-                    .horizontal_alignment(Horizontal::Center)
-                    .vertical_alignment(Vertical::Center),
-            )
-            .width(Length::Fill)
-            .disabled(!carousel.check_prev())
-            .on_press(Message::PrevPressed),
-        );
-
-        #[cfg(feature = "synth")]
-        if let Some(OutputDescriptor::Synth(_)) = item {
-            select_row = select_row.push(
-                NeoBtn::new(
-                    &mut self.synth_button,
-                    Text::new("Soundfont")
-                        .size(20)
-                        .horizontal_alignment(Horizontal::Center)
-                        .vertical_alignment(Vertical::Center),
-                )
-                .width(Length::Units(100))
-                .height(Length::Fill)
-                .on_press(Message::FontSelectPressed),
-            );
-        }
-
-        select_row = select_row.push(
-            NeoBtn::new(
-                &mut self.next_button,
-                Text::new(">")
-                    .size(40)
-                    .horizontal_alignment(Horizontal::Center)
-                    .vertical_alignment(Vertical::Center),
-            )
-            .width(Length::Fill)
-            .disabled(!carousel.check_next())
-            .on_press(Message::NextPressed),
-        );
-
-        let controls = Column::new()
-            .align_items(Alignment::Center)
-            .width(Length::Units(500))
-            .height(Length::Units(250))
-            .spacing(30)
-            .push(file_select_button)
-            .push(output)
-            .push(select_row);
-
-        (
-            Container::new(controls)
-                .width(Length::Fill)
-                .center_x()
-                .into(),
-            Self::footer(&mut self.play_button, &carousel, midi_file, play_along),
-        )
-    }
-
-    #[allow(unused_variables)]
-    fn footer<'a>(
-        play_button: &'a mut neo_btn::State,
-        carousel: &Carousel,
-        midi_file: bool,
-        play_along: bool,
-    ) -> Element<'a, Message, Renderer> {
-        let content: Element<Message, Renderer> = if midi_file && carousel.get_item().is_some() {
-            let btn = NeoBtn::new(
-                play_button,
-                Text::new("Play")
-                    .size(30)
-                    .horizontal_alignment(Horizontal::Center)
-                    .vertical_alignment(Vertical::Center)
-                    .color(Color::WHITE),
-            )
-            .min_height(50)
-            .height(Length::Fill)
-            .width(Length::Units(150))
-            .on_press(Message::EnterPressed);
-
-            #[allow(unused_mut)]
-            let mut coll = Column::new().spacing(10);
-
-            #[cfg(feature = "play_along")]
-            {
-                use iced_native::Checkbox;
-                coll = coll.push(
-                    Row::new()
-                        .height(Length::Shrink)
-                        .push(
-                            Checkbox::new(play_along, "", Message::TogglePlayAlong)
-                                .style(CheckboxStyle {}),
-                        )
-                        .push(Text::new("Play Along").color(Color::WHITE)),
-                );
-            }
-
-            coll.push(btn).into()
-        } else {
-            Row::new().into()
-        };
-
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Units(100))
-            .padding(10)
-            .align_x(Horizontal::Right)
-            .align_y(Vertical::Bottom)
-            .into()
     }
 }
 
@@ -489,38 +348,5 @@ impl ExitControls {
             .center_x()
             .center_y()
             .into()
-    }
-}
-
-pub struct CheckboxStyle;
-
-const SURFACE: Color = Color::from_rgb(
-    0x30 as f32 / 255.0,
-    0x34 as f32 / 255.0,
-    0x3B as f32 / 255.0,
-);
-
-impl iced_graphics::checkbox::StyleSheet for CheckboxStyle {
-    fn active(&self, is_checked: bool) -> iced_graphics::checkbox::Style {
-        let active = Color::from_rgba8(160, 81, 255, 1.0);
-        iced_graphics::checkbox::Style {
-            background: if is_checked { active } else { SURFACE }.into(),
-            checkmark_color: Color::WHITE,
-            border_radius: 2.0,
-            border_width: 1.0,
-            border_color: active,
-        }
-    }
-
-    fn hovered(&self, is_checked: bool) -> iced_graphics::checkbox::Style {
-        let active = Color::from_rgba8(160, 81, 255, 1.0);
-        iced_graphics::checkbox::Style {
-            background: Color {
-                a: 0.8,
-                ..if is_checked { active } else { SURFACE }
-            }
-            .into(),
-            ..self.active(is_checked)
-        }
     }
 }

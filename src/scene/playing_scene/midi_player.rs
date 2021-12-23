@@ -75,18 +75,19 @@ impl MidiPlayer {
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
+        let mut events = Vec::new();
+
         #[cfg(feature = "play_along")]
         if let Some(controller) = &mut self.play_along_controller {
-            // controller.update(target, &mut notes_state, &mut self.timer);
+            controller.update(target, &mut events, &mut self.timer);
         }
 
         if self.timer.paused {
-            return None;
+            return Some(events);
         };
 
-        let mut events = Vec::new();
-
-        let filtered: Vec<&lib_midi::MidiNote> = target.state
+        let filtered: Vec<&lib_midi::MidiNote> = target
+            .state
             .midi_file
             .as_ref()
             .unwrap()
@@ -305,37 +306,32 @@ impl PlayAlongController {
         })
     }
 
-    fn update(
-        &mut self,
-        target: &mut Target,
-        notes_state: &mut [(bool, usize); 88],
-        timer: &mut Timer,
-    ) {
-        for (id, is) in self.input_pressed_keys.iter().enumerate() {
-            notes_state[id] = (*is, 0);
-        }
-
+    fn update(&mut self, target: &mut Target, notes_state: &mut Vec<MidiEvent>, timer: &mut Timer) {
         if let Ok(event) = self.midi_in_rec.try_recv() {
             if event.0 {
                 self.input_pressed_keys[event.1 as usize - 21] = true;
                 target
                     .output_manager
                     .borrow_mut()
-                    .midi_event(MidiEvent::NoteOn {
-                        ch: 0,
-                        track_id: 0,
-                        key: event.1,
-                        vel: event.2,
-                    })
+                    .midi_event(midi::Message::NoteOn(midi::Ch1, event.1, event.2));
+
+                notes_state.push(MidiEvent::NoteOn {
+                    channel: 0,
+                    track_id: 0,
+                    key: event.1,
+                    vel: event.2,
+                });
             } else {
                 self.input_pressed_keys[event.1 as usize - 21] = false;
                 target
                     .output_manager
                     .borrow_mut()
-                    .midi_event(MidiEvent::NoteOff {
-                        ch: 0,
-                        key: event.1,
-                    })
+                    .midi_event(midi::Message::NoteOff(midi::Ch1, event.1, event.2));
+
+                notes_state.push(MidiEvent::NoteOff {
+                    channel: 0,
+                    key: event.1,
+                });
             }
         }
         if self.required_notes.lock().unwrap().len() == 0 && self.waiting_for_note == true {

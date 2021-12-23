@@ -10,7 +10,7 @@
 use iced_graphics::{Backend, Primitive, Rectangle, Renderer};
 use iced_native::{
     layout, mouse, renderer::Style, Background, Clipboard, Color, Element, Event, Hasher, Layout,
-    Length, Padding, Point, Shell, Vector, Widget,
+    Length, Padding, Point, Shell, Widget,
 };
 
 pub struct NeoBtn<'a, Message: Clone, B: Backend> {

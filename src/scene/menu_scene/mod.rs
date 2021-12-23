@@ -6,7 +6,6 @@ mod neo_btn;
 use bg_pipeline::BgPipeline;
 use iced_menu::IcedMenu;
 
-use wgpu::util::StagingBelt;
 use winit::event::WindowEvent;
 
 use crate::{

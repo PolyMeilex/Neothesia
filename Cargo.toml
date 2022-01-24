@@ -7,16 +7,16 @@ default-run = "neothesia"
 resolver = "2"
 
 [features]
-default = [ "app" ]
+default = ["app"]
 
 app = ["rfd", "fluid-synth", "iced_native", "iced_wgpu", "iced_graphics"]
-record=["mpeg_encoder"]
+record = ["mpeg_encoder"]
 
-play_along=[]
+play_along = []
 
-synth=[]
-fluid-synth=["synth", "cpal", "fluidlite","fluidlite-lib"]
-oxi-synth=["synth", "cpal", "oxisynth"]
+synth = []
+fluid-synth = ["synth", "cpal", "fluidlite", "fluidlite-lib"]
+oxi-synth = ["synth", "cpal", "oxisynth"]
 
 [dependencies]
 bytemuck = "1.5.0"
@@ -31,24 +31,26 @@ wgpu_glyph = "0.16.0"
 log = "0.4.14"
 env_logger = "0.9.0"
 
-rfd = { version="0.6", optional = true }
+rfd = { version = "0.6", optional = true }
 
-lib_midi = {path="./lib_midi"}
+lib_midi = { path = "./lib_midi" }
 midir = "0.7.0"
 
-iced_native = { git="https://github.com/PolyMeilex/iced.git", branch="wgpu-update", optional = true }
-iced_wgpu = { git="https://github.com/PolyMeilex/iced.git", branch="wgpu-update", features = ["png"], optional = true} 
-iced_graphics = { git="https://github.com/PolyMeilex/iced.git", branch="wgpu-update", optional = true} 
+iced_native = { git = "https://github.com/PolyMeilex/iced.git", branch = "wgpu-update", optional = true }
+iced_wgpu = { git = "https://github.com/PolyMeilex/iced.git", branch = "wgpu-update", features = [
+    "png",
+], optional = true }
+iced_graphics = { git = "https://github.com/PolyMeilex/iced.git", branch = "wgpu-update", optional = true }
 
 cpal = { version = "0.13.1", optional = true }
-fluidlite = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
-fluidlite-lib = {git= "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true}
-oxisynth = {git= "https://github.com/PolyMeilex/OxiSynth.git", optional = true}
+fluidlite = { git = "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true }
+fluidlite-lib = { git = "https://github.com/PolyMeilex/fluidlite-rs.git", optional = true }
+oxisynth = { git = "https://github.com/PolyMeilex/OxiSynth.git", optional = true }
 
-ron = "0.6.4"
+ron = "0.7.0"
 serde = { version = "1.0.123", features = ["serde_derive"] }
 
-mpeg_encoder = {git="https://github.com/PolyMeilex/mpeg_encoder_next.git", optional=true}
+mpeg_encoder = { git = "https://github.com/PolyMeilex/mpeg_encoder_next.git", optional = true }
 midi = "0.1.0"
 num = "0.4.0"
 # mpeg_encoder = {path="../mpeg_encoder_next", optional=true}
@@ -57,9 +59,9 @@ num = "0.4.0"
 objc = "0.2.7"
 
 [[bin]]
-name="neothesia-cli"
+name = "neothesia-cli"
 required-features = ["record"]
 
 [[bin]]
-name="neothesia"
+name = "neothesia"
 required-features = ["app"]

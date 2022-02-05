@@ -146,7 +146,7 @@ impl SongSelectControls {
 
             #[cfg(feature = "play_along")]
             {
-                use iced_native::Checkbox;
+                use iced_native::widget::Checkbox;
                 coll = coll.push(
                     Row::new()
                         .height(Length::Shrink)

@@ -4,6 +4,7 @@ use midi_backend::{MidiBackend, MidiPortInfo};
 #[cfg(feature = "synth")]
 mod synth_backend;
 
+use midir::MidiInputPort;
 #[cfg(feature = "synth")]
 use synth_backend::SynthBackend;
 
@@ -28,6 +29,17 @@ impl Display for OutputDescriptor {
             OutputDescriptor::MidiOut(info) => write!(f, "{}", info),
             OutputDescriptor::DummyOutput => write!(f, "No Output"),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct InputDescriptior {
+    pub input: MidiInputPort,
+}
+
+impl fmt::Debug for InputDescriptior {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InputDescriptior").finish()
     }
 }
 

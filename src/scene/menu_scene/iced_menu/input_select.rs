@@ -1,6 +1,7 @@
 use iced_native::{
-    alignment::Horizontal, alignment::Vertical, Alignment, Color, Column, Container, Element,
-    Length, Row, Text,
+    alignment::{Horizontal, Vertical},
+    widget::{Column, Container, Row, Text},
+    Alignment, Color, Element, Length,
 };
 use iced_wgpu::Renderer;
 use midir::{MidiInput, MidiInputPort};
@@ -23,11 +24,11 @@ impl InputSelectControls {
 
     pub fn view(
         &mut self,
-        out_carousel: &mut Carousel<MidiInputPort>,
+        in_carousel: &mut Carousel<MidiInputPort>,
         midi_file: bool,
         play_along: bool,
     ) -> (Element<Message, Renderer>, Element<Message, Renderer>) {
-        let item = out_carousel.get_item();
+        let item = in_carousel.get_item();
 
         let midi_in = MidiInput::new("midi_in").unwrap();
 
@@ -39,6 +40,12 @@ impl InputSelectControls {
                     .to_string()
             })
             .unwrap_or_else(|| "Disconnected".to_string());
+
+        let title = Text::new("Select Input:")
+            .color(Color::WHITE)
+            .size(30)
+            .horizontal_alignment(Horizontal::Center)
+            .vertical_alignment(Vertical::Center);
 
         let output = Text::new(label)
             .color(Color::WHITE)
@@ -55,7 +62,7 @@ impl InputSelectControls {
                     .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
-            .disabled(!out_carousel.check_prev())
+            .disabled(!in_carousel.check_prev())
             .on_press(Message::PrevPressed),
         );
 
@@ -68,7 +75,7 @@ impl InputSelectControls {
                     .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
-            .disabled(!out_carousel.check_next())
+            .disabled(!in_carousel.check_next())
             .on_press(Message::NextPressed),
         );
 
@@ -77,6 +84,7 @@ impl InputSelectControls {
                 .align_items(Alignment::Center)
                 .width(Length::Units(500))
                 .spacing(30)
+                .push(title)
                 .push(output)
                 .push(select_row);
 
@@ -87,7 +95,7 @@ impl InputSelectControls {
                     .center_x()
                     .center_y()
                     .into(),
-                Self::footer(&mut self.play_button, &out_carousel, midi_file, play_along),
+                Self::footer(&mut self.play_button, &in_carousel, midi_file, play_along),
             )
         }
     }

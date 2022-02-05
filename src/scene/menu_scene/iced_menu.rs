@@ -9,7 +9,7 @@ use iced_native::{
 use iced_wgpu::Renderer;
 use midir::MidiInputPort;
 
-use crate::output_manager::OutputDescriptor;
+use crate::output_manager::{InputDescriptior, OutputDescriptor};
 
 use super::neo_btn::{self, NeoBtn};
 
@@ -65,7 +65,7 @@ pub enum Message {
 
     // Output
     OutputFileSelected(PathBuf),
-    OutputMainMenuDone(OutputDescriptor),
+    OutputMainMenuDone((OutputDescriptor, InputDescriptior)),
     OutputAppExit,
 }
 
@@ -199,8 +199,13 @@ impl Program for IcedMenu {
                                     ),
                                     _ => port.clone(),
                                 };
+
+                                // TODO: Dumb input
+                                let in_port = self.in_carousel.get_item().unwrap().clone();
+                                let in_port = InputDescriptior { input: in_port };
+
                                 return Command::perform(
-                                    async { port },
+                                    async { (port, in_port) },
                                     Message::OutputMainMenuDone,
                                 );
                             }
@@ -208,7 +213,27 @@ impl Program for IcedMenu {
                     }
                 }
                 #[cfg(feature = "play_along")]
-                Controls::InputSelect(_) => {}
+                Controls::InputSelect(_) => {
+                    if self.midi_file {
+                        if let Some(port) = self.out_carousel.get_item() {
+                            let port = match port {
+                                #[cfg(feature = "synth")]
+                                OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
+                                    std::mem::replace(&mut self.font_path, None),
+                                ),
+                                _ => port.clone(),
+                            };
+                            // TODO: Dumb input
+                            let in_port = self.in_carousel.get_item().unwrap().clone();
+                            let in_port = InputDescriptior { input: in_port };
+
+                            return Command::perform(
+                                async { (port, in_port) },
+                                Message::OutputMainMenuDone,
+                            );
+                        }
+                    }
+                }
                 Controls::Exit(_) => {
                     return Command::single(Action::Future(Box::pin(async {
                         Message::OutputAppExit

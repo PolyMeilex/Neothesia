@@ -59,11 +59,13 @@ fn fs_main(in: VertexOutput) ->  [[location(0)]] vec4<f32> {
     let d = 0.0;
     
     uv = uv * rot_z(0.7);
+    uv.x = uv.x + 1.0;
+
     uv.x = uv.x * 1.5;
     uv.x = uv.x % 0.5;
     
     {
-        uv.y = uv.y + 0.5;
+        uv.y = uv.y - 1.5;
 
         var off: f32 = 0.0;
         var pos: vec2<f32> = uv;

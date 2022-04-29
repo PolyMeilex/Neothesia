@@ -11,7 +11,7 @@ struct Vertex {
 };
 
 struct QuadInstance{
-    [[location(1)]] position: vec2<f32>;
+    [[location(1)]] q_position: vec2<f32>;
     [[location(2)]] size: vec2<f32>;
     [[location(3)]] color: vec4<f32>;
     [[location(4)]] border_radius: vec4<f32>;
@@ -32,7 +32,7 @@ fn vs_main(vertex: Vertex, quad: QuadInstance) -> VertexOutput {
         vec4<f32>(quad.size.x, 0.0, 0.0, 0.0),
         vec4<f32>(0.0, quad.size.y, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(quad.position, 0.0, 1.0)
+        vec4<f32>(quad.q_position, 0.0, 1.0)
     );
 
     var out: VertexOutput;

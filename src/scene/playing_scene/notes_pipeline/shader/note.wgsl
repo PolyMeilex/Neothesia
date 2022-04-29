@@ -18,7 +18,7 @@ struct Vertex {
 };
 
 struct NoteInstance{
-    [[location(1)]] position: vec2<f32>;
+    [[location(1)]] n_position: vec2<f32>;
     [[location(2)]] size: vec2<f32>;
     [[location(3)]] color: vec3<f32>;
     [[location(4)]] radius: f32;
@@ -41,9 +41,9 @@ fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     let size = vec2<f32>(note.size.x, note.size.y * speed);
     
     let y = view_uniform.size.y - view_uniform.size.y / 5.0 - size.y / 2.0;
-    let pos = vec2<f32>(note.position.x, y) - vec2<f32>(0.0, size.y / 2.0);
+    let pos = vec2<f32>(note.n_position.x, y) - vec2<f32>(0.0, size.y / 2.0);
     
-    let offset = vec2<f32>(0.0, -(note.position.y - time_uniform.time) * speed);
+    let offset = vec2<f32>(0.0, -(note.n_position.y - time_uniform.time) * speed);
 
     let transform = mat4x4<f32>(
         vec4<f32>(size.x, 0.0, 0.0, 0.0),

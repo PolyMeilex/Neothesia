@@ -181,12 +181,12 @@ const SURFACE: Color = Color::from_rgb(
     0x3B as f32 / 255.0,
 );
 
-impl iced_graphics::checkbox::StyleSheet for CheckboxStyle {
-    fn active(&self, is_checked: bool) -> iced_graphics::checkbox::Style {
+impl iced_style::checkbox::StyleSheet for CheckboxStyle {
+    fn active(&self, is_checked: bool) -> iced_style::checkbox::Style {
         let active = Color::from_rgba8(160, 81, 255, 1.0);
-        iced_graphics::checkbox::Style {
+        iced_style::checkbox::Style {
             background: if is_checked { active } else { SURFACE }.into(),
-            text_color: Color::WHITE,
+            text_color: Some(Color::WHITE),
             checkmark_color: Color::WHITE,
             border_radius: 2.0,
             border_width: 1.0,
@@ -194,9 +194,9 @@ impl iced_graphics::checkbox::StyleSheet for CheckboxStyle {
         }
     }
 
-    fn hovered(&self, is_checked: bool) -> iced_graphics::checkbox::Style {
+    fn hovered(&self, is_checked: bool) -> iced_style::checkbox::Style {
         let active = Color::from_rgba8(160, 81, 255, 1.0);
-        iced_graphics::checkbox::Style {
+        iced_style::checkbox::Style {
             background: Color {
                 a: 0.8,
                 ..if is_checked { active } else { SURFACE }

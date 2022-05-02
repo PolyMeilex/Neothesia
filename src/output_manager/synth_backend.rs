@@ -1,6 +1,3 @@
-#[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
-extern crate fluidlite_lib;
-
 use std::{error::Error, path::Path, sync::mpsc::Receiver};
 
 use crate::output_manager::{OutputConnection, OutputDescriptor};

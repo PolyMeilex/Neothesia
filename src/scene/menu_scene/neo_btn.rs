@@ -9,8 +9,8 @@
 // implemented by `iced_wgpu` and other renderers.
 use iced_graphics::{Backend, Primitive, Rectangle, Renderer};
 use iced_native::{
-    layout, mouse, renderer::Style, Background, Clipboard, Color, Element, Event, Hasher, Layout,
-    Length, Padding, Point, Shell, Widget,
+    layout, mouse, renderer::Style, Background, Clipboard, Color, Element, Event, Layout, Length,
+    Padding, Point, Shell, Widget,
 };
 
 pub struct NeoBtn<'a, Message: Clone, B: Backend> {
@@ -109,15 +109,6 @@ where
             .pad(Padding::new(self.padding));
 
         layout::Node::with_children(size, vec![content])
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.content.hash_layout(state);
     }
 
     fn on_event(

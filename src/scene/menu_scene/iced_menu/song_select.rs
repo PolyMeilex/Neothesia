@@ -115,7 +115,7 @@ impl SongSelectControls {
                 .width(Length::Fill)
                 .center_x()
                 .into(),
-            Self::footer(&mut self.play_button, &out_carousel, midi_file, play_along),
+            Self::footer(&mut self.play_button, out_carousel, midi_file, play_along),
         )
     }
 

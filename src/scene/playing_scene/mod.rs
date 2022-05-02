@@ -166,10 +166,10 @@ impl Scene for PlayingScene {
                 depth_stencil_attachment: None,
             });
 
-            self.notes.render(&transform_uniform, &mut render_pass);
+            self.notes.render(transform_uniform, &mut render_pass);
 
             self.piano_keyboard
-                .render(&transform_uniform, &mut render_pass);
+                .render(transform_uniform, &mut render_pass);
 
             self.rectangle_pipeline
                 .render(&target.transform_uniform, &mut render_pass)

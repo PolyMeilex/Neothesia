@@ -50,7 +50,7 @@ impl<'a> NotesPipeline {
         let ni_attrs = NoteInstance::attributes();
 
         let render_pipeline =
-            RenderPipelineBuilder::new(&render_pipeline_layout, "vs_main", &shader)
+            RenderPipelineBuilder::new(render_pipeline_layout, "vs_main", &shader)
                 .fragment("fs_main", &shader)
                 .vertex_buffers(&[Shape::layout(), NoteInstance::layout(&ni_attrs)])
                 .build(&target.gpu.device);

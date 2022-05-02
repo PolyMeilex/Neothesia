@@ -112,7 +112,7 @@ impl Scene for MenuScene {
         let modifiers = ModifiersState::default();
 
         if let Some(event) = iced_conversion::window_event(
-            &event,
+            event,
             target.iced_manager.viewport.scale_factor(),
             modifiers,
         ) {

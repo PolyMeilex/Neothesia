@@ -126,9 +126,7 @@ impl MidiPlayer {
         }
 
         for event in events.iter() {
-            self.output_manager
-                .borrow_mut()
-                .midi_event(event.clone().into());
+            self.output_manager.borrow_mut().midi_event((*event).into());
         }
 
         Some(events)

@@ -147,13 +147,13 @@ impl Neothesia {
 
         self.target
             .gpu
-            .clear(&view, self.target.config.background_color.into());
+            .clear(view, self.target.config.background_color.into());
 
-        self.game_scene.render(&mut self.target, &view);
+        self.game_scene.render(&mut self.target, view);
 
         self.target
             .text_renderer
-            .render(&self.target.window, &mut self.target.gpu, &view);
+            .render(&self.target.window, &mut self.target.gpu, view);
 
         self.target.gpu.submit().unwrap();
         frame.present();

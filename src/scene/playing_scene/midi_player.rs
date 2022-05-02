@@ -1,5 +1,5 @@
 use super::RewindController;
-use crate::{main_state::MainState, target::Target, utils::timer::Timer, OutputManager};
+use crate::{target::Target, utils::timer::Timer, OutputManager};
 use lib_midi::MidiNote;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -22,7 +22,7 @@ pub struct MidiPlayer {
 
 impl MidiPlayer {
     pub fn new(target: &mut Target) -> Self {
-        let midi_file = target.state.midi_file.as_ref().unwrap();
+        let midi_file = target.midi_file.as_ref().unwrap();
 
         let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
             note.start
@@ -67,11 +67,11 @@ impl MidiPlayer {
     pub fn update(&mut self, target: &mut Target) -> Option<Vec<MidiEvent>> {
         if let RewindController::Keyboard { speed, .. } = self.rewind_controller {
             let p = self.percentage + speed;
-            self.set_percentage_time(&mut target.state, p);
+            self.set_percentage_time(target, p);
         }
 
         self.timer.update();
-        let raw_time = self.timer.get_elapsed() / 1000.0 * target.state.config.speed_multiplier;
+        let raw_time = self.timer.get_elapsed() / 1000.0 * target.config.speed_multiplier;
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
@@ -87,7 +87,6 @@ impl MidiPlayer {
         };
 
         let filtered: Vec<&lib_midi::MidiNote> = target
-            .state
             .midi_file
             .as_ref()
             .unwrap()
@@ -189,8 +188,8 @@ impl MidiPlayer {
         self.clear();
     }
 
-    pub fn set_percentage_time(&mut self, main_state: &mut MainState, p: f32) {
-        self.set_time(p * (self.midi_last_note_end + 3.0) / main_state.config.speed_multiplier);
+    pub fn set_percentage_time(&mut self, target: &mut Target, p: f32) {
+        self.set_time(p * (self.midi_last_note_end + 3.0) / target.config.speed_multiplier);
     }
 
     pub fn percentage(&self) -> f32 {

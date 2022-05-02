@@ -70,7 +70,7 @@ impl PlayingScene {
     fn speed_toast(&mut self, target: &mut Target) {
         let s = format!(
             "Speed: {}",
-            (target.state.config.speed_multiplier * 100.0).round() / 100.0
+            (target.config.speed_multiplier * 100.0).round() / 100.0
         );
 
         self.toast(s);
@@ -79,7 +79,7 @@ impl PlayingScene {
     fn offset_toast(&mut self, target: &mut Target) {
         let s = format!(
             "Offset: {}",
-            (target.state.config.playback_offset * 100.0).round() / 100.0
+            (target.config.playback_offset * 100.0).round() / 100.0
         );
 
         self.toast(s);
@@ -132,10 +132,8 @@ impl Scene for PlayingScene {
             self.piano_keyboard.reset_notes(target);
         }
 
-        self.notes.update(
-            target,
-            self.player.time() + target.state.config.playback_offset,
-        );
+        self.notes
+            .update(target, self.player.time() + target.config.playback_offset);
 
         // Toasts
         {
@@ -243,15 +241,13 @@ impl Scene for PlayingScene {
                         VirtualKeyCode::Up => {
                             if let winit::event::ElementState::Released = input.state {
                                 if target.window.state.modifers_state.shift() {
-                                    target.state.config.speed_multiplier += 0.5;
+                                    target.config.speed_multiplier += 0.5;
                                 } else {
-                                    target.state.config.speed_multiplier += 0.1;
+                                    target.config.speed_multiplier += 0.1;
                                 }
 
-                                self.player.set_percentage_time(
-                                    &mut target.state,
-                                    self.player.percentage(),
-                                );
+                                self.player
+                                    .set_percentage_time(target, self.player.percentage());
 
                                 self.speed_toast(target);
                             }
@@ -259,17 +255,15 @@ impl Scene for PlayingScene {
                         VirtualKeyCode::Down => {
                             if let winit::event::ElementState::Released = input.state {
                                 let new = if target.window.state.modifers_state.shift() {
-                                    target.state.config.speed_multiplier - 0.5
+                                    target.config.speed_multiplier - 0.5
                                 } else {
-                                    target.state.config.speed_multiplier - 0.1
+                                    target.config.speed_multiplier - 0.1
                                 };
 
                                 if new > 0.0 {
-                                    target.state.config.speed_multiplier = new;
-                                    self.player.set_percentage_time(
-                                        &mut target.state,
-                                        self.player.percentage(),
-                                    );
+                                    target.config.speed_multiplier = new;
+                                    self.player
+                                        .set_percentage_time(target, self.player.percentage());
                                 }
 
                                 self.speed_toast(target);
@@ -278,9 +272,9 @@ impl Scene for PlayingScene {
                         VirtualKeyCode::Minus => {
                             if let winit::event::ElementState::Released = input.state {
                                 if target.window.state.modifers_state.shift() {
-                                    target.state.config.playback_offset -= 0.1;
+                                    target.config.playback_offset -= 0.1;
                                 } else {
-                                    target.state.config.playback_offset -= 0.01;
+                                    target.config.playback_offset -= 0.01;
                                 }
 
                                 self.offset_toast(target);
@@ -289,9 +283,9 @@ impl Scene for PlayingScene {
                         VirtualKeyCode::Plus | VirtualKeyCode::Equals => {
                             if let winit::event::ElementState::Released = input.state {
                                 if target.window.state.modifers_state.shift() {
-                                    target.state.config.playback_offset += 0.1;
+                                    target.config.playback_offset += 0.1;
                                 } else {
-                                    target.state.config.playback_offset += 0.01;
+                                    target.config.playback_offset += 0.01;
                                 }
 
                                 self.offset_toast(target);
@@ -326,7 +320,7 @@ impl Scene for PlayingScene {
                     let x = pos.x;
                     let p = x / win_size.width;
                     log::debug!("Progressbar: x:{},p:{}", x, p);
-                    self.player.set_percentage_time(&mut target.state, p);
+                    self.player.set_percentage_time(target, p);
                 }
             }
             _ => {}

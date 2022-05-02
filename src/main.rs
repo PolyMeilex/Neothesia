@@ -147,7 +147,7 @@ impl Neothesia {
 
         self.target
             .gpu
-            .clear(&view, self.target.state.config.background_color.into());
+            .clear(&view, self.target.config.background_color.into());
 
         self.game_scene.render(&mut self.target, &view);
 

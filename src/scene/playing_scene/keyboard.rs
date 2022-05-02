@@ -116,7 +116,7 @@ impl PianoKeyboard {
         }
 
         let keys = &mut self.keys;
-        let color_schema = &target.state.config.color_schema;
+        let color_schema = &target.config.color_schema;
         let range = &self.range;
 
         let updater = |instances: &mut Vec<QuadInstance>| {

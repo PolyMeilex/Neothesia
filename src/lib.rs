@@ -17,8 +17,6 @@ pub mod quad_pipeline;
 
 pub mod target;
 
-pub mod main_state;
-
 pub mod midi_event;
 
 use futures::Future;

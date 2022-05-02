@@ -98,7 +98,7 @@ impl IcedMenu {
             #[cfg(not(feature = "play_along"))]
             play_along: false,
 
-            midi_file: target.state.midi_file.is_some(),
+            midi_file: target.midi_file.is_some(),
             font_path: output_manager.selected_font_path.clone(),
 
             out_carousel,

@@ -10,13 +10,13 @@ pub struct Notes {
 
 impl Notes {
     pub fn new(target: &mut Target, keys: &[super::keyboard::Key]) -> Self {
-        let notes_pipeline = NotesPipeline::new(target, target.state.midi_file.as_ref().unwrap());
+        let notes_pipeline = NotesPipeline::new(target, target.midi_file.as_ref().unwrap());
         let mut notes = Self { notes_pipeline };
         notes.resize(target, keys);
         notes
     }
     pub fn resize(&mut self, target: &mut Target, keys: &[super::keyboard::Key]) {
-        let midi = &target.state.midi_file.as_ref().unwrap();
+        let midi = &target.midi_file.as_ref().unwrap();
 
         let (window_w, window_h) = {
             let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
@@ -31,7 +31,7 @@ impl Notes {
                 let key = &keys[note.note as usize - 21];
                 let ar = window_w / window_h;
 
-                let color_schema = &target.state.config.color_schema;
+                let color_schema = &target.config.color_schema;
 
                 let color = &color_schema[note.track_id % color_schema.len()];
                 let color = if key.is_black() {

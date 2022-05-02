@@ -1,13 +1,12 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::main_state::MainState;
+use crate::config::Config;
 use crate::ui::{self, TextRenderer};
 use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
 use crate::{OutputManager, TransformUniform};
 
 pub struct Target {
-    pub state: MainState,
     pub window: Window,
     pub gpu: Gpu,
     pub transform_uniform: Uniform<TransformUniform>,
@@ -17,6 +16,8 @@ pub struct Target {
     pub iced_manager: ui::IcedManager,
 
     pub output_manager: Rc<RefCell<OutputManager>>,
+    pub midi_file: Option<lib_midi::Midi>,
+    pub config: Config,
 }
 
 impl Target {
@@ -32,8 +33,19 @@ impl Target {
         #[cfg(feature = "app")]
         let iced_manager = ui::IcedManager::new(&gpu.device, &window);
 
+        let args: Vec<String> = std::env::args().collect();
+
+        let midi_file = if args.len() > 1 {
+            if let Ok(midi) = lib_midi::Midi::new(&args[1]) {
+                Some(midi)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         Self {
-            state: MainState::new(),
             window,
             gpu,
             transform_uniform,
@@ -43,6 +55,8 @@ impl Target {
             iced_manager,
 
             output_manager: Default::default(),
+            midi_file,
+            config: Config::new(),
         }
     }
 

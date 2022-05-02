@@ -173,11 +173,11 @@ impl Scene for MenuScene {
                                     log::error!("{}", e);
                                 }
 
-                                target.state.midi_file = midi.ok();
+                                target.midi_file = midi.ok();
 
                                 self.iced_state
                                     .queue_message(iced_menu::Message::MidiFileUpdate(
-                                        target.state.midi_file.is_some(),
+                                        target.midi_file.is_some(),
                                     ));
                             }
                             iced_menu::Message::OutputMainMenuDone(out) => {

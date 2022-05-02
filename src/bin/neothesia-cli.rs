@@ -43,7 +43,7 @@ impl Recorder {
     ) {
         self.target
             .gpu
-            .clear(view, self.target.state.config.background_color.into());
+            .clear(view, self.target.config.background_color.into());
 
         self.scene.render(&mut self.target, view);
 

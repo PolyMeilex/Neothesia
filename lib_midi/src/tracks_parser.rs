@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use {
     crate::{MidiTrack, TempoEvent},
     midly::TrackEvent,
@@ -5,13 +7,11 @@ use {
 
 pub struct TracksParser {
     tempo_events: Vec<TempoEvent>,
-    u_per_quarter_note: f64,
+    u_per_quarter_note: u16,
 }
 
 impl TracksParser {
     pub fn new(u_per_quarter_note: u16) -> Self {
-        let u_per_quarter_note = f64::from(u_per_quarter_note);
-
         Self {
             tempo_events: Vec::new(),
             u_per_quarter_note,
@@ -42,20 +42,19 @@ impl TracksParser {
         }
     }
 
-    fn p_to_ms(&self, delta_pulses: f64, tempo: u32) -> f64 {
-        let u_time = delta_pulses as f64 / self.u_per_quarter_note;
-        // Synthesia rounds like this, so if we want to test for timing regresions this should be used
-        // ((u_time * tempo as f64) as u64) as f64
-
-        // But we don't care and we keep f64 precision instead
-        u_time * tempo as f64
+    fn p_to_micro(&self, delta_pulses: u64, tempo: u32) -> Duration {
+        let u_time = delta_pulses as f64 / self.u_per_quarter_note as f64;
+        // We floor only because Synthesia floors,
+        // so if we want to test for timing regresions we have to do the same
+        let time = (u_time * tempo as f64).floor() as u64;
+        Duration::from_micros(time)
     }
 
-    pub fn pulses_to_ms(&self, event_pulses: f64) -> f64 {
-        let mut res: f64 = 0.0;
+    pub fn pulses_to_micro(&self, event_pulses: u64) -> Duration {
+        let mut res = Duration::ZERO;
 
         let mut hit = false;
-        let mut last_tempo_event_pulses: f64 = 0.0;
+        let mut last_tempo_event_pulses = 0u64;
         let mut running_tempo = 500_000;
 
         let event_pulses = event_pulses;
@@ -70,7 +69,7 @@ impl TracksParser {
                 event_pulses - last_tempo_event_pulses
             };
 
-            res += self.p_to_ms(delta_pulses, running_tempo);
+            res += self.p_to_micro(delta_pulses, running_tempo);
 
             if hit {
                 break;
@@ -82,7 +81,7 @@ impl TracksParser {
 
         if !hit {
             let remaining_pulses = event_pulses - last_tempo_event_pulses;
-            res += self.p_to_ms(remaining_pulses, running_tempo);
+            res += self.p_to_micro(remaining_pulses, running_tempo);
         }
 
         res

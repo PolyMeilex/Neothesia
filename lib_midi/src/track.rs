@@ -8,7 +8,7 @@ use {
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
-    pub time_in_units: f64,
+    pub time_in_units: u64,
     pub tempo: u32,
 }
 
@@ -39,9 +39,9 @@ impl MidiTrack {
         let mut has_tempo = false;
         let mut tempo_events = Vec::new();
 
-        let mut time_in_units: f64 = 0.0;
+        let mut time_in_units: u64 = 0;
         for event in track.iter() {
-            time_in_units += event.delta.as_int() as f64;
+            time_in_units += event.delta.as_int() as u64;
 
             if let TrackEventKind::Meta(meta) = &event.kind {
                 if let MetaMessage::Tempo(t) = &meta {
@@ -69,10 +69,10 @@ impl MidiTrack {
     pub fn extract_notes(&mut self, events: &[TrackEvent], parent_parser: &mut TracksParser) {
         self.notes.clear();
 
-        let mut time_in_units = 0.0;
+        let mut time_in_units = 0u64;
 
         struct Note {
-            time_in_units: f64,
+            time_in_units: u64,
             vel: u8,
             channel: u8,
         }
@@ -84,12 +84,12 @@ impl MidiTrack {
                 if current_notes.contains_key(&k) {
                     let n = current_notes.get(&k).unwrap();
 
-                    let start = parent_parser.pulses_to_ms(n.time_in_units);
-                    let duration = parent_parser.pulses_to_ms(time_in_units) - start;
+                    let start = parent_parser.pulses_to_micro(n.time_in_units);
+                    let duration = parent_parser.pulses_to_micro(time_in_units) - start;
 
                     let mn = MidiNote {
-                        start: Duration::from_micros(start as _),
-                        duration: Duration::from_micros(duration as _),
+                        start,
+                        duration,
                         note: k,
                         vel: n.vel,
                         ch: n.channel,
@@ -103,7 +103,7 @@ impl MidiTrack {
         }
 
         for event in events.iter() {
-            time_in_units += event.delta.as_int() as f64;
+            time_in_units += event.delta.as_int() as u64;
 
             if let TrackEventKind::Midi { channel, message } = &event.kind {
                 match &message {

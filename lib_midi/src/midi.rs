@@ -24,10 +24,8 @@ impl Midi {
             Err(_) => return Err(String::from("Midi Parsing Error (midly lib)")),
         };
 
-        let u_per_quarter_note: u16;
-
-        match smf.header.timing {
-            Timing::Metrical(t) => u_per_quarter_note = t.as_int(),
+        let u_per_quarter_note: u16 = match smf.header.timing {
+            Timing::Metrical(t) => t.as_int(),
             Timing::Timecode(_fps, _u) => {
                 return Err(String::from("Midi With Timecode Timing, Not Supported!"));
             }

@@ -5,6 +5,9 @@ authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2021"
 default-run = "neothesia"
 
+[workspace]
+members = ["lib_midi"]
+
 [features]
 default = ["app"]
 

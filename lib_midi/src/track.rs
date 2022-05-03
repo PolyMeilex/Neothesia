@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use {
     crate::TracksParser,
     midly::{MetaMessage, MidiMessage, TrackEvent, TrackEventKind},
@@ -6,14 +8,14 @@ use {
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
-    pub time_in_units: f32,
+    pub time_in_units: f64,
     pub tempo: u32,
 }
 
 #[derive(Debug, Clone)]
 pub struct MidiNote {
-    pub start: f32,
-    pub duration: f32,
+    pub start: Duration,
+    pub duration: Duration,
     pub note: u8,
     pub vel: u8,
     pub ch: u8,
@@ -37,9 +39,9 @@ impl MidiTrack {
         let mut has_tempo = false;
         let mut tempo_events = Vec::new();
 
-        let mut time_in_units: f32 = 0.0;
+        let mut time_in_units: f64 = 0.0;
         for event in track.iter() {
-            time_in_units += event.delta.as_int() as f32;
+            time_in_units += event.delta.as_int() as f64;
 
             if let TrackEventKind::Meta(meta) = &event.kind {
                 if let MetaMessage::Tempo(t) = &meta {
@@ -70,7 +72,7 @@ impl MidiTrack {
         let mut time_in_units = 0.0;
 
         struct Note {
-            time_in_units: f32,
+            time_in_units: f64,
             vel: u8,
             channel: u8,
         }
@@ -82,12 +84,12 @@ impl MidiTrack {
                 if current_notes.contains_key(&k) {
                     let n = current_notes.get(&k).unwrap();
 
-                    let start = parent_parser.pulses_to_ms(n.time_in_units) / 1000.0;
-                    let duration = parent_parser.pulses_to_ms(time_in_units) / 1000.0 - start;
+                    let start = parent_parser.pulses_to_ms(n.time_in_units);
+                    let duration = parent_parser.pulses_to_ms(time_in_units) - start;
 
                     let mn = MidiNote {
-                        start: start as f32,
-                        duration: duration as f32,
+                        start: Duration::from_micros(start as _),
+                        duration: Duration::from_micros(duration as _),
                         note: k,
                         vel: n.vel,
                         ch: n.channel,
@@ -101,7 +103,7 @@ impl MidiTrack {
         }
 
         for event in events.iter() {
-            time_in_units += event.delta.as_int() as f32;
+            time_in_units += event.delta.as_int() as f64;
 
             if let TrackEventKind::Midi { channel, message } = &event.kind {
                 match &message {

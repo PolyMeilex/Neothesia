@@ -25,12 +25,12 @@ impl MidiPlayer {
         let midi_file = target.midi_file.as_ref().unwrap();
 
         let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
-            note.start
+            note.start.as_secs_f32()
         } else {
             0.0
         };
         let midi_last_note_end = if let Some(note) = midi_file.merged_track.notes.last() {
-            note.start + note.duration
+            (note.start + note.duration).as_secs_f32()
         } else {
             0.0
         };
@@ -93,13 +93,16 @@ impl MidiPlayer {
             .merged_track
             .notes
             .iter()
-            .filter(|n| n.start <= self.time && n.start + n.duration + 0.5 > self.time)
+            .filter(|n| {
+                n.start.as_secs_f32() <= self.time
+                    && (n.start + n.duration).as_secs_f32() + 0.5 > self.time
+            })
             .collect();
 
         for n in filtered {
             use std::collections::hash_map::Entry;
 
-            if n.start + n.duration >= self.time {
+            if (n.start + n.duration).as_secs_f32() >= self.time {
                 if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
                     self.active_notes.insert(n.id, n.clone());
 

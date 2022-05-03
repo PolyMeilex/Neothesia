@@ -41,14 +41,14 @@ impl Notes {
                 };
                 let color: Color = color.into();
 
-                let h = if note.duration >= 0.1 {
-                    note.duration
+                let h = if note.duration.as_secs_f32() >= 0.1 {
+                    note.duration.as_secs_f32()
                 } else {
                     0.1
                 };
 
                 instances.push(NoteInstance {
-                    position: [key.x_position(), note.start],
+                    position: [key.x_position(), note.start.as_secs_f32()],
                     size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
                     color: color.into_linear_rgb(),
                     radius: 4.0 * ar,

@@ -13,6 +13,7 @@ pub struct MidiEvent {
     pub delta: u32,
     pub timestamp: Duration,
     pub message: MidiMessage,
+    pub track_id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -36,17 +37,49 @@ pub struct MidiNote {
 }
 
 #[derive(Debug, Clone)]
-struct PlaybackState {
+pub struct PlaybackState {
     running: Duration,
+    leed_in: Duration,
+    leed_in_running: Duration,
     seen_events: usize,
 }
 
-impl Default for PlaybackState {
-    fn default() -> Self {
+impl PlaybackState {
+    pub fn new(leed_in: Duration) -> Self {
         Self {
             running: Duration::ZERO,
+            leed_in_running: Duration::ZERO,
+            leed_in,
             seen_events: 0,
         }
+    }
+
+    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Vec<MidiEvent> {
+        self.leed_in_running += delta;
+
+        if self.leed_in_running < self.leed_in {
+            return Vec::new();
+        }
+
+        self.running += delta;
+
+        track
+            .events
+            .iter()
+            .skip(self.seen_events)
+            .filter(|event| event.timestamp <= self.running)
+            .map(|event| {
+                let event = event.clone();
+                self.seen_events += 1;
+                event
+            })
+            .collect()
+    }
+
+    pub fn reset(&mut self) {
+        self.running = Duration::ZERO;
+        self.leed_in_running = Duration::ZERO;
+        self.seen_events = 0;
     }
 }
 
@@ -58,8 +91,6 @@ pub struct MidiTrack {
     pub events: Vec<MidiEvent>,
 
     pub track_id: usize,
-
-    playback: PlaybackState,
 }
 
 impl MidiTrack {
@@ -82,16 +113,30 @@ impl MidiTrack {
             .filter_map(|event| {
                 pulses += event.delta.as_int() as u64;
                 match event.kind {
-                    TrackEventKind::Midi { channel, message } => Some(MidiEvent {
-                        channel: channel.as_int(),
-                        delta: event.delta.as_int(),
-                        timestamp: pulses_to_duration(
-                            tempo_events,
-                            pulses,
-                            pulses_per_quarter_note,
-                        ),
-                        message,
-                    }),
+                    TrackEventKind::Midi { channel, message } => {
+                        let message = match message {
+                            midly::MidiMessage::NoteOn { key, vel } => {
+                                if vel.as_int() > 0 {
+                                    message
+                                } else {
+                                    midly::MidiMessage::NoteOff { key, vel }
+                                }
+                            }
+                            message => message,
+                        };
+
+                        Some(MidiEvent {
+                            channel: channel.as_int(),
+                            delta: event.delta.as_int(),
+                            timestamp: pulses_to_duration(
+                                tempo_events,
+                                pulses,
+                                pulses_per_quarter_note,
+                            ),
+                            message,
+                            track_id,
+                        })
+                    }
                     _ => None,
                 }
             })
@@ -101,23 +146,7 @@ impl MidiTrack {
             track_id,
             notes,
             events,
-            playback: PlaybackState::default(),
         }
-    }
-
-    pub fn update(&mut self, delta: Duration) -> Vec<MidiEvent> {
-        self.playback.running += delta;
-
-        self.events
-            .iter()
-            .skip(self.playback.seen_events)
-            .filter(|event| event.timestamp <= self.playback.running)
-            .map(|event| {
-                let event = event.clone();
-                self.playback.seen_events += 1;
-                event
-            })
-            .collect()
     }
 }
 

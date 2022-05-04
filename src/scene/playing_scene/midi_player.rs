@@ -112,17 +112,17 @@ impl MidiPlayer {
                     }
 
                     events.push(MidiEvent::NoteOn {
-                        channel: n.ch,
+                        channel: n.channel,
                         track_id: n.track_id,
                         key: n.note,
-                        vel: n.vel,
+                        vel: n.velocity,
                     });
                 }
             } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
                 self.active_notes.remove(&n.id);
 
                 events.push(MidiEvent::NoteOff {
-                    channel: n.ch,
+                    channel: n.channel,
                     key: n.note,
                 });
             }
@@ -139,7 +139,7 @@ impl MidiPlayer {
         for (_, n) in self.active_notes.iter() {
             self.output_manager.borrow_mut().midi_event(
                 MidiEvent::NoteOff {
-                    channel: n.ch,
+                    channel: n.channel,
                     key: n.note,
                 }
                 .into(),

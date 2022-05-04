@@ -1,153 +1,133 @@
 use std::time::Duration;
 
+use crate::{pulses_to_duration, TempoTrack};
+
 use {
-    crate::TracksParser,
-    midly::{MetaMessage, MidiMessage, TrackEvent, TrackEventKind},
+    midly::{MidiMessage, TrackEvent, TrackEventKind},
     std::collections::HashMap,
 };
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
-    pub time_in_units: u64,
+    pub absolute_pulses: u64,
+    pub relative_pulses: u64,
+    /// Tempo in microseconds per quarter note.
     pub tempo: u32,
 }
 
 #[derive(Debug, Clone)]
 pub struct MidiNote {
     pub start: Duration,
+    pub end: Duration,
     pub duration: Duration,
     pub note: u8,
-    pub vel: u8,
-    pub ch: u8,
+    pub velocity: u8,
+    pub channel: u8,
     pub track_id: usize,
     pub id: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct MidiTrack {
-    pub tempo: u32,
-    pub tempo_events: Vec<TempoEvent>,
-    pub has_tempo: bool,
+    // Translated notes with calculated timings
     pub notes: Vec<MidiNote>,
+
     pub track_id: usize,
+
+    pub running: Duration,
 }
 
 impl MidiTrack {
-    pub fn new(track: &[TrackEvent], track_id: usize) -> Self {
-        let mut tempo = 500_000; // 120 bpm
-
-        let mut has_tempo = false;
-        let mut tempo_events = Vec::new();
-
-        let mut time_in_units: u64 = 0;
-        for event in track.iter() {
-            time_in_units += event.delta.as_int() as u64;
-
-            if let TrackEventKind::Meta(meta) = &event.kind {
-                if let MetaMessage::Tempo(t) = &meta {
-                    if !has_tempo {
-                        tempo = t.as_int();
-                        has_tempo = true;
-                    }
-                    tempo_events.push(TempoEvent {
-                        time_in_units,
-                        tempo: t.as_int(),
-                    });
-                }
-            };
-        }
+    pub fn new(
+        track_id: usize,
+        tempo_events: &TempoTrack,
+        track_events: &[TrackEvent],
+        pulses_per_quarter_note: u16,
+    ) -> Self {
+        let notes = build_notes(
+            track_id,
+            tempo_events,
+            track_events,
+            pulses_per_quarter_note,
+        );
 
         Self {
-            tempo,
-            tempo_events,
-            has_tempo,
             track_id,
-            notes: Vec::new(),
+            notes,
+            running: Duration::ZERO,
         }
     }
 
-    pub fn extract_notes(&mut self, events: &[TrackEvent], parent_parser: &mut TracksParser) {
-        self.notes.clear();
+    pub fn update(&mut self, delta: Duration) {
+        self.running += delta;
+    }
+}
 
-        let mut time_in_units = 0u64;
+fn build_notes(
+    track_id: usize,
+    tempo_events: &TempoTrack,
+    track_events: &[TrackEvent],
+    pulses_per_quarter_note: u16,
+) -> Vec<MidiNote> {
+    struct NoteInfo {
+        velocity: u8,
+        channel: u8,
+        pulses: u64,
+    }
 
-        struct Note {
-            time_in_units: u64,
-            vel: u8,
-            channel: u8,
-        }
-        let mut current_notes: HashMap<u8, Note> = HashMap::new();
+    let mut active_notes: HashMap<u8, NoteInfo> = HashMap::new();
+    let mut notes = Vec::new();
 
-        macro_rules! end_note {
-            (k => $e:expr) => {
-                let k = $e;
-                if current_notes.contains_key(&k) {
-                    let n = current_notes.get(&k).unwrap();
+    let mut pulses: u64 = 0;
+    for event in track_events.iter() {
+        pulses += event.delta.as_int() as u64;
 
-                    let start = parent_parser.pulses_to_micro(n.time_in_units);
-                    let duration = parent_parser.pulses_to_micro(time_in_units) - start;
+        match event.kind {
+            TrackEventKind::Midi { channel, message } => {
+                let (key, velocity) = match message {
+                    MidiMessage::NoteOn { vel, key } => (key.as_int(), vel.as_int()),
+                    MidiMessage::NoteOff { vel, key } => (key.as_int(), vel.as_int()),
+                    _ => {
+                        continue;
+                    }
+                };
 
-                    let mn = MidiNote {
+                if let Some(active) = active_notes.remove(&key) {
+                    let start = active.pulses;
+                    let end = pulses;
+
+                    let start = pulses_to_duration(tempo_events, start, pulses_per_quarter_note);
+                    let end = pulses_to_duration(tempo_events, end, pulses_per_quarter_note);
+                    let duration = end - start;
+
+                    let note = MidiNote {
                         start,
+                        end,
                         duration,
-                        note: k,
-                        vel: n.vel,
-                        ch: n.channel,
-                        track_id: self.track_id,
-                        id: 0, // Placeholder
+                        note: key,
+                        velocity: active.velocity,
+                        channel: active.channel,
+                        track_id,
+                        id: notes.len(),
                     };
-                    self.notes.push(mn);
-                    current_notes.remove(&k);
+
+                    notes.push(note);
                 }
-            };
-        }
 
-        for event in events.iter() {
-            time_in_units += event.delta.as_int() as u64;
+                let on = matches!(&message, MidiMessage::NoteOn { .. }) && velocity > 0;
 
-            if let TrackEventKind::Midi { channel, message } = &event.kind {
-                match &message {
-                    MidiMessage::NoteOn { key, vel } => {
-                        let key = key.as_int();
-                        let vel = vel.as_int();
-
-                        match vel.cmp(&0) {
-                            std::cmp::Ordering::Greater => {
-                                let k = key;
-
-                                match current_notes.entry(k) {
-                                    std::collections::hash_map::Entry::Occupied(_e) => {
-                                        end_note!(k=>k);
-                                    }
-                                    std::collections::hash_map::Entry::Vacant(_e) => {
-                                        current_notes.insert(
-                                            k,
-                                            Note {
-                                                time_in_units,
-                                                vel,
-                                                channel: channel.as_int(),
-                                            },
-                                        );
-                                    }
-                                }
-                            }
-                            std::cmp::Ordering::Equal => {
-                                end_note!(k=>key);
-                            }
-                            _ => {}
-                        }
-                    }
-                    MidiMessage::NoteOff { key, .. } => {
-                        let key = key.as_int();
-
-                        end_note!(k=>key);
-                    }
-                    _ => {}
+                if on {
+                    let note = NoteInfo {
+                        channel: channel.as_int(),
+                        velocity,
+                        pulses,
+                    };
+                    active_notes.insert(key, note);
                 }
             }
+            _ => {}
         }
-
-        self.notes
-            .sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
     }
+
+    notes
 }

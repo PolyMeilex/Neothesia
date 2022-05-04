@@ -8,6 +8,14 @@ use {
 };
 
 #[derive(Debug, Clone)]
+pub struct MidiEvent {
+    pub channel: u8,
+    pub delta: u32,
+    pub timestamp: Duration,
+    pub message: MidiMessage,
+}
+
+#[derive(Debug, Clone)]
 pub struct TempoEvent {
     pub absolute_pulses: u64,
     pub relative_pulses: u64,
@@ -28,13 +36,21 @@ pub struct MidiNote {
 }
 
 #[derive(Debug, Clone)]
+struct PlaybackState {
+    running: Duration,
+    seen_events: usize,
+}
+
+#[derive(Debug, Clone)]
 pub struct MidiTrack {
     // Translated notes with calculated timings
     pub notes: Vec<MidiNote>,
 
+    pub events: Vec<MidiEvent>,
+
     pub track_id: usize,
 
-    pub running: Duration,
+    playback: PlaybackState,
 }
 
 impl MidiTrack {
@@ -51,15 +67,51 @@ impl MidiTrack {
             pulses_per_quarter_note,
         );
 
+        let mut pulses: u64 = 0;
+        let events = track_events
+            .iter()
+            .filter_map(|event| {
+                pulses += event.delta.as_int() as u64;
+                match event.kind {
+                    TrackEventKind::Midi { channel, message } => Some(MidiEvent {
+                        channel: channel.as_int(),
+                        delta: event.delta.as_int(),
+                        timestamp: pulses_to_duration(
+                            tempo_events,
+                            pulses,
+                            pulses_per_quarter_note,
+                        ),
+                        message,
+                    }),
+                    _ => None,
+                }
+            })
+            .collect();
+
         Self {
             track_id,
             notes,
-            running: Duration::ZERO,
+            events,
+            playback: PlaybackState {
+                running: Duration::ZERO,
+                seen_events: 0,
+            },
         }
     }
 
-    pub fn update(&mut self, delta: Duration) {
-        self.running += delta;
+    pub fn update(&mut self, delta: Duration) -> Vec<MidiEvent> {
+        self.playback.running += delta;
+
+        self.events
+            .iter()
+            .skip(self.playback.seen_events)
+            .filter(|event| event.timestamp <= self.playback.running)
+            .map(|event| {
+                let event = event.clone();
+                self.playback.seen_events += 1;
+                event
+            })
+            .collect()
     }
 }
 

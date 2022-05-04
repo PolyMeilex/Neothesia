@@ -2,7 +2,7 @@
 name = "lib_midi"
 version = "0.1.0"
 authors = ["Poly <bartek.marynczak@op.pl>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 midly = "0.5.1"

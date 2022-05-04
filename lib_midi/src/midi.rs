@@ -47,9 +47,13 @@ impl Midi {
             for n in track.notes.iter().cloned() {
                 merged_track.notes.push(n);
             }
+            for e in track.events.iter().cloned() {
+                merged_track.events.push(e);
+            }
         }
 
         merged_track.notes.sort_by_key(|n| n.start);
+        merged_track.events.sort_by_key(|n| n.timestamp);
 
         // Assign Unique Id
         for (i, note) in merged_track.notes.iter_mut().enumerate() {

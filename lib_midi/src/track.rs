@@ -42,15 +42,32 @@ pub struct PlaybackState {
     leed_in: Duration,
     leed_in_running: Duration,
     seen_events: usize,
+
+    first_note_start: Duration,
+    last_note_end: Duration,
 }
 
 impl PlaybackState {
-    pub fn new(leed_in: Duration) -> Self {
+    pub fn new(leed_in: Duration, track: &MidiTrack) -> Self {
+        let first_note_start = if let Some(note) = track.notes.first() {
+            note.start
+        } else {
+            Duration::ZERO
+        };
+        let last_note_end = if let Some(note) = track.notes.last() {
+            note.start + note.duration
+        } else {
+            Duration::ZERO
+        };
+
         Self {
             running: Duration::ZERO,
             leed_in_running: Duration::ZERO,
             leed_in,
             seen_events: 0,
+
+            first_note_start,
+            last_note_end,
         }
     }
 
@@ -74,6 +91,22 @@ impl PlaybackState {
                 event
             })
             .collect()
+    }
+
+    pub fn time(&self) -> Duration {
+        self.running
+    }
+
+    pub fn percentage(&self) -> f32 {
+        self.running.as_secs_f32() / self.last_note_end.as_secs_f32()
+    }
+
+    pub fn first_note_start(&self) -> &Duration {
+        &self.first_note_start
+    }
+
+    pub fn last_note_end(&self) -> &Duration {
+        &self.last_note_end
     }
 
     pub fn reset(&mut self) {

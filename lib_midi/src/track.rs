@@ -41,6 +41,15 @@ struct PlaybackState {
     seen_events: usize,
 }
 
+impl Default for PlaybackState {
+    fn default() -> Self {
+        Self {
+            running: Duration::ZERO,
+            seen_events: 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct MidiTrack {
     // Translated notes with calculated timings
@@ -92,10 +101,7 @@ impl MidiTrack {
             track_id,
             notes,
             events,
-            playback: PlaybackState {
-                running: Duration::ZERO,
-                seen_events: 0,
-            },
+            playback: PlaybackState::default(),
         }
     }
 

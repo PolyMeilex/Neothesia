@@ -2,6 +2,7 @@ mod midi;
 mod track;
 mod utils;
 
+pub use midly;
 pub use {midi::*, track::*, utils::*};
 
 #[cfg(test)]

@@ -1,9 +1,10 @@
 mod midi;
+pub mod playback;
 mod track;
 mod utils;
 
 pub use midly;
-pub use {midi::*, track::*, utils::*};
+pub use {midi::*, playback::*, track::*, utils::*};
 
 #[cfg(test)]
 mod tests {

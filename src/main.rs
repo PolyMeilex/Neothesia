@@ -186,13 +186,13 @@ fn main() {
                 let event = app.game_scene.main_events_cleared(&mut app.target);
                 app.scene_event(event, control_flow);
 
+                app.update(control_flow);
                 app.target.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {
                 app.window_event(event, control_flow);
             }
             Event::RedrawRequested(_) => {
-                app.update(control_flow);
                 app.render();
             }
             _ => {}

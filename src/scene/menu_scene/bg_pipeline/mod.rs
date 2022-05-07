@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::wgpu_jumpstart::{Gpu, RenderPipelineBuilder, Shape, Uniform};
 
 use bytemuck::{Pod, Zeroable};
@@ -51,6 +53,7 @@ impl<'a> BgPipeline {
             time_uniform,
         }
     }
+
     pub fn render(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.time_uniform.bind_group, &[]);
@@ -64,8 +67,9 @@ impl<'a> BgPipeline {
 
         render_pass.draw_indexed(0..self.fullscreen_quad.indices_len, 0, 0..1);
     }
-    pub fn update_time(&mut self, gpu: &mut Gpu, time: f32) {
-        self.time_uniform.data.time = time;
+
+    pub fn update_time(&mut self, gpu: &mut Gpu, delta: Duration) {
+        self.time_uniform.data.time += delta.as_secs_f32();
         self.time_uniform.update(&mut gpu.encoder, &gpu.device);
     }
 }
@@ -77,6 +81,7 @@ struct TimeUniform {
 }
 impl Default for TimeUniform {
     fn default() -> Self {
-        Self { time: 0.0 }
+        // Lets move start of the animation a bit
+        Self { time: 10.0 }
     }
 }

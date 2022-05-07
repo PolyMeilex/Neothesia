@@ -12,7 +12,6 @@ use crate::{
     scene::{Scene, SceneEvent, SceneType},
     target::Target,
     ui::{iced_conversion, DummyClipboard},
-    utils::timer::Timer,
 };
 
 #[derive(Debug)]
@@ -22,14 +21,12 @@ pub enum Event {
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
-    timer: Timer,
+    last_update: std::time::Instant,
     iced_state: iced_native::program::State<IcedMenu>,
 }
 
 impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
-        let timer = Timer::new();
-
         let menu = IcedMenu::new(target);
         let iced_state = iced_native::program::State::new(
             menu,
@@ -40,7 +37,7 @@ impl MenuScene {
 
         let mut scene = Self {
             bg_pipeline: BgPipeline::new(&target.gpu),
-            timer,
+            last_update: std::time::Instant::now(),
             iced_state,
         };
 
@@ -55,10 +52,9 @@ impl Scene for MenuScene {
     }
 
     fn update(&mut self, target: &mut Target) -> SceneEvent {
-        self.timer.update();
-        let time = self.timer.get_elapsed() / 1000.0;
-
-        self.bg_pipeline.update_time(&mut target.gpu, time);
+        self.bg_pipeline
+            .update_time(&mut target.gpu, self.last_update.elapsed());
+        self.last_update = std::time::Instant::now();
 
         let outs = target.output_manager.borrow().get_outputs();
         self.iced_state

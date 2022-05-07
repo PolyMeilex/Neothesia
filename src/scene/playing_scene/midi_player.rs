@@ -1,7 +1,7 @@
 use super::RewindController;
 use crate::{target::Target, utils::timer::Timer, OutputManager};
 use lib_midi::MidiNote;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Duration};
 
 use crate::midi_event::MidiEvent;
 
@@ -71,7 +71,7 @@ impl MidiPlayer {
         }
 
         self.timer.update();
-        let raw_time = self.timer.get_elapsed() / 1000.0 * target.config.speed_multiplier;
+        let raw_time = self.timer.time().as_secs_f32() * target.config.speed_multiplier;
         self.percentage = raw_time / (self.midi_last_note_end + 3.0);
         self.time = raw_time + self.midi_first_note_start - 3.0;
 
@@ -82,7 +82,7 @@ impl MidiPlayer {
             controller.update(target, &mut events, &mut self.timer);
         }
 
-        if self.timer.paused {
+        if self.timer.is_paused() {
             return Some(events);
         };
 
@@ -185,7 +185,7 @@ impl MidiPlayer {
     }
 
     pub fn set_time(&mut self, time: f32) {
-        self.timer.set_time(time * 1000.0);
+        self.timer.set_time(Duration::from_secs_f32(time));
         self.clear();
     }
 
@@ -210,7 +210,7 @@ impl MidiPlayer {
     }
 
     pub fn is_paused(&self) -> bool {
-        self.timer.paused
+        self.timer.is_paused()
     }
 }
 

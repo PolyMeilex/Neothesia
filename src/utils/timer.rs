@@ -1,9 +1,9 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub struct Timer {
-    pub time_elapsed: u128,
+    time: Duration,
     last_time: Instant,
-    pub paused: bool,
+    paused: bool,
 }
 
 impl Default for Timer {
@@ -15,23 +15,21 @@ impl Default for Timer {
 impl Timer {
     pub fn new() -> Self {
         Self {
-            time_elapsed: 0,
+            time: Duration::ZERO,
             last_time: Instant::now(),
             paused: false,
         }
     }
+
     pub fn start(&mut self) {
         self.last_time = Instant::now();
-        self.time_elapsed = 0;
+        self.time = Duration::ZERO;
     }
 
     #[cfg(not(feature = "record"))]
     pub fn update(&mut self) {
         if !self.paused {
-            // We use nanos only because when using secs timing error quickly piles up
-            // It is not visible when running 60FPS
-            // but on higher refresh rate it is important
-            self.time_elapsed += self.last_time.elapsed().as_nanos();
+            self.time += self.last_time.elapsed();
         }
         self.last_time = Instant::now();
     }
@@ -40,23 +38,29 @@ impl Timer {
     #[cfg(feature = "record")]
     pub fn update(&mut self) {
         // 60FPS per 1s (in nanos)
-        self.time_elapsed += 1000000000 / 60;
+        self.time += Duration::from_secs(1) / 60;
     }
 
-    pub fn set_time(&mut self, time: f32) {
-        if time > 0.0 {
-            self.time_elapsed = (time * 1_000_000.0).round() as u128;
-        }
+    pub fn set_time(&mut self, time: Duration) {
+        self.time = time;
     }
-    pub fn get_elapsed(&self) -> f32 {
-        self.time_elapsed as f32 / 1_000_000.0
+
+    pub fn time(&self) -> Duration {
+        self.time
     }
+
+    pub fn is_paused(&self) -> bool {
+        self.paused
+    }
+
     pub fn pause(&mut self) {
         self.paused = true;
     }
+
     pub fn resume(&mut self) {
         self.paused = false;
     }
+
     pub fn pause_resume(&mut self) {
         if self.paused {
             self.paused = false;
@@ -86,9 +90,11 @@ impl Fps {
             last_time: Instant::now(),
         }
     }
+
     pub fn fps(&self) -> i32 {
         self.fps
     }
+
     pub fn update(&mut self) {
         self.fps_counter += 1;
 

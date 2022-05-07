@@ -1,5 +1,7 @@
 mod keyboard;
 
+use std::time::Duration;
+
 use keyboard::PianoKeyboard;
 
 mod notes;
@@ -105,13 +107,13 @@ impl Scene for PlayingScene {
         self.notes.resize(target, &self.piano_keyboard.keys);
     }
 
-    fn update(&mut self, target: &mut Target) -> SceneEvent {
+    fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
         let (window_w, _) = {
             let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)
         };
 
-        let midi_events = self.player.update(target);
+        let midi_events = self.player.update(target, delta);
 
         let size_x = window_w * self.player.percentage();
 

@@ -56,7 +56,7 @@ impl MidiPlayer {
 
             output_manager: target.output_manager.clone(),
         };
-        player.update(target);
+        player.update(target, Duration::ZERO);
 
         player
     }
@@ -64,7 +64,7 @@ impl MidiPlayer {
     /// When playing: returns midi events
     ///
     /// When paused: returns None
-    pub fn update(&mut self, target: &mut Target) -> Option<Vec<MidiEvent>> {
+    pub fn update(&mut self, target: &mut Target, _delta: Duration) -> Option<Vec<MidiEvent>> {
         if let RewindController::Keyboard { speed, .. } = self.rewind_controller {
             let p = self.percentage + speed;
             self.set_percentage_time(target, p);

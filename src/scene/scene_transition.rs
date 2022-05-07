@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::quad_pipeline::QuadPipeline;
 use crate::Gpu;
 use crate::{
@@ -102,11 +104,11 @@ impl SceneTransition {
             _ => {}
         }
     }
-    pub fn update(&mut self, target: &mut Target) -> SceneEvent {
+    pub fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
         match &mut self.mode {
-            TransitionMode::Static(scene) => scene.update(target),
+            TransitionMode::Static(scene) => scene.update(target, delta),
             TransitionMode::FadeIn(scene) => {
-                scene.update(target);
+                scene.update(target, delta);
 
                 let mut alpha = 1.0 - self.n;
 
@@ -137,7 +139,7 @@ impl SceneTransition {
                 SceneEvent::None
             }
             TransitionMode::FadeOut(from, _to) => {
-                from.update(target);
+                from.update(target, delta);
 
                 let alpha = 0.0 + self.n;
 

@@ -3,6 +3,8 @@ mod iced_menu;
 
 mod neo_btn;
 
+use std::time::Duration;
+
 use bg_pipeline::BgPipeline;
 use iced_menu::IcedMenu;
 
@@ -21,7 +23,6 @@ pub enum Event {
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
-    last_update: std::time::Instant,
     iced_state: iced_native::program::State<IcedMenu>,
 }
 
@@ -37,7 +38,6 @@ impl MenuScene {
 
         let mut scene = Self {
             bg_pipeline: BgPipeline::new(&target.gpu),
-            last_update: std::time::Instant::now(),
             iced_state,
         };
 
@@ -51,10 +51,8 @@ impl Scene for MenuScene {
         SceneType::MainMenu
     }
 
-    fn update(&mut self, target: &mut Target) -> SceneEvent {
-        self.bg_pipeline
-            .update_time(&mut target.gpu, self.last_update.elapsed());
-        self.last_update = std::time::Instant::now();
+    fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
+        self.bg_pipeline.update_time(&mut target.gpu, delta);
 
         let outs = target.output_manager.borrow().get_outputs();
         self.iced_state

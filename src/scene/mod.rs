@@ -7,7 +7,7 @@ pub mod playing_scene;
 pub mod scene_transition;
 
 use crate::target::Target;
-
+use std::time::Duration;
 use winit::event::WindowEvent;
 
 pub trait Scene {
@@ -17,7 +17,7 @@ pub trait Scene {
     fn done(self: Box<Self>, _target: &mut Target) {}
 
     fn resize(&mut self, _target: &mut Target) {}
-    fn update(&mut self, target: &mut Target) -> SceneEvent;
+    fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent;
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView);
     fn window_event(&mut self, _target: &mut Target, _event: &WindowEvent) -> SceneEvent {
         SceneEvent::None

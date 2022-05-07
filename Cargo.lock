@@ -852,6 +852,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
+name = "fps_ticker"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe164905ff69757d4bdc4c61d7df2930e47e2f5b4a132895a8f995990b2b9219"
+
+[[package]]
 name = "futures"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1715,6 +1721,7 @@ dependencies = [
  "cpal",
  "env_logger 0.9.0",
  "fluidlite",
+ "fps_ticker",
  "futures",
  "iced_graphics",
  "iced_native",

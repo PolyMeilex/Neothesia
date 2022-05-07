@@ -23,8 +23,8 @@ impl TextRenderer {
         self.glyph_brush.queue(section);
     }
 
-    pub fn queue_fps(&mut self, fps: i32) {
-        let s = format!("FPS: {}", fps);
+    pub fn queue_fps(&mut self, fps: f64) {
+        let s = format!("FPS: {}", fps.round() as u32);
         let text = vec![wgpu_glyph::Text::new(&s)
             .with_color([1.0, 1.0, 1.0, 1.0])
             .with_scale(20.0)];

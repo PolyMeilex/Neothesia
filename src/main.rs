@@ -3,7 +3,6 @@
 use neothesia::{
     scene::{self, Scene, SceneEvent, SceneType},
     target::Target,
-    utils::timer::Fps,
 };
 
 use winit::{event::WindowEvent, event_loop::ControlFlow};
@@ -11,7 +10,7 @@ use winit::{event::WindowEvent, event_loop::ControlFlow};
 pub struct Neothesia {
     pub target: Target,
 
-    pub fps_timer: Fps,
+    pub fps_timer: fps_ticker::Fps,
     pub game_scene: scene::scene_transition::SceneTransition,
 }
 
@@ -27,7 +26,7 @@ impl Neothesia {
 
         Self {
             target,
-            fps_timer: Fps::new(),
+            fps_timer: Default::default(),
             game_scene,
         }
     }
@@ -122,14 +121,14 @@ impl Neothesia {
     }
 
     pub fn update(&mut self, control_flow: &mut ControlFlow) {
-        self.fps_timer.update();
+        self.fps_timer.tick();
 
         let event = self.game_scene.update(&mut self.target);
 
         self.scene_event(event, control_flow);
 
         #[cfg(debug_assertions)]
-        self.target.text_renderer.queue_fps(self.fps_timer.fps());
+        self.target.text_renderer.queue_fps(self.fps_timer.avg());
     }
 
     pub fn render(&mut self) {

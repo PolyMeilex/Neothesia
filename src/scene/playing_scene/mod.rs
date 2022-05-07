@@ -116,8 +116,7 @@ impl Scene for PlayingScene {
         let size_x = window_w * self.player.percentage();
 
         self.rectangle_pipeline.update_instance_buffer(
-            &mut target.gpu.encoder,
-            &target.gpu.device,
+            &target.gpu.queue,
             vec![QuadInstance {
                 position: [0.0, 0.0],
                 size: [size_x, 5.0],

@@ -66,25 +66,15 @@ impl<'a> QuadPipeline {
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
 
-    pub fn update_instance_buffer(
-        &mut self,
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        instances: Vec<QuadInstance>,
-    ) {
+    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: Vec<QuadInstance>) {
         if self.instances.data != instances {
             self.instances.data = instances;
-            self.instances.update(command_encoder, device);
+            self.instances.update(queue);
         }
     }
 
-    pub fn instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(
-        &mut self,
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        cb: F,
-    ) {
+    pub fn instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(&mut self, queue: &wgpu::Queue, cb: F) {
         cb(&mut self.instances.data);
-        self.instances.update(command_encoder, device);
+        self.instances.update(queue);
     }
 }

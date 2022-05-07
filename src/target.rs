@@ -64,8 +64,7 @@ impl Target {
         {
             let winit::dpi::LogicalSize { width, height } = self.window.state.logical_size;
             self.transform_uniform.data.update(width, height);
-            self.transform_uniform
-                .update(&mut self.gpu.encoder, &self.gpu.device);
+            self.transform_uniform.update(&self.gpu.queue);
         }
 
         #[cfg(feature = "app")]

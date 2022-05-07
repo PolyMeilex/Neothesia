@@ -1,5 +1,3 @@
-use wgpu::util::DeviceExt;
-
 use bytemuck::Pod;
 
 pub struct Instances<I>
@@ -28,19 +26,8 @@ where
         }
     }
 
-    pub fn update(&self, command_encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device) {
-        if self.data.is_empty() {
-            return;
-        }
-        let buffer_size = (self.data.len() * std::mem::size_of::<I>()) as u64;
-
-        let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&self.data),
-            usage: wgpu::BufferUsages::COPY_SRC,
-        });
-
-        command_encoder.copy_buffer_to_buffer(&staging_buffer, 0, &self.buffer, 0, buffer_size);
+    pub fn update(&self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
     }
 
     pub fn len(&self) -> u32 {

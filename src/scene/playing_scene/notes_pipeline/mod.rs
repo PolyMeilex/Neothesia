@@ -69,6 +69,7 @@ impl<'a> NotesPipeline {
             time_uniform,
         }
     }
+
     pub fn render(
         &'a self,
         transform_uniform: &'a Uniform<TransformUniform>,
@@ -85,13 +86,15 @@ impl<'a> NotesPipeline {
 
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
+
     pub fn update_instance_buffer(&mut self, gpu: &mut Gpu, instances: Vec<NoteInstance>) {
         self.instances.data = instances;
-        self.instances.update(&mut gpu.encoder, &gpu.device);
+        self.instances.update(&gpu.queue);
     }
+
     pub fn update_time(&mut self, gpu: &mut Gpu, time: f32) {
         self.time_uniform.data.time = time;
-        self.time_uniform.update(&mut gpu.encoder, &gpu.device);
+        self.time_uniform.update(&gpu.queue);
     }
 }
 

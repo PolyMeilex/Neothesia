@@ -47,8 +47,7 @@ impl PianoKeyboard {
         }
 
         quad_pipeline.update_instance_buffer(
-            &mut target.gpu.encoder,
-            &target.gpu.device,
+            &target.gpu.queue,
             // BG + keys
             vec![QuadInstance::default(); 1 + keys.len()],
         );
@@ -106,8 +105,7 @@ impl PianoKeyboard {
             }
         };
 
-        self.quad_pipeline
-            .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
+        self.quad_pipeline.instances_mut(&target.gpu.queue, updater);
     }
 
     pub fn update_note_events(&mut self, target: &mut Target, events: &[MidiEvent]) {
@@ -152,8 +150,7 @@ impl PianoKeyboard {
             }
         };
 
-        self.quad_pipeline
-            .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
+        self.quad_pipeline.instances_mut(&target.gpu.queue, updater);
     }
 
     pub fn reset_notes(&mut self, target: &mut Target) {
@@ -165,8 +162,7 @@ impl PianoKeyboard {
             }
         };
 
-        self.quad_pipeline
-            .instances_mut(&mut target.gpu.encoder, &target.gpu.device, updater);
+        self.quad_pipeline.instances_mut(&target.gpu.queue, updater);
     }
 
     pub fn render<'rpass>(

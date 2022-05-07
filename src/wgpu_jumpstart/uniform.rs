@@ -58,19 +58,8 @@ where
             bind_group,
         }
     }
-    pub fn update(&self, command_encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device) {
-        let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&[self.data]),
-            usage: wgpu::BufferUsages::COPY_SRC,
-        });
 
-        command_encoder.copy_buffer_to_buffer(
-            &staging_buffer,
-            0,
-            &self.buffer,
-            0,
-            std::mem::size_of::<U>() as wgpu::BufferAddress,
-        );
+    pub fn update(&self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[self.data]));
     }
 }

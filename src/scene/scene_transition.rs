@@ -57,7 +57,7 @@ impl SceneTransition {
             ..Default::default()
         };
         self.transition_pipeline
-            .update_instance_buffer(&mut gpu.encoder, &gpu.device, vec![rect]);
+            .update_instance_buffer(&gpu.queue, vec![rect]);
     }
 
     pub fn render_transition(&self, target: &mut Target, view: &wgpu::TextureView) {

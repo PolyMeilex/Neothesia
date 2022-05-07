@@ -70,7 +70,7 @@ impl<'a> BgPipeline {
 
     pub fn update_time(&mut self, gpu: &mut Gpu, delta: Duration) {
         self.time_uniform.data.time += delta.as_secs_f32();
-        self.time_uniform.update(&mut gpu.encoder, &gpu.device);
+        self.time_uniform.update(&gpu.queue);
     }
 }
 

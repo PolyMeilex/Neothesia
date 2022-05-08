@@ -155,7 +155,7 @@ fn main() {
                 let mapping = slice.get_mapped_range();
 
                 let data: &[u8] = &mapping;
-                encoder.encode_bgra(1920, 1080, data, false);
+                encoder.encode_rgba(1920, 1080, data, false);
                 print!(
                     "\r Encoded {} frames ({}s, {}%) in {}s",
                     n,

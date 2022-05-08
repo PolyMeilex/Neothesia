@@ -49,41 +49,37 @@ impl PlaybackState {
         }
     }
 
-    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Option<Vec<MidiEvent>> {
+    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Vec<MidiEvent> {
         if !self.is_paused {
             self.running += delta;
-
-            let events = track
-                .events
-                .iter()
-                .skip(self.seen_events)
-                .filter(|event| event.timestamp + self.leed_in <= self.running)
-                .map(|event| {
-                    let event = event.clone();
-                    self.seen_events += 1;
-                    event
-                })
-                .inspect(|event| match event.message {
-                    MidiMessage::NoteOn { key, .. } => {
-                        self.active_notes.insert(ActiveNote {
-                            key: key.as_int(),
-                            channel: event.channel,
-                        });
-                    }
-                    MidiMessage::NoteOff { key, .. } => {
-                        self.active_notes.remove(&ActiveNote {
-                            key: key.as_int(),
-                            channel: event.channel,
-                        });
-                    }
-                    _ => {}
-                })
-                .collect();
-
-            Some(events)
-        } else {
-            None
         }
+
+        track
+            .events
+            .iter()
+            .skip(self.seen_events)
+            .filter(|event| event.timestamp + self.leed_in <= self.running)
+            .map(|event| {
+                let event = event.clone();
+                self.seen_events += 1;
+                event
+            })
+            .inspect(|event| match event.message {
+                MidiMessage::NoteOn { key, .. } => {
+                    self.active_notes.insert(ActiveNote {
+                        key: key.as_int(),
+                        channel: event.channel,
+                    });
+                }
+                MidiMessage::NoteOff { key, .. } => {
+                    self.active_notes.remove(&ActiveNote {
+                        key: key.as_int(),
+                        channel: event.channel,
+                    });
+                }
+                _ => {}
+            })
+            .collect()
     }
 
     pub fn is_paused(&self) -> bool {

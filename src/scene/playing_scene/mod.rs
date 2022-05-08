@@ -8,10 +8,7 @@ mod notes;
 mod notes_pipeline;
 
 mod midi_player;
-use midi_player::MidiPlayer;
-
-mod rewind_controller;
-use rewind_controller::RewindController;
+use midi_player::{rewind_controler, MidiPlayer};
 
 use notes::Notes;
 
@@ -32,7 +29,6 @@ pub struct PlayingScene {
     rectangle_pipeline: QuadPipeline,
 
     text_toast: Option<Toast>,
-    rewind_controller: RewindController,
 }
 
 impl PlayingScene {
@@ -48,7 +44,6 @@ impl PlayingScene {
             piano_keyboard,
             notes,
             player,
-            rewind_controller: RewindController::None,
             rectangle_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
 
             text_toast: None,
@@ -122,7 +117,6 @@ impl Scene for PlayingScene {
             (width, height)
         };
 
-        self.rewind_controller.update(target, &mut self.player);
         let midi_events = self.player.update(target, delta);
 
         let size_x = window_w * self.player.percentage();
@@ -195,7 +189,11 @@ impl Scene for PlayingScene {
 
         match &event {
             KeyboardInput { input, .. } => {
-                self.rewind_keyboard_input(&mut target.output_manager, input);
+                rewind_controler::rewind_keyboard_input(
+                    &mut self.player,
+                    &mut target.output_manager,
+                    input,
+                );
 
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     match virtual_keycode {
@@ -260,10 +258,10 @@ impl Scene for PlayingScene {
                 }
             }
             MouseInput { state, button, .. } => {
-                self.rewind_mouse_input(target, state, button);
+                rewind_controler::rewind_mouse_input(&mut self.player, target, state, button);
             }
             CursorMoved { position, .. } => {
-                self.rewind_handle_cursor_moved(target, position);
+                rewind_controler::rewind_handle_cursor_moved(&mut self.player, target, position);
             }
             _ => {}
         }

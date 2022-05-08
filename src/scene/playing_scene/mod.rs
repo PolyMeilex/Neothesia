@@ -107,6 +107,10 @@ impl Scene for PlayingScene {
         self.player.start();
     }
 
+    fn done(mut self: Box<Self>, target: &mut Target) {
+        self.player.pause(&mut target.output_manager.borrow_mut());
+    }
+
     fn resize(&mut self, target: &mut Target) {
         self.piano_keyboard.resize(target);
         self.notes.resize(target, &self.piano_keyboard.keys);
@@ -191,7 +195,7 @@ impl Scene for PlayingScene {
 
         match &event {
             KeyboardInput { input, .. } => {
-                self.rewind_keyboard_input(input);
+                self.rewind_keyboard_input(&mut target.output_manager.borrow_mut(), input);
 
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     match virtual_keycode {
@@ -202,7 +206,8 @@ impl Scene for PlayingScene {
                         }
                         VirtualKeyCode::Space => {
                             if let ElementState::Released = input.state {
-                                self.player.pause_resume();
+                                self.player
+                                    .pause_resume(&mut target.output_manager.borrow_mut());
                             }
                         }
                         VirtualKeyCode::Up => {

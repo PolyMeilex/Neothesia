@@ -1,13 +1,11 @@
 use crate::{target::Target, OutputManager};
 use num::FromPrimitive;
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::time::Duration;
 
 use crate::midi_event::MidiEvent;
 
 pub struct MidiPlayer {
     playback: lib_midi::PlaybackState,
-
-    output_manager: Rc<RefCell<OutputManager>>,
 }
 
 impl MidiPlayer {
@@ -15,8 +13,6 @@ impl MidiPlayer {
         let midi_file = target.midi_file.as_ref().unwrap();
 
         let mut player = Self {
-            output_manager: target.output_manager.clone(),
-
             playback: lib_midi::PlaybackState::new(Duration::from_secs(3), &midi_file.merged_track),
         };
         player.update(target, Duration::ZERO);
@@ -48,7 +44,7 @@ impl MidiPlayer {
                             key.as_int(),
                             vel.as_int(),
                         );
-                        self.output_manager.borrow_mut().midi_event(event);
+                        target.output_manager.borrow_mut().midi_event(event);
                     }
                     MidiMessage::NoteOff { key, .. } => {
                         let event = midi::Message::NoteOff(
@@ -56,7 +52,7 @@ impl MidiPlayer {
                             key.as_int(),
                             0,
                         );
-                        self.output_manager.borrow_mut().midi_event(event);
+                        target.output_manager.borrow_mut().midi_event(event);
                     }
                     _ => {}
                 }
@@ -66,9 +62,9 @@ impl MidiPlayer {
         events
     }
 
-    fn clear(&mut self) {
+    fn clear(&mut self, output: &mut OutputManager) {
         for note in self.playback.active_notes().iter() {
-            self.output_manager.borrow_mut().midi_event(
+            output.midi_event(
                 MidiEvent::NoteOff {
                     channel: note.channel,
                     key: note.key,
@@ -84,16 +80,16 @@ impl MidiPlayer {
         self.resume();
     }
 
-    pub fn pause_resume(&mut self) {
+    pub fn pause_resume(&mut self, output: &mut OutputManager) {
         if self.playback.is_paused() {
             self.resume();
         } else {
-            self.pause();
+            self.pause(output);
         }
     }
 
-    pub fn pause(&mut self) {
-        self.clear();
+    pub fn pause(&mut self, output: &mut OutputManager) {
+        self.clear(output);
 
         self.playback.pause();
     }
@@ -111,7 +107,7 @@ impl MidiPlayer {
             std::mem::drop(events);
         }
 
-        self.clear();
+        self.clear(&mut target.output_manager.borrow_mut());
     }
 
     pub fn rewind(&mut self, target: &mut Target, delta: i64) {
@@ -145,12 +141,6 @@ impl MidiPlayer {
 
     pub fn is_paused(&self) -> bool {
         self.playback.is_paused()
-    }
-}
-
-impl Drop for MidiPlayer {
-    fn drop(&mut self) {
-        self.clear();
     }
 }
 

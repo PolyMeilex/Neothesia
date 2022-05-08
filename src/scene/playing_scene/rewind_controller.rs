@@ -3,6 +3,8 @@ use winit::{
     event::{ElementState, KeyboardInput, MouseButton, VirtualKeyCode},
 };
 
+use crate::OutputManager;
+
 use super::*;
 
 pub enum RewindController {
@@ -44,18 +46,18 @@ impl RewindController {
 }
 
 impl PlayingScene {
-    fn start_mouse_rewind(&mut self) {
+    fn start_mouse_rewind(&mut self, output: &mut OutputManager) {
         let was_paused = self.player.is_paused();
-        self.start_rewind(RewindController::Mouse { was_paused });
+        self.start_rewind(output, RewindController::Mouse { was_paused });
     }
 
-    fn start_keyboard_rewind(&mut self, speed: i64) {
+    fn start_keyboard_rewind(&mut self, output: &mut OutputManager, speed: i64) {
         let was_paused = self.player.is_paused();
-        self.start_rewind(RewindController::Keyboard { speed, was_paused });
+        self.start_rewind(output, RewindController::Keyboard { speed, was_paused });
     }
 
-    fn start_rewind(&mut self, controller: RewindController) {
-        self.player.pause();
+    fn start_rewind(&mut self, output: &mut OutputManager, controller: RewindController) {
+        self.player.pause(output);
         self.rewind_controller.start_rewind(controller);
     }
 
@@ -68,13 +70,13 @@ impl PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn rewind_keyboard_input(&mut self, input: &KeyboardInput) {
+    pub fn rewind_keyboard_input(&mut self, output: &mut OutputManager, input: &KeyboardInput) {
         if let Some(virtual_keycode) = input.virtual_keycode {
             match virtual_keycode {
                 VirtualKeyCode::Left => {
                     if let winit::event::ElementState::Pressed = input.state {
                         if !self.rewind_controller.is_rewinding() {
-                            self.start_keyboard_rewind(-100);
+                            self.start_keyboard_rewind(output, -100);
                         }
                     } else if let RewindController::Keyboard { .. } = &self.rewind_controller {
                         self.stop_rewind();
@@ -83,7 +85,7 @@ impl PlayingScene {
                 VirtualKeyCode::Right => {
                     if let winit::event::ElementState::Pressed = input.state {
                         if !self.rewind_controller.is_rewinding() {
-                            self.start_keyboard_rewind(100);
+                            self.start_keyboard_rewind(output, 100);
                         }
                     } else if let RewindController::Keyboard { .. } = &self.rewind_controller {
                         self.stop_rewind();
@@ -104,7 +106,7 @@ impl PlayingScene {
             let pos = &target.window.state.cursor_logical_position;
 
             if pos.y < 20.0 && !self.rewind_controller.is_rewinding() {
-                self.start_mouse_rewind();
+                self.start_mouse_rewind(&mut target.output_manager.borrow_mut());
 
                 let x = target.window.state.cursor_logical_position.x;
                 let w = target.window.state.logical_size.width;

@@ -54,7 +54,7 @@ impl Scene for MenuScene {
     fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
         self.bg_pipeline.update_time(&mut target.gpu, delta);
 
-        let outs = target.output_manager.borrow().get_outputs();
+        let outs = target.output_manager.get_outputs();
         self.iced_state
             .queue_message(iced_menu::Message::OutputsUpdated(outs));
 
@@ -182,9 +182,9 @@ impl Scene for MenuScene {
                                     target.state.config.play_along = program.play_along;
                                 }
 
-                                let output_manager = &mut *target.output_manager.borrow_mut();
-                                output_manager.selected_output_id = Some(program.out_carousel.id());
-                                output_manager.connect(out.0);
+                                target.output_manager.selected_output_id =
+                                    Some(program.out_carousel.id());
+                                target.output_manager.connect(out.0);
 
                                 return SceneEvent::MainMenu(Event::Play);
                             }

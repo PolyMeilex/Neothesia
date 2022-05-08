@@ -106,7 +106,7 @@ impl PlayingScene {
             let pos = &target.window.state.cursor_logical_position;
 
             if pos.y < 20.0 && !self.rewind_controller.is_rewinding() {
-                self.start_mouse_rewind(&mut target.output_manager.borrow_mut());
+                self.start_mouse_rewind(&mut target.output_manager);
 
                 let x = target.window.state.cursor_logical_position.x;
                 let w = target.window.state.logical_size.width;

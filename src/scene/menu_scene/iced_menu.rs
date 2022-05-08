@@ -73,12 +73,10 @@ impl IcedMenu {
     pub fn new(target: &mut Target) -> Self {
         let mut out_carousel = Carousel::new();
 
-        let output_manager = target.output_manager.borrow();
-
-        let outputs = output_manager.get_outputs();
+        let outputs = target.output_manager.get_outputs();
         out_carousel.update(outputs);
 
-        let out_id = output_manager.selected_output_id;
+        let out_id = target.output_manager.selected_output_id;
         if let Some(id) = out_id {
             out_carousel.select(id);
         }
@@ -99,7 +97,7 @@ impl IcedMenu {
             play_along: false,
 
             midi_file: target.midi_file.is_some(),
-            font_path: output_manager.selected_font_path.clone(),
+            font_path: target.output_manager.selected_font_path.clone(),
 
             out_carousel,
             in_carousel,

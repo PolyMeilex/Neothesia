@@ -44,7 +44,7 @@ impl MidiPlayer {
                             key.as_int(),
                             vel.as_int(),
                         );
-                        target.output_manager.borrow_mut().midi_event(event);
+                        target.output_manager.midi_event(event);
                     }
                     MidiMessage::NoteOff { key, .. } => {
                         let event = midi::Message::NoteOff(
@@ -52,7 +52,7 @@ impl MidiPlayer {
                             key.as_int(),
                             0,
                         );
-                        target.output_manager.borrow_mut().midi_event(event);
+                        target.output_manager.midi_event(event);
                     }
                     _ => {}
                 }
@@ -107,7 +107,7 @@ impl MidiPlayer {
             std::mem::drop(events);
         }
 
-        self.clear(&mut target.output_manager.borrow_mut());
+        self.clear(&mut target.output_manager);
     }
 
     pub fn rewind(&mut self, target: &mut Target, delta: i64) {

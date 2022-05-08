@@ -10,6 +10,9 @@ mod notes_pipeline;
 mod midi_player;
 use midi_player::MidiPlayer;
 
+mod rewind_controller;
+use rewind_controller::RewindController;
+
 use notes::Notes;
 
 use super::{Scene, SceneEvent, SceneType};
@@ -29,6 +32,7 @@ pub struct PlayingScene {
     rectangle_pipeline: QuadPipeline,
 
     text_toast: Option<Toast>,
+    rewind_controller: RewindController,
 }
 
 impl PlayingScene {
@@ -38,12 +42,13 @@ impl PlayingScene {
         let mut notes = Notes::new(target, &piano_keyboard.keys);
 
         let player = MidiPlayer::new(target);
-        notes.update(target, player.time());
+        notes.update(target, player.time_without_lead_in());
 
         Self {
             piano_keyboard,
             notes,
             player,
+            rewind_controller: RewindController::None,
             rectangle_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
 
             text_toast: None,
@@ -113,6 +118,7 @@ impl Scene for PlayingScene {
             (width, height)
         };
 
+        self.rewind_controller.update(target, &mut self.player);
         let midi_events = self.player.update(target, delta);
 
         let size_x = window_w * self.player.percentage();
@@ -133,8 +139,10 @@ impl Scene for PlayingScene {
             self.piano_keyboard.reset_notes(target);
         }
 
-        self.notes
-            .update(target, self.player.time() + target.config.playback_offset);
+        self.notes.update(
+            target,
+            self.player.time_without_lead_in() + target.config.playback_offset,
+        );
 
         // Toasts
         {
@@ -179,10 +187,12 @@ impl Scene for PlayingScene {
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
         use winit::event::WindowEvent::{CursorMoved, KeyboardInput, MouseInput};
-        use winit::event::{ElementState, MouseButton, VirtualKeyCode};
+        use winit::event::{ElementState, VirtualKeyCode};
 
         match &event {
             KeyboardInput { input, .. } => {
+                self.rewind_keyboard_input(input);
+
                 if let Some(virtual_keycode) = input.virtual_keycode {
                     match virtual_keycode {
                         VirtualKeyCode::Escape => {
@@ -195,50 +205,6 @@ impl Scene for PlayingScene {
                                 self.player.pause_resume();
                             }
                         }
-                        VirtualKeyCode::Left => {
-                            if let winit::event::ElementState::Pressed = input.state {
-                                let speed = if target.window.state.modifers_state.shift() {
-                                    -0.0001 * 50.0
-                                } else {
-                                    -0.0001
-                                };
-
-                                if !self.player.is_rewinding() {
-                                    self.player.start_rewind(RewindController::Keyboard {
-                                        speed,
-                                        was_paused: self.player.is_paused(),
-                                    });
-                                }
-                            } else {
-                                if let RewindController::Keyboard { .. } =
-                                    self.player.rewind_controller()
-                                {
-                                    self.player.stop_rewind();
-                                }
-                            }
-                        }
-                        VirtualKeyCode::Right => {
-                            if let winit::event::ElementState::Pressed = input.state {
-                                let speed = if target.window.state.modifers_state.shift() {
-                                    0.0001 * 50.0
-                                } else {
-                                    0.0001
-                                };
-
-                                if !self.player.is_rewinding() {
-                                    self.player.start_rewind(RewindController::Keyboard {
-                                        speed,
-                                        was_paused: self.player.is_paused(),
-                                    });
-                                }
-                            } else {
-                                if let RewindController::Keyboard { .. } =
-                                    self.player.rewind_controller()
-                                {
-                                    self.player.stop_rewind();
-                                }
-                            }
-                        }
                         VirtualKeyCode::Up => {
                             if let winit::event::ElementState::Released = input.state {
                                 if target.window.state.modifers_state.shift() {
@@ -247,25 +213,18 @@ impl Scene for PlayingScene {
                                     target.config.speed_multiplier += 0.1;
                                 }
 
-                                self.player
-                                    .set_percentage_time(target, self.player.percentage());
-
                                 self.speed_toast(target);
                             }
                         }
                         VirtualKeyCode::Down => {
                             if let winit::event::ElementState::Released = input.state {
-                                let new = if target.window.state.modifers_state.shift() {
-                                    target.config.speed_multiplier - 0.5
-                                } else {
-                                    target.config.speed_multiplier - 0.1
-                                };
-
-                                if new > 0.0 {
-                                    target.config.speed_multiplier = new;
-                                    self.player
-                                        .set_percentage_time(target, self.player.percentage());
-                                }
+                                target.config.speed_multiplier =
+                                    if target.window.state.modifers_state.shift() {
+                                        target.config.speed_multiplier - 0.5
+                                    } else {
+                                        target.config.speed_multiplier - 0.1
+                                    }
+                                    .max(0.0);
 
                                 self.speed_toast(target);
                             }
@@ -297,49 +256,15 @@ impl Scene for PlayingScene {
                 }
             }
             MouseInput { state, button, .. } => {
-                if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
-                    let pos = &target.window.state.cursor_logical_position;
-
-                    if pos.y < 20.0 {
-                        if !self.player.is_rewinding() {
-                            self.player.start_rewind(RewindController::Mouse {
-                                was_paused: self.player.is_paused(),
-                            });
-                        }
-                    }
-                } else if let (ElementState::Released, MouseButton::Left) = (state, button) {
-                    if let RewindController::Mouse { .. } = self.player.rewind_controller() {
-                        self.player.stop_rewind();
-                    }
-                }
+                self.rewind_mouse_input(target, state, button);
             }
             CursorMoved { position, .. } => {
-                if let RewindController::Mouse { .. } = self.player.rewind_controller() {
-                    let pos = position.to_logical::<f32>(target.window.state.scale_factor);
-                    let win_size = &target.window.state.logical_size;
-
-                    let x = pos.x;
-                    let p = x / win_size.width;
-                    log::debug!("Progressbar: x:{},p:{}", x, p);
-                    self.player.set_percentage_time(target, p);
-                }
+                self.rewind_handle_cursor_moved(target, position);
             }
             _ => {}
         }
 
         SceneEvent::None
-    }
-}
-
-pub enum RewindController {
-    Keyboard { speed: f32, was_paused: bool },
-    Mouse { was_paused: bool },
-    None,
-}
-
-impl RewindController {
-    pub fn is_rewinding(&self) -> bool {
-        !matches!(self, RewindController::None)
     }
 }
 

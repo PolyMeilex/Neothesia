@@ -1,6 +1,6 @@
 #![cfg(feature = "record")]
 
-use std::{default::Default, num::NonZeroU32};
+use std::{default::Default, num::NonZeroU32, time::Duration};
 
 use neothesia::{
     scene::{playing_scene::PlayingScene, Scene},
@@ -30,8 +30,8 @@ impl Recorder {
         self.target.gpu.submit().unwrap();
     }
 
-    pub fn update(&mut self) {
-        self.scene.update(&mut self.target);
+    pub fn update(&mut self, delta: Duration) {
+        self.scene.update(&mut self.target, delta);
     }
 
     pub fn render<'a>(
@@ -140,7 +140,8 @@ fn main() {
             .device
             .create_buffer(&output_buffer_desc);
 
-        recorder.update();
+        let frame_time = Duration::from_secs(1) / 60;
+        recorder.update(frame_time);
         recorder.render(&texture, &view, &texture_desc, &output_buffer);
 
         {

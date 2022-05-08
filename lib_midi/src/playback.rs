@@ -1,6 +1,14 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
+
+use midly::MidiMessage;
 
 use crate::{MidiEvent, MidiTrack};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ActiveNote {
+    pub key: u8,
+    pub channel: u8,
+}
 
 #[derive(Debug, Clone)]
 pub struct PlaybackState {
@@ -10,6 +18,8 @@ pub struct PlaybackState {
 
     first_note_start: Duration,
     last_note_end: Duration,
+
+    active_notes: HashSet<ActiveNote>,
 }
 
 impl PlaybackState {
@@ -32,6 +42,8 @@ impl PlaybackState {
 
             first_note_start,
             last_note_end,
+
+            active_notes: Default::default(),
         }
     }
 
@@ -48,6 +60,21 @@ impl PlaybackState {
                 self.seen_events += 1;
                 event
             })
+            .inspect(|event| match event.message {
+                MidiMessage::NoteOn { key, .. } => {
+                    self.active_notes.insert(ActiveNote {
+                        key: key.as_int(),
+                        channel: event.channel,
+                    });
+                }
+                MidiMessage::NoteOff { key, .. } => {
+                    self.active_notes.remove(&ActiveNote {
+                        key: key.as_int(),
+                        channel: event.channel,
+                    });
+                }
+                _ => {}
+            })
             .collect()
     }
 
@@ -61,7 +88,15 @@ impl PlaybackState {
     }
 
     pub fn percentage(&self) -> f32 {
-        self.running.as_secs_f32() / self.last_note_end.as_secs_f32()
+        self.running.as_secs_f32() / self.lenght().as_secs_f32()
+    }
+
+    pub fn active_notes(&self) -> &HashSet<ActiveNote> {
+        &self.active_notes
+    }
+
+    pub fn leed_in(&self) -> &Duration {
+        &self.leed_in
     }
 
     pub fn first_note_start(&self) -> &Duration {
@@ -72,8 +107,13 @@ impl PlaybackState {
         &self.last_note_end
     }
 
+    pub fn lenght(&self) -> Duration {
+        self.last_note_end + self.leed_in
+    }
+
     pub fn reset(&mut self) {
         self.running = Duration::ZERO;
         self.seen_events = 0;
+        self.active_notes.clear();
     }
 }

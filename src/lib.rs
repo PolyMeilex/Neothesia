@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_match, clippy::single_match)]
+
 pub mod wgpu_jumpstart;
 use target::Target;
 pub use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, Window};

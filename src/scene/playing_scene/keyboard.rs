@@ -1,8 +1,8 @@
-use crate::midi_event::MidiEvent;
 use crate::quad_pipeline::{QuadInstance, QuadPipeline};
 use crate::target::Target;
 use crate::TransformUniform;
 use crate::Uniform;
+use lib_midi::MidiEvent;
 
 mod range;
 use range::KeyboardRange;
@@ -119,25 +119,23 @@ impl PianoKeyboard {
 
         let updater = |instances: &mut Vec<QuadInstance>| {
             for e in events {
-                match *e {
-                    MidiEvent::NoteOn {
-                        key,
-                        channel,
-                        track_id,
-                        ..
-                    } => {
-                        if range.contains(key) && channel != 9 {
+                match e.message {
+                    lib_midi::midly::MidiMessage::NoteOn { key, .. } => {
+                        let key = key.as_int();
+
+                        if range.contains(key) && e.channel != 9 {
                             let id = key as usize - 21;
                             let key = &mut keys[id];
 
-                            let color = &color_schema[track_id as usize % color_schema.len()];
+                            let color = &color_schema[e.track_id % color_schema.len()];
                             key.set_color(color);
 
                             instances[key.instance_id] = QuadInstance::from(&*key);
                         }
                     }
-                    MidiEvent::NoteOff { key, channel } => {
-                        if range.contains(key) && channel != 9 {
+                    lib_midi::midly::MidiMessage::NoteOff { key, .. } => {
+                        let key = key.as_int();
+                        if range.contains(key) && e.channel != 9 {
                             let id = key as usize - 21;
                             let key = &mut keys[id];
 
@@ -146,7 +144,8 @@ impl PianoKeyboard {
                             instances[key.instance_id] = QuadInstance::from(&*key);
                         }
                     }
-                }
+                    _ => continue,
+                };
             }
         };
 

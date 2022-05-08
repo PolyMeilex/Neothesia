@@ -122,50 +122,47 @@ fn build_notes(
     for event in track_events.iter() {
         pulses += event.delta.as_int() as u64;
 
-        match event.kind {
-            TrackEventKind::Midi { channel, message } => {
-                let (key, velocity) = match message {
-                    MidiMessage::NoteOn { vel, key } => (key.as_int(), vel.as_int()),
-                    MidiMessage::NoteOff { vel, key } => (key.as_int(), vel.as_int()),
-                    _ => {
-                        continue;
-                    }
+        if let TrackEventKind::Midi { channel, message } = event.kind {
+            let (key, velocity) = match message {
+                MidiMessage::NoteOn { vel, key } => (key.as_int(), vel.as_int()),
+                MidiMessage::NoteOff { vel, key } => (key.as_int(), vel.as_int()),
+                _ => {
+                    continue;
+                }
+            };
+
+            if let Some(active) = active_notes.remove(&key) {
+                let start = active.pulses;
+                let end = pulses;
+
+                let start = pulses_to_duration(tempo_events, start, pulses_per_quarter_note);
+                let end = pulses_to_duration(tempo_events, end, pulses_per_quarter_note);
+                let duration = end - start;
+
+                let note = MidiNote {
+                    start,
+                    end,
+                    duration,
+                    note: key,
+                    velocity: active.velocity,
+                    channel: active.channel,
+                    track_id,
+                    id: notes.len(),
                 };
 
-                if let Some(active) = active_notes.remove(&key) {
-                    let start = active.pulses;
-                    let end = pulses;
-
-                    let start = pulses_to_duration(tempo_events, start, pulses_per_quarter_note);
-                    let end = pulses_to_duration(tempo_events, end, pulses_per_quarter_note);
-                    let duration = end - start;
-
-                    let note = MidiNote {
-                        start,
-                        end,
-                        duration,
-                        note: key,
-                        velocity: active.velocity,
-                        channel: active.channel,
-                        track_id,
-                        id: notes.len(),
-                    };
-
-                    notes.push(note);
-                }
-
-                let on = matches!(&message, MidiMessage::NoteOn { .. }) && velocity > 0;
-
-                if on {
-                    let note = NoteInfo {
-                        channel: channel.as_int(),
-                        velocity,
-                        pulses,
-                    };
-                    active_notes.insert(key, note);
-                }
+                notes.push(note);
             }
-            _ => {}
+
+            let on = matches!(&message, MidiMessage::NoteOn { .. }) && velocity > 0;
+
+            if on {
+                let note = NoteInfo {
+                    channel: channel.as_int(),
+                    velocity,
+                    pulses,
+                };
+                active_notes.insert(key, note);
+            }
         }
     }
 

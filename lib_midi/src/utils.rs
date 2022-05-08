@@ -77,17 +77,15 @@ impl TempoTrack {
             for event in events.iter() {
                 pulses += event.delta.as_int() as u64;
 
-                if let TrackEventKind::Meta(meta) = &event.kind {
-                    if let MetaMessage::Tempo(t) = &meta {
-                        tempo_events.insert(
-                            pulses,
-                            TempoEvent {
-                                absolute_pulses: pulses,
-                                relative_pulses: 0,
-                                tempo: t.as_int(),
-                            },
-                        );
-                    }
+                if let TrackEventKind::Meta(MetaMessage::Tempo(t)) = &event.kind {
+                    tempo_events.insert(
+                        pulses,
+                        TempoEvent {
+                            absolute_pulses: pulses,
+                            relative_pulses: 0,
+                            tempo: t.as_int(),
+                        },
+                    );
                 };
             }
         }

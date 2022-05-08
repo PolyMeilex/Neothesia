@@ -1,6 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::config::Config;
 use crate::ui::{self, TextRenderer};
 use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
@@ -15,7 +12,7 @@ pub struct Target {
     #[cfg(feature = "app")]
     pub iced_manager: ui::IcedManager,
 
-    pub output_manager: Rc<RefCell<OutputManager>>,
+    pub output_manager: OutputManager,
     pub midi_file: Option<lib_midi::Midi>,
     pub config: Config,
 }

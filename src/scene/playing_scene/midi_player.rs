@@ -1,60 +1,19 @@
-use super::RewindController;
-use crate::{target::Target, utils::timer::Timer, OutputManager};
-use lib_midi::MidiNote;
-use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Duration};
+use crate::{target::Target, OutputManager};
+use num::FromPrimitive;
+use std::time::Duration;
 
 use crate::midi_event::MidiEvent;
 
 pub struct MidiPlayer {
-    midi_first_note_start: f32,
-    midi_last_note_end: f32,
-    active_notes: HashMap<usize, MidiNote>,
-    timer: Timer,
-    percentage: f32,
-    time: f32,
-
-    rewind_controller: RewindController,
-    #[cfg(feature = "play_along")]
-    play_along_controller: Option<PlayAlongController>,
-
-    output_manager: Rc<RefCell<OutputManager>>,
+    playback: lib_midi::PlaybackState,
 }
 
 impl MidiPlayer {
     pub fn new(target: &mut Target) -> Self {
         let midi_file = target.midi_file.as_ref().unwrap();
 
-        let midi_first_note_start = if let Some(note) = midi_file.merged_track.notes.first() {
-            note.start.as_secs_f32()
-        } else {
-            0.0
-        };
-        let midi_last_note_end = if let Some(note) = midi_file.merged_track.notes.last() {
-            (note.start + note.duration).as_secs_f32()
-        } else {
-            0.0
-        };
-
-        #[cfg(feature = "play_along")]
-        let play_along_controller = if target.state.config.play_along {
-            PlayAlongController::new()
-        } else {
-            None
-        };
-
         let mut player = Self {
-            midi_first_note_start,
-            midi_last_note_end,
-            active_notes: HashMap::new(),
-            timer: Timer::new(),
-            percentage: 0.0,
-            time: 0.0,
-
-            rewind_controller: RewindController::None,
-            #[cfg(feature = "play_along")]
-            play_along_controller,
-
-            output_manager: target.output_manager.clone(),
+            playback: lib_midi::PlaybackState::new(Duration::from_secs(3), &midi_file.merged_track),
         };
         player.update(target, Duration::ZERO);
 
@@ -64,159 +23,124 @@ impl MidiPlayer {
     /// When playing: returns midi events
     ///
     /// When paused: returns None
-    pub fn update(&mut self, target: &mut Target, _delta: Duration) -> Option<Vec<MidiEvent>> {
-        if let RewindController::Keyboard { speed, .. } = self.rewind_controller {
-            let p = self.percentage + speed;
-            self.set_percentage_time(target, p);
-        }
+    pub fn update(
+        &mut self,
+        target: &mut Target,
+        delta: Duration,
+    ) -> Option<Vec<lib_midi::MidiEvent>> {
+        let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
 
-        self.timer.update();
-        let raw_time = self.timer.time().as_secs_f32() * target.config.speed_multiplier;
-        self.percentage = raw_time / (self.midi_last_note_end + 3.0);
-        self.time = raw_time + self.midi_first_note_start - 3.0;
+        let events = self
+            .playback
+            .update(&target.midi_file.as_mut().unwrap().merged_track, elapsed);
 
-        let mut events = Vec::new();
-
-        #[cfg(feature = "play_along")]
-        if let Some(controller) = &mut self.play_along_controller {
-            controller.update(target, &mut events, &mut self.timer);
-        }
-
-        if self.timer.is_paused() {
-            return Some(events);
-        };
-
-        let filtered: Vec<&lib_midi::MidiNote> = target
-            .midi_file
-            .as_ref()
-            .unwrap()
-            .merged_track
-            .notes
-            .iter()
-            .filter(|n| {
-                n.start.as_secs_f32() <= self.time
-                    && (n.start + n.duration).as_secs_f32() + 0.5 > self.time
-            })
-            .collect();
-
-        for n in filtered {
-            use std::collections::hash_map::Entry;
-
-            if (n.start + n.duration).as_secs_f32() >= self.time {
-                if let Entry::Vacant(_e) = self.active_notes.entry(n.id) {
-                    self.active_notes.insert(n.id, n.clone());
-
-                    #[cfg(feature = "play_along")]
-                    if let Some(controller) = &mut self.play_along_controller {
-                        controller.require_note(&mut self.timer, &n);
+        if let Some(events) = events.as_ref() {
+            events.iter().for_each(|event| {
+                use lib_midi::midly::MidiMessage;
+                match event.message {
+                    MidiMessage::NoteOn { key, vel } => {
+                        let event = midi::Message::NoteOn(
+                            midi::Channel::from_u8(event.channel).unwrap(),
+                            key.as_int(),
+                            vel.as_int(),
+                        );
+                        target.output_manager.midi_event(event);
                     }
-
-                    events.push(MidiEvent::NoteOn {
-                        channel: n.channel,
-                        track_id: n.track_id,
-                        key: n.note,
-                        vel: n.velocity,
-                    });
+                    MidiMessage::NoteOff { key, .. } => {
+                        let event = midi::Message::NoteOff(
+                            midi::Channel::from_u8(event.channel).unwrap(),
+                            key.as_int(),
+                            0,
+                        );
+                        target.output_manager.midi_event(event);
+                    }
+                    _ => {}
                 }
-            } else if let Entry::Occupied(_e) = self.active_notes.entry(n.id) {
-                self.active_notes.remove(&n.id);
-
-                events.push(MidiEvent::NoteOff {
-                    channel: n.channel,
-                    key: n.note,
-                });
-            }
+            });
         }
 
-        for event in events.iter() {
-            self.output_manager.borrow_mut().midi_event((*event).into());
-        }
-
-        Some(events)
+        events
     }
 
-    pub fn clear(&mut self) {
-        for (_, n) in self.active_notes.iter() {
-            self.output_manager.borrow_mut().midi_event(
+    fn clear(&mut self, output: &mut OutputManager) {
+        for note in self.playback.active_notes().iter() {
+            output.midi_event(
                 MidiEvent::NoteOff {
-                    channel: n.channel,
-                    key: n.note,
+                    channel: note.channel,
+                    key: note.key,
                 }
                 .into(),
             )
-        }
-
-        self.active_notes.clear();
-
-        #[cfg(feature = "play_along")]
-        if let Some(controller) = &mut self.play_along_controller {
-            controller.clear();
         }
     }
 }
 
 impl MidiPlayer {
     pub fn start(&mut self) {
-        self.timer.start();
+        self.resume();
     }
 
-    pub fn pause_resume(&mut self) {
-        self.clear();
-        self.timer.pause_resume();
-    }
-
-    pub fn start_rewind(&mut self, controller: RewindController) {
-        self.timer.pause();
-        self.rewind_controller = controller;
-    }
-
-    pub fn stop_rewind(&mut self) {
-        let controller = std::mem::replace(&mut self.rewind_controller, RewindController::None);
-
-        let was_paused = match controller {
-            RewindController::Keyboard { was_paused, .. } => was_paused,
-            RewindController::Mouse { was_paused } => was_paused,
-            RewindController::None => return,
-        };
-
-        if !was_paused {
-            self.timer.resume();
+    pub fn pause_resume(&mut self, output: &mut OutputManager) {
+        if self.playback.is_paused() {
+            self.resume();
+        } else {
+            self.pause(output);
         }
     }
 
-    pub fn set_time(&mut self, time: f32) {
-        self.timer.set_time(Duration::from_secs_f32(time));
-        self.clear();
+    pub fn pause(&mut self, output: &mut OutputManager) {
+        self.clear(output);
+
+        self.playback.pause();
+    }
+
+    pub fn resume(&mut self) {
+        self.playback.resume();
+    }
+
+    fn set_time(&mut self, target: &mut Target, time: Duration) {
+        self.playback.set_time(time);
+
+        if let Some(midi) = target.midi_file.as_ref() {
+            // Discard all of the events till that point
+            let events = self.playback.update(&midi.merged_track, Duration::ZERO);
+            std::mem::drop(events);
+        }
+
+        self.clear(&mut target.output_manager);
+    }
+
+    pub fn rewind(&mut self, target: &mut Target, delta: i64) {
+        let mut time = self.playback.time();
+
+        if delta < 0 {
+            let delta = Duration::from_millis((delta * -1) as u64);
+            time = time.saturating_sub(delta);
+        } else {
+            let delta = Duration::from_millis(delta as u64);
+            time = time.saturating_add(delta);
+        }
+
+        self.set_time(target, time);
     }
 
     pub fn set_percentage_time(&mut self, target: &mut Target, p: f32) {
-        self.set_time(p * (self.midi_last_note_end + 3.0) / target.config.speed_multiplier);
+        self.set_time(
+            target,
+            Duration::from_secs_f32((p * self.playback.lenght().as_secs_f32()).max(0.0)),
+        );
     }
 
     pub fn percentage(&self) -> f32 {
-        self.percentage
+        self.playback.percentage()
     }
 
-    pub fn time(&self) -> f32 {
-        self.time
-    }
-
-    pub fn rewind_controller(&self) -> &RewindController {
-        &self.rewind_controller
-    }
-
-    pub fn is_rewinding(&self) -> bool {
-        self.rewind_controller.is_rewinding()
+    pub fn time_without_lead_in(&self) -> f32 {
+        self.playback.time().as_secs_f32() - self.playback.leed_in().as_secs_f32()
     }
 
     pub fn is_paused(&self) -> bool {
-        self.timer.is_paused()
-    }
-}
-
-impl Drop for MidiPlayer {
-    fn drop(&mut self) {
-        self.clear();
+        self.playback.is_paused()
     }
 }
 

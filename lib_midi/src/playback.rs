@@ -1,15 +1,26 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
+
+use midly::MidiMessage;
 
 use crate::{MidiEvent, MidiTrack};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ActiveNote {
+    pub key: u8,
+    pub channel: u8,
+}
+
 #[derive(Debug, Clone)]
 pub struct PlaybackState {
+    is_paused: bool,
     running: Duration,
     leed_in: Duration,
     seen_events: usize,
 
     first_note_start: Duration,
     last_note_end: Duration,
+
+    active_notes: HashSet<ActiveNote>,
 }
 
 impl PlaybackState {
@@ -26,29 +37,65 @@ impl PlaybackState {
         };
 
         Self {
+            is_paused: false,
             running: Duration::ZERO,
             leed_in,
             seen_events: 0,
 
             first_note_start,
             last_note_end,
+
+            active_notes: Default::default(),
         }
     }
 
-    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Vec<MidiEvent> {
-        self.running += delta;
+    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Option<Vec<MidiEvent>> {
+        if !self.is_paused {
+            self.running += delta;
 
-        track
-            .events
-            .iter()
-            .skip(self.seen_events)
-            .filter(|event| event.timestamp + self.leed_in <= self.running)
-            .map(|event| {
-                let event = event.clone();
-                self.seen_events += 1;
-                event
-            })
-            .collect()
+            let events = track
+                .events
+                .iter()
+                .skip(self.seen_events)
+                .filter(|event| event.timestamp + self.leed_in <= self.running)
+                .map(|event| {
+                    let event = event.clone();
+                    self.seen_events += 1;
+                    event
+                })
+                .inspect(|event| match event.message {
+                    MidiMessage::NoteOn { key, .. } => {
+                        self.active_notes.insert(ActiveNote {
+                            key: key.as_int(),
+                            channel: event.channel,
+                        });
+                    }
+                    MidiMessage::NoteOff { key, .. } => {
+                        self.active_notes.remove(&ActiveNote {
+                            key: key.as_int(),
+                            channel: event.channel,
+                        });
+                    }
+                    _ => {}
+                })
+                .collect();
+
+            Some(events)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.is_paused
+    }
+
+    pub fn pause(&mut self) {
+        self.is_paused = true;
+    }
+
+    pub fn resume(&mut self) {
+        self.is_paused = false;
     }
 
     pub fn time(&self) -> Duration {
@@ -61,7 +108,15 @@ impl PlaybackState {
     }
 
     pub fn percentage(&self) -> f32 {
-        self.running.as_secs_f32() / self.last_note_end.as_secs_f32()
+        self.running.as_secs_f32() / self.lenght().as_secs_f32()
+    }
+
+    pub fn active_notes(&self) -> &HashSet<ActiveNote> {
+        &self.active_notes
+    }
+
+    pub fn leed_in(&self) -> &Duration {
+        &self.leed_in
     }
 
     pub fn first_note_start(&self) -> &Duration {
@@ -72,8 +127,13 @@ impl PlaybackState {
         &self.last_note_end
     }
 
+    pub fn lenght(&self) -> Duration {
+        self.last_note_end + self.leed_in
+    }
+
     pub fn reset(&mut self) {
         self.running = Duration::ZERO;
         self.seen_events = 0;
+        self.active_notes.clear();
     }
 }

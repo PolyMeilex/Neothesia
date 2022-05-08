@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use crate::quad_pipeline::QuadPipeline;
-use crate::Gpu;
 use crate::{
     quad_pipeline::QuadInstance,
-    scene::{Scene, SceneEvent, SceneType},
+    quad_pipeline::QuadPipeline,
+    scene::{Scene, SceneType},
     target::Target,
+    Gpu,
 };
 
 use winit::event::WindowEvent;
@@ -104,7 +104,7 @@ impl SceneTransition {
             _ => {}
         }
     }
-    pub fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
+    pub fn update(&mut self, target: &mut Target, delta: Duration) {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.update(target, delta),
             TransitionMode::FadeIn(scene) => {
@@ -136,7 +136,6 @@ impl SceneTransition {
                     (width, height)
                 };
                 self.set_transition_alpha(&mut target.gpu, alpha, window_w, window_h);
-                SceneEvent::None
             }
             TransitionMode::FadeOut(from, _to) => {
                 from.update(target, delta);
@@ -165,9 +164,8 @@ impl SceneTransition {
                     (width, height)
                 };
                 self.set_transition_alpha(&mut target.gpu, alpha, window_w, window_h);
-                SceneEvent::None
             }
-            _ => SceneEvent::None,
+            _ => {}
         }
     }
     pub fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
@@ -180,18 +178,18 @@ impl SceneTransition {
 
         self.render_transition(target, view);
     }
-    pub fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
+    pub fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.window_event(target, event),
-            _ => SceneEvent::None,
+            _ => {}
         }
     }
-    pub fn main_events_cleared(&mut self, target: &mut Target) -> SceneEvent {
+    pub fn main_events_cleared(&mut self, target: &mut Target) {
         match &mut self.mode {
             TransitionMode::FadeIn(scene) => scene.main_events_cleared(target),
             TransitionMode::FadeOut(from, _to) => from.main_events_cleared(target),
             TransitionMode::Static(scene) => scene.main_events_cleared(target),
-            _ => SceneEvent::None,
+            _ => {}
         }
     }
 }

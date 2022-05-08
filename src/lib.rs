@@ -24,7 +24,14 @@ pub mod midi_event;
 use futures::Future;
 use winit::event_loop::EventLoop;
 
-pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<()>, Target) {
+#[derive(Debug)]
+pub enum NeothesiaEvent {
+    #[cfg(feature = "app")]
+    MainMenu(crate::scene::menu_scene::Event),
+    GoBack,
+}
+
+pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Target) {
     #[cfg(not(target_arch = "wasm32"))]
     {
         use env_logger::Env;
@@ -37,7 +44,8 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<()>, Target) {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     }
 
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::with_user_event();
+    let proxy = event_loop.create_proxy();
 
     let builder = builder.with_title("Neothesia");
 
@@ -51,7 +59,7 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<()>, Target) {
 
     let (window, gpu) = block_on(Window::new(winit_window)).unwrap();
 
-    let target = Target::new(window, gpu);
+    let target = Target::new(window, proxy, gpu);
 
     (event_loop, target)
 }

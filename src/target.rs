@@ -1,7 +1,9 @@
+use winit::event_loop::EventLoopProxy;
+
 use crate::config::Config;
 use crate::ui::{self, TextRenderer};
 use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
-use crate::{OutputManager, TransformUniform};
+use crate::{NeothesiaEvent, OutputManager, TransformUniform};
 
 pub struct Target {
     pub window: Window,
@@ -15,10 +17,12 @@ pub struct Target {
     pub output_manager: OutputManager,
     pub midi_file: Option<lib_midi::Midi>,
     pub config: Config,
+
+    pub proxy: EventLoopProxy<NeothesiaEvent>,
 }
 
 impl Target {
-    pub fn new(window: Window, gpu: Gpu) -> Self {
+    pub fn new(window: Window, proxy: EventLoopProxy<NeothesiaEvent>, gpu: Gpu) -> Self {
         let transform_uniform = Uniform::new(
             &gpu.device,
             TransformUniform::default(),
@@ -54,6 +58,7 @@ impl Target {
             output_manager: Default::default(),
             midi_file,
             config: Config::new(),
+            proxy,
         }
     }
 

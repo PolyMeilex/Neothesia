@@ -17,14 +17,10 @@ pub trait Scene {
     fn done(self: Box<Self>, _target: &mut Target) {}
 
     fn resize(&mut self, _target: &mut Target) {}
-    fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent;
+    fn update(&mut self, target: &mut Target, delta: Duration);
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView);
-    fn window_event(&mut self, _target: &mut Target, _event: &WindowEvent) -> SceneEvent {
-        SceneEvent::None
-    }
-    fn main_events_cleared(&mut self, _target: &mut Target) -> SceneEvent {
-        SceneEvent::None
-    }
+    fn window_event(&mut self, _target: &mut Target, _event: &WindowEvent) {}
+    fn main_events_cleared(&mut self, _target: &mut Target) {}
 }
 
 #[derive(Debug)]
@@ -32,12 +28,4 @@ pub enum SceneType {
     MainMenu,
     Playing,
     Transition,
-}
-
-#[derive(Debug)]
-pub enum SceneEvent {
-    #[cfg(feature = "app")]
-    MainMenu(menu_scene::Event),
-    GoBack,
-    None,
 }

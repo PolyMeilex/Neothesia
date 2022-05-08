@@ -11,9 +11,10 @@ use iced_menu::IcedMenu;
 use winit::event::WindowEvent;
 
 use crate::{
-    scene::{Scene, SceneEvent, SceneType},
+    scene::{Scene, SceneType},
     target::Target,
     ui::{iced_conversion, DummyClipboard},
+    NeothesiaEvent,
 };
 
 #[derive(Debug)]
@@ -51,14 +52,12 @@ impl Scene for MenuScene {
         SceneType::MainMenu
     }
 
-    fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
+    fn update(&mut self, target: &mut Target, delta: Duration) {
         self.bg_pipeline.update_time(&mut target.gpu, delta);
 
         let outs = target.output_manager.get_outputs();
         self.iced_state
             .queue_message(iced_menu::Message::OutputsUpdated(outs));
-
-        SceneEvent::None
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
@@ -100,7 +99,7 @@ impl Scene for MenuScene {
         })
     }
 
-    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
         use winit::event::{ElementState, ModifiersState, VirtualKeyCode};
 
         let modifiers = ModifiersState::default();
@@ -137,11 +136,9 @@ impl Scene for MenuScene {
                 }
             }
         }
-
-        SceneEvent::None
     }
 
-    fn main_events_cleared(&mut self, target: &mut Target) -> SceneEvent {
+    fn main_events_cleared(&mut self, target: &mut Target) {
         if !self.iced_state.is_queue_empty() {
             let event = self.iced_state.update(
                 target.iced_manager.viewport.logical_size(),
@@ -186,10 +183,13 @@ impl Scene for MenuScene {
                                     Some(program.out_carousel.id());
                                 target.output_manager.connect(out.0);
 
-                                return SceneEvent::MainMenu(Event::Play);
+                                target
+                                    .proxy
+                                    .send_event(NeothesiaEvent::MainMenu(Event::Play))
+                                    .unwrap();
                             }
                             iced_menu::Message::OutputAppExit => {
-                                return SceneEvent::GoBack;
+                                target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
                             }
                             _ => {}
                         }
@@ -197,7 +197,5 @@ impl Scene for MenuScene {
                 }
             }
         }
-
-        SceneEvent::None
     }
 }

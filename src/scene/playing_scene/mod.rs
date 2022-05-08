@@ -12,12 +12,13 @@ use midi_player::{rewind_controler, MidiPlayer};
 
 use notes::Notes;
 
-use super::{Scene, SceneEvent, SceneType};
+use super::{Scene, SceneType};
 
 use crate::{
     quad_pipeline::{QuadInstance, QuadPipeline},
     target::Target,
     wgpu_jumpstart::Color,
+    NeothesiaEvent,
 };
 
 use winit::event::WindowEvent;
@@ -111,7 +112,7 @@ impl Scene for PlayingScene {
         self.notes.resize(target, &self.piano_keyboard.keys);
     }
 
-    fn update(&mut self, target: &mut Target, delta: Duration) -> SceneEvent {
+    fn update(&mut self, target: &mut Target, delta: Duration) {
         let (window_w, _) = {
             let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)
@@ -150,8 +151,6 @@ impl Scene for PlayingScene {
                 None
             };
         }
-
-        SceneEvent::None
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
@@ -181,7 +180,7 @@ impl Scene for PlayingScene {
             .render(&target.transform_uniform, &mut render_pass)
     }
 
-    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {
+    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
         use winit::event::WindowEvent::{CursorMoved, KeyboardInput, MouseInput};
         use winit::event::{ElementState, VirtualKeyCode};
 
@@ -197,7 +196,7 @@ impl Scene for PlayingScene {
                     match virtual_keycode {
                         VirtualKeyCode::Escape => {
                             if let ElementState::Released = input.state {
-                                return SceneEvent::GoBack;
+                                target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
                             }
                         }
                         VirtualKeyCode::Space => {
@@ -263,8 +262,6 @@ impl Scene for PlayingScene {
             }
             _ => {}
         }
-
-        SceneEvent::None
     }
 }
 

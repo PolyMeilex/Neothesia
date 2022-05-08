@@ -1,8 +1,9 @@
 #![cfg(feature = "app")]
 
 use neothesia::{
-    scene::{self, Scene, SceneEvent, SceneType},
+    scene::{self, Scene, SceneType},
     target::Target,
+    NeothesiaEvent,
 };
 
 use winit::{event::WindowEvent, event_loop::ControlFlow};
@@ -84,13 +85,12 @@ impl Neothesia {
             _ => {}
         }
 
-        let scene_event = self.game_scene.window_event(&mut self.target, event);
-        self.scene_event(scene_event, control_flow);
+        self.game_scene.window_event(&mut self.target, event);
     }
 
-    pub fn scene_event(&mut self, event: SceneEvent, control_flow: &mut ControlFlow) {
+    pub fn scene_event(&mut self, event: &NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
-            SceneEvent::MainMenu(event) => match event {
+            NeothesiaEvent::MainMenu(event) => match event {
                 scene::menu_scene::Event::Play => {
                     let to = |target: &mut Target| -> Box<dyn Scene> {
                         let state = scene::playing_scene::PlayingScene::new(target);
@@ -102,7 +102,7 @@ impl Neothesia {
                     self.game_scene.transition_to(to);
                 }
             },
-            SceneEvent::GoBack => match self.game_scene.scene_type() {
+            NeothesiaEvent::GoBack => match self.game_scene.scene_type() {
                 SceneType::MainMenu => {
                     *control_flow = ControlFlow::Exit;
                 }
@@ -118,19 +118,16 @@ impl Neothesia {
                 }
                 SceneType::Transition => {}
             },
-            _ => {}
         }
     }
 
-    pub fn update(&mut self, control_flow: &mut ControlFlow) {
+    pub fn update(&mut self) {
         self.fps_timer.tick();
 
         let delta = self.last_time.elapsed();
         self.last_time = std::time::Instant::now();
 
-        let event = self.game_scene.update(&mut self.target, delta);
-
-        self.scene_event(event, control_flow);
+        self.game_scene.update(&mut self.target, delta);
 
         #[cfg(debug_assertions)]
         self.target.text_renderer.queue_fps(self.fps_timer.avg());
@@ -182,11 +179,13 @@ fn main() {
 
         use winit::event::Event;
         match &event {
-            Event::MainEventsCleared => {
-                let event = app.game_scene.main_events_cleared(&mut app.target);
+            Event::UserEvent(event) => {
                 app.scene_event(event, control_flow);
+            }
+            Event::MainEventsCleared => {
+                app.game_scene.main_events_cleared(&mut app.target);
 
-                app.update(control_flow);
+                app.update();
                 app.target.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {

@@ -16,19 +16,9 @@ impl Gpu {
     pub async fn for_window(
         window: &winit::window::Window,
     ) -> Result<(Self, wgpu::Surface), GpuInitError> {
-        let backend = if let Ok(backend) = std::env::var("WGPU_BACKEND") {
-            match backend.to_lowercase().as_str() {
-                "vulkan" => wgpu::Backends::VULKAN,
-                "metal" => wgpu::Backends::METAL,
-                "dx12" => wgpu::Backends::DX12,
-                "dx11" => wgpu::Backends::DX11,
-                "gl" => wgpu::Backends::GL,
-                "webgpu" => wgpu::Backends::BROWSER_WEBGPU,
-                other => panic!("Unknown backend: {}", other),
-            }
-        } else {
-            wgpu::Backends::all()
-        };
+        let backend = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY);
+        let power_preference = wgpu::util::power_preference_from_env()
+            .unwrap_or(wgpu::PowerPreference::HighPerformance);
 
         let instance = wgpu::Instance::new(backend);
 
@@ -36,7 +26,7 @@ impl Gpu {
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::HighPerformance,
+                power_preference,
                 compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
             })

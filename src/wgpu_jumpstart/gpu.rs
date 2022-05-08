@@ -16,7 +16,7 @@ impl Gpu {
     pub async fn for_window(
         window: &winit::window::Window,
     ) -> Result<(Self, wgpu::Surface), GpuInitError> {
-        let backend = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY);
+        let backend = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
         let power_preference = wgpu::util::power_preference_from_env()
             .unwrap_or(wgpu::PowerPreference::HighPerformance);
 

@@ -5,8 +5,6 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 use crate::midi_event::MidiEvent;
 
 pub struct MidiPlayer {
-    paused: bool,
-
     playback: lib_midi::PlaybackState,
 
     output_manager: Rc<RefCell<OutputManager>>,
@@ -17,8 +15,6 @@ impl MidiPlayer {
         let midi_file = target.midi_file.as_ref().unwrap();
 
         let mut player = Self {
-            paused: false,
-
             output_manager: target.output_manager.clone(),
 
             playback: lib_midi::PlaybackState::new(Duration::from_secs(3), &midi_file.merged_track),
@@ -36,40 +32,38 @@ impl MidiPlayer {
         target: &mut Target,
         delta: Duration,
     ) -> Option<Vec<lib_midi::MidiEvent>> {
-        if self.paused {
-            return None;
-        }
-
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
 
         let events = self
             .playback
             .update(&target.midi_file.as_mut().unwrap().merged_track, elapsed);
 
-        events.iter().for_each(|event| {
-            use lib_midi::midly::MidiMessage;
-            match event.message {
-                MidiMessage::NoteOn { key, vel } => {
-                    let event = midi::Message::NoteOn(
-                        midi::Channel::from_u8(event.channel).unwrap(),
-                        key.as_int(),
-                        vel.as_int(),
-                    );
-                    self.output_manager.borrow_mut().midi_event(event);
+        if let Some(events) = events.as_ref() {
+            events.iter().for_each(|event| {
+                use lib_midi::midly::MidiMessage;
+                match event.message {
+                    MidiMessage::NoteOn { key, vel } => {
+                        let event = midi::Message::NoteOn(
+                            midi::Channel::from_u8(event.channel).unwrap(),
+                            key.as_int(),
+                            vel.as_int(),
+                        );
+                        self.output_manager.borrow_mut().midi_event(event);
+                    }
+                    MidiMessage::NoteOff { key, .. } => {
+                        let event = midi::Message::NoteOff(
+                            midi::Channel::from_u8(event.channel).unwrap(),
+                            key.as_int(),
+                            0,
+                        );
+                        self.output_manager.borrow_mut().midi_event(event);
+                    }
+                    _ => {}
                 }
-                MidiMessage::NoteOff { key, .. } => {
-                    let event = midi::Message::NoteOff(
-                        midi::Channel::from_u8(event.channel).unwrap(),
-                        key.as_int(),
-                        0,
-                    );
-                    self.output_manager.borrow_mut().midi_event(event);
-                }
-                _ => {}
-            }
-        });
+            });
+        }
 
-        Some(events)
+        events
     }
 
     fn clear(&mut self) {
@@ -87,23 +81,25 @@ impl MidiPlayer {
 
 impl MidiPlayer {
     pub fn start(&mut self) {
-        self.paused = false;
+        self.resume();
     }
 
     pub fn pause_resume(&mut self) {
-        self.clear();
-
-        self.paused = !self.paused;
+        if self.playback.is_paused() {
+            self.resume();
+        } else {
+            self.pause();
+        }
     }
 
     pub fn pause(&mut self) {
         self.clear();
 
-        self.paused = true;
+        self.playback.pause();
     }
 
     pub fn resume(&mut self) {
-        self.paused = false;
+        self.playback.resume();
     }
 
     fn set_time(&mut self, target: &mut Target, time: Duration) {
@@ -148,7 +144,7 @@ impl MidiPlayer {
     }
 
     pub fn is_paused(&self) -> bool {
-        self.paused
+        self.playback.is_paused()
     }
 }
 

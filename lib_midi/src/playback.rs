@@ -12,6 +12,7 @@ pub struct ActiveNote {
 
 #[derive(Debug, Clone)]
 pub struct PlaybackState {
+    is_paused: bool,
     running: Duration,
     leed_in: Duration,
     seen_events: usize,
@@ -36,6 +37,7 @@ impl PlaybackState {
         };
 
         Self {
+            is_paused: false,
             running: Duration::ZERO,
             leed_in,
             seen_events: 0,
@@ -47,35 +49,53 @@ impl PlaybackState {
         }
     }
 
-    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Vec<MidiEvent> {
-        self.running += delta;
+    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Option<Vec<MidiEvent>> {
+        if !self.is_paused {
+            self.running += delta;
 
-        track
-            .events
-            .iter()
-            .skip(self.seen_events)
-            .filter(|event| event.timestamp + self.leed_in <= self.running)
-            .map(|event| {
-                let event = event.clone();
-                self.seen_events += 1;
-                event
-            })
-            .inspect(|event| match event.message {
-                MidiMessage::NoteOn { key, .. } => {
-                    self.active_notes.insert(ActiveNote {
-                        key: key.as_int(),
-                        channel: event.channel,
-                    });
-                }
-                MidiMessage::NoteOff { key, .. } => {
-                    self.active_notes.remove(&ActiveNote {
-                        key: key.as_int(),
-                        channel: event.channel,
-                    });
-                }
-                _ => {}
-            })
-            .collect()
+            let events = track
+                .events
+                .iter()
+                .skip(self.seen_events)
+                .filter(|event| event.timestamp + self.leed_in <= self.running)
+                .map(|event| {
+                    let event = event.clone();
+                    self.seen_events += 1;
+                    event
+                })
+                .inspect(|event| match event.message {
+                    MidiMessage::NoteOn { key, .. } => {
+                        self.active_notes.insert(ActiveNote {
+                            key: key.as_int(),
+                            channel: event.channel,
+                        });
+                    }
+                    MidiMessage::NoteOff { key, .. } => {
+                        self.active_notes.remove(&ActiveNote {
+                            key: key.as_int(),
+                            channel: event.channel,
+                        });
+                    }
+                    _ => {}
+                })
+                .collect();
+
+            Some(events)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.is_paused
+    }
+
+    pub fn pause(&mut self) {
+        self.is_paused = true;
+    }
+
+    pub fn resume(&mut self) {
+        self.is_paused = false;
     }
 
     pub fn time(&self) -> Duration {

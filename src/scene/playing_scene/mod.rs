@@ -142,25 +142,23 @@ impl Scene for PlayingScene {
             self.player.time_without_lead_in() + target.config.playback_offset,
         );
 
-        // Toasts
-        {
-            if let Some(mut toast) = self.text_toast.take() {
-                self.text_toast = if toast.draw(target) {
-                    Some(toast)
-                } else {
-                    None
-                };
-            }
+        // Toast
+        if let Some(mut toast) = self.text_toast.take() {
+            self.text_toast = if toast.draw(target) {
+                Some(toast)
+            } else {
+                None
+            };
         }
 
         SceneEvent::None
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
-        let transform_uniform = &target.transform_uniform;
-        let encoder = &mut target.gpu.encoder;
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut render_pass = target
+            .gpu
+            .encoder
+            .begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[wgpu::RenderPassColorAttachment {
                     view,
@@ -173,14 +171,14 @@ impl Scene for PlayingScene {
                 depth_stencil_attachment: None,
             });
 
-            self.notes.render(transform_uniform, &mut render_pass);
+        self.notes
+            .render(&target.transform_uniform, &mut render_pass);
 
-            self.piano_keyboard
-                .render(transform_uniform, &mut render_pass);
+        self.piano_keyboard
+            .render(&target.transform_uniform, &mut render_pass);
 
-            self.rectangle_pipeline
-                .render(&target.transform_uniform, &mut render_pass)
-        }
+        self.rectangle_pipeline
+            .render(&target.transform_uniform, &mut render_pass)
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) -> SceneEvent {

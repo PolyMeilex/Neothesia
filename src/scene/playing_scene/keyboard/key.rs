@@ -7,6 +7,7 @@ pub struct Key {
     pub(super) pos: (f32, f32),
     pub(super) size: (f32, f32),
     pub(super) is_black: bool,
+    pub(super) note_id: u8,
 
     pub(super) color: Color,
 }
@@ -18,6 +19,7 @@ impl Key {
             pos: (0.0, 0.0),
             size: (0.0, 0.0),
             is_black,
+            note_id: 0,
 
             color: if is_black {
                 Color::new(0.0, 0.0, 0.0, 1.0)

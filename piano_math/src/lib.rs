@@ -41,6 +41,10 @@ impl Key {
     pub fn kind(&self) -> &KeyKind {
         &self.kind
     }
+
+    pub fn note_id(&self) -> u8 {
+        self.note_id
+    }
 }
 
 struct Octave {

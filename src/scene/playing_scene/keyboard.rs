@@ -8,6 +8,7 @@ use piano_math::range::KeyboardRange;
 
 mod key;
 pub use key::Key;
+use wgpu_glyph::Section;
 
 pub struct PianoKeyboard {
     pub quad_pipeline: QuadPipeline,
@@ -88,6 +89,7 @@ impl PianoKeyboard {
 
                 for (id, key) in keyboard.keys.iter().enumerate() {
                     self.keys[id].pos = (key.x(), y);
+                    self.keys[id].note_id = key.note_id();
 
                     match key.kind() {
                         piano_math::KeyKind::Neutral => {
@@ -103,6 +105,26 @@ impl PianoKeyboard {
             });
 
         Ok(())
+    }
+
+    pub fn update(&mut self, target: &mut Target) {
+        for (id, key) in self.keys.iter().filter(|key| key.note_id == 0).enumerate() {
+            let (x, y) = key.pos;
+            let (w, h) = key.size;
+
+            let size = w * 0.7;
+
+            target.text_renderer.queue_text(Section {
+                screen_position: (x + w / 2.0, y + h - size * 1.3),
+                text: vec![wgpu_glyph::Text::new(&format!("C{}", id + 1))
+                    .with_color([0.6, 0.6, 0.6, 1.0])
+                    .with_scale(size)],
+                bounds: (w, f32::INFINITY),
+                layout: wgpu_glyph::Layout::default()
+                    .h_align(wgpu_glyph::HorizontalAlign::Center)
+                    .v_align(wgpu_glyph::VerticalAlign::Top),
+            })
+        }
     }
 
     pub fn update_note_events(&mut self, target: &mut Target, events: &[MidiEvent]) {

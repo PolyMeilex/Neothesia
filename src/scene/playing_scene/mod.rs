@@ -143,6 +143,8 @@ impl Scene for PlayingScene {
             self.player.time_without_lead_in() + target.config.playback_offset,
         );
 
+        self.piano_keyboard.update(target);
+
         // Toast
         if let Some(mut toast) = self.text_toast.take() {
             self.text_toast = if toast.draw(target) {

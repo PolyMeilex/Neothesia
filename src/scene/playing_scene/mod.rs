@@ -108,7 +108,7 @@ impl Scene for PlayingScene {
     }
 
     fn resize(&mut self, target: &mut Target) {
-        self.piano_keyboard.resize(target);
+        self.piano_keyboard.resize(target).ok();
         self.notes.resize(target, &self.piano_keyboard.keys);
     }
 

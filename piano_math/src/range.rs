@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
-use std::ops::RangeInclusive;
+use std::ops::{Range, RangeBounds};
 
 const KEY_CIS: u8 = 1;
 const KEY_DIS: u8 = 3;
 const KEY_FIS: u8 = 6;
 const KEY_GIS: u8 = 8;
 const KEY_AIS: u8 = 10;
+
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct KeyId(u8);
 
@@ -19,7 +20,7 @@ impl KeyId {
 
 /// Describe used slice of piano keyboard
 pub struct KeyboardRange {
-    range: RangeInclusive<u8>,
+    range: Range<u8>,
 
     keys: Vec<KeyId>,
     white_keys: Vec<KeyId>,
@@ -27,10 +28,30 @@ pub struct KeyboardRange {
 }
 
 impl KeyboardRange {
-    pub fn new(range: RangeInclusive<u8>) -> Self {
+    pub fn new<R>(range: R) -> Self
+    where
+        R: RangeBounds<usize>,
+    {
         let mut keys = Vec::new();
         let mut white_keys = Vec::new();
         let mut black_keys = Vec::new();
+
+        let start = range.start_bound();
+        let end = range.end_bound();
+
+        let start = match start {
+            std::ops::Bound::Included(id) => *id,
+            std::ops::Bound::Excluded(id) => *id + 1,
+            std::ops::Bound::Unbounded => 0,
+        } as u8;
+
+        let end = match end {
+            std::ops::Bound::Included(id) => *id + 1,
+            std::ops::Bound::Excluded(id) => *id,
+            std::ops::Bound::Unbounded => 0,
+        } as u8;
+
+        let range = start..end;
 
         for id in range.clone().map(KeyId) {
             keys.push(id);
@@ -91,3 +112,6 @@ impl Default for KeyboardRange {
         Self::standard_88_keys()
     }
 }
+
+#[cfg(test)]
+mod tests {}

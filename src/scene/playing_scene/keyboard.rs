@@ -4,8 +4,7 @@ use crate::TransformUniform;
 use crate::Uniform;
 use lib_midi::MidiEvent;
 
-mod range;
-use range::KeyboardRange;
+use piano_math::range::KeyboardRange;
 
 mod key;
 pub use key::Key;
@@ -59,53 +58,51 @@ impl PianoKeyboard {
             range,
         };
 
-        piano_keyboard.resize(target);
+        piano_keyboard.resize(target).ok();
 
         piano_keyboard
     }
 
-    pub fn resize(&mut self, target: &mut Target) {
+    pub fn resize(&mut self, target: &mut Target) -> Result<(), String> {
         let (window_w, window_h) = {
             let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
             (width, height)
         };
 
-        let white_width = window_w / self.range.white_count() as f32;
-        let white_height = window_h / 5.0;
+        let neutral_width = window_w / self.range.white_count() as f32;
+        let neutral_height = window_h / 5.0;
 
-        let mut white_key_id: usize = 0;
+        let keyboard = piano_math::standard_88_keys(neutral_width, neutral_height);
 
-        let keys = &mut self.keys;
+        let y = window_h - keyboard.neutral_height as f32;
 
-        let updater = |instances: &mut Vec<QuadInstance>| {
-            // Keyboard background
-            instances[0] = QuadInstance {
-                position: [0.0, window_h - white_height],
-                size: [window_w, white_height],
-                ..Default::default()
-            };
+        self.quad_pipeline
+            .instances_mut(&target.gpu.queue, |instances: &mut Vec<QuadInstance>| {
+                // Keyboard background
+                instances[0] = QuadInstance {
+                    position: [0.0, window_h - keyboard.neutral_height],
+                    size: [window_w, keyboard.neutral_height],
+                    color: [0.0, 0.0, 0.0, 1.0],
+                    ..Default::default()
+                };
 
-            for key in keys.iter_mut() {
-                let x = white_key_id as f32 * white_width;
-                let y = window_h - white_height;
+                for (id, key) in keyboard.keys.iter().enumerate() {
+                    self.keys[id].pos = (key.x(), y);
 
-                if key.is_black() {
-                    let black_width = white_width / 1.5;
-                    let black_height = white_height / 1.5;
+                    match key.kind() {
+                        piano_math::KeyKind::Neutral => {
+                            self.keys[id].size = (key.width() - 1.0, key.height());
+                        }
+                        piano_math::KeyKind::Sharp => {
+                            self.keys[id].size = (key.width(), key.height());
+                        }
+                    }
 
-                    key.pos = (x - black_width / 2.0, y);
-                    key.size = (black_width, black_height);
-                    instances[key.instance_id] = QuadInstance::from(&*key);
-                } else {
-                    key.pos = (x, y);
-                    key.size = (white_width - 1.0, white_height);
-                    instances[key.instance_id] = QuadInstance::from(&*key);
-                    white_key_id += 1;
+                    instances[self.keys[id].instance_id] = QuadInstance::from(&self.keys[id]);
                 }
-            }
-        };
+            });
 
-        self.quad_pipeline.instances_mut(&target.gpu.queue, updater);
+        Ok(())
     }
 
     pub fn update_note_events(&mut self, target: &mut Target, events: &[MidiEvent]) {

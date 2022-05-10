@@ -6,7 +6,7 @@ edition = "2021"
 default-run = "neothesia"
 
 [workspace]
-members = ["lib_midi"]
+members = ["lib_midi", "piano_math"]
 
 [features]
 default = ["app"]
@@ -43,6 +43,7 @@ env_logger = "0.9.0"
 rfd = { version = "0.8.2", optional = true }
 
 lib_midi = { path = "./lib_midi" }
+piano_math = { path = "./piano_math" }
 midir = "0.7.0"
 
 fps_ticker = "1.0.0"

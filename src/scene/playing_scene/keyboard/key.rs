@@ -63,7 +63,11 @@ impl From<&Key> for QuadInstance {
             position: [key.pos.0, key.pos.1],
             size: [key.size.0, key.size.1],
             color: key.color.into_linear_rgba(),
-            border_radius: [0.0, 0.0, 7.0, 7.0],
+            border_radius: if key.is_black() {
+                [0.0, 0.0, 2.0, 2.0]
+            } else {
+                [0.0, 0.0, 7.0, 7.0]
+            },
         }
     }
 }

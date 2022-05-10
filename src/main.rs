@@ -60,25 +60,13 @@ impl Neothesia {
                     self.target.window.set_fullscreen(None);
                 } else {
                     let monitor = self.target.window.current_monitor();
-                    let f = if let Some(monitor) = monitor {
-                        let modes: Vec<_> = monitor.video_modes().collect();
-
-                        log::info!(
-                            "Available Video Modes: {:#?}",
-                            modes.iter().map(|m| format!("{}", m)).collect::<Vec<_>>()
-                        );
-
-                        if let Some(m) = modes.into_iter().next() {
-                            log::info!("Selected Video Mode #{}: {}", 0, m);
-                            winit::window::Fullscreen::Exclusive(m)
-                        } else {
-                            winit::window::Fullscreen::Borderless(None)
-                        }
+                    if let Some(monitor) = monitor {
+                        let f = winit::window::Fullscreen::Borderless(Some(monitor));
+                        self.target.window.set_fullscreen(Some(f));
                     } else {
-                        winit::window::Fullscreen::Borderless(None)
-                    };
-
-                    self.target.window.set_fullscreen(Some(f));
+                        let f = winit::window::Fullscreen::Borderless(None);
+                        self.target.window.set_fullscreen(Some(f));
+                    }
                 }
             }
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,

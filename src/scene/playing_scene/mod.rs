@@ -5,7 +5,6 @@ use std::time::Duration;
 use keyboard::PianoKeyboard;
 
 mod notes;
-mod notes_pipeline;
 
 mod midi_player;
 use midi_player::{rewind_controler, MidiPlayer};
@@ -14,12 +13,9 @@ use notes::Notes;
 
 use super::{Scene, SceneType};
 
-use crate::{
-    quad_pipeline::{QuadInstance, QuadPipeline},
-    target::Target,
-    wgpu_jumpstart::Color,
-    NeothesiaEvent,
-};
+use crate::{target::Target, NeothesiaEvent};
+use quad_pipeline::{QuadInstance, QuadPipeline};
+use wgpu_jumpstart::Color;
 
 use winit::event::WindowEvent;
 

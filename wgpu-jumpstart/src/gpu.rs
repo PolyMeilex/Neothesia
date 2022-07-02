@@ -86,7 +86,7 @@ impl Gpu {
         });
     }
 
-    pub fn submit(&mut self) -> Result<(), futures::task::SpawnError> {
+    pub fn submit(&mut self) {
         let new_encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -99,7 +99,5 @@ impl Gpu {
         self.queue.submit(Some(encoder.finish()));
 
         self.staging_belt.recall();
-
-        Ok(())
     }
 }

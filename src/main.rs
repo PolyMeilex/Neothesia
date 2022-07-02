@@ -24,7 +24,7 @@ impl Neothesia {
 
         target.resize();
         game_scene.resize(&mut target);
-        target.gpu.submit().unwrap();
+        target.gpu.submit();
 
         Self {
             target,
@@ -40,7 +40,7 @@ impl Neothesia {
                 self.target.resize();
                 self.game_scene.resize(&mut self.target);
 
-                self.target.gpu.submit().unwrap();
+                self.target.gpu.submit();
             }
             WindowEvent::ScaleFactorChanged { .. } => {
                 // TODO: Check if this update is needed;
@@ -144,7 +144,7 @@ impl Neothesia {
             .text_renderer
             .render(&self.target.window, &mut self.target.gpu, view);
 
-        self.target.gpu.submit().unwrap();
+        self.target.gpu.submit();
         frame.present();
     }
 }

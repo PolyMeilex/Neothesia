@@ -6,7 +6,13 @@ edition = "2021"
 default-run = "neothesia"
 
 [workspace]
-members = ["lib_midi", "piano_math"]
+members = [
+    "lib_midi",
+    "piano_math",
+    "wgpu-jumpstart",
+    "quad-pipeline",
+    "waterfall-pipeline",
+]
 
 [features]
 default = ["app"]
@@ -30,6 +36,10 @@ oxi-synth = ["synth", "cpal", "oxisynth"]
 [dependencies]
 bytemuck = "1.5.0"
 futures = "0.3.12"
+
+wgpu-jumpstart = { path = "./wgpu-jumpstart" }
+quad-pipeline = { path = "./quad-pipeline" }
+waterfall-pipeline = { path = "./waterfall-pipeline" }
 
 winit = "0.26.0"
 

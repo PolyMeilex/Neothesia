@@ -1,6 +1,6 @@
 use crate::config::ColorSchema;
-use crate::quad_pipeline::QuadInstance;
-use crate::wgpu_jumpstart::Color;
+use quad_pipeline::QuadInstance;
+use wgpu_jumpstart::Color;
 
 pub struct Key {
     pub(super) instance_id: usize,

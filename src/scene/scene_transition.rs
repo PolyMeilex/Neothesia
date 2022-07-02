@@ -1,12 +1,11 @@
 use std::time::Duration;
 
 use crate::{
-    quad_pipeline::QuadInstance,
-    quad_pipeline::QuadPipeline,
     scene::{Scene, SceneType},
     target::Target,
     Gpu,
 };
+use quad_pipeline::{QuadInstance, QuadPipeline};
 
 use winit::event::WindowEvent;
 

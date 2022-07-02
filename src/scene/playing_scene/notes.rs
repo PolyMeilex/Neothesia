@@ -1,20 +1,25 @@
-use super::notes_pipeline::{NoteInstance, NotesPipeline};
 use crate::target::Target;
-use crate::wgpu_jumpstart::Color;
 use crate::TransformUniform;
 use crate::Uniform;
+use waterfall_pipeline::{NoteInstance, WaterfallPipeline};
+use wgpu_jumpstart::Color;
 
 pub struct Notes {
-    notes_pipeline: NotesPipeline,
+    notes_pipeline: WaterfallPipeline,
 }
 
 impl Notes {
     pub fn new(target: &mut Target, keys: &[super::keyboard::Key]) -> Self {
-        let notes_pipeline = NotesPipeline::new(target, target.midi_file.as_ref().unwrap());
+        let notes_pipeline = WaterfallPipeline::new(
+            &target.gpu,
+            &target.transform_uniform,
+            target.midi_file.as_ref().unwrap().merged_track.notes.len(),
+        );
         let mut notes = Self { notes_pipeline };
         notes.resize(target, keys);
         notes
     }
+
     pub fn resize(&mut self, target: &mut Target, keys: &[super::keyboard::Key]) {
         let midi = &target.midi_file.as_ref().unwrap();
 
@@ -65,9 +70,11 @@ impl Notes {
         self.notes_pipeline
             .update_instance_buffer(&mut target.gpu, instances);
     }
+
     pub fn update(&mut self, target: &mut Target, time: f32) {
         self.notes_pipeline.update_time(&mut target.gpu, time);
     }
+
     pub fn render<'rpass>(
         &'rpass mut self,
         transform_uniform: &'rpass Uniform<TransformUniform>,

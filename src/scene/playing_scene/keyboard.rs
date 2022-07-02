@@ -1,8 +1,8 @@
-use crate::quad_pipeline::{QuadInstance, QuadPipeline};
 use crate::target::Target;
 use crate::TransformUniform;
 use crate::Uniform;
 use lib_midi::MidiEvent;
+use quad_pipeline::{QuadInstance, QuadPipeline};
 
 use piano_math::range::KeyboardRange;
 

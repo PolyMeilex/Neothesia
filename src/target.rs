@@ -2,8 +2,8 @@ use winit::event_loop::EventLoopProxy;
 
 use crate::config::Config;
 use crate::ui::{self, TextRenderer};
-use crate::wgpu_jumpstart::{Gpu, Uniform, Window};
 use crate::{NeothesiaEvent, OutputManager, TransformUniform};
+use wgpu_jumpstart::{Gpu, Uniform, Window};
 
 pub struct Target {
     pub window: Window,

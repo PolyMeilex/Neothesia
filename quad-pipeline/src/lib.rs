@@ -1,8 +1,9 @@
 mod instance_data;
 pub use instance_data::QuadInstance;
 
-use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
-use crate::TransformUniform;
+use wgpu_jumpstart::{
+    Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform,
+};
 
 pub struct QuadPipeline {
     render_pipeline: wgpu::RenderPipeline,
@@ -50,6 +51,7 @@ impl<'a> QuadPipeline {
             instances,
         }
     }
+
     pub fn render(
         &'a self,
         transform_uniform: &'a Uniform<TransformUniform>,

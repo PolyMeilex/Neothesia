@@ -1,6 +1,5 @@
 #![allow(clippy::collapsible_match, clippy::single_match)]
 
-pub mod wgpu_jumpstart;
 use target::Target;
 pub use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, Window};
 
@@ -14,8 +13,6 @@ pub mod output_manager;
 pub use output_manager::OutputManager;
 
 pub mod config;
-
-pub mod quad_pipeline;
 
 pub mod target;
 

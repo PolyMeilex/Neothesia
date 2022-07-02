@@ -1742,10 +1742,13 @@ dependencies = [
  "objc",
  "oxisynth",
  "piano_math",
+ "quad-pipeline",
  "rfd",
  "ron",
  "serde",
+ "waterfall-pipeline",
  "wgpu",
+ "wgpu-jumpstart",
  "wgpu_glyph",
  "winit",
 ]
@@ -2156,6 +2159,15 @@ name = "profiling"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9145ac0af1d93c638c98c40cf7d25665f427b2a44ad0a99b1dccf3e2f25bb987"
+
+[[package]]
+name = "quad-pipeline"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "wgpu",
+ "wgpu-jumpstart",
+]
 
 [[package]]
 name = "quote"
@@ -2700,6 +2712,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "waterfall-pipeline"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "wgpu",
+ "wgpu-jumpstart",
+]
+
+[[package]]
 name = "wayland-client"
 version = "0.29.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2865,6 +2886,16 @@ dependencies = [
  "web-sys",
  "wgpu-types",
  "winapi",
+]
+
+[[package]]
+name = "wgpu-jumpstart"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "log",
+ "wgpu",
+ "winit",
 ]
 
 [[package]]

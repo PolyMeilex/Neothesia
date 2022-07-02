@@ -7,6 +7,9 @@
   <project_license>GPL-3.0-only</project_license>
 
   <releases>
+    <release version="0.0.12" date="2022-07-03">
+      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.12-flatpak</url>
+    </release>
     <release version="0.0.11" date="2021-10-17">
       <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.11-flatpak</url>
     </release>

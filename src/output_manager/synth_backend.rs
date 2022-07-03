@@ -4,6 +4,7 @@ use crate::output_manager::{OutputConnection, OutputDescriptor};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
+#[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 const SAMPLES_SIZE: usize = 1410;
 
 enum MidiEvent {

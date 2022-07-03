@@ -1380,7 +1380,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
-name = "lib_midi"
+name = "lib-midi"
 version = "0.1.0"
 dependencies = [
  "midly",
@@ -1707,7 +1707,7 @@ dependencies = [
  "iced_native",
  "iced_style",
  "iced_wgpu",
- "lib_midi",
+ "lib-midi",
  "log",
  "midi",
  "midi-io",
@@ -1716,7 +1716,7 @@ dependencies = [
  "num",
  "objc",
  "oxisynth",
- "piano_math",
+ "piano-math",
  "quad-pipeline",
  "rfd",
  "ron",
@@ -2058,7 +2058,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
-name = "piano_math"
+name = "piano-math"
 version = "0.1.0"
 
 [[package]]

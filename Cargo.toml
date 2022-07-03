@@ -7,8 +7,8 @@ default-run = "neothesia"
 
 [workspace]
 members = [
-    "lib_midi",
-    "piano_math",
+    "lib-midi",
+    "piano-math",
     "wgpu-jumpstart",
     "quad-pipeline",
     "waterfall-pipeline",
@@ -54,8 +54,8 @@ env_logger = "0.9.0"
 
 rfd = { version = "0.8.2", optional = true }
 
-lib_midi = { path = "./lib_midi" }
-piano_math = { path = "./piano_math" }
+lib-midi = { path = "./lib-midi" }
+piano-math = { path = "./piano-math" }
 midir = "0.8.0"
 
 fps_ticker = "1.0.0"

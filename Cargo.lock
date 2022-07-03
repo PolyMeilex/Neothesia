@@ -1673,7 +1673,7 @@ dependencies = [
 
 [[package]]
 name = "neothesia"
-version = "0.0.8"
+version = "0.0.13"
 dependencies = [
  "bytemuck",
  "cpal",

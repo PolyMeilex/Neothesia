@@ -1,6 +1,6 @@
 [package]
 name = "neothesia"
-version = "0.0.8"
+version = "0.0.13"
 authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2021"
 default-run = "neothesia"

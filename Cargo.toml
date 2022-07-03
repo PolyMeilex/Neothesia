@@ -69,7 +69,7 @@ iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "66eb6263003c1
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = { version = "0.2.1", features = ["builtin"], optional = true }
-oxisynth = { git = "https://github.com/PolyMeilex/OxiSynth.git", optional = true }
+oxisynth = { version = "0.0.1", optional = true }
 
 ron = "0.7.0"
 serde = { version = "1.0.123", features = ["serde_derive"] }

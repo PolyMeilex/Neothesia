@@ -23,6 +23,9 @@ pub struct Config {
 
     #[serde(default)]
     pub background_color: (u8, u8, u8),
+
+    #[serde(default = "default_output")]
+    pub output: String,
 }
 
 impl Default for Config {
@@ -55,6 +58,7 @@ impl Config {
             play_along: default_play_along(),
             color_schema: default_color_schema(),
             background_color: Default::default(),
+            output: default_output(),
         })
     }
 }
@@ -93,4 +97,8 @@ fn default_color_schema() -> Vec<ColorSchema> {
             dark: (125, 69, 134),
         },
     ]
+}
+
+fn default_output() -> String {
+    "Buildin Synth".into()
 }

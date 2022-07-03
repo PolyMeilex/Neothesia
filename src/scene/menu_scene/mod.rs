@@ -183,6 +183,9 @@ impl Scene for MenuScene {
                                     Some(program.out_carousel.id());
                                 target.output_manager.connect(out.0);
 
+                                target.config.output =
+                                    format!("{}", target.output_manager.current_output());
+
                                 target
                                     .proxy
                                     .send_event(NeothesiaEvent::MainMenu(Event::Play))

@@ -74,9 +74,14 @@ impl IcedMenu {
         let mut out_carousel = Carousel::new();
 
         let outputs = target.output_manager.get_outputs();
+
+        let config_id = outputs
+            .iter()
+            .position(|o| o.to_string() == target.config.output);
+
         out_carousel.update(outputs);
 
-        let out_id = target.output_manager.selected_output_id;
+        let out_id = target.output_manager.selected_output_id.or(config_id);
         if let Some(id) = out_id {
             out_carousel.select(id);
         }

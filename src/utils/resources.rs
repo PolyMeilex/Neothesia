@@ -16,7 +16,20 @@ fn xdg_config() -> Option<PathBuf> {
 
 pub fn default_sf2() -> Option<PathBuf> {
     #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-    return xdg_config().map(|p| p.join("default.sf2"));
+    {
+        if let Some(path) = xdg_config().map(|p| p.join("default.sf2")) {
+            if path.exists() {
+                return Some(path);
+            }
+        }
+
+        let flatpak = PathBuf::from("/app/share/neothesia/default.sf2");
+        if flatpak.exists() {
+            Some(flatpak)
+        } else {
+            None
+        }
+    }
 
     #[cfg(target_os = "windows")]
     return Some(PathBuf::from("./default.sf2"));

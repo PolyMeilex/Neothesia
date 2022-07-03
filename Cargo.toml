@@ -12,6 +12,7 @@ members = [
     "wgpu-jumpstart",
     "quad-pipeline",
     "waterfall-pipeline",
+    "midi-io",
 ]
 
 [features]
@@ -40,6 +41,7 @@ futures = "0.3.12"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 quad-pipeline = { path = "./quad-pipeline" }
 waterfall-pipeline = { path = "./waterfall-pipeline" }
+midi-io = { path = "./midi-io" }
 
 winit = "0.26.0"
 
@@ -54,7 +56,7 @@ rfd = { version = "0.8.2", optional = true }
 
 lib_midi = { path = "./lib_midi" }
 piano_math = { path = "./piano_math" }
-midir = "0.7.0"
+midir = "0.8.0"
 
 fps_ticker = "1.0.0"
 

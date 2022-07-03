@@ -21,13 +21,13 @@ impl From<midi_io::MidiOutputConnection> for MidiOutputConnection {
 }
 
 pub struct MidiBackend {
-    manager: midi_io::MidiIoManager,
+    manager: midi_io::MidiOutputManager,
 }
 
 impl MidiBackend {
     pub fn new() -> Result<Self, midi_io::InitError> {
         Ok(Self {
-            manager: midi_io::MidiIoManager::new()?,
+            manager: midi_io::MidiOutputManager::new()?,
         })
     }
 
@@ -40,7 +40,8 @@ impl MidiBackend {
     }
 
     pub fn new_output_connection(port: &MidiPortInfo) -> Option<MidiOutputConnection> {
-        midi_io::MidiIoManager::connect_output(port.port.clone()).map(MidiOutputConnection::from)
+        midi_io::MidiOutputManager::connect_output(port.port.clone())
+            .map(MidiOutputConnection::from)
     }
 }
 

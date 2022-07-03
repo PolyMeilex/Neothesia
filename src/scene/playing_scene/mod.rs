@@ -13,7 +13,7 @@ use notes::Notes;
 
 use super::{Scene, SceneType};
 
-use crate::{target::Target, NeothesiaEvent};
+use crate::{midi_event::MidiEvent, target::Target, NeothesiaEvent};
 use quad_pipeline::{QuadInstance, QuadPipeline};
 use wgpu_jumpstart::Color;
 
@@ -260,6 +260,10 @@ impl Scene for PlayingScene {
             }
             _ => {}
         }
+    }
+
+    fn midi_event(&mut self, _target: &mut Target, _event: &MidiEvent) {
+        // TODO
     }
 }
 

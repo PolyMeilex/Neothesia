@@ -19,29 +19,15 @@ impl From<midir::InitError> for InitError {
     }
 }
 
-pub struct MidiIoManager {
-    input: midir::MidiInput,
+pub struct MidiOutputManager {
     outout: midir::MidiOutput,
 }
 
-impl MidiIoManager {
+impl MidiOutputManager {
     pub fn new() -> Result<Self, InitError> {
-        let input_instance = midir::MidiInput::new("MidiIo-in-manager")?;
-        let outout_instance = midir::MidiOutput::new("MidiIo-out-manager")?;
+        let outout = midir::MidiOutput::new("MidiIo-out-manager")?;
 
-        Ok(Self {
-            input: input_instance,
-            outout: outout_instance,
-        })
-    }
-
-    pub fn inputs(&self) -> Vec<MidiInputPort> {
-        self.input
-            .ports()
-            .iter()
-            .filter_map(|p| self.input.port_name(p).ok())
-            .map(|name| MidiInputPort(name))
-            .collect()
+        Ok(Self { outout })
     }
 
     pub fn outputs(&self) -> Vec<MidiOutputPort> {
@@ -50,6 +36,42 @@ impl MidiIoManager {
             .iter()
             .filter_map(|p| self.outout.port_name(p).ok())
             .map(|name| MidiOutputPort(name))
+            .collect()
+    }
+
+    pub fn connect_output(port: MidiOutputPort) -> Option<MidiOutputConnection> {
+        let output = midir::MidiOutput::new("MidiIo-out").unwrap();
+
+        let port = output.ports().into_iter().find(|info| {
+            output
+                .port_name(&info)
+                .ok()
+                .map(|name| name == port.0)
+                .unwrap_or(false)
+        });
+
+        port.and_then(move |port| output.connect(&port, "MidiIo-in-conn").ok())
+            .map(|p| MidiOutputConnection(p))
+    }
+}
+
+pub struct MidiInputManager {
+    input: midir::MidiInput,
+}
+
+impl MidiInputManager {
+    pub fn new() -> Result<Self, InitError> {
+        let input = midir::MidiInput::new("MidiIo-in-manager")?;
+
+        Ok(Self { input })
+    }
+
+    pub fn inputs(&self) -> Vec<MidiInputPort> {
+        self.input
+            .ports()
+            .iter()
+            .filter_map(|p| self.input.port_name(p).ok())
+            .map(|name| MidiInputPort(name))
             .collect()
     }
 
@@ -81,21 +103,6 @@ impl MidiIoManager {
                 .ok()
         })
         .map(|p| MidiInputConnection(p))
-    }
-
-    pub fn connect_output(port: MidiOutputPort) -> Option<MidiOutputConnection> {
-        let output = midir::MidiOutput::new("MidiIo-out").unwrap();
-
-        let port = output.ports().into_iter().find(|info| {
-            output
-                .port_name(&info)
-                .ok()
-                .map(|name| name == port.0)
-                .unwrap_or(false)
-        });
-
-        port.and_then(move |port| output.connect(&port, "MidiIo-in-conn").ok())
-            .map(|p| MidiOutputConnection(p))
     }
 }
 

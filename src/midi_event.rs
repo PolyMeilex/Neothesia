@@ -1,6 +1,6 @@
 use num::FromPrimitive;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum MidiEvent {
     NoteOn {
         channel: u8,

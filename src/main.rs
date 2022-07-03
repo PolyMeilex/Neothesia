@@ -1,6 +1,7 @@
 #![cfg(feature = "app")]
 
 use neothesia::{
+    midi_event::MidiEvent,
     scene::{self, Scene, SceneType},
     target::Target,
     NeothesiaEvent,
@@ -76,7 +77,12 @@ impl Neothesia {
         self.game_scene.window_event(&mut self.target, event);
     }
 
-    pub fn scene_event(&mut self, event: &NeothesiaEvent, control_flow: &mut ControlFlow) {
+    pub fn midi_event(&mut self, event: &MidiEvent) {
+        dbg!(event);
+        self.game_scene.midi_event(&mut self.target, event);
+    }
+
+    pub fn neothesia_event(&mut self, event: &NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
             NeothesiaEvent::MainMenu(event) => match event {
                 scene::menu_scene::Event::Play => {
@@ -106,6 +112,7 @@ impl Neothesia {
                 }
                 SceneType::Transition => {}
             },
+            NeothesiaEvent::MidiInput(event) => self.midi_event(event),
         }
     }
 
@@ -168,7 +175,7 @@ fn main() {
         use winit::event::Event;
         match &event {
             Event::UserEvent(event) => {
-                app.scene_event(event, control_flow);
+                app.neothesia_event(event, control_flow);
             }
             Event::MainEventsCleared => {
                 app.game_scene.main_events_cleared(&mut app.target);

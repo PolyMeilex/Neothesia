@@ -12,11 +12,14 @@ pub mod utils;
 pub mod output_manager;
 pub use output_manager::OutputManager;
 
+pub mod input_manager;
+
 pub mod config;
 
 pub mod target;
 
 pub mod midi_event;
+use midi_event::MidiEvent;
 
 use futures::Future;
 use winit::event_loop::EventLoop;
@@ -25,6 +28,8 @@ use winit::event_loop::EventLoop;
 pub enum NeothesiaEvent {
     #[cfg(feature = "app")]
     MainMenu(crate::scene::menu_scene::Event),
+    #[cfg(feature = "app")]
+    MidiInput(MidiEvent),
     GoBack,
 }
 

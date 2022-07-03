@@ -1,6 +1,7 @@
 use winit::event_loop::EventLoopProxy;
 
 use crate::config::Config;
+use crate::input_manager::InputManager;
 use crate::ui::{self, TextRenderer};
 use crate::{NeothesiaEvent, OutputManager, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform, Window};
@@ -15,6 +16,7 @@ pub struct Target {
     pub iced_manager: ui::IcedManager,
 
     pub output_manager: OutputManager,
+    pub input_manager: InputManager,
     pub midi_file: Option<lib_midi::Midi>,
     pub config: Config,
 
@@ -56,6 +58,7 @@ impl Target {
             iced_manager,
 
             output_manager: Default::default(),
+            input_manager: InputManager::new(proxy.clone()),
             midi_file,
             config: Config::new(),
             proxy,

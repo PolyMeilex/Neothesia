@@ -7,7 +7,6 @@ pub struct Gpu {
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
     pub staging_belt: wgpu::util::StagingBelt,
-    pub local_pool: futures::executor::LocalPool,
 
     pub backend: wgpu::Backend,
 }
@@ -34,7 +33,7 @@ impl Gpu {
             .ok_or(GpuInitError::AdapterRequest)?;
 
         let adapter_info = adapter.get_info();
-        let format = surface.get_preferred_format(&adapter);
+        let format = surface.get_supported_formats(&adapter)[0];
 
         log::info!(
             "Using {} ({:?}, Preferred Format: {:?})",
@@ -52,7 +51,6 @@ impl Gpu {
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
-        let local_pool = futures::executor::LocalPool::new();
 
         Ok((
             Self {
@@ -60,7 +58,6 @@ impl Gpu {
                 queue,
                 encoder,
                 staging_belt,
-                local_pool,
 
                 backend: adapter_info.backend,
             },
@@ -72,7 +69,7 @@ impl Gpu {
         let rgb = color.into_linear_rgb();
         self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
-            color_attachments: &[wgpu::RenderPassColorAttachment {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view,
                 resolve_target: None,
                 ops: wgpu::Operations {
@@ -84,7 +81,7 @@ impl Gpu {
                     }),
                     store: true,
                 },
-            }],
+            })],
             depth_stencil_attachment: None,
         });
     }
@@ -101,15 +98,7 @@ impl Gpu {
         self.staging_belt.finish();
         self.queue.submit(Some(encoder.finish()));
 
-        {
-            use futures::task::SpawnExt;
-
-            self.local_pool
-                .spawner()
-                .spawn(self.staging_belt.recall())?;
-
-            self.local_pool.run_until_stalled();
-        }
+        self.staging_belt.recall();
 
         Ok(())
     }

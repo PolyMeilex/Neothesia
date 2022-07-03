@@ -38,7 +38,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         self.render_pipeline_descriptor.fragment = Some(wgpu::FragmentState {
             module: fragment_module,
             entry_point,
-            targets: &[wgpu::ColorTargetState {
+            targets: &[Some(wgpu::ColorTargetState {
                 format: super::TEXTURE_FORMAT,
                 blend: Some(wgpu::BlendState {
                     color: wgpu::BlendComponent {
@@ -53,7 +53,7 @@ impl<'a> RenderPipelineBuilder<'a> {
                     },
                 }),
                 write_mask: wgpu::ColorWrites::ALL,
-            }],
+            })],
         });
         self
     }

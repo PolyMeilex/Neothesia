@@ -1,17 +1,18 @@
 use std::path::PathBuf;
 
 use crate::target::Target;
+use crate::NeothesiaEvent;
 use iced_native::widget::{Column, Container, Image, Row, Text};
 use iced_native::{
-    alignment::Horizontal, alignment::Vertical, command::Action, image, Alignment, Color, Command,
-    Element, Length, Program,
+    alignment::Horizontal, alignment::Vertical, image, Alignment, Color, Command, Element, Length,
 };
 use iced_wgpu::Renderer;
 use midir::MidiInputPort;
 
-use crate::output_manager::{InputDescriptior, OutputDescriptor};
+use crate::output_manager::OutputDescriptor;
 
 use super::neo_btn::{self, NeoBtn};
+use crate::ui::iced_state::Program;
 
 mod carousel;
 use carousel::Carousel;
@@ -60,13 +61,7 @@ pub enum Message {
     EnterPressed,
     EscPressed,
 
-    MidiFileUpdate(bool),
     OutputsUpdated(Vec<OutputDescriptor>),
-
-    // Output
-    OutputFileSelected(PathBuf),
-    OutputMainMenuDone((OutputDescriptor, InputDescriptior)),
-    OutputAppExit,
 }
 
 impl IcedMenu {
@@ -109,16 +104,15 @@ impl IcedMenu {
 
             controls: Controls::SongSelect(SongSelectControls::new()),
 
-            logo_handle: image::Handle::from_memory(include_bytes!("./img/banner.png").to_vec()),
+            logo_handle: image::Handle::from_memory(include_bytes!("../img/banner.png").to_vec()),
         }
     }
 }
 
 impl Program for IcedMenu {
-    type Renderer = Renderer;
     type Message = Message;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, target: &mut Target, message: Message) -> Command<Message> {
         match message {
             Message::FileSelectPressed => {
                 match rfd::FileDialog::new()
@@ -128,7 +122,14 @@ impl Program for IcedMenu {
                     Some(path) => {
                         log::info!("File path = {:?}", path);
 
-                        return Command::perform(async { path }, Message::OutputFileSelected);
+                        let midi = lib_midi::Midi::new(path.to_str().unwrap());
+
+                        if let Err(e) = &midi {
+                            log::error!("{}", e);
+                        }
+
+                        target.midi_file = midi.ok();
+                        self.midi_file = target.midi_file.is_some();
                     }
                     _ => {
                         log::warn!("User canceled dialog");
@@ -204,13 +205,27 @@ impl Program for IcedMenu {
                                 };
 
                                 // TODO: Dumb input
-                                let in_port = self.in_carousel.get_item().unwrap().clone();
-                                let in_port = InputDescriptior { input: in_port };
+                                // let in_port = self.in_carousel.get_item().unwrap().clone();
+                                // let in_port = InputDescriptior { input: in_port };
 
-                                return Command::perform(
-                                    async { (port, in_port) },
-                                    Message::OutputMainMenuDone,
-                                );
+                                {
+                                    #[cfg(feature = "play_along")]
+                                    {
+                                        target.state.config.play_along = program.play_along;
+                                    }
+
+                                    target.output_manager.selected_output_id =
+                                        Some(self.out_carousel.id());
+                                    target.output_manager.connect(port);
+
+                                    target.config.output =
+                                        format!("{}", target.output_manager.current_output());
+
+                                    target
+                                        .proxy
+                                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
+                                        .unwrap();
+                                }
                             }
                         }
                     }
@@ -238,9 +253,7 @@ impl Program for IcedMenu {
                     }
                 }
                 Controls::Exit(_) => {
-                    return Command::single(Action::Future(Box::pin(async {
-                        Message::OutputAppExit
-                    })));
+                    target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
                 }
             },
 
@@ -257,15 +270,9 @@ impl Program for IcedMenu {
                 }
             },
 
-            Message::MidiFileUpdate(is) => self.midi_file = is,
-
             Message::OutputsUpdated(outs) => {
                 self.out_carousel.update(outs);
             }
-
-            Message::OutputFileSelected(_) => {}
-            Message::OutputMainMenuDone(_) => {}
-            Message::OutputAppExit => {}
         }
 
         Command::none()

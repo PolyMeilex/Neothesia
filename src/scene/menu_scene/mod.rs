@@ -13,7 +13,7 @@ use winit::event::WindowEvent;
 use crate::{
     scene::{Scene, SceneType},
     target::Target,
-    ui::{iced_conversion, DummyClipboard},
+    ui::{iced_conversion, iced_state, DummyClipboard},
     NeothesiaEvent,
 };
 
@@ -24,17 +24,16 @@ pub enum Event {
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
-    iced_state: iced_native::program::State<IcedMenu>,
+    iced_state: iced_state::State<IcedMenu>,
 }
 
 impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
         let menu = IcedMenu::new(target);
-        let iced_state = iced_native::program::State::new(
+        let iced_state = iced_state::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
             &mut target.iced_manager.renderer,
-            &mut target.iced_manager.debug,
         );
 
         let mut scene = Self {
@@ -140,65 +139,7 @@ impl Scene for MenuScene {
 
     fn main_events_cleared(&mut self, target: &mut Target) {
         if !self.iced_state.is_queue_empty() {
-            let event = self.iced_state.update(
-                target.iced_manager.viewport.logical_size(),
-                iced_conversion::cursor_position(
-                    target.window.state.cursor_physical_position,
-                    target.iced_manager.viewport.scale_factor(),
-                ),
-                &mut target.iced_manager.renderer,
-                &mut DummyClipboard {},
-                &mut target.iced_manager.debug,
-            );
-
-            if let Some(event) = event {
-                for f in event.actions() {
-                    if let iced_native::command::Action::Future(f) = f {
-                        let event = crate::block_on(async { f.await });
-
-                        match event {
-                            iced_menu::Message::OutputFileSelected(path) => {
-                                let midi = lib_midi::Midi::new(path.to_str().unwrap());
-
-                                if let Err(e) = &midi {
-                                    log::error!("{}", e);
-                                }
-
-                                target.midi_file = midi.ok();
-
-                                self.iced_state
-                                    .queue_message(iced_menu::Message::MidiFileUpdate(
-                                        target.midi_file.is_some(),
-                                    ));
-                            }
-                            iced_menu::Message::OutputMainMenuDone(out) => {
-                                let program = self.iced_state.program();
-
-                                #[cfg(feature = "play_along")]
-                                {
-                                    target.state.config.play_along = program.play_along;
-                                }
-
-                                target.output_manager.selected_output_id =
-                                    Some(program.out_carousel.id());
-                                target.output_manager.connect(out.0);
-
-                                target.config.output =
-                                    format!("{}", target.output_manager.current_output());
-
-                                target
-                                    .proxy
-                                    .send_event(NeothesiaEvent::MainMenu(Event::Play))
-                                    .unwrap();
-                            }
-                            iced_menu::Message::OutputAppExit => {
-                                target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            }
+            self.iced_state.update(target);
         }
     }
 }

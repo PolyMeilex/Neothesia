@@ -11,3 +11,5 @@ pub mod iced_conversion;
 mod iced_manager;
 #[cfg(feature = "app")]
 pub use iced_manager::IcedManager;
+#[cfg(feature = "app")]
+pub mod iced_state;

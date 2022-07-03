@@ -35,7 +35,7 @@ impl MidiOutputManager {
             .ports()
             .iter()
             .filter_map(|p| self.outout.port_name(p).ok())
-            .map(|name| MidiOutputPort(name))
+            .map(MidiOutputPort)
             .collect()
     }
 
@@ -44,14 +44,14 @@ impl MidiOutputManager {
 
         let port = output.ports().into_iter().find(|info| {
             output
-                .port_name(&info)
+                .port_name(info)
                 .ok()
                 .map(|name| name == port.0)
                 .unwrap_or(false)
         });
 
         port.and_then(move |port| output.connect(&port, "MidiIo-in-conn").ok())
-            .map(|p| MidiOutputConnection(p))
+            .map(MidiOutputConnection)
     }
 }
 
@@ -71,7 +71,7 @@ impl MidiInputManager {
             .ports()
             .iter()
             .filter_map(|p| self.input.port_name(p).ok())
-            .map(|name| MidiInputPort(name))
+            .map(MidiInputPort)
             .collect()
     }
 
@@ -83,7 +83,7 @@ impl MidiInputManager {
 
         let port = input.ports().into_iter().find(|info| {
             input
-                .port_name(&info)
+                .port_name(info)
                 .ok()
                 .map(|name| name == port.0)
                 .unwrap_or(false)
@@ -102,7 +102,7 @@ impl MidiInputManager {
                 )
                 .ok()
         })
-        .map(|p| MidiInputConnection(p))
+        .map(MidiInputConnection)
     }
 }
 

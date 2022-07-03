@@ -1,3 +1,5 @@
+#![allow(clippy::single_match)]
+
 mod error;
 pub use error::GpuInitError;
 

@@ -13,8 +13,7 @@ use winit::event::WindowEvent;
 use crate::{
     scene::{Scene, SceneType},
     target::Target,
-    ui::{iced_conversion, iced_state, DummyClipboard},
-    NeothesiaEvent,
+    ui::{iced_conversion, iced_state},
 };
 
 #[derive(Debug)]

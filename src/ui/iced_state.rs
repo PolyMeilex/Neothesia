@@ -129,7 +129,7 @@ where
             &mut messages,
         );
 
-        messages.extend(self.queued_messages.drain(..));
+        messages.append(&mut self.queued_messages);
         self.queued_events.clear();
 
         if messages.is_empty() {
@@ -144,11 +144,11 @@ where
             // for now :^)
             let temp_cache = user_interface.into_cache();
 
-            let commands = Command::batch(messages.into_iter().map(|message| {
-                let command = self.program.update(target, message);
-
-                command
-            }));
+            let commands = Command::batch(
+                messages
+                    .into_iter()
+                    .map(|message| self.program.update(target, message)),
+            );
 
             let mut user_interface = build_user_interface(
                 &mut self.program,

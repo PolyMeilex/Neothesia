@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::wgpu_jumpstart::{Gpu, RenderPipelineBuilder, Shape, Uniform};
+use wgpu_jumpstart::{Gpu, RenderPipelineBuilder, Shape, Uniform};
 
 use bytemuck::{Pod, Zeroable};
 

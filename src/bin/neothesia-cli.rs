@@ -5,7 +5,6 @@ use std::{default::Default, num::NonZeroU32, time::Duration};
 use neothesia::{
     scene::{playing_scene::PlayingScene, Scene},
     target::Target,
-    wgpu_jumpstart,
 };
 
 pub struct Recorder {
@@ -17,7 +16,7 @@ pub struct Recorder {
 impl Recorder {
     pub fn new(mut target: Target) -> Self {
         // target.resize();
-        target.gpu.submit().unwrap();
+        target.gpu.submit();
         let scene = PlayingScene::new(&mut target);
 
         Self { target, scene }
@@ -27,7 +26,7 @@ impl Recorder {
         self.target.resize();
         self.scene.resize(&mut self.target);
 
-        self.target.gpu.submit().unwrap();
+        self.target.gpu.submit();
     }
 
     pub fn update(&mut self, delta: Duration) {
@@ -72,7 +71,7 @@ impl Recorder {
                 texture_desc.size,
             );
 
-            self.target.gpu.submit().unwrap();
+            self.target.gpu.submit();
         }
     }
 }

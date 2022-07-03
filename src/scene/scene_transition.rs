@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 use crate::{
-    quad_pipeline::QuadInstance,
-    quad_pipeline::QuadPipeline,
+    midi_event::MidiEvent,
     scene::{Scene, SceneType},
     target::Target,
     Gpu,
 };
+use quad_pipeline::{QuadInstance, QuadPipeline};
 
 use winit::event::WindowEvent;
 
@@ -178,12 +178,21 @@ impl SceneTransition {
 
         self.render_transition(target, view);
     }
+
     pub fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
         match &mut self.mode {
             TransitionMode::Static(scene) => scene.window_event(target, event),
             _ => {}
         }
     }
+
+    pub fn midi_event(&mut self, target: &mut Target, event: &MidiEvent) {
+        match &mut self.mode {
+            TransitionMode::Static(scene) => scene.midi_event(target, event),
+            _ => {}
+        }
+    }
+
     pub fn main_events_cleared(&mut self, target: &mut Target) {
         match &mut self.mode {
             TransitionMode::FadeIn(scene) => scene.main_events_cleared(target),

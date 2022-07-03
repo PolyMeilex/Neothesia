@@ -2,12 +2,11 @@ mod instance_data;
 
 pub use instance_data::NoteInstance;
 
-use crate::wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, Uniform};
-use crate::{target::Target, TransformUniform};
+use wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform};
 
 use bytemuck::{Pod, Zeroable};
 
-pub struct NotesPipeline {
+pub struct WaterfallPipeline {
     render_pipeline: wgpu::RenderPipeline,
 
     quad: Shape,
@@ -16,10 +15,13 @@ pub struct NotesPipeline {
     time_uniform: Uniform<TimeUniform>,
 }
 
-impl<'a> NotesPipeline {
-    pub fn new(target: &Target, midi: &lib_midi::Midi) -> Self {
-        let shader = target
-            .gpu
+impl<'a> WaterfallPipeline {
+    pub fn new(
+        gpu: &Gpu,
+        transform_uniform: &Uniform<TransformUniform>,
+        notes_count: usize,
+    ) -> Self {
+        let shader = gpu
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("RectanglePipeline::shader"),
@@ -29,19 +31,17 @@ impl<'a> NotesPipeline {
             });
 
         let time_uniform = Uniform::new(
-            &target.gpu.device,
+            &gpu.device,
             TimeUniform::default(),
             wgpu::ShaderStages::VERTEX,
         );
 
         let render_pipeline_layout =
-            &target
-                .gpu
-                .device
+            &gpu.device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
                     bind_group_layouts: &[
-                        &target.transform_uniform.bind_group_layout,
+                        &transform_uniform.bind_group_layout,
                         &time_uniform.bind_group_layout,
                     ],
                     push_constant_ranges: &[],
@@ -53,11 +53,11 @@ impl<'a> NotesPipeline {
             RenderPipelineBuilder::new(render_pipeline_layout, "vs_main", &shader)
                 .fragment("fs_main", &shader)
                 .vertex_buffers(&[Shape::layout(), NoteInstance::layout(&ni_attrs)])
-                .build(&target.gpu.device);
+                .build(&gpu.device);
 
-        let quad = Shape::new_quad(&target.gpu.device);
+        let quad = Shape::new_quad(&gpu.device);
 
-        let instances = Instances::new(&target.gpu.device, midi.merged_track.notes.len());
+        let instances = Instances::new(&gpu.device, notes_count);
 
         Self {
             render_pipeline,

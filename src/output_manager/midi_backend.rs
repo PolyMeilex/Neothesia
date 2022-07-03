@@ -4,16 +4,15 @@ use crate::output_manager::{OutputConnection, OutputDescriptor};
 
 use lib_midi::ActiveNote;
 use midi::ToRawMessages;
-use midir::{MidiOutput, MidiOutputPort};
 use num::FromPrimitive;
 
 pub struct MidiOutputConnection {
-    conn: midir::MidiOutputConnection,
+    conn: midi_io::MidiOutputConnection,
     active_notes: HashSet<ActiveNote>,
 }
 
-impl From<midir::MidiOutputConnection> for MidiOutputConnection {
-    fn from(conn: midir::MidiOutputConnection) -> Self {
+impl From<midi_io::MidiOutputConnection> for MidiOutputConnection {
+    fn from(conn: midi_io::MidiOutputConnection) -> Self {
         Self {
             conn,
             active_notes: Default::default(),
@@ -22,43 +21,27 @@ impl From<midir::MidiOutputConnection> for MidiOutputConnection {
 }
 
 pub struct MidiBackend {
-    midi_out: MidiOutput,
+    manager: midi_io::MidiOutputManager,
 }
 
 impl MidiBackend {
-    pub fn new() -> Result<Self, midir::InitError> {
-        let midi_out = MidiOutput::new("midi_out")?;
-        Ok(Self { midi_out })
+    pub fn new() -> Result<Self, midi_io::InitError> {
+        Ok(Self {
+            manager: midi_io::MidiOutputManager::new()?,
+        })
     }
 
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
-        let ports = self.midi_out.ports();
-        for (id, p) in ports.into_iter().enumerate() {
-            let name = match self.midi_out.port_name(&p).ok() {
-                Some(name) => name,
-                None => String::from("Unknown"),
-            };
-            outs.push(OutputDescriptor::MidiOut(MidiPortInfo {
-                id,
-                port: p,
-                name,
-            }))
+        for (id, port) in self.manager.outputs().into_iter().enumerate() {
+            outs.push(OutputDescriptor::MidiOut(MidiPortInfo { id, port }))
         }
         outs
     }
 
     pub fn new_output_connection(port: &MidiPortInfo) -> Option<MidiOutputConnection> {
-        let midi_out = MidiOutput::new("midi_out_conn").ok();
-
-        if let Some(midi_out) = midi_out {
-            midi_out
-                .connect(&port.port, "out")
-                .ok()
-                .map(MidiOutputConnection::from)
-        } else {
-            None
-        }
+        midi_io::MidiOutputManager::connect_output(port.port.clone())
+            .map(MidiOutputConnection::from)
     }
 }
 
@@ -102,28 +85,21 @@ impl Drop for MidiOutputConnection {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MidiPortInfo {
     id: usize,
-    port: MidiOutputPort,
-    name: String,
+    port: midi_io::MidiOutputPort,
 }
 
 impl PartialEq for MidiPortInfo {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.name == other.name
+        self.id == other.id && self.port == other.port
     }
 }
 
 impl std::fmt::Display for MidiPortInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl std::fmt::Debug for MidiPortInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.port)
     }
 }
 

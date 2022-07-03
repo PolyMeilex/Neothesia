@@ -1,8 +1,5 @@
-use crate::wgpu_jumpstart::Window;
-
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
-
-use crate::wgpu_jumpstart::{self, Gpu};
+use wgpu_jumpstart::{Gpu, Window};
 
 pub struct TextRenderer {
     glyph_brush: GlyphBrush<()>,

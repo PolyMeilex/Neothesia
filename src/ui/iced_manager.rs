@@ -1,4 +1,3 @@
-use crate::wgpu_jumpstart;
 use crate::Window;
 
 pub struct IcedManager {

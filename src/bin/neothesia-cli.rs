@@ -98,7 +98,7 @@ fn main() {
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu_jumpstart::TEXTURE_FORMAT,
+        format: wgpu::TextureFormat::Bgra8UnormSrgb,
         usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
         label: None,
     };
@@ -147,16 +147,20 @@ fn main() {
         {
             let slice = output_buffer.slice(..);
             neothesia::block_on(async {
-                let task = slice.map_async(wgpu::MapMode::Read);
+                let (tx, rx) = futures::channel::oneshot::channel();
+
+                slice.map_async(wgpu::MapMode::Read, move |_| {
+                    tx.send(()).unwrap();
+                });
 
                 recorder.target.gpu.device.poll(wgpu::Maintain::Wait);
 
-                task.await.unwrap();
+                rx.await.unwrap();
 
                 let mapping = slice.get_mapped_range();
 
                 let data: &[u8] = &mapping;
-                encoder.encode_rgba(1920, 1080, data, false);
+                encoder.encode_bgra(1920, 1080, data, false);
                 print!(
                     "\r Encoded {} frames ({}s, {}%) in {}s",
                     n,

@@ -16,7 +16,7 @@ impl<'a> QuadPipeline {
     pub fn new(gpu: &Gpu, transform_uniform: &Uniform<TransformUniform>) -> Self {
         let shader = gpu
             .device
-            .create_shader_module(&wgpu::ShaderModuleDescriptor {
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("RectanglePipeline::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
                     "./shader/quad.wgsl"

@@ -1,42 +1,42 @@
 struct ViewUniform {
-    transform: mat4x4<f32>;
-    size: vec2<f32>;
-};
+    transform: mat4x4<f32>,
+    size: vec2<f32>,
+}
 
 struct TimeUniform {
-    time: f32;
-};
+    time: f32,
+}
 
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view_uniform: ViewUniform;
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var<uniform> time_uniform: TimeUniform;
 
 struct Vertex {
-    [[location(0)]] position: vec2<f32>;
-};
+    @location(0) position: vec2<f32>,
+}
 
 struct NoteInstance{
-    [[location(1)]] n_position: vec2<f32>;
-    [[location(2)]] size: vec2<f32>;
-    [[location(3)]] color: vec3<f32>;
-    [[location(4)]] radius: f32;
-};
+    @location(1) n_position: vec2<f32>,
+    @location(2) size: vec2<f32>,
+    @location(3) color: vec3<f32>,
+    @location(4) radius: f32,
+}
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
+    @builtin(position) position: vec4<f32>,
 
-    [[location(0)]] src_position: vec2<f32>;
-    [[location(1)]] size: vec2<f32>;
-    [[location(2)]] color: vec3<f32>;
-    [[location(3)]] radius: f32;
+    @location(0) src_position: vec2<f32>,
+    @location(1) size: vec2<f32>,
+    @location(2) color: vec3<f32>,
+    @location(3) radius: f32,
 
 };
 
 let speed: f32 = 400.0;
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     let size = vec2<f32>(note.size.x, note.size.y * speed);
     
@@ -67,7 +67,7 @@ fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
 fn corner_alpha(radius: f32, pos: vec2<f32>, cords: vec2<f32>) -> f32{
     let lower = radius - 0.7;
     let upper = radius + 0.7;
-    return 1.0 - smoothStep(lower, upper, length(pos - cords));
+    return 1.0 - smoothstep(lower, upper, length(pos - cords));
 }
 
 fn fragment_alpha(
@@ -98,8 +98,8 @@ fn fragment_alpha(
     }
 }
 
-[[stage(fragment)]]
-fn fs_main(in: VertexOutput) ->  [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(in: VertexOutput) ->  @location(0) vec4<f32> {
     let alpha: f32 = fragment_alpha(
         in.src_position.xy,
         in.size,

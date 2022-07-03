@@ -1,20 +1,20 @@
 struct TimeUniform {
-    time: f32;
-};
+    time: f32,
+}
 
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> time_uniform: TimeUniform;
 
 struct Vertex {
-    [[location(0)]] position: vec2<f32>;
-};
+    @location(0) position: vec2<f32>,
+}
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] uv_position: vec2<f32>;
-};
+    @builtin(position) position: vec4<f32>,
+    @location(0) uv_position: vec2<f32>,
+}
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
     out.position = vec4<f32>(vertex.position, 0.0, 1.0);
@@ -42,7 +42,7 @@ fn note_render(uv: vec2<f32>, pos: f32, color: vec3<f32>) -> vec3<f32> {
     }
     
     if(uv.y > 0.0 && uv.y < 0.5){
-        return mix(color, col, vec3<f32>(smoothStep(-0.002, 0., 127. / 5800. - abs(mod_x - pos))));
+        return mix(color, col, vec3<f32>(smoothstep(-0.002, 0., 127. / 5800. - abs(mod_x - pos))));
     } else {
         return color;
     }
@@ -51,8 +51,8 @@ fn note_render(uv: vec2<f32>, pos: f32, color: vec3<f32>) -> vec3<f32> {
 let speed: f32 = -0.5;
 let live_time: f32 = 2.6;
 
-[[stage(fragment)]]
-fn fs_main(in: VertexOutput) ->  [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(in: VertexOutput) ->  @location(0) vec4<f32> {
     var uv: vec2<f32> = in.uv_position;
     var color: vec3<f32> = vec3<f32>(0.01);
     

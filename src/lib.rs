@@ -22,7 +22,7 @@ pub mod midi_event;
 use midi_event::MidiEvent;
 
 use futures::Future;
-use winit::event_loop::EventLoop;
+use winit::event_loop::{EventLoop, EventLoopBuilder};
 
 #[derive(Debug)]
 pub enum NeothesiaEvent {
@@ -46,7 +46,7 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     }
 
-    let event_loop = EventLoop::with_user_event();
+    let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
     let builder = builder.with_title("Neothesia");
@@ -55,6 +55,18 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
     let builder = {
         use winit::platform::windows::WindowBuilderExtWindows;
         builder.with_drag_and_drop(false)
+    };
+
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    let builder = {
+        use winit::platform::unix::WindowBuilderExtUnix;
+        builder.with_wayland_csd_theme(winit::window::Theme::Dark)
     };
 
     let winit_window = builder.build(&event_loop).unwrap();

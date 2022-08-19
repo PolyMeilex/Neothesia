@@ -1805,19 +1805,26 @@ dependencies = [
  "midi-io",
  "midir",
  "mpeg_encoder",
+ "neothesia-pipelines",
  "num",
  "objc",
  "oxisynth",
  "piano-math",
- "quad-pipeline",
  "rfd",
  "ron",
  "serde",
- "waterfall-pipeline",
  "wgpu",
  "wgpu-jumpstart",
  "wgpu_glyph",
  "winit",
+]
+
+[[package]]
+name = "neothesia-pipelines"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "wgpu-jumpstart",
 ]
 
 [[package]]
@@ -2260,14 +2267,6 @@ name = "profiling"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f61dcf0b917cd75d4521d7343d1ffff3d1583054133c9b5cbea3375c703c40d"
-
-[[package]]
-name = "quad-pipeline"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "wgpu-jumpstart",
-]
 
 [[package]]
 name = "quote"
@@ -2873,14 +2872,6 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
-]
-
-[[package]]
-name = "waterfall-pipeline"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "wgpu-jumpstart",
 ]
 
 [[package]]

@@ -14,7 +14,7 @@ use notes::Notes;
 use super::{Scene, SceneType};
 
 use crate::{midi_event::MidiEvent, target::Target, NeothesiaEvent};
-use quad_pipeline::{QuadInstance, QuadPipeline};
+use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 use wgpu_jumpstart::Color;
 
 use winit::event::WindowEvent;

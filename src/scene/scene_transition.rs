@@ -6,7 +6,7 @@ use crate::{
     target::Target,
     Gpu,
 };
-use quad_pipeline::{QuadInstance, QuadPipeline};
+use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 
 use winit::event::WindowEvent;
 

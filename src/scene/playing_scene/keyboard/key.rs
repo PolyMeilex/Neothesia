@@ -1,5 +1,5 @@
 use crate::config::ColorSchema;
-use quad_pipeline::QuadInstance;
+use neothesia_pipelines::quad::QuadInstance;
 use wgpu_jumpstart::Color;
 
 pub struct Key {

@@ -1,7 +1,7 @@
 use crate::target::Target;
 use crate::TransformUniform;
 use crate::Uniform;
-use waterfall_pipeline::{NoteInstance, WaterfallPipeline};
+use neothesia_pipelines::waterfall::{NoteInstance, WaterfallPipeline};
 use wgpu_jumpstart::Color;
 
 pub struct Notes {

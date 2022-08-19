@@ -10,8 +10,7 @@ members = [
     "lib-midi",
     "piano-math",
     "wgpu-jumpstart",
-    "quad-pipeline",
-    "waterfall-pipeline",
+    "neothesia-pipelines",
     "midi-io",
 ]
 
@@ -39,8 +38,7 @@ bytemuck = "1.5.0"
 futures = "0.3.12"
 
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
-quad-pipeline = { path = "./quad-pipeline" }
-waterfall-pipeline = { path = "./waterfall-pipeline" }
+neothesia-pipelines = { path = "./neothesia-pipelines" }
 midi-io = { path = "./midi-io" }
 
 winit = "0.27.2"

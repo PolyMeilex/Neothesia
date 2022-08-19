@@ -28,7 +28,7 @@ impl<'a> WaterfallPipeline {
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("RectanglePipeline::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
-                    "./shader/note.wgsl"
+                    "./shader.wgsl"
                 ))),
             });
 

@@ -2,7 +2,9 @@ mod instance_data;
 
 pub use instance_data::NoteInstance;
 
-use wgpu_jumpstart::{Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform};
+use wgpu_jumpstart::{
+    wgpu, Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform,
+};
 
 use bytemuck::{Pod, Zeroable};
 
@@ -103,6 +105,7 @@ impl<'a> WaterfallPipeline {
 struct TimeUniform {
     time: f32,
 }
+
 impl Default for TimeUniform {
     fn default() -> Self {
         Self { time: 0.0 }

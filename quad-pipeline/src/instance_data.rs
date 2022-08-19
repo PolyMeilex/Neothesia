@@ -1,4 +1,5 @@
 use wgpu::vertex_attr_array;
+use wgpu_jumpstart::wgpu;
 
 use bytemuck::{Pod, Zeroable};
 

@@ -2,14 +2,12 @@ mod instance_data;
 pub use instance_data::QuadInstance;
 
 use wgpu_jumpstart::{
-    Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform,
+    wgpu, Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform,
 };
 
 pub struct QuadPipeline {
     render_pipeline: wgpu::RenderPipeline,
-
     quad: Shape,
-
     instances: Instances<QuadInstance>,
 }
 

@@ -4,6 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-wgpu = "0.13.0"
 wgpu-jumpstart = { path = "../wgpu-jumpstart" }
-bytemuck = "1.5.0"
+bytemuck = "1.5"

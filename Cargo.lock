@@ -2266,7 +2266,6 @@ name = "quad-pipeline"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "wgpu",
  "wgpu-jumpstart",
 ]
 
@@ -2881,7 +2880,6 @@ name = "waterfall-pipeline"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "wgpu",
  "wgpu-jumpstart",
 ]
 

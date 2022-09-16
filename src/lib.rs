@@ -28,7 +28,6 @@ use winit::event_loop::{EventLoop, EventLoopBuilder};
 pub enum NeothesiaEvent {
     #[cfg(feature = "app")]
     MainMenu(crate::scene::menu_scene::Event),
-    #[cfg(feature = "app")]
     MidiInput(MidiEvent),
     GoBack,
 }

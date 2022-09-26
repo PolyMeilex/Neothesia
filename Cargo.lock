@@ -1787,7 +1787,7 @@ dependencies = [
 
 [[package]]
 name = "neothesia"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "bytemuck",
  "cpal",

@@ -1792,6 +1792,7 @@ dependencies = [
  "bytemuck",
  "cpal",
  "env_logger 0.9.0",
+ "ffmpeg-sys",
  "fluidlite",
  "fps_ticker",
  "futures",

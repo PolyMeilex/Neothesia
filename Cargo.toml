@@ -25,7 +25,9 @@ app = [
     "iced_graphics",
     "iced_style",
 ]
-record = ["mpeg_encoder"]
+record = ["mpeg_encoder", "build-ffmpeg"]
+# Download and compile ffmpeg
+build-ffmpeg = ["mpeg_encoder/build"]
 
 play_along = []
 

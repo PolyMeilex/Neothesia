@@ -1,3 +1,4 @@
+use iced_graphics::Color;
 use iced_native::mouse;
 use iced_native::user_interface::{self, UserInterface};
 use iced_native::{Command, Element, Event, Size};
@@ -133,8 +134,14 @@ where
         self.queued_events.clear();
 
         if messages.is_empty() {
-            self.mouse_interaction =
-                user_interface.draw(&mut target.iced_manager.renderer, cursor_position);
+            self.mouse_interaction = user_interface.draw(
+                &mut target.iced_manager.renderer,
+                &iced_wgpu::Theme::Dark,
+                &iced_native::renderer::Style {
+                    text_color: Color::WHITE,
+                },
+                cursor_position,
+            );
 
             self.cache = Some(user_interface.into_cache());
 
@@ -157,8 +164,14 @@ where
                 bounds,
             );
 
-            self.mouse_interaction =
-                user_interface.draw(&mut target.iced_manager.renderer, cursor_position);
+            self.mouse_interaction = user_interface.draw(
+                &mut target.iced_manager.renderer,
+                &iced_wgpu::Theme::Dark,
+                &iced_native::renderer::Style {
+                    text_color: Color::WHITE,
+                },
+                cursor_position,
+            );
 
             self.cache = Some(user_interface.into_cache());
 

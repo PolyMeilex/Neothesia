@@ -2,7 +2,10 @@ use iced_graphics::{
     alignment::{Horizontal, Vertical},
     Alignment, Color,
 };
-use iced_native::widget::{Column, Container, Row, Text};
+use iced_native::widget::{
+    helpers::{container, text},
+    Column, Container, Row,
+};
 use iced_native::{Element, Length};
 use iced_wgpu::Renderer;
 
@@ -36,8 +39,8 @@ impl SongSelectControls {
         let file_select_button = Row::new().height(Length::Units(100)).push(
             NeoBtn::new(
                 &mut self.file_select_button,
-                Text::new("Select File")
-                    .color(Color::WHITE)
+                text("Select File")
+                    .style(Color::WHITE)
                     .size(40)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center),
@@ -53,8 +56,8 @@ impl SongSelectControls {
             .map(|o| o.to_string())
             .unwrap_or_else(|| "Disconnected".to_string());
 
-        let output = Text::new(label)
-            .color(Color::WHITE)
+        let output = text(label)
+            .style(Color::WHITE)
             .size(30)
             .horizontal_alignment(Horizontal::Center)
             .vertical_alignment(Vertical::Center);
@@ -62,7 +65,7 @@ impl SongSelectControls {
         let mut select_row = Row::new().height(Length::Units(50)).push(
             NeoBtn::new(
                 &mut self.prev_button,
-                Text::new("<")
+                text("<")
                     .size(40)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center),
@@ -77,7 +80,7 @@ impl SongSelectControls {
             select_row = select_row.push(
                 NeoBtn::new(
                     &mut self.synth_button,
-                    Text::new("Soundfont")
+                    text("Soundfont")
                         .size(20)
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
@@ -91,7 +94,7 @@ impl SongSelectControls {
         select_row = select_row.push(
             NeoBtn::new(
                 &mut self.next_button,
-                Text::new(">")
+                text(">")
                     .size(40)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center),
@@ -111,10 +114,7 @@ impl SongSelectControls {
             .push(select_row);
 
         (
-            Container::new(controls)
-                .width(Length::Fill)
-                .center_x()
-                .into(),
+            container(controls).width(Length::Fill).center_x().into(),
             Self::footer(&mut self.play_button, out_carousel, midi_file, play_along),
         )
     }
@@ -130,11 +130,11 @@ impl SongSelectControls {
         {
             let btn = NeoBtn::new(
                 play_button,
-                Text::new("Play")
+                text("Play")
                     .size(30)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center)
-                    .color(Color::WHITE),
+                    .style(Color::WHITE),
             )
             .min_height(50)
             .height(Length::Fill)
@@ -182,9 +182,11 @@ const SURFACE: Color = Color::from_rgb(
 );
 
 impl iced_style::checkbox::StyleSheet for CheckboxStyle {
-    fn active(&self, is_checked: bool) -> iced_style::checkbox::Style {
+    type Style = ();
+
+    fn active(&self, _style: &Self::Style, is_checked: bool) -> iced_style::checkbox::Appearance {
         let active = Color::from_rgba8(160, 81, 255, 1.0);
-        iced_style::checkbox::Style {
+        iced_style::checkbox::Appearance {
             background: if is_checked { active } else { SURFACE }.into(),
             text_color: Some(Color::WHITE),
             checkmark_color: Color::WHITE,
@@ -194,15 +196,15 @@ impl iced_style::checkbox::StyleSheet for CheckboxStyle {
         }
     }
 
-    fn hovered(&self, is_checked: bool) -> iced_style::checkbox::Style {
+    fn hovered(&self, style: &Self::Style, is_checked: bool) -> iced_style::checkbox::Appearance {
         let active = Color::from_rgba8(160, 81, 255, 1.0);
-        iced_style::checkbox::Style {
+        iced_style::checkbox::Appearance {
             background: Color {
                 a: 0.8,
                 ..if is_checked { active } else { SURFACE }
             }
             .into(),
-            ..self.active(is_checked)
+            ..self.active(style, is_checked)
         }
     }
 }

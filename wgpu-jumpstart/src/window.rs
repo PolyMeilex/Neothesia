@@ -47,6 +47,7 @@ impl Window {
                 width,
                 height,
                 present_mode: wgpu::PresentMode::Fifo,
+                alpha_mode: wgpu::CompositeAlphaMode::Auto,
             };
 
             surface.configure(&gpu.device, &surface_configuration);

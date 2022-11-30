@@ -1,6 +1,9 @@
 use iced_native::{
     alignment::{Horizontal, Vertical},
-    widget::{Column, Container, Row, Text},
+    widget::{
+        helpers::{column, container, row, text},
+        Row,
+    },
     Alignment, Color, Element, Length,
 };
 use iced_wgpu::Renderer;
@@ -41,14 +44,14 @@ impl InputSelectControls {
             })
             .unwrap_or_else(|| "Disconnected".to_string());
 
-        let title = Text::new("Select Input:")
-            .color(Color::WHITE)
+        let title = text("Select Input:")
+            .style(Color::WHITE)
             .size(30)
             .horizontal_alignment(Horizontal::Center)
             .vertical_alignment(Vertical::Center);
 
-        let output = Text::new(label)
-            .color(Color::WHITE)
+        let output = text(label)
+            .style(Color::WHITE)
             .size(30)
             .horizontal_alignment(Horizontal::Center)
             .vertical_alignment(Vertical::Center);
@@ -56,7 +59,7 @@ impl InputSelectControls {
         let mut select_row = Row::new().height(Length::Units(50)).push(
             NeoBtn::new(
                 &mut self.prev_button,
-                Text::new("<")
+                text("<")
                     .size(40)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center),
@@ -69,7 +72,7 @@ impl InputSelectControls {
         select_row = select_row.push(
             NeoBtn::new(
                 &mut self.next_button,
-                Text::new(">")
+                text(">")
                     .size(40)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center),
@@ -80,16 +83,13 @@ impl InputSelectControls {
         );
 
         {
-            let controls = Column::new()
+            let controls = column(vec![title.into(), output.into(), select_row.into()])
                 .align_items(Alignment::Center)
                 .width(Length::Units(500))
-                .spacing(30)
-                .push(title)
-                .push(output)
-                .push(select_row);
+                .spacing(30);
 
             (
-                Container::new(controls)
+                container(controls)
                     .width(Length::Fill)
                     .height(Length::Units(250))
                     .center_x()
@@ -110,26 +110,23 @@ impl InputSelectControls {
         let content: Element<Message, Renderer> = if midi_file && in_carousel.get_item().is_some() {
             let btn = NeoBtn::new(
                 play_button,
-                Text::new("Play")
+                text("Play")
                     .size(30)
                     .horizontal_alignment(Horizontal::Center)
                     .vertical_alignment(Vertical::Center)
-                    .color(Color::WHITE),
+                    .style(Color::WHITE),
             )
             .min_height(50)
             .height(Length::Fill)
             .width(Length::Units(150))
             .on_press(Message::EnterPressed);
 
-            #[allow(unused_mut)]
-            let mut coll = Column::new().spacing(10);
-
-            coll.push(btn).into()
+            column(vec![btn.into()]).spacing(10).into()
         } else {
-            Row::new().into()
+            row(vec![]).into()
         };
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Units(100))
             .padding(10)

@@ -9,11 +9,11 @@
 // implemented by `iced_wgpu` and other renderers.
 use iced_graphics::{Backend, Primitive, Rectangle, Renderer};
 use iced_native::{
-    layout, mouse, renderer::Style, Background, Clipboard, Color, Element, Event, Layout, Length,
-    Padding, Point, Shell, Widget,
+    layout, mouse, renderer::Style, widget::Tree, Background, Clipboard, Color, Element, Event,
+    Layout, Length, Padding, Point, Shell, Widget,
 };
 
-pub struct NeoBtn<'a, Message: Clone, B: Backend> {
+pub struct NeoBtn<'a, Message: Clone, B: Backend, Theme> {
     state: &'a mut State,
     width: Length,
     height: Length,
@@ -22,14 +22,14 @@ pub struct NeoBtn<'a, Message: Clone, B: Backend> {
     padding: u16,
     border_radius: f32,
     disabled: bool,
-    content: Element<'a, Message, Renderer<B>>,
+    content: Element<'a, Message, Renderer<B, Theme>>,
     on_press: Option<Message>,
 }
 
-impl<'a, Message: Clone, B: Backend> NeoBtn<'a, Message, B> {
+impl<'a, Message: Clone, B: Backend, Theme> NeoBtn<'a, Message, B, Theme> {
     pub fn new<E>(state: &'a mut State, content: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer<B>>>,
+        E: Into<Element<'a, Message, Renderer<B, Theme>>>,
     {
         Self {
             state,
@@ -81,7 +81,8 @@ impl<'a, Message: Clone, B: Backend> NeoBtn<'a, Message, B> {
 //     Message: Clone,
 //     B: Backend,
 // {
-impl<'a, Message: Clone, B> Widget<Message, Renderer<B>> for NeoBtn<'a, Message, B>
+impl<'a, Message: Clone, B, Theme> Widget<Message, Renderer<B, Theme>>
+    for NeoBtn<'a, Message, B, Theme>
 where
     B: Backend,
 {
@@ -93,7 +94,7 @@ where
         self.height
     }
 
-    fn layout(&self, renderer: &Renderer<B>, limits: &layout::Limits) -> layout::Node {
+    fn layout(&self, renderer: &Renderer<B, Theme>, limits: &layout::Limits) -> layout::Node {
         let limits = limits
             .min_width(self.min_width)
             .min_height(self.min_height)
@@ -101,7 +102,7 @@ where
             .height(self.height)
             .pad(Padding::new(self.padding));
 
-        let mut content = self.content.layout(renderer, &limits);
+        let mut content = self.content.as_widget().layout(renderer, &limits);
         content.move_to(Point::new(self.padding as _, self.padding as _));
 
         let size = limits
@@ -113,10 +114,11 @@ where
 
     fn on_event(
         &mut self,
+        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, Theme>,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> iced_native::event::Status {
@@ -153,7 +155,9 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer<B>,
+        state: &Tree,
+        renderer: &mut Renderer<B, Theme>,
+        theme: &Theme,
         _style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -211,8 +215,10 @@ where
             mouse::Interaction::default()
         };
 
-        self.content.draw(
+        self.content.as_widget().draw(
+            state,
             renderer,
+            theme,
             &Style {
                 text_color: if self.disabled {
                     Color::new(0.3, 0.3, 0.3, 1.0)
@@ -227,12 +233,14 @@ where
     }
 }
 
-impl<'a, Message, B> From<NeoBtn<'a, Message, B>> for Element<'a, Message, Renderer<B>>
+impl<'a, Message, B, Theme> From<NeoBtn<'a, Message, B, Theme>>
+    for Element<'a, Message, Renderer<B, Theme>>
 where
     B: 'a + Backend,
     Message: 'a + Clone,
+    Theme: 'a,
 {
-    fn from(from: NeoBtn<'a, Message, B>) -> Element<'a, Message, Renderer<B>> {
+    fn from(from: NeoBtn<'a, Message, B, Theme>) -> Element<'a, Message, Renderer<B, Theme>> {
         Element::new(from)
     }
 }

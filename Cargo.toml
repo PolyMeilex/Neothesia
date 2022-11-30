@@ -45,8 +45,8 @@ midi-io = { path = "./midi-io" }
 
 winit = "0.27.2"
 
-wgpu = "0.13.0"
-wgpu_glyph = "0.17.0"
+wgpu = "0.14.0"
+wgpu_glyph = "0.18.0"
 
 
 log = "0.4.14"
@@ -60,12 +60,13 @@ midir = "0.8.0"
 
 fps_ticker = "1.0.0"
 
-iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "66eb6263003c1bbedd1fd14d6b12f172d20a6211", optional = true }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "66eb6263003c1bbedd1fd14d6b12f172d20a6211", features = [
+iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", optional = true }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", features = [
     "png",
+    "image",
 ], optional = true }
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "66eb6263003c1bbedd1fd14d6b12f172d20a6211", optional = true }
-iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "66eb6263003c1bbedd1fd14d6b12f172d20a6211", optional = true }
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", optional = true }
+iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", optional = true }
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = { version = "0.2.1", features = ["builtin"], optional = true }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::target::Target;
 use crate::NeothesiaEvent;
-use iced_native::widget::{Column, Container, Image, Row, Text};
+use iced_native::widget::helpers::{column, container, image, row, text};
 use iced_native::{
     alignment::Horizontal, alignment::Vertical, image, Alignment, Color, Command, Element, Length,
 };
@@ -295,20 +295,15 @@ impl Program for IcedMenu {
         };
 
         let main: Element<_, _> = {
-            let image = Image::new(self.logo_handle.clone());
-            let image = Container::new(image)
-                .center_x()
-                .center_y()
-                .width(Length::Fill);
+            let image = image(self.logo_handle.clone());
+            let image = container(image).center_x().center_y().width(Length::Fill);
 
-            let main = Column::new()
+            let main = column(vec![image.into(), controls])
                 .width(Length::Fill)
                 .spacing(40)
-                .max_width(650)
-                .push(image)
-                .push(controls);
+                .max_width(650);
 
-            let centered_main = Container::new(main)
+            let centered_main = container(main)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .center_x()
@@ -317,7 +312,7 @@ impl Program for IcedMenu {
             centered_main.into()
         };
 
-        let mut out = Column::new().push(main);
+        let mut out = column(vec![main]);
 
         if let Some(footer) = footer {
             out = out.push(footer);
@@ -339,46 +334,43 @@ impl ExitControls {
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
-        let output = Text::new("Do you want to exit?")
-            .color(Color::WHITE)
+        let output = text("Do you want to exit?")
+            .style(Color::WHITE)
             .size(30)
             .horizontal_alignment(Horizontal::Center)
             .vertical_alignment(Vertical::Center);
 
-        let select_row = Row::new()
-            .spacing(5)
-            .height(Length::Units(50))
-            .push(
-                NeoBtn::new(
-                    &mut self.no_button,
-                    Text::new("No")
-                        .size(30)
-                        .horizontal_alignment(Horizontal::Center)
-                        .vertical_alignment(Vertical::Center),
-                )
-                .width(Length::Fill)
-                .on_press(Message::EscPressed),
+        let select_row = row(vec![
+            NeoBtn::new(
+                &mut self.no_button,
+                text("No")
+                    .size(30)
+                    .horizontal_alignment(Horizontal::Center)
+                    .vertical_alignment(Vertical::Center),
             )
-            .push(
-                NeoBtn::new(
-                    &mut self.yes_button,
-                    Text::new("Yes")
-                        .size(30)
-                        .horizontal_alignment(Horizontal::Center)
-                        .vertical_alignment(Vertical::Center),
-                )
-                .width(Length::Fill)
-                .on_press(Message::EnterPressed),
-            );
+            .width(Length::Fill)
+            .on_press(Message::EscPressed)
+            .into(),
+            NeoBtn::new(
+                &mut self.yes_button,
+                text("Yes")
+                    .size(30)
+                    .horizontal_alignment(Horizontal::Center)
+                    .vertical_alignment(Vertical::Center),
+            )
+            .width(Length::Fill)
+            .on_press(Message::EnterPressed)
+            .into(),
+        ])
+        .spacing(5)
+        .height(Length::Units(50));
 
-        let controls = Column::new()
+        let controls = column(vec![output.into(), select_row.into()])
             .align_items(Alignment::Center)
             .width(Length::Units(500))
-            .spacing(30)
-            .push(output)
-            .push(select_row);
+            .spacing(30);
 
-        Container::new(controls)
+        container(controls)
             .width(Length::Fill)
             .height(Length::Units(250))
             .center_x()

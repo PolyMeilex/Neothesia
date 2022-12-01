@@ -23,18 +23,12 @@ impl Notes {
     pub fn resize(&mut self, target: &mut Target, keys: &[super::keyboard::Key]) {
         let midi = &target.midi_file.as_ref().unwrap();
 
-        let (window_w, window_h) = {
-            let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
-            (width, height)
-        };
-
         let mut instances = Vec::new();
 
         let mut longer_than_88 = false;
         for note in midi.merged_track.notes.iter() {
             if note.note >= 21 && note.note <= 108 && note.channel != 9 {
                 let key = &keys[note.note as usize - 21];
-                let ar = window_w / window_h;
 
                 let color_schema = &target.config.color_schema;
 
@@ -56,7 +50,7 @@ impl Notes {
                     position: [key.x_position(), note.start.as_secs_f32()],
                     size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
                     color: color.into_linear_rgb(),
-                    radius: 4.0 * ar,
+                    radius: key.width() * 0.2,
                 });
             } else {
                 longer_than_88 = true;

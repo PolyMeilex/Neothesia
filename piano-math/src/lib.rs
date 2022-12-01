@@ -30,6 +30,10 @@ impl Key {
         self.x
     }
 
+    pub fn size(&self) -> (f32, f32) {
+        (self.width, self.height)
+    }
+
     pub fn width(&self) -> f32 {
         self.width
     }

@@ -1,23 +1,26 @@
-use crate::config::Config;
-use crate::target::Target;
-use crate::TransformUniform;
-use crate::Uniform;
+use crate::{
+    config::Config,
+    target::Target,
+    utils::{Point, Size},
+    TransformUniform, Uniform,
+};
+
 use lib_midi::MidiEvent;
 use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
-
 use piano_math::range::KeyboardRange;
+use wgpu_glyph::Section;
 
 mod key;
 pub use key::Key;
-use wgpu_glyph::Section;
 
 pub struct PianoKeyboard {
-    pub quad_pipeline: QuadPipeline,
-    pub keys: Vec<Key>,
-    black_background: QuadInstance,
+    pos: Point<f32>,
+    size: Size<f32>,
 
+    keys: Vec<Key>,
     range: KeyboardRange,
-    window_size: winit::dpi::LogicalSize<f32>,
+
+    quad_pipeline: QuadPipeline,
     should_reupload: bool,
 }
 
@@ -29,46 +32,39 @@ impl PianoKeyboard {
         let keys: Vec<Key> = range.iter().map(|id| Key::new(id.is_black())).collect();
 
         let mut piano_keyboard = Self {
-            quad_pipeline,
-            keys,
-            black_background: QuadInstance::default(),
+            pos: Default::default(),
+            size: Default::default(),
 
+            keys,
             range,
-            window_size: target.window.state.logical_size,
+
+            quad_pipeline,
             should_reupload: false,
         };
 
-        piano_keyboard.calculate_positions();
+        piano_keyboard.resize(target.window.state.logical_size);
         piano_keyboard
+    }
+
+    pub fn keys(&self) -> &[Key] {
+        &self.keys
     }
 
     /// Calculate positions of keys
     fn calculate_positions(&mut self) {
-        let neutral_width = self.window_size.width / self.range.white_count() as f32;
-        let neutral_height = self.window_size.height / 5.0;
-
-        let keyboard = piano_math::standard_88_keys(neutral_width, neutral_height);
-
-        let y = self.window_size.height - keyboard.neutral_height as f32;
-
-        self.black_background = QuadInstance {
-            position: [0.0, self.window_size.height - keyboard.neutral_height],
-            size: [self.window_size.width, keyboard.neutral_height],
-            color: [0.0, 0.0, 0.0, 1.0],
-            ..Default::default()
-        };
+        let neutral_width = self.size.w / self.range.white_count() as f32;
+        let keyboard = piano_math::standard_88_keys(neutral_width, self.size.h);
 
         for (id, key) in keyboard.keys.iter().enumerate() {
-            self.keys[id].pos = (key.x(), y);
             self.keys[id].note_id = key.note_id();
 
-            match key.kind() {
-                piano_math::KeyKind::Neutral => {
-                    self.keys[id].size = (key.width() - 1.0, key.height());
-                }
-                piano_math::KeyKind::Sharp => {
-                    self.keys[id].size = (key.width(), key.height());
-                }
+            self.keys[id].pos = self.pos;
+            self.keys[id].pos.x += key.x();
+
+            self.keys[id].size = key.size().into();
+
+            if let piano_math::KeyKind::Neutral = key.kind() {
+                self.keys[id].size.w -= 1.0;
             }
         }
 
@@ -76,7 +72,12 @@ impl PianoKeyboard {
     }
 
     pub fn resize(&mut self, window_size: winit::dpi::LogicalSize<f32>) {
-        self.window_size = window_size;
+        self.size.w = window_size.width;
+        self.size.h = window_size.height * 0.2;
+
+        self.pos.x = 0.0;
+        self.pos.y = window_size.height - self.size.h;
+
         self.calculate_positions();
     }
 
@@ -121,7 +122,14 @@ impl PianoKeyboard {
     fn reupload(&mut self, queue: &wgpu::Queue) {
         self.quad_pipeline.with_instances_mut(queue, |instances| {
             instances.clear();
-            instances.push(self.black_background);
+
+            // black_background
+            instances.push(QuadInstance {
+                position: self.pos.into(),
+                size: self.size.into(),
+                color: [0.0, 0.0, 0.0, 1.0],
+                ..Default::default()
+            });
 
             for key in self.keys.iter().filter(|key| !key.is_black()) {
                 instances.push(QuadInstance::from(key));
@@ -140,13 +148,13 @@ impl PianoKeyboard {
         }
 
         for (id, key) in self.keys.iter().filter(|key| key.note_id == 0).enumerate() {
-            let (x, y) = key.pos;
-            let (w, h) = key.size;
+            let Point { x, y } = key.pos;
+            let Size { w, h } = key.size;
 
             let size = w * 0.7;
 
             target.text_renderer.queue_text(Section {
-                screen_position: (x + w / 2.0, y + h - size * 1.3),
+                screen_position: (x + w / 2.0, y + h - size * 1.2),
                 text: vec![wgpu_glyph::Text::new(&format!("C{}", id + 1))
                     .with_color([0.6, 0.6, 0.6, 1.0])
                     .with_scale(size)],

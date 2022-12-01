@@ -32,7 +32,7 @@ impl PlayingScene {
     pub fn new(target: &mut Target) -> Self {
         let piano_keyboard = PianoKeyboard::new(target);
 
-        let mut notes = Notes::new(target, &piano_keyboard.keys);
+        let mut notes = Notes::new(target, piano_keyboard.keys());
 
         let player = MidiPlayer::new(target);
         notes.update(target, player.time_without_lead_in());
@@ -105,7 +105,7 @@ impl Scene for PlayingScene {
 
     fn resize(&mut self, target: &mut Target) {
         self.piano_keyboard.resize(target.window.state.logical_size);
-        self.notes.resize(target, &self.piano_keyboard.keys);
+        self.notes.resize(target, self.piano_keyboard.keys());
     }
 
     fn update(&mut self, target: &mut Target, delta: Duration) {

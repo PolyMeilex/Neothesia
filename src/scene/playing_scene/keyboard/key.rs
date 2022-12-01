@@ -1,10 +1,13 @@
-use crate::config::ColorSchema;
+use crate::{
+    config::ColorSchema,
+    utils::{Point, Size},
+};
 use neothesia_pipelines::quad::QuadInstance;
 use wgpu_jumpstart::Color;
 
 pub struct Key {
-    pub(super) pos: (f32, f32),
-    pub(super) size: (f32, f32),
+    pub(super) pos: Point<f32>,
+    pub(super) size: Size<f32>,
     pub(super) is_black: bool,
     pub(super) note_id: u8,
 
@@ -14,8 +17,8 @@ pub struct Key {
 impl Key {
     pub fn new(is_black: bool) -> Self {
         Self {
-            pos: (0.0, 0.0),
-            size: (0.0, 0.0),
+            pos: Default::default(),
+            size: Default::default(),
             is_black,
             note_id: 0,
 
@@ -28,11 +31,11 @@ impl Key {
     }
 
     pub fn x_position(&self) -> f32 {
-        self.pos.0
+        self.pos.x
     }
 
     pub fn width(&self) -> f32 {
-        self.size.0
+        self.size.w
     }
 
     pub fn is_black(&self) -> bool {
@@ -61,12 +64,12 @@ impl From<&Key> for QuadInstance {
     fn from(key: &Key) -> QuadInstance {
         let kind_multiplier = if key.is_black() { 1.0 } else { 3.5 };
 
-        let radius = key.size.0 * 0.08;
+        let radius = key.size.w * 0.08;
         let radius = radius * kind_multiplier;
 
         QuadInstance {
-            position: [key.pos.0, key.pos.1],
-            size: [key.size.0, key.size.1],
+            position: key.pos.into(),
+            size: key.size.into(),
             color: key.color.into_linear_rgba(),
             border_radius: [0.0, 0.0, radius, radius],
         }

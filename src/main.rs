@@ -2,7 +2,7 @@
 
 use neothesia::{
     midi_event::MidiEvent,
-    scene::{self, Scene, SceneType},
+    scene::{menu_scene, playing_scene, scene_manager, SceneType},
     target::Target,
     NeothesiaEvent,
 };
@@ -14,14 +14,13 @@ pub struct Neothesia {
 
     last_time: std::time::Instant,
     pub fps_timer: fps_ticker::Fps,
-    pub game_scene: scene::scene_transition::SceneTransition,
+    pub game_scene: scene_manager::SceneManager,
 }
 
 impl Neothesia {
     pub fn new(mut target: Target) -> Self {
-        let game_scene = scene::menu_scene::MenuScene::new(&mut target);
-        let mut game_scene =
-            scene::scene_transition::SceneTransition::new(Box::new(game_scene), &target);
+        let game_scene = menu_scene::MenuScene::new(&mut target);
+        let mut game_scene = scene_manager::SceneManager::new(game_scene);
 
         target.resize();
         game_scene.resize(&mut target);
@@ -85,15 +84,9 @@ impl Neothesia {
     pub fn neothesia_event(&mut self, event: &NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
             NeothesiaEvent::MainMenu(event) => match event {
-                scene::menu_scene::Event::Play => {
-                    let to = |target: &mut Target| -> Box<dyn Scene> {
-                        let state = scene::playing_scene::PlayingScene::new(target);
-                        Box::new(state)
-                    };
-
-                    let to = Box::new(to);
-
-                    self.game_scene.transition_to(to);
+                menu_scene::Event::Play => {
+                    let to = playing_scene::PlayingScene::new(&mut self.target);
+                    self.game_scene.transition_to(&mut self.target, to);
                 }
             },
             NeothesiaEvent::GoBack => match self.game_scene.scene_type() {
@@ -101,16 +94,9 @@ impl Neothesia {
                     *control_flow = ControlFlow::Exit;
                 }
                 SceneType::Playing => {
-                    let to = |target: &mut Target| -> Box<dyn Scene> {
-                        let state = scene::menu_scene::MenuScene::new(target);
-                        Box::new(state)
-                    };
-
-                    let to = Box::new(to);
-
-                    self.game_scene.transition_to(to);
+                    let to = menu_scene::MenuScene::new(&mut self.target);
+                    self.game_scene.transition_to(&mut self.target, to);
                 }
-                SceneType::Transition => {}
             },
             NeothesiaEvent::MidiInput(event) => self.midi_event(event),
         }

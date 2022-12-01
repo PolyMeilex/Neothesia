@@ -65,10 +65,10 @@ impl PianoKeyboard {
     }
 
     pub fn resize(&mut self, target: &mut Target) -> Result<(), String> {
-        let (window_w, window_h) = {
-            let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
-            (width, height)
-        };
+        let winit::dpi::LogicalSize {
+            width: window_w,
+            height: window_h,
+        } = target.window.state.logical_size;
 
         let neutral_width = window_w / self.range.white_count() as f32;
         let neutral_height = window_h / 5.0;

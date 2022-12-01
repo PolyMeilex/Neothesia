@@ -31,8 +31,8 @@ struct VertexOutput {
     @location(1) size: vec2<f32>,
     @location(2) color: vec3<f32>,
     @location(3) radius: f32,
-
-};
+    @location(4) note_pos: vec2<f32>,
+}
 
 let speed: f32 = 400.0;
 
@@ -54,56 +54,50 @@ fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
 
     var out: VertexOutput;
     out.position = view_uniform.transform * transform * vec4<f32>(vertex.position, 0.0, 1.0);
+    out.note_pos = pos + offset;
     
     out.src_position = vertex.position;
     out.size = size;
     out.color = note.color;
     out.radius = note.radius;
 
-
     return out;
 }
 
-fn corner_alpha(radius: f32, pos: vec2<f32>, cords: vec2<f32>) -> f32{
-    let lower = radius - 0.7;
-    let upper = radius + 0.7;
-    return 1.0 - smoothstep(lower, upper, length(pos - cords));
-}
-
-fn fragment_alpha(
+fn dist(
+    frag_coord: vec2<f32>,
     position: vec2<f32>,
     size: vec2<f32>,
-    radius: vec4<f32>,
+    radius: f32,
 ) -> f32 {
-    let pos = position * size;
-    // Top Left
-    let tl = vec2<f32>(radius.x, radius.x);
-    // Top Right
-    let tr = vec2<f32>(size.x - radius.y, radius.y);
-    // Bottom Left
-    let bl = vec2<f32>(radius.z, size.y - radius.z);
-    // Bottom Right
-    let br = vec2<f32>(size.x - radius.w, size.y - radius.w);
+    let inner_size: vec2<f32> = size - vec2<f32>(radius, radius) * 2.0;
+    let top_left: vec2<f32> = position + vec2<f32>(radius, radius);
+    let bottom_right: vec2<f32> = top_left + inner_size;
 
-    if (pos.x < tl.x && pos.y < tl.y) {
-        return corner_alpha(radius.x, pos, tl);
-    } else if (pos.x > tr.x && pos.y < tr.y){
-        return corner_alpha(radius.y, pos, tr);
-    } else if (pos.x < bl.x && pos.y > bl.y){
-        return corner_alpha(radius.z, pos, bl);
-    } else if (pos.x > br.x && pos.y > br.y){
-        return corner_alpha(radius.w, pos, br);
-    } else {
-        return 1.0;
-    }
+    let top_left_distance: vec2<f32> = top_left - frag_coord;
+    let bottom_right_distance: vec2<f32> = frag_coord - bottom_right;
+
+    let dist: vec2<f32> = vec2<f32>(
+        max(max(top_left_distance.x, bottom_right_distance.x), 0.0),
+        max(max(top_left_distance.y, bottom_right_distance.y), 0.0),
+    );
+
+    return sqrt(dist.x * dist.x + dist.y * dist.y);
 }
 
 @fragment
-fn fs_main(in: VertexOutput) ->  @location(0) vec4<f32> {
-    let alpha: f32 = fragment_alpha(
-        in.src_position.xy,
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let dist: f32 = dist(
+        in.position.xy,
+        in.note_pos,
         in.size,
-        vec4<f32>(in.radius)
+        in.radius,
+    );
+    
+    let alpha: f32 = 1.0 - smoothstep(
+        max(in.radius - 0.5, 0.0),
+        in.radius + 0.5,
+        dist,
     );
 
     return vec4<f32>(in.color, alpha);

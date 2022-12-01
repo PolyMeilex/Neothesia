@@ -58,42 +58,39 @@ impl Scene for MenuScene {
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
-        let encoder = &mut target.gpu.encoder;
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+        self.bg_pipeline
+            .render(
+                &mut target
+                    .gpu
+                    .encoder
+                    .begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: None,
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: true,
+                            },
+                        })],
+                        depth_stencil_attachment: None,
+                    }),
+            );
+
+        target
+            .iced_manager
+            .renderer
+            .with_primitives(|backend, primitive| {
+                backend.present(
+                    &target.gpu.device,
+                    &mut target.gpu.staging_belt,
+                    &mut target.gpu.encoder,
                     view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-            self.bg_pipeline.render(&mut render_pass);
-        }
-
-        let iced_renderer = &mut target.iced_manager.renderer;
-        let device = &mut target.gpu.device;
-        let staging_belt = &mut target.gpu.staging_belt;
-        let encoder = &mut target.gpu.encoder;
-        let viewport = &target.iced_manager.viewport;
-        let overlay = &target.iced_manager.debug.overlay();
-
-        iced_renderer.with_primitives(|backend, primitive| {
-            backend.present(
-                device,
-                staging_belt,
-                encoder,
-                view,
-                primitive,
-                viewport,
-                overlay,
-            )
-        })
+                    primitive,
+                    &target.iced_manager.viewport,
+                    &target.iced_manager.debug.overlay(),
+                )
+            })
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {

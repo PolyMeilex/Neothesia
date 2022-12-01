@@ -17,7 +17,7 @@ struct Vertex {
     @location(0) position: vec2<f32>,
 }
 
-struct NoteInstance{
+struct NoteInstance {
     @location(1) n_position: vec2<f32>,
     @location(2) size: vec2<f32>,
     @location(3) color: vec3<f32>,
@@ -39,10 +39,10 @@ let speed: f32 = 400.0;
 @vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     let size = vec2<f32>(note.size.x, note.size.y * speed);
-    
+
     let y = view_uniform.size.y - view_uniform.size.y / 5.0 - size.y / 2.0;
     let pos = vec2<f32>(note.n_position.x, y) - vec2<f32>(0.0, size.y / 2.0);
-    
+
     let offset = vec2<f32>(0.0, -(note.n_position.y - time_uniform.time) * speed);
 
     let transform = mat4x4<f32>(
@@ -55,7 +55,7 @@ fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     var out: VertexOutput;
     out.position = view_uniform.transform * transform * vec4<f32>(vertex.position, 0.0, 1.0);
     out.note_pos = pos + offset;
-    
+
     out.src_position = vertex.position;
     out.size = size;
     out.color = note.color;
@@ -93,7 +93,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         in.size,
         in.radius,
     );
-    
+
     let alpha: f32 = 1.0 - smoothstep(
         max(in.radius - 0.5, 0.0),
         in.radius + 0.5,
@@ -102,4 +102,3 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     return vec4<f32>(in.color, alpha);
 }
-

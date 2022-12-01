@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::target::Target;
 use crate::TransformUniform;
 use crate::Uniform;
@@ -13,101 +14,131 @@ use wgpu_glyph::Section;
 pub struct PianoKeyboard {
     pub quad_pipeline: QuadPipeline,
     pub keys: Vec<Key>,
+    black_background: QuadInstance,
 
     range: KeyboardRange,
+    window_size: winit::dpi::LogicalSize<f32>,
+    should_reupload: bool,
 }
 
 impl PianoKeyboard {
     pub fn new(target: &mut Target) -> Self {
         let range = KeyboardRange::standard_88_keys();
 
-        let mut quad_pipeline = QuadPipeline::new(&target.gpu, &target.transform_uniform);
-
-        let mut keys = Vec::new();
-
-        // 0 is reserved fo keyboard background, so it starts from 1
-        let first_instance_id = 1;
-
-        {
-            let mut white_key_id: usize = 0;
-            let mut black_key_id: usize = 0;
-
-            for id in range.iter() {
-                if id.is_black() {
-                    keys.push(Key::new(
-                        first_instance_id + range.white_count() + black_key_id,
-                        true,
-                    ));
-                    black_key_id += 1;
-                } else {
-                    keys.push(Key::new(first_instance_id + white_key_id, false));
-                    white_key_id += 1;
-                }
-            }
-        }
-
-        quad_pipeline.update_instance_buffer(
-            &target.gpu.queue,
-            // BG + keys
-            vec![QuadInstance::default(); 1 + keys.len()],
-        );
+        let quad_pipeline = QuadPipeline::new(&target.gpu, &target.transform_uniform);
+        let keys: Vec<Key> = range.iter().map(|id| Key::new(id.is_black())).collect();
 
         let mut piano_keyboard = Self {
             quad_pipeline,
             keys,
+            black_background: QuadInstance::default(),
 
             range,
+            window_size: target.window.state.logical_size,
+            should_reupload: false,
         };
 
-        piano_keyboard.resize(target).ok();
-
+        piano_keyboard.calculate_positions();
         piano_keyboard
     }
 
-    pub fn resize(&mut self, target: &mut Target) -> Result<(), String> {
-        let winit::dpi::LogicalSize {
-            width: window_w,
-            height: window_h,
-        } = target.window.state.logical_size;
-
-        let neutral_width = window_w / self.range.white_count() as f32;
-        let neutral_height = window_h / 5.0;
+    /// Calculate positions of keys
+    fn calculate_positions(&mut self) {
+        let neutral_width = self.window_size.width / self.range.white_count() as f32;
+        let neutral_height = self.window_size.height / 5.0;
 
         let keyboard = piano_math::standard_88_keys(neutral_width, neutral_height);
 
-        let y = window_h - keyboard.neutral_height as f32;
+        let y = self.window_size.height - keyboard.neutral_height as f32;
 
-        self.quad_pipeline
-            .instances_mut(&target.gpu.queue, |instances: &mut Vec<QuadInstance>| {
-                // Keyboard background
-                instances[0] = QuadInstance {
-                    position: [0.0, window_h - keyboard.neutral_height],
-                    size: [window_w, keyboard.neutral_height],
-                    color: [0.0, 0.0, 0.0, 1.0],
-                    ..Default::default()
-                };
+        self.black_background = QuadInstance {
+            position: [0.0, self.window_size.height - keyboard.neutral_height],
+            size: [self.window_size.width, keyboard.neutral_height],
+            color: [0.0, 0.0, 0.0, 1.0],
+            ..Default::default()
+        };
 
-                for (id, key) in keyboard.keys.iter().enumerate() {
-                    self.keys[id].pos = (key.x(), y);
-                    self.keys[id].note_id = key.note_id();
+        for (id, key) in keyboard.keys.iter().enumerate() {
+            self.keys[id].pos = (key.x(), y);
+            self.keys[id].note_id = key.note_id();
 
-                    match key.kind() {
-                        piano_math::KeyKind::Neutral => {
-                            self.keys[id].size = (key.width() - 1.0, key.height());
-                        }
-                        piano_math::KeyKind::Sharp => {
-                            self.keys[id].size = (key.width(), key.height());
-                        }
-                    }
-
-                    instances[self.keys[id].instance_id] = QuadInstance::from(&self.keys[id]);
+            match key.kind() {
+                piano_math::KeyKind::Neutral => {
+                    self.keys[id].size = (key.width() - 1.0, key.height());
                 }
-            });
+                piano_math::KeyKind::Sharp => {
+                    self.keys[id].size = (key.width(), key.height());
+                }
+            }
+        }
 
-        Ok(())
+        self.should_reupload = true;
+    }
+
+    pub fn resize(&mut self, window_size: winit::dpi::LogicalSize<f32>) {
+        self.window_size = window_size;
+        self.calculate_positions();
+    }
+
+    pub fn update_note_events(&mut self, config: &Config, events: &[MidiEvent]) {
+        for e in events {
+            match e.message {
+                lib_midi::midly::MidiMessage::NoteOn { key, .. } => {
+                    let key = key.as_int();
+
+                    if self.range.contains(key) && e.channel != 9 {
+                        let id = key as usize - 21;
+                        let key = &mut self.keys[id];
+
+                        let color = &config.color_schema[e.track_id % config.color_schema.len()];
+                        key.set_color(color);
+                        self.should_reupload = true;
+                    }
+                }
+                lib_midi::midly::MidiMessage::NoteOff { key, .. } => {
+                    let key = key.as_int();
+                    if self.range.contains(key) && e.channel != 9 {
+                        let id = key as usize - 21;
+                        let key = &mut self.keys[id];
+
+                        key.reset_color();
+                        self.should_reupload = true;
+                    }
+                }
+                _ => continue,
+            };
+        }
+    }
+
+    pub fn reset_notes(&mut self) {
+        for key in self.keys.iter_mut() {
+            key.reset_color();
+        }
+        self.should_reupload = true;
+    }
+
+    /// Reupload instances to GPU
+    fn reupload(&mut self, queue: &wgpu::Queue) {
+        self.quad_pipeline.with_instances_mut(queue, |instances| {
+            instances.clear();
+            instances.push(self.black_background);
+
+            for key in self.keys.iter().filter(|key| !key.is_black()) {
+                instances.push(QuadInstance::from(key));
+            }
+
+            for key in self.keys.iter().filter(|key| key.is_black()) {
+                instances.push(QuadInstance::from(key));
+            }
+        });
+        self.should_reupload = false;
     }
 
     pub fn update(&mut self, target: &mut Target) {
+        if self.should_reupload {
+            self.reupload(&target.gpu.queue);
+        }
+
         for (id, key) in self.keys.iter().filter(|key| key.note_id == 0).enumerate() {
             let (x, y) = key.pos;
             let (w, h) = key.size;
@@ -125,62 +156,6 @@ impl PianoKeyboard {
                     .v_align(wgpu_glyph::VerticalAlign::Top),
             })
         }
-    }
-
-    pub fn update_note_events(&mut self, target: &mut Target, events: &[MidiEvent]) {
-        if events.is_empty() {
-            return;
-        }
-
-        let keys = &mut self.keys;
-        let color_schema = &target.config.color_schema;
-        let range = &self.range;
-
-        let updater = |instances: &mut Vec<QuadInstance>| {
-            for e in events {
-                match e.message {
-                    lib_midi::midly::MidiMessage::NoteOn { key, .. } => {
-                        let key = key.as_int();
-
-                        if range.contains(key) && e.channel != 9 {
-                            let id = key as usize - 21;
-                            let key = &mut keys[id];
-
-                            let color = &color_schema[e.track_id % color_schema.len()];
-                            key.set_color(color);
-
-                            instances[key.instance_id] = QuadInstance::from(&*key);
-                        }
-                    }
-                    lib_midi::midly::MidiMessage::NoteOff { key, .. } => {
-                        let key = key.as_int();
-                        if range.contains(key) && e.channel != 9 {
-                            let id = key as usize - 21;
-                            let key = &mut keys[id];
-
-                            key.reset_color();
-
-                            instances[key.instance_id] = QuadInstance::from(&*key);
-                        }
-                    }
-                    _ => continue,
-                };
-            }
-        };
-
-        self.quad_pipeline.instances_mut(&target.gpu.queue, updater);
-    }
-
-    pub fn reset_notes(&mut self, target: &mut Target) {
-        let keys = &mut self.keys;
-        let updater = |instances: &mut Vec<QuadInstance>| {
-            for key in keys.iter_mut() {
-                key.reset_color();
-                instances[key.instance_id] = QuadInstance::from(&*key);
-            }
-        };
-
-        self.quad_pipeline.instances_mut(&target.gpu.queue, updater);
     }
 
     pub fn render<'rpass>(

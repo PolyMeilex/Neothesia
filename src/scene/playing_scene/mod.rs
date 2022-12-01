@@ -104,7 +104,7 @@ impl Scene for PlayingScene {
     }
 
     fn resize(&mut self, target: &mut Target) {
-        self.piano_keyboard.resize(target).ok();
+        self.piano_keyboard.resize(target.window.state.logical_size);
         self.notes.resize(target, &self.piano_keyboard.keys);
     }
 
@@ -129,9 +129,10 @@ impl Scene for PlayingScene {
         );
 
         if let Some(midi_events) = midi_events {
-            self.piano_keyboard.update_note_events(target, &midi_events);
+            self.piano_keyboard
+                .update_note_events(&target.config, &midi_events);
         } else {
-            self.piano_keyboard.reset_notes(target);
+            self.piano_keyboard.reset_notes();
         }
 
         self.notes.update(

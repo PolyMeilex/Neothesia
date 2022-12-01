@@ -67,13 +67,15 @@ impl<'a> QuadPipeline {
     }
 
     pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: Vec<QuadInstance>) {
-        if self.instances.data != instances {
-            self.instances.data = instances;
-            self.instances.update(queue);
-        }
+        self.instances.data = instances;
+        self.instances.update(queue);
     }
 
-    pub fn instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(&mut self, queue: &wgpu::Queue, cb: F) {
+    pub fn with_instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(
+        &mut self,
+        queue: &wgpu::Queue,
+        cb: F,
+    ) {
         cb(&mut self.instances.data);
         self.instances.update(queue);
     }

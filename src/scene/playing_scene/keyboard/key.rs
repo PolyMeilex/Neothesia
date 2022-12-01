@@ -3,7 +3,6 @@ use neothesia_pipelines::quad::QuadInstance;
 use wgpu_jumpstart::Color;
 
 pub struct Key {
-    pub(super) instance_id: usize,
     pub(super) pos: (f32, f32),
     pub(super) size: (f32, f32),
     pub(super) is_black: bool,
@@ -13,9 +12,8 @@ pub struct Key {
 }
 
 impl Key {
-    pub fn new(instance_id: usize, is_black: bool) -> Self {
+    pub fn new(is_black: bool) -> Self {
         Self {
-            instance_id,
             pos: (0.0, 0.0),
             size: (0.0, 0.0),
             is_black,

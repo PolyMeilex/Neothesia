@@ -1,12 +1,11 @@
-mod bg_pipeline;
 mod iced_menu;
 
 mod neo_btn;
 
 use std::time::Duration;
 
-use bg_pipeline::BgPipeline;
 use iced_menu::IcedMenu;
+use neothesia_pipelines::background_animation::BgPipeline;
 
 use winit::event::WindowEvent;
 

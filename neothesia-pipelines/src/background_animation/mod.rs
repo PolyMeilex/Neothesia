@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wgpu_jumpstart::{Gpu, RenderPipelineBuilder, Shape, Uniform};
+use wgpu_jumpstart::{wgpu, Gpu, RenderPipelineBuilder, Shape, Uniform};
 
 use bytemuck::{Pod, Zeroable};
 
@@ -19,7 +19,7 @@ impl<'a> BgPipeline {
             .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("RectanglePipeline::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
-                    "./shader/bg.wgsl"
+                    "./shader.wgsl"
                 ))),
             });
 

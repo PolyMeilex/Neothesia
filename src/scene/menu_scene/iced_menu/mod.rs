@@ -4,10 +4,9 @@ use crate::target::Target;
 use crate::NeothesiaEvent;
 use iced_native::widget::helpers::{column, container, image, row, text};
 use iced_native::{
-    alignment::Horizontal, alignment::Vertical, image, Alignment, Color, Command, Element, Length,
+    alignment::Horizontal, alignment::Vertical, image, Alignment, Color, Element, Length,
 };
 use iced_wgpu::Renderer;
-use midir::MidiInputPort;
 
 use crate::output_manager::OutputDescriptor;
 
@@ -20,26 +19,23 @@ use carousel::Carousel;
 mod song_select;
 use song_select::SongSelectControls;
 
-#[cfg(feature = "play_along")]
 mod input_select;
-#[cfg(feature = "play_along")]
 use input_select::InputSelectControls;
 
 enum Controls {
     SongSelect(SongSelectControls),
-    #[cfg(feature = "play_along")]
     InputSelect(InputSelectControls),
     Exit(ExitControls),
 }
 
 pub struct IcedMenu {
-    pub play_along: bool,
+    play_along: bool,
 
     midi_file: bool,
     font_path: Option<PathBuf>,
 
-    pub out_carousel: Carousel<OutputDescriptor>,
-    pub in_carousel: Carousel<MidiInputPort>,
+    out_carousel: Carousel<OutputDescriptor>,
+    in_carousel: Carousel<midi_io::MidiInputPort>,
 
     controls: Controls,
 
@@ -55,11 +51,11 @@ pub enum Message {
     PrevPressed,
     NextPressed,
 
-    #[cfg(feature = "play_along")]
+    #[allow(unused)]
     TogglePlayAlong(bool),
 
-    EnterPressed,
-    EscPressed,
+    ContinuePressed,
+    BackPressed,
 
     OutputsUpdated(Vec<OutputDescriptor>),
 }
@@ -81,20 +77,11 @@ impl IcedMenu {
             out_carousel.select(id);
         }
 
-        let in_carousel = {
-            let midi_in = midir::MidiInput::new("Neothesia-in").unwrap();
-            let ports: Vec<_> = midi_in.ports().into_iter().collect();
-
-            let mut in_carousel = Carousel::new();
-            in_carousel.update(ports);
-            in_carousel
-        };
+        let mut in_carousel = Carousel::new();
+        in_carousel.update(target.input_manager.inputs());
 
         Self {
-            #[cfg(feature = "play_along")]
-            play_along: target.state.config.play_along,
-            #[cfg(not(feature = "play_along"))]
-            play_along: false,
+            play_along: target.config.play_along,
 
             midi_file: target.midi_file.is_some(),
             font_path: target.output_manager.selected_font_path.clone(),
@@ -112,7 +99,7 @@ impl IcedMenu {
 impl Program for IcedMenu {
     type Message = Message;
 
-    fn update(&mut self, target: &mut Target, message: Message) -> Command<Message> {
+    fn update(&mut self, target: &mut Target, message: Message) {
         match message {
             Message::FileSelectPressed => {
                 match rfd::FileDialog::new()
@@ -158,7 +145,6 @@ impl Program for IcedMenu {
                         self.out_carousel.next();
                     }
                 }
-                #[cfg(feature = "play_along")]
                 Controls::InputSelect(_) => {
                     if self.in_carousel.check_next() {
                         self.in_carousel.next();
@@ -166,13 +152,13 @@ impl Program for IcedMenu {
                 }
                 _ => {}
             },
+
             Message::PrevPressed => match self.controls {
                 Controls::SongSelect(_) => {
                     if self.out_carousel.check_prev() {
                         self.out_carousel.prev();
                     }
                 }
-                #[cfg(feature = "play_along")]
                 Controls::InputSelect(_) => {
                     if self.in_carousel.check_prev() {
                         self.in_carousel.prev();
@@ -180,60 +166,17 @@ impl Program for IcedMenu {
                 }
                 _ => {}
             },
-            #[cfg(feature = "play_along")]
+
             Message::TogglePlayAlong(is) => {
                 self.play_along = is;
             }
 
-            Message::EnterPressed => match self.controls {
+            Message::ContinuePressed => match self.controls {
                 Controls::SongSelect(_) => {
                     if self.midi_file {
                         if let Some(port) = self.out_carousel.get_item() {
-                            if self.play_along {
-                                #[cfg(feature = "play_along")]
-                                {
-                                    self.controls =
-                                        Controls::InputSelect(InputSelectControls::new())
-                                }
-                            } else {
-                                let port = match port {
-                                    #[cfg(feature = "synth")]
-                                    OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
-                                        std::mem::replace(&mut self.font_path, None),
-                                    ),
-                                    _ => port.clone(),
-                                };
+                            target.config.play_along = self.play_along;
 
-                                // TODO: Dumb input
-                                // let in_port = self.in_carousel.get_item().unwrap().clone();
-                                // let in_port = InputDescriptior { input: in_port };
-
-                                {
-                                    #[cfg(feature = "play_along")]
-                                    {
-                                        target.state.config.play_along = program.play_along;
-                                    }
-
-                                    target.output_manager.selected_output_id =
-                                        Some(self.out_carousel.id());
-                                    target.output_manager.connect(port);
-
-                                    target.config.output =
-                                        format!("{}", target.output_manager.current_output());
-
-                                    target
-                                        .proxy
-                                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
-                                        .unwrap();
-                                }
-                            }
-                        }
-                    }
-                }
-                #[cfg(feature = "play_along")]
-                Controls::InputSelect(_) => {
-                    if self.midi_file {
-                        if let Some(port) = self.out_carousel.get_item() {
                             let port = match port {
                                 #[cfg(feature = "synth")]
                                 OutputDescriptor::Synth(_) => OutputDescriptor::Synth(
@@ -241,27 +184,45 @@ impl Program for IcedMenu {
                                 ),
                                 _ => port.clone(),
                             };
-                            // TODO: Dumb input
-                            let in_port = self.in_carousel.get_item().unwrap().clone();
-                            let in_port = InputDescriptior { input: in_port };
 
-                            return Command::perform(
-                                async { (port, in_port) },
-                                Message::OutputMainMenuDone,
-                            );
+                            target.output_manager.selected_output_id = Some(self.out_carousel.id());
+                            target.output_manager.connect(port);
+
+                            target.config.output =
+                                format!("{}", target.output_manager.current_output());
+
+                            if self.play_along {
+                                self.controls = Controls::InputSelect(InputSelectControls::new())
+                            } else {
+                                target
+                                    .proxy
+                                    .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
+                                    .unwrap();
+                            }
                         }
                     }
                 }
+
+                Controls::InputSelect(_) => {
+                    if let Some(port) = self.in_carousel.get_item() {
+                        target.input_manager.connect_input(port.clone());
+
+                        target
+                            .proxy
+                            .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
+                            .unwrap();
+                    }
+                }
+
                 Controls::Exit(_) => {
                     target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
                 }
             },
 
-            Message::EscPressed => match self.controls {
+            Message::BackPressed => match self.controls {
                 Controls::SongSelect(_) => {
                     self.controls = Controls::Exit(ExitControls::new());
                 }
-                #[cfg(feature = "play_along")]
                 Controls::InputSelect(_) => {
                     self.controls = Controls::SongSelect(SongSelectControls::new());
                 }
@@ -274,8 +235,23 @@ impl Program for IcedMenu {
                 self.out_carousel.update(outs);
             }
         }
+    }
 
-        Command::none()
+    fn keyboard_input(&self, event: &iced_native::keyboard::Event) -> Option<Message> {
+        use iced_native::keyboard::{Event, KeyCode};
+
+        if let Event::KeyReleased { key_code, .. } = event {
+            match key_code {
+                KeyCode::Tab => Some(Message::FileSelectPressed),
+                KeyCode::Left => Some(Message::PrevPressed),
+                KeyCode::Right => Some(Message::NextPressed),
+                KeyCode::Enter => Some(Message::ContinuePressed),
+                KeyCode::Escape => Some(Message::BackPressed),
+                _ => None,
+            }
+        } else {
+            None
+        }
     }
 
     fn view(&mut self) -> Element<Message, Renderer> {
@@ -285,7 +261,6 @@ impl Program for IcedMenu {
                     c.view(&mut self.out_carousel, self.midi_file, self.play_along);
                 (content, Some(footer))
             }
-            #[cfg(feature = "play_along")]
             Controls::InputSelect(c) => {
                 let (content, footer) =
                     c.view(&mut self.in_carousel, self.midi_file, self.play_along);
@@ -349,7 +324,7 @@ impl ExitControls {
                     .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
-            .on_press(Message::EscPressed)
+            .on_press(Message::BackPressed)
             .into(),
             NeoBtn::new(
                 &mut self.yes_button,
@@ -359,7 +334,7 @@ impl ExitControls {
                     .vertical_alignment(Vertical::Center),
             )
             .width(Length::Fill)
-            .on_press(Message::EnterPressed)
+            .on_press(Message::ContinuePressed)
             .into(),
         ])
         .spacing(5)

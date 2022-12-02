@@ -19,12 +19,16 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    fn update(&mut self, target: &mut Target, message: Self::Message) -> Command<Self::Message>;
+    fn update(&mut self, target: &mut Target, message: Self::Message);
 
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
     fn view(&mut self) -> Element<'_, Self::Message, iced_wgpu::Renderer>;
+
+    fn keyboard_input(&self, _event: &iced_native::keyboard::Event) -> Option<Self::Message> {
+        None
+    }
 }
 
 /// The execution state of a [`Program`]. It leverages caching, event
@@ -68,11 +72,6 @@ where
     /// Returns a reference to the [`Program`] of the [`State`].
     pub fn program(&self) -> &P {
         &self.program
-    }
-
-    /// Returns a reference to the [`Program`] of the [`State`].
-    pub fn program_mut(&mut self) -> &mut P {
-        &mut self.program
     }
 
     /// Queues an event in the [`State`] for processing during an [`update`].
@@ -151,11 +150,12 @@ where
             // for now :^)
             let temp_cache = user_interface.into_cache();
 
-            let commands = Command::batch(
-                messages
-                    .into_iter()
-                    .map(|message| self.program.update(target, message)),
-            );
+            let _commands: Vec<_> = messages
+                .into_iter()
+                .map(|message| self.program.update(target, message))
+                .collect();
+
+            // let commands = Command::batch(commands);
 
             let mut user_interface = build_user_interface(
                 &mut self.program,
@@ -175,7 +175,8 @@ where
 
             self.cache = Some(user_interface.into_cache());
 
-            Some(commands)
+            // Some(commands)
+            None
         }
     }
 }

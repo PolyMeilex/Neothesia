@@ -119,15 +119,13 @@ impl SongSelectControls {
         )
     }
 
-    #[allow(unused_variables)]
     pub fn footer<'a>(
         play_button: &'a mut neo_btn::State,
         out_carousel: &Carousel<OutputDescriptor>,
         midi_file: bool,
-        play_along: bool,
+        #[allow(unused)] play_along: bool,
     ) -> Element<'a, Message, Renderer> {
-        let content: Element<Message, Renderer> = if midi_file && out_carousel.get_item().is_some()
-        {
+        let content: Element<_, _> = if midi_file && out_carousel.get_item().is_some() {
             let btn = NeoBtn::new(
                 play_button,
                 text("Play")
@@ -139,7 +137,7 @@ impl SongSelectControls {
             .min_height(50)
             .height(Length::Fill)
             .width(Length::Units(150))
-            .on_press(Message::EnterPressed);
+            .on_press(Message::ContinuePressed);
 
             #[allow(unused_mut)]
             let mut coll = Column::new().spacing(10);
@@ -151,10 +149,11 @@ impl SongSelectControls {
                     Row::new()
                         .height(Length::Shrink)
                         .push(
-                            Checkbox::new(play_along, "", Message::TogglePlayAlong)
-                                .style(CheckboxStyle {}),
+                            Checkbox::new(play_along, "", Message::TogglePlayAlong).style(
+                                iced_style::theme::Checkbox::Custom(Box::new(CheckboxStyle)),
+                            ),
                         )
-                        .push(Text::new("Play Along").color(Color::WHITE)),
+                        .push(text("Play Along").style(Color::WHITE)),
                 );
             }
 
@@ -182,7 +181,7 @@ const SURFACE: Color = Color::from_rgb(
 );
 
 impl iced_style::checkbox::StyleSheet for CheckboxStyle {
-    type Style = ();
+    type Style = iced_style::Theme;
 
     fn active(&self, _style: &Self::Style, is_checked: bool) -> iced_style::checkbox::Appearance {
         let active = Color::from_rgba8(160, 81, 255, 1.0);

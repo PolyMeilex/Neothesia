@@ -7,7 +7,6 @@ use iced_native::{
     Alignment, Color, Element, Length,
 };
 use iced_wgpu::Renderer;
-use midir::{MidiInput, MidiInputPort};
 
 use crate::scene::menu_scene::neo_btn::{self, NeoBtn};
 
@@ -27,21 +26,14 @@ impl InputSelectControls {
 
     pub fn view(
         &mut self,
-        in_carousel: &mut Carousel<MidiInputPort>,
+        in_carousel: &mut Carousel<midi_io::MidiInputPort>,
         midi_file: bool,
         play_along: bool,
     ) -> (Element<Message, Renderer>, Element<Message, Renderer>) {
         let item = in_carousel.get_item();
 
-        let midi_in = MidiInput::new("midi_in").unwrap();
-
         let label = item
-            .map(|o| {
-                midi_in
-                    .port_name(o)
-                    .unwrap_or("Error".to_string())
-                    .to_string()
-            })
+            .map(|o| o.to_string())
             .unwrap_or_else(|| "Disconnected".to_string());
 
         let title = text("Select Input:")
@@ -82,28 +74,26 @@ impl InputSelectControls {
             .on_press(Message::NextPressed),
         );
 
-        {
-            let controls = column(vec![title.into(), output.into(), select_row.into()])
-                .align_items(Alignment::Center)
-                .width(Length::Units(500))
-                .spacing(30);
+        let controls = column(vec![title.into(), output.into(), select_row.into()])
+            .align_items(Alignment::Center)
+            .width(Length::Units(500))
+            .spacing(30);
 
-            (
-                container(controls)
-                    .width(Length::Fill)
-                    .height(Length::Units(250))
-                    .center_x()
-                    .center_y()
-                    .into(),
-                Self::footer(&mut self.play_button, &in_carousel, midi_file, play_along),
-            )
-        }
+        (
+            container(controls)
+                .width(Length::Fill)
+                .height(Length::Units(250))
+                .center_x()
+                .center_y()
+                .into(),
+            Self::footer(&mut self.play_button, in_carousel, midi_file, play_along),
+        )
     }
 
     #[allow(unused_variables)]
     fn footer<'a>(
         play_button: &'a mut neo_btn::State,
-        in_carousel: &Carousel<MidiInputPort>,
+        in_carousel: &Carousel<midi_io::MidiInputPort>,
         midi_file: bool,
         play_along: bool,
     ) -> Element<'a, Message, Renderer> {
@@ -119,7 +109,7 @@ impl InputSelectControls {
             .min_height(50)
             .height(Length::Fill)
             .width(Length::Units(150))
-            .on_press(Message::EnterPressed);
+            .on_press(Message::ContinuePressed);
 
             column(vec![btn.into()]).spacing(10).into()
         } else {

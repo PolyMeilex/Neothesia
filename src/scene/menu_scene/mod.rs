@@ -5,14 +5,18 @@ mod neo_btn;
 use std::time::Duration;
 
 use iced_menu::IcedMenu;
+use iced_native::mouse::Interaction;
 use neothesia_pipelines::background_animation::BgPipeline;
 
-use winit::event::WindowEvent;
+use winit::event::{MouseButton, WindowEvent};
 
 use crate::{
     scene::{Scene, SceneType},
     target::Target,
-    ui::{iced_conversion, iced_state},
+    ui::{
+        iced_conversion,
+        iced_state::{self, Program},
+    },
 };
 
 #[derive(Debug)]
@@ -94,7 +98,7 @@ impl Scene for MenuScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        use winit::event::{ElementState, ModifiersState, VirtualKeyCode};
+        use winit::event::{ElementState, ModifiersState};
 
         let modifiers = ModifiersState::default();
 
@@ -103,32 +107,27 @@ impl Scene for MenuScene {
             target.iced_manager.viewport.scale_factor(),
             modifiers,
         ) {
-            self.iced_state.queue_event(event);
-        }
+            self.iced_state.queue_event(event.clone());
 
-        if let WindowEvent::KeyboardInput { input, .. } = &event {
-            if let ElementState::Released = input.state {
-                if let Some(key) = input.virtual_keycode {
-                    match key {
-                        VirtualKeyCode::Tab => self
-                            .iced_state
-                            .queue_message(iced_menu::Message::FileSelectPressed),
-                        VirtualKeyCode::Left => self
-                            .iced_state
-                            .queue_message(iced_menu::Message::PrevPressed),
-                        VirtualKeyCode::Right => self
-                            .iced_state
-                            .queue_message(iced_menu::Message::NextPressed),
-                        VirtualKeyCode::Return => self
-                            .iced_state
-                            .queue_message(iced_menu::Message::EnterPressed),
-                        VirtualKeyCode::Escape => self
-                            .iced_state
-                            .queue_message(iced_menu::Message::EscPressed),
-                        _ => {}
-                    }
+            if let iced_native::event::Event::Keyboard(event) = &event {
+                if let Some(msg) = self.iced_state.program().keyboard_input(event) {
+                    self.iced_state.queue_message(msg);
                 }
             }
+        }
+
+        match &event {
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => {
+                if self.iced_state.mouse_interaction() == Interaction::Idle {
+                    target.window.drag_window();
+                }
+            }
+
+            _ => {}
         }
     }
 

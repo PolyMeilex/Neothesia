@@ -88,6 +88,10 @@ impl Window {
         self.winit_window.request_redraw();
     }
 
+    pub fn drag_window(&self) {
+        self.winit_window.drag_window().ok();
+    }
+
     #[inline]
     pub fn get_current_texture(&mut self) -> Result<wgpu::SurfaceTexture, wgpu::SurfaceError> {
         self.surface.get_current_texture()

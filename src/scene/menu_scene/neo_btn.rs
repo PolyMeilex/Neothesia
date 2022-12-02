@@ -112,6 +112,23 @@ where
         layout::Node::with_children(size, vec![content])
     }
 
+    fn mouse_interaction(
+        &self,
+        _tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer<B, Theme>,
+    ) -> mouse::Interaction {
+        let is_mouse_over = layout.bounds().contains(cursor_position);
+
+        if is_mouse_over && !self.disabled {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
     fn on_event(
         &mut self,
         _state: &mut Tree,

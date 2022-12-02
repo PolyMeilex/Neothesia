@@ -12,19 +12,92 @@ pub enum RewindController {
     None,
 }
 
-impl MidiPlayer {
-    pub(super) fn update_rewind(&mut self, target: &mut Target) {
-        if let RewindController::Keyboard { speed, .. } = self.rewind_controller {
-            if target.window.state.modifers_state.shift() {
-                self.rewind(target, speed * 2);
-            } else if target.window.state.modifers_state.ctrl() {
-                self.rewind(target, speed / 2);
-            } else {
-                self.rewind(target, speed);
-            }
+pub fn update(player: &mut MidiPlayer, target: &mut Target) {
+    if let RewindController::Keyboard { speed, .. } = player.rewind_controller {
+        if target.window.state.modifers_state.shift() {
+            player.rewind(target, speed * 2);
+        } else if target.window.state.modifers_state.ctrl() {
+            player.rewind(target, speed / 2);
+        } else {
+            player.rewind(target, speed);
         }
     }
+}
 
+pub fn handle_keyboard_input(
+    player: &mut MidiPlayer,
+    output: &mut OutputManager,
+    input: &KeyboardInput,
+) {
+    if let Some(virtual_keycode) = input.virtual_keycode {
+        match virtual_keycode {
+            VirtualKeyCode::Left => {
+                if let winit::event::ElementState::Pressed = input.state {
+                    if !player.is_rewinding() {
+                        player.start_keyboard_rewind(output, -100);
+                    }
+                } else if let RewindController::Keyboard { .. } = player.rewind_controller() {
+                    player.stop_rewind();
+                }
+            }
+            VirtualKeyCode::Right => {
+                if let winit::event::ElementState::Pressed = input.state {
+                    if !player.is_rewinding() {
+                        player.start_keyboard_rewind(output, 100);
+                    }
+                } else if let RewindController::Keyboard { .. } = player.rewind_controller() {
+                    player.stop_rewind();
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn handle_mouse_input(
+    player: &mut MidiPlayer,
+    target: &mut Target,
+    state: &ElementState,
+    button: &MouseButton,
+) {
+    if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
+        let pos = &target.window.state.cursor_logical_position;
+
+        if pos.y < 20.0 && !player.is_rewinding() {
+            player.start_mouse_rewind(&mut target.output_manager);
+
+            let x = target.window.state.cursor_logical_position.x;
+            let w = target.window.state.logical_size.width;
+
+            let p = x / w;
+            log::debug!("Progressbar: x:{},p:{}", x, p);
+            player.set_percentage_time(target, p);
+        }
+    } else if let (ElementState::Released, MouseButton::Left) = (state, button) {
+        if let RewindController::Mouse { .. } = player.rewind_controller() {
+            player.stop_rewind();
+        }
+    }
+}
+
+pub fn handle_cursor_moved(
+    player: &mut MidiPlayer,
+    target: &mut Target,
+    position: &PhysicalPosition<f64>,
+) {
+    if let RewindController::Mouse { .. } = player.rewind_controller() {
+        let x = position
+            .to_logical::<f32>(target.window.state.scale_factor)
+            .x;
+        let w = &target.window.state.logical_size.width;
+
+        let p = x / w;
+        log::debug!("Progressbar: x:{},p:{}", x, p);
+        player.set_percentage_time(target, p);
+    }
+}
+
+impl MidiPlayer {
     fn is_rewinding(&self) -> bool {
         !matches!(self.rewind_controller, RewindController::None)
     }
@@ -60,78 +133,5 @@ impl MidiPlayer {
 
     fn rewind_controller(&self) -> &RewindController {
         &self.rewind_controller
-    }
-}
-
-pub fn rewind_keyboard_input(
-    player: &mut MidiPlayer,
-    output: &mut OutputManager,
-    input: &KeyboardInput,
-) {
-    if let Some(virtual_keycode) = input.virtual_keycode {
-        match virtual_keycode {
-            VirtualKeyCode::Left => {
-                if let winit::event::ElementState::Pressed = input.state {
-                    if !player.is_rewinding() {
-                        player.start_keyboard_rewind(output, -100);
-                    }
-                } else if let RewindController::Keyboard { .. } = player.rewind_controller() {
-                    player.stop_rewind();
-                }
-            }
-            VirtualKeyCode::Right => {
-                if let winit::event::ElementState::Pressed = input.state {
-                    if !player.is_rewinding() {
-                        player.start_keyboard_rewind(output, 100);
-                    }
-                } else if let RewindController::Keyboard { .. } = player.rewind_controller() {
-                    player.stop_rewind();
-                }
-            }
-            _ => {}
-        }
-    }
-}
-
-pub fn rewind_mouse_input(
-    player: &mut MidiPlayer,
-    target: &mut Target,
-    state: &ElementState,
-    button: &MouseButton,
-) {
-    if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
-        let pos = &target.window.state.cursor_logical_position;
-
-        if pos.y < 20.0 && !player.is_rewinding() {
-            player.start_mouse_rewind(&mut target.output_manager);
-
-            let x = target.window.state.cursor_logical_position.x;
-            let w = target.window.state.logical_size.width;
-
-            let p = x / w;
-            log::debug!("Progressbar: x:{},p:{}", x, p);
-            player.set_percentage_time(target, p);
-        }
-    } else if let (ElementState::Released, MouseButton::Left) = (state, button) {
-        if let RewindController::Mouse { .. } = player.rewind_controller() {
-            player.stop_rewind();
-        }
-    }
-}
-
-pub fn rewind_handle_cursor_moved(
-    player: &mut MidiPlayer,
-    target: &mut Target,
-    position: &PhysicalPosition<f64>,
-) {
-    if let RewindController::Mouse { .. } = player.rewind_controller() {
-        let x = position
-            .to_logical::<f32>(target.window.state.scale_factor)
-            .x;
-        let w = &target.window.state.logical_size.width;
-
-        let p = x / w;
-        log::debug!("Progressbar: x:{},p:{}", x, p);
-        player.set_percentage_time(target, p);
     }
 }

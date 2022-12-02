@@ -1,10 +1,14 @@
 use crate::{target::Target, OutputManager};
 use num::FromPrimitive;
 use std::time::Duration;
+use winit::{
+    dpi::PhysicalPosition,
+    event::{ElementState, KeyboardInput, MouseButton},
+};
 
 use crate::midi_event::MidiEvent;
 
-pub mod rewind_controler;
+mod rewind_controler;
 use rewind_controler::RewindController;
 
 pub struct MidiPlayer {
@@ -33,7 +37,7 @@ impl MidiPlayer {
         target: &mut Target,
         delta: Duration,
     ) -> Option<Vec<lib_midi::MidiEvent>> {
-        self.update_rewind(target);
+        rewind_controler::update(self, target);
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
 
@@ -150,6 +154,20 @@ impl MidiPlayer {
 
     pub fn is_paused(&self) -> bool {
         self.playback.is_paused()
+    }
+}
+
+impl MidiPlayer {
+    pub fn keyboard_input(&mut self, output: &mut OutputManager, input: &KeyboardInput) {
+        rewind_controler::handle_keyboard_input(self, output, input)
+    }
+
+    pub fn mouse_input(&mut self, target: &mut Target, state: &ElementState, button: &MouseButton) {
+        rewind_controler::handle_mouse_input(self, target, state, button)
+    }
+
+    pub fn handle_cursor_moved(&mut self, target: &mut Target, position: &PhysicalPosition<f64>) {
+        rewind_controler::handle_cursor_moved(self, target, position)
     }
 }
 

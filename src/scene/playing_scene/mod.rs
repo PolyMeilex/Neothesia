@@ -1,31 +1,29 @@
-mod keyboard;
-
+use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 use std::time::Duration;
+use wgpu_jumpstart::Color;
+use winit::event::{KeyboardInput, WindowEvent};
 
+use super::{Scene, SceneType};
+use crate::{midi_event::MidiEvent, target::Target, NeothesiaEvent};
+
+mod keyboard;
 use keyboard::PianoKeyboard;
 
 mod notes;
-
-mod midi_player;
-use midi_player::{rewind_controler, MidiPlayer};
-
 use notes::Notes;
 
-use super::{Scene, SceneType};
+mod midi_player;
+use midi_player::MidiPlayer;
 
-use crate::{midi_event::MidiEvent, target::Target, NeothesiaEvent};
-use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
-use wgpu_jumpstart::Color;
-
-use winit::event::WindowEvent;
+mod toast_manager;
+use toast_manager::ToastManager;
 
 pub struct PlayingScene {
     piano_keyboard: PianoKeyboard,
     notes: Notes,
     player: MidiPlayer,
-    rectangle_pipeline: QuadPipeline,
-
-    text_toast: Option<Toast>,
+    quad_pipeline: QuadPipeline,
+    toast_manager: ToastManager,
 }
 
 impl PlayingScene {
@@ -41,47 +39,23 @@ impl PlayingScene {
             piano_keyboard,
             notes,
             player,
-            rectangle_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
+            quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
 
-            text_toast: None,
+            toast_manager: ToastManager::default(),
         }
     }
 
-    fn toast(&mut self, text: String) {
-        self.text_toast = Some(Toast::new(move |target| {
-            let text = vec![wgpu_glyph::Text::new(&text)
-                .with_color([1.0, 1.0, 1.0, 1.0])
-                .with_scale(20.0)];
-
-            target.text_renderer.queue_text(wgpu_glyph::Section {
-                text,
-                screen_position: (0.0, 20.0),
-                layout: wgpu_glyph::Layout::Wrap {
-                    line_breaker: Default::default(),
-                    h_align: wgpu_glyph::HorizontalAlign::Left,
-                    v_align: wgpu_glyph::VerticalAlign::Top,
-                },
+    fn update_progresbar(&mut self, target: &mut Target) {
+        let size_x = target.window.state.logical_size.width * self.player.percentage();
+        self.quad_pipeline.update_instance_buffer(
+            &target.gpu.queue,
+            vec![QuadInstance {
+                position: [0.0, 0.0],
+                size: [size_x, 5.0],
+                color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
                 ..Default::default()
-            });
-        }));
-    }
-
-    fn speed_toast(&mut self, target: &mut Target) {
-        let s = format!(
-            "Speed: {}",
-            (target.config.speed_multiplier * 100.0).round() / 100.0
+            }],
         );
-
-        self.toast(s);
-    }
-
-    fn offset_toast(&mut self, target: &mut Target) {
-        let s = format!(
-            "Offset: {}",
-            (target.config.playback_offset * 100.0).round() / 100.0
-        );
-
-        self.toast(s);
     }
 
     #[cfg(feature = "record")]
@@ -109,31 +83,14 @@ impl Scene for PlayingScene {
     }
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
-        let (window_w, _) = {
-            let winit::dpi::LogicalSize { width, height } = target.window.state.logical_size;
-            (width, height)
-        };
-
-        let midi_events = self.player.update(target, delta);
-
-        let size_x = window_w * self.player.percentage();
-
-        self.rectangle_pipeline.update_instance_buffer(
-            &target.gpu.queue,
-            vec![QuadInstance {
-                position: [0.0, 0.0],
-                size: [size_x, 5.0],
-                color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
-                ..Default::default()
-            }],
-        );
-
-        if let Some(midi_events) = midi_events {
+        if let Some(midi_events) = self.player.update(target, delta) {
             self.piano_keyboard
                 .update_note_events(&target.config, &midi_events);
         } else {
             self.piano_keyboard.reset_notes();
         }
+
+        self.update_progresbar(target);
 
         self.notes.update(
             target,
@@ -141,15 +98,7 @@ impl Scene for PlayingScene {
         );
 
         self.piano_keyboard.update(target);
-
-        // Toast
-        if let Some(mut toast) = self.text_toast.take() {
-            self.text_toast = if toast.draw(target) {
-                Some(toast)
-            } else {
-                None
-            };
-        }
+        self.toast_manager.update(target);
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
@@ -175,89 +124,38 @@ impl Scene for PlayingScene {
         self.piano_keyboard
             .render(&target.transform_uniform, &mut render_pass);
 
-        self.rectangle_pipeline
+        self.quad_pipeline
             .render(&target.transform_uniform, &mut render_pass)
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        use winit::event::WindowEvent::{CursorMoved, KeyboardInput, MouseInput};
+        use winit::event::WindowEvent::*;
         use winit::event::{ElementState, VirtualKeyCode};
 
         match &event {
             KeyboardInput { input, .. } => {
-                rewind_controler::rewind_keyboard_input(
-                    &mut self.player,
-                    &mut target.output_manager,
-                    input,
-                );
+                self.player
+                    .keyboard_input(&mut target.output_manager, input);
 
-                if let Some(virtual_keycode) = input.virtual_keycode {
-                    match virtual_keycode {
-                        VirtualKeyCode::Escape => {
-                            if let ElementState::Released = input.state {
-                                target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
-                            }
-                        }
-                        VirtualKeyCode::Space => {
-                            if let ElementState::Released = input.state {
-                                self.player.pause_resume(&mut target.output_manager);
-                            }
-                        }
-                        VirtualKeyCode::Up => {
-                            if let winit::event::ElementState::Released = input.state {
-                                if target.window.state.modifers_state.shift() {
-                                    target.config.speed_multiplier += 0.5;
-                                } else {
-                                    target.config.speed_multiplier += 0.1;
-                                }
+                settings_keyboard_input(target, &mut self.toast_manager, input);
 
-                                self.speed_toast(target);
-                            }
+                if input.state == ElementState::Released {
+                    match input.virtual_keycode {
+                        Some(VirtualKeyCode::Escape) => {
+                            target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
                         }
-                        VirtualKeyCode::Down => {
-                            if let winit::event::ElementState::Released = input.state {
-                                target.config.speed_multiplier =
-                                    if target.window.state.modifers_state.shift() {
-                                        target.config.speed_multiplier - 0.5
-                                    } else {
-                                        target.config.speed_multiplier - 0.1
-                                    }
-                                    .max(0.0);
-
-                                self.speed_toast(target);
-                            }
-                        }
-                        VirtualKeyCode::Minus => {
-                            if let winit::event::ElementState::Released = input.state {
-                                if target.window.state.modifers_state.shift() {
-                                    target.config.playback_offset -= 0.1;
-                                } else {
-                                    target.config.playback_offset -= 0.01;
-                                }
-
-                                self.offset_toast(target);
-                            }
-                        }
-                        VirtualKeyCode::Plus | VirtualKeyCode::Equals => {
-                            if let winit::event::ElementState::Released = input.state {
-                                if target.window.state.modifers_state.shift() {
-                                    target.config.playback_offset += 0.1;
-                                } else {
-                                    target.config.playback_offset += 0.01;
-                                }
-
-                                self.offset_toast(target);
-                            }
+                        Some(VirtualKeyCode::Space) => {
+                            self.player.pause_resume(&mut target.output_manager);
                         }
                         _ => {}
                     }
                 }
             }
             MouseInput { state, button, .. } => {
-                rewind_controler::rewind_mouse_input(&mut self.player, target, state, button);
+                self.player.mouse_input(target, state, button);
             }
             CursorMoved { position, .. } => {
-                rewind_controler::rewind_handle_cursor_moved(&mut self.player, target, position);
+                self.player.handle_cursor_moved(target, position);
             }
             _ => {}
         }
@@ -268,28 +166,57 @@ impl Scene for PlayingScene {
     }
 }
 
-struct Toast {
-    start_time: std::time::Instant,
-    inner_draw: Box<dyn Fn(&mut Target)>,
-}
+fn settings_keyboard_input(
+    target: &mut Target,
+    toast_manager: &mut ToastManager,
+    input: &KeyboardInput,
+) {
+    use winit::event::{ElementState, VirtualKeyCode};
 
-impl Toast {
-    fn new(draw: impl Fn(&mut Target) + 'static) -> Self {
-        Self {
-            start_time: std::time::Instant::now(),
-            inner_draw: Box::new(draw),
-        }
+    if input.state != ElementState::Released {
+        return;
     }
 
-    fn draw(&mut self, target: &mut Target) -> bool {
-        let time = self.start_time.elapsed().as_secs();
+    let virtual_keycode = if let Some(virtual_keycode) = input.virtual_keycode {
+        virtual_keycode
+    } else {
+        return;
+    };
 
-        if time < 1 {
-            (*self.inner_draw)(target);
+    match virtual_keycode {
+        VirtualKeyCode::Up | VirtualKeyCode::Down => {
+            let amount = if target.window.state.modifers_state.shift() {
+                0.5
+            } else {
+                0.1
+            };
 
-            true
-        } else {
-            false
+            if virtual_keycode == VirtualKeyCode::Up {
+                target.config.speed_multiplier += amount;
+            } else {
+                target.config.speed_multiplier -= amount;
+                target.config.speed_multiplier = target.config.speed_multiplier.max(0.0);
+            }
+
+            toast_manager.speed_toast(target.config.speed_multiplier);
         }
+
+        VirtualKeyCode::Minus | VirtualKeyCode::Plus | VirtualKeyCode::Equals => {
+            let amount = if target.window.state.modifers_state.shift() {
+                0.1
+            } else {
+                0.01
+            };
+
+            if virtual_keycode == VirtualKeyCode::Minus {
+                target.config.playback_offset -= amount;
+            } else {
+                target.config.playback_offset += amount;
+            }
+
+            toast_manager.offset_toast(target.config.playback_offset);
+        }
+
+        _ => {}
     }
 }

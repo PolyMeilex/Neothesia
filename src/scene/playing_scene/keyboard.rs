@@ -1,6 +1,5 @@
 use crate::{
     config::Config,
-    target::Target,
     utils::{Point, Size},
     TransformUniform, Uniform,
 };
@@ -8,10 +7,11 @@ use crate::{
 use lib_midi::MidiEvent;
 use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 use piano_math::range::KeyboardRange;
-use wgpu_glyph::Section;
+use wgpu_glyph::{GlyphBrush, Section};
 
 mod key;
 pub use key::Key;
+use wgpu_jumpstart::Gpu;
 
 pub struct PianoKeyboard {
     pos: Point<f32>,
@@ -25,10 +25,14 @@ pub struct PianoKeyboard {
 }
 
 impl PianoKeyboard {
-    pub fn new(target: &mut Target) -> Self {
+    pub fn new(
+        gpu: &Gpu,
+        transform_uniform: &Uniform<TransformUniform>,
+        window_size: winit::dpi::LogicalSize<f32>,
+    ) -> Self {
         let range = KeyboardRange::standard_88_keys();
 
-        let quad_pipeline = QuadPipeline::new(&target.gpu, &target.transform_uniform);
+        let quad_pipeline = QuadPipeline::new(gpu, transform_uniform);
         let keys: Vec<Key> = range.iter().map(|id| Key::new(id.is_black())).collect();
 
         let mut piano_keyboard = Self {
@@ -42,7 +46,7 @@ impl PianoKeyboard {
             should_reupload: false,
         };
 
-        piano_keyboard.resize(target.window.state.logical_size);
+        piano_keyboard.resize(window_size);
         piano_keyboard
     }
 
@@ -142,9 +146,9 @@ impl PianoKeyboard {
         self.should_reupload = false;
     }
 
-    pub fn update(&mut self, target: &mut Target) {
+    pub fn update(&mut self, queue: &wgpu::Queue, brush: &mut GlyphBrush<()>) {
         if self.should_reupload {
-            self.reupload(&target.gpu.queue);
+            self.reupload(queue);
         }
 
         for (id, key) in self.keys.iter().filter(|key| key.note_id == 0).enumerate() {
@@ -153,7 +157,7 @@ impl PianoKeyboard {
 
             let size = w * 0.7;
 
-            target.text_renderer.queue_text(Section {
+            brush.queue(Section {
                 screen_position: (x + w / 2.0, y + h - size * 1.2),
                 text: vec![wgpu_glyph::Text::new(&format!("C{}", id + 1))
                     .with_color([0.6, 0.6, 0.6, 1.0])

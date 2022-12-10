@@ -16,6 +16,10 @@ impl TextRenderer {
         Self { glyph_brush }
     }
 
+    pub fn glyph_brush(&mut self) -> &mut GlyphBrush<()> {
+        &mut self.glyph_brush
+    }
+
     pub fn queue_text(&mut self, section: Section) {
         self.glyph_brush.queue(section);
     }

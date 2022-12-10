@@ -28,7 +28,11 @@ pub struct PlayingScene {
 
 impl PlayingScene {
     pub fn new(target: &mut Target) -> Self {
-        let piano_keyboard = PianoKeyboard::new(target);
+        let piano_keyboard = PianoKeyboard::new(
+            &target.gpu,
+            &target.transform_uniform,
+            target.window.state.logical_size,
+        );
 
         let mut notes = Notes::new(target, piano_keyboard.keys());
 
@@ -97,7 +101,8 @@ impl Scene for PlayingScene {
             self.player.time_without_lead_in() + target.config.playback_offset,
         );
 
-        self.piano_keyboard.update(target);
+        self.piano_keyboard
+            .update(&target.gpu.queue, target.text_renderer.glyph_brush());
         self.toast_manager.update(target);
     }
 

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc};
 
 use iced_graphics::{
     alignment::{Horizontal, Vertical},
@@ -50,7 +50,7 @@ struct Data {
     outputs: Vec<OutputDescriptor>,
     selected_output: Option<OutputDescriptor>,
     font_path: Option<PathBuf>,
-    midi_file: Option<lib_midi::Midi>,
+    midi_file: Option<Rc<lib_midi::Midi>>,
 
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
@@ -74,7 +74,7 @@ impl AppUi {
                 outputs: Vec::new(),
                 selected_output: None,
                 font_path: target.config.soundfont_path.clone(),
-                midi_file: target.midi_file.take(),
+                midi_file: target.midi_file.clone(),
 
                 inputs: Vec::new(),
                 selected_input: None,
@@ -109,7 +109,7 @@ impl Program for AppUi {
                             o => o,
                         };
 
-                        target.output_manager.connect(out)
+                        target.output_manager.borrow_mut().connect(out)
                     }
 
                     target
@@ -124,7 +124,7 @@ impl Program for AppUi {
             }
             Message::MidiFileLoaded(midi) => {
                 if let Some(midi) = midi {
-                    self.data.midi_file = Some(midi);
+                    self.data.midi_file = Some(Rc::new(midi));
                 }
                 self.data.is_loading = false;
             }
@@ -151,7 +151,7 @@ impl Program for AppUi {
                 self.data.play_along = v;
             }
             Message::Tick => {
-                self.data.outputs = target.output_manager.outputs();
+                self.data.outputs = target.output_manager.borrow().outputs();
                 self.data.inputs = target.input_manager.inputs();
 
                 if self.data.selected_output.is_none() {

@@ -77,10 +77,6 @@ impl Scene for PlayingScene {
         self.player.start();
     }
 
-    fn done(mut self: Box<Self>, target: &mut Target) {
-        self.player.pause(&mut target.output_manager);
-    }
-
     fn resize(&mut self, target: &mut Target) {
         self.piano_keyboard.resize(target.window.state.logical_size);
         self.notes.resize(target, self.piano_keyboard.keys());
@@ -139,8 +135,7 @@ impl Scene for PlayingScene {
 
         match &event {
             KeyboardInput { input, .. } => {
-                self.player
-                    .keyboard_input(&mut target.output_manager, input);
+                self.player.keyboard_input(input);
 
                 settings_keyboard_input(target, &mut self.toast_manager, input);
 
@@ -150,7 +145,7 @@ impl Scene for PlayingScene {
                             target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
                         }
                         Some(VirtualKeyCode::Space) => {
-                            self.player.pause_resume(&mut target.output_manager);
+                            self.player.pause_resume();
                         }
                         _ => {}
                     }

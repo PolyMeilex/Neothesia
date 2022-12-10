@@ -1,6 +1,6 @@
 use crate::{target::Target, OutputManager};
 use num::FromPrimitive;
-use std::time::Duration;
+use std::{cell::RefCell, rc::Rc, time::Duration};
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, KeyboardInput, MouseButton},
@@ -14,6 +14,8 @@ use rewind_controler::RewindController;
 pub struct MidiPlayer {
     playback: lib_midi::PlaybackState,
     rewind_controller: RewindController,
+    output_manager: Rc<RefCell<OutputManager>>,
+    midi_file: Rc<lib_midi::Midi>,
 }
 
 impl MidiPlayer {
@@ -23,6 +25,8 @@ impl MidiPlayer {
         let mut player = Self {
             playback: lib_midi::PlaybackState::new(Duration::from_secs(3), &midi_file.merged_track),
             rewind_controller: RewindController::None,
+            output_manager: target.output_manager.clone(),
+            midi_file: midi_file.clone(),
         };
         player.update(target, Duration::ZERO);
 
@@ -41,9 +45,7 @@ impl MidiPlayer {
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
 
-        let events = self
-            .playback
-            .update(&target.midi_file.as_mut().unwrap().merged_track, elapsed);
+        let events = self.playback.update(&self.midi_file.merged_track, elapsed);
 
         events.iter().for_each(|event| {
             use lib_midi::midly::MidiMessage;
@@ -54,7 +56,7 @@ impl MidiPlayer {
                         key.as_int(),
                         vel.as_int(),
                     );
-                    target.output_manager.midi_event(event);
+                    self.output_manager.borrow_mut().midi_event(event);
                 }
                 MidiMessage::NoteOff { key, .. } => {
                     let event = midi::Message::NoteOff(
@@ -62,7 +64,7 @@ impl MidiPlayer {
                         key.as_int(),
                         0,
                     );
-                    target.output_manager.midi_event(event);
+                    self.output_manager.borrow_mut().midi_event(event);
                 }
                 _ => {}
             }
@@ -75,7 +77,8 @@ impl MidiPlayer {
         }
     }
 
-    fn clear(&mut self, output: &mut OutputManager) {
+    fn clear(&mut self) {
+        let mut output = self.output_manager.borrow_mut();
         for note in self.playback.active_notes().iter() {
             output.midi_event(
                 MidiEvent::NoteOff {
@@ -93,17 +96,16 @@ impl MidiPlayer {
         self.resume();
     }
 
-    pub fn pause_resume(&mut self, output: &mut OutputManager) {
+    pub fn pause_resume(&mut self) {
         if self.playback.is_paused() {
             self.resume();
         } else {
-            self.pause(output);
+            self.pause();
         }
     }
 
-    pub fn pause(&mut self, output: &mut OutputManager) {
-        self.clear(output);
-
+    pub fn pause(&mut self) {
+        self.clear();
         self.playback.pause();
     }
 
@@ -111,19 +113,19 @@ impl MidiPlayer {
         self.playback.resume();
     }
 
-    fn set_time(&mut self, target: &mut Target, time: Duration) {
+    fn set_time(&mut self, time: Duration) {
         self.playback.set_time(time);
 
-        if let Some(midi) = target.midi_file.as_ref() {
-            // Discard all of the events till that point
-            let events = self.playback.update(&midi.merged_track, Duration::ZERO);
-            std::mem::drop(events);
-        }
+        // Discard all of the events till that point
+        let events = self
+            .playback
+            .update(&self.midi_file.merged_track, Duration::ZERO);
+        std::mem::drop(events);
 
-        self.clear(&mut target.output_manager);
+        self.clear();
     }
 
-    pub fn rewind(&mut self, target: &mut Target, delta: i64) {
+    pub fn rewind(&mut self, delta: i64) {
         let mut time = self.playback.time();
 
         if delta < 0 {
@@ -134,14 +136,13 @@ impl MidiPlayer {
             time = time.saturating_add(delta);
         }
 
-        self.set_time(target, time);
+        self.set_time(time);
     }
 
-    pub fn set_percentage_time(&mut self, target: &mut Target, p: f32) {
-        self.set_time(
-            target,
-            Duration::from_secs_f32((p * self.playback.lenght().as_secs_f32()).max(0.0)),
-        );
+    pub fn set_percentage_time(&mut self, p: f32) {
+        self.set_time(Duration::from_secs_f32(
+            (p * self.playback.lenght().as_secs_f32()).max(0.0),
+        ));
     }
 
     pub fn percentage(&self) -> f32 {
@@ -158,8 +159,8 @@ impl MidiPlayer {
 }
 
 impl MidiPlayer {
-    pub fn keyboard_input(&mut self, output: &mut OutputManager, input: &KeyboardInput) {
-        rewind_controler::handle_keyboard_input(self, output, input)
+    pub fn keyboard_input(&mut self, input: &KeyboardInput) {
+        rewind_controler::handle_keyboard_input(self, input)
     }
 
     pub fn mouse_input(&mut self, target: &mut Target, state: &ElementState, button: &MouseButton) {
@@ -168,6 +169,12 @@ impl MidiPlayer {
 
     pub fn handle_cursor_moved(&mut self, target: &mut Target, position: &PhysicalPosition<f64>) {
         rewind_controler::handle_cursor_moved(self, target, position)
+    }
+}
+
+impl Drop for MidiPlayer {
+    fn drop(&mut self) {
+        self.clear();
     }
 }
 

@@ -4,7 +4,7 @@ use winit::{
 };
 
 use super::MidiPlayer;
-use crate::{output_manager::OutputManager, target::Target};
+use crate::target::Target;
 
 pub enum RewindController {
     Keyboard { speed: i64, was_paused: bool },
@@ -15,26 +15,22 @@ pub enum RewindController {
 pub fn update(player: &mut MidiPlayer, target: &mut Target) {
     if let RewindController::Keyboard { speed, .. } = player.rewind_controller {
         if target.window.state.modifers_state.shift() {
-            player.rewind(target, speed * 2);
+            player.rewind(speed * 2);
         } else if target.window.state.modifers_state.ctrl() {
-            player.rewind(target, speed / 2);
+            player.rewind(speed / 2);
         } else {
-            player.rewind(target, speed);
+            player.rewind(speed);
         }
     }
 }
 
-pub fn handle_keyboard_input(
-    player: &mut MidiPlayer,
-    output: &mut OutputManager,
-    input: &KeyboardInput,
-) {
+pub fn handle_keyboard_input(player: &mut MidiPlayer, input: &KeyboardInput) {
     if let Some(virtual_keycode) = input.virtual_keycode {
         match virtual_keycode {
             VirtualKeyCode::Left => {
                 if let winit::event::ElementState::Pressed = input.state {
                     if !player.is_rewinding() {
-                        player.start_keyboard_rewind(output, -100);
+                        player.start_keyboard_rewind(-100);
                     }
                 } else if let RewindController::Keyboard { .. } = player.rewind_controller() {
                     player.stop_rewind();
@@ -43,7 +39,7 @@ pub fn handle_keyboard_input(
             VirtualKeyCode::Right => {
                 if let winit::event::ElementState::Pressed = input.state {
                     if !player.is_rewinding() {
-                        player.start_keyboard_rewind(output, 100);
+                        player.start_keyboard_rewind(100);
                     }
                 } else if let RewindController::Keyboard { .. } = player.rewind_controller() {
                     player.stop_rewind();
@@ -64,14 +60,14 @@ pub fn handle_mouse_input(
         let pos = &target.window.state.cursor_logical_position;
 
         if pos.y < 20.0 && !player.is_rewinding() {
-            player.start_mouse_rewind(&mut target.output_manager);
+            player.start_mouse_rewind();
 
             let x = target.window.state.cursor_logical_position.x;
             let w = target.window.state.logical_size.width;
 
             let p = x / w;
             log::debug!("Progressbar: x:{},p:{}", x, p);
-            player.set_percentage_time(target, p);
+            player.set_percentage_time(p);
         }
     } else if let (ElementState::Released, MouseButton::Left) = (state, button) {
         if let RewindController::Mouse { .. } = player.rewind_controller() {
@@ -93,7 +89,7 @@ pub fn handle_cursor_moved(
 
         let p = x / w;
         log::debug!("Progressbar: x:{},p:{}", x, p);
-        player.set_percentage_time(target, p);
+        player.set_percentage_time(p);
     }
 }
 
@@ -102,18 +98,18 @@ impl MidiPlayer {
         !matches!(self.rewind_controller, RewindController::None)
     }
 
-    fn start_mouse_rewind(&mut self, output: &mut OutputManager) {
+    fn start_mouse_rewind(&mut self) {
         let was_paused = self.is_paused();
-        self.start_rewind(output, RewindController::Mouse { was_paused });
+        self.start_rewind(RewindController::Mouse { was_paused });
     }
 
-    fn start_keyboard_rewind(&mut self, output: &mut OutputManager, speed: i64) {
+    fn start_keyboard_rewind(&mut self, speed: i64) {
         let was_paused = self.is_paused();
-        self.start_rewind(output, RewindController::Keyboard { speed, was_paused });
+        self.start_rewind(RewindController::Keyboard { speed, was_paused });
     }
 
-    fn start_rewind(&mut self, output: &mut OutputManager, controller: RewindController) {
-        self.pause(output);
+    fn start_rewind(&mut self, controller: RewindController) {
+        self.pause();
         self.rewind_controller = controller;
     }
 

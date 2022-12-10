@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use winit::event_loop::EventLoopProxy;
 
 use crate::config::Config;
@@ -15,9 +17,9 @@ pub struct Target {
     #[cfg(feature = "app")]
     pub iced_manager: ui::IcedManager,
 
-    pub output_manager: OutputManager,
+    pub output_manager: Rc<RefCell<OutputManager>>,
     pub input_manager: InputManager,
-    pub midi_file: Option<lib_midi::Midi>,
+    pub midi_file: Option<Rc<lib_midi::Midi>>,
     pub config: Config,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
@@ -40,7 +42,7 @@ impl Target {
 
         let midi_file = if args.len() > 1 {
             if let Ok(midi) = lib_midi::Midi::new(&args[1]) {
-                Some(midi)
+                Some(Rc::new(midi))
             } else {
                 None
             }

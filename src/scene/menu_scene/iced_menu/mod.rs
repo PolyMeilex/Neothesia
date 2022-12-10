@@ -120,72 +120,24 @@ impl Program for AppUi {
             }
             Message::OpenMidiFilePicker => {
                 self.data.is_loading = true;
-                return Command::perform(
-                    async {
-                        let file = rfd::AsyncFileDialog::new()
-                            .add_filter("midi", &["mid", "midi"])
-                            .pick_file()
-                            .await;
-
-                        if let Some(file) = file {
-                            log::info!("File path = {:?}", file.path());
-
-                            let thread = async_thread::Builder::new()
-                                .name("midi-loader".into())
-                                .spawn(move || {
-                                    let midi = lib_midi::Midi::new(file.path());
-
-                                    if let Err(e) = &midi {
-                                        log::error!("{}", e);
-                                    }
-
-                                    midi.ok()
-                                });
-
-                            if let Ok(thread) = thread {
-                                thread.join().await.ok().flatten()
-                            } else {
-                                None
-                            }
-                        } else {
-                            log::info!("User canceled dialog");
-                            None
-                        }
-                    },
-                    Message::MidiFileLoaded,
-                );
+                return open_midi_file_picker(Message::MidiFileLoaded);
             }
             Message::MidiFileLoaded(midi) => {
                 if let Some(midi) = midi {
                     self.data.midi_file = Some(midi);
                 }
-
                 self.data.is_loading = false;
             }
             Message::OpenSoundFontPicker => {
-                return Command::perform(
-                    async {
-                        let file = rfd::AsyncFileDialog::new()
-                            .add_filter("SoundFont2", &["sf2"])
-                            .pick_file()
-                            .await;
-
-                        if let Some(file) = file.as_ref() {
-                            log::info!("Font path = {:?}", file.path());
-                        } else {
-                            log::info!("User canceled dialog");
-                        }
-
-                        file.map(|f| f.path().to_owned())
-                    },
-                    Message::SoundFontFileLoaded,
-                );
+                self.data.is_loading = true;
+                return open_sound_font_picker(Message::SoundFontFileLoaded);
             }
             Message::SoundFontFileLoaded(font) => {
                 if let Some(font) = font {
                     target.config.soundfont_path = Some(font.clone());
                     self.data.font_path = Some(font);
                 }
+                self.data.is_loading = false;
             }
             Message::SelectOutput(output) => {
                 target.config.set_output(&output);
@@ -461,4 +413,67 @@ fn center_x<'a, MSG: 'a>(
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x()
+}
+
+fn open_midi_file_picker(
+    f: impl FnOnce(Option<lib_midi::Midi>) -> Message + 'static + Send,
+) -> Command<Message> where
+{
+    Command::perform(
+        async {
+            let file = rfd::AsyncFileDialog::new()
+                .add_filter("midi", &["mid", "midi"])
+                .pick_file()
+                .await;
+
+            if let Some(file) = file {
+                log::info!("File path = {:?}", file.path());
+
+                let thread = async_thread::Builder::new()
+                    .name("midi-loader".into())
+                    .spawn(move || {
+                        let midi = lib_midi::Midi::new(file.path());
+
+                        if let Err(e) = &midi {
+                            log::error!("{}", e);
+                        }
+
+                        midi.ok()
+                    });
+
+                if let Ok(thread) = thread {
+                    thread.join().await.ok().flatten()
+                } else {
+                    None
+                }
+            } else {
+                log::info!("User canceled dialog");
+                None
+            }
+        },
+        f,
+    )
+}
+
+fn open_sound_font_picker(
+    f: impl FnOnce(Option<PathBuf>) -> Message + 'static + Send,
+) -> Command<Message> where
+{
+    Command::perform(
+        async {
+            let file = rfd::AsyncFileDialog::new()
+                .add_filter("SoundFont2", &["sf2"])
+                .pick_file()
+                .await;
+
+            if let Some(file) = file.as_ref() {
+                log::info!("Font path = {:?}", file.path());
+            } else {
+                log::info!("User canceled dialog");
+            }
+
+            file.map(|f| f.path().to_owned())
+        },
+        f,
+    )
 }

@@ -1,17 +1,23 @@
-use iced_graphics::{Primitive, Rectangle};
+use iced_graphics::{
+    alignment::{Horizontal, Vertical},
+    Primitive, Rectangle,
+};
 use iced_native::{
     layout, mouse,
     renderer::Style,
-    widget::{tree, Tree},
+    widget::{text, tree, Tree},
     Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Point, Shell, Widget,
 };
 use iced_wgpu::Renderer;
 
 /// Creates a new [`Button`] with the provided content.
-pub fn neo_button<'a, Message: Clone>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> NeoBtn<'a, Message> {
-    NeoBtn::new(content)
+pub fn neo_button<'a, Message: Clone>(label: &str) -> NeoBtn<'a, Message> {
+    NeoBtn::new(
+        text(label)
+            .size(30)
+            .vertical_alignment(Vertical::Center)
+            .horizontal_alignment(Horizontal::Center),
+    )
 }
 
 pub struct NeoBtn<'a, Message> {

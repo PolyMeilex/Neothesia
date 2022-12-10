@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use iced_graphics::Color;
 use iced_style::{button, pick_list};
 
@@ -7,7 +9,11 @@ const SURFACE: Color = Color::from_rgb(
     0x3B as f32 / 255.0,
 );
 
-pub struct PickListStyle;
+pub fn pick_list() -> iced_native::theme::PickList {
+    iced_native::theme::PickList::Custom(Rc::new(PickListStyle), Rc::new(MenuStyle))
+}
+
+struct PickListStyle;
 
 impl iced_style::pick_list::StyleSheet for PickListStyle {
     type Style = iced_style::Theme;
@@ -40,7 +46,7 @@ impl iced_style::pick_list::StyleSheet for PickListStyle {
     }
 }
 
-pub struct MenuStyle;
+struct MenuStyle;
 
 impl iced_style::menu::StyleSheet for MenuStyle {
     type Style = iced_style::Theme;
@@ -59,7 +65,11 @@ impl iced_style::menu::StyleSheet for MenuStyle {
     }
 }
 
-pub struct ButtonStyle;
+pub fn button() -> iced_native::theme::Button {
+    iced_native::theme::Button::Custom(Box::new(ButtonStyle))
+}
+
+struct ButtonStyle;
 
 impl iced_style::button::StyleSheet for ButtonStyle {
     type Style = iced_style::Theme;
@@ -86,7 +96,7 @@ impl iced_style::button::StyleSheet for ButtonStyle {
     }
 }
 
-pub struct CheckboxStyle;
+struct CheckboxStyle;
 
 impl iced_style::checkbox::StyleSheet for CheckboxStyle {
     type Style = iced_style::Theme;

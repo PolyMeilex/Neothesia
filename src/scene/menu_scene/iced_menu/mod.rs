@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc};
+use std::path::PathBuf;
 
 use iced_graphics::{
     alignment::{Horizontal, Vertical},
@@ -21,7 +21,6 @@ use crate::{
 };
 
 mod theme;
-use theme::{ButtonStyle, MenuStyle, PickListStyle};
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -57,6 +56,7 @@ struct Data {
     selected_input: Option<InputDescriptor>,
 
     play_along: bool,
+    is_loading: bool,
 
     logo_handle: ImageHandle,
 }
@@ -80,6 +80,7 @@ impl AppUi {
                 selected_input: None,
 
                 play_along: target.config.play_along,
+                is_loading: false,
 
                 logo_handle: ImageHandle::from_memory(include_bytes!("../img/banner.png").to_vec()),
             },
@@ -118,6 +119,7 @@ impl Program for AppUi {
                 }
             }
             Message::OpenMidiFilePicker => {
+                self.data.is_loading = true;
                 return Command::perform(
                     async {
                         let file = rfd::AsyncFileDialog::new()
@@ -157,6 +159,8 @@ impl Program for AppUi {
                 if let Some(midi) = midi {
                     self.data.midi_file = Some(midi);
                 }
+
+                self.data.is_loading = false;
             }
             Message::OpenSoundFontPicker => {
                 return Command::perform(
@@ -277,6 +281,10 @@ pub enum Step {
 
 impl<'a> Step {
     fn view(&'a self, data: &'a Data) -> Element<Message> {
+        if data.is_loading {
+            return Self::loading(data);
+        }
+
         match self {
             Self::Exit => Self::exit(),
             Self::Main => Self::main(data),
@@ -284,14 +292,22 @@ impl<'a> Step {
         }
     }
 
+    fn loading(data: &'a Data) -> Element<'a, Message> {
+        let column = col![image(data.logo_handle.clone()), text("Loading...").size(30)]
+            .spacing(40)
+            .align_items(Alignment::Center);
+
+        center_x(top_padded(column)).into()
+    }
+
     fn exit() -> Element<'a, Message> {
         let output = centered_text("Do you want to exit?").size(30);
 
         let select_row = row![
-            neo_button(centered_text("No").size(30))
+            neo_button("No")
                 .width(Length::Fill)
                 .on_press(Message::GoToPage(Step::Main)),
-            neo_button(centered_text("Yes").size(30))
+            neo_button("Yes")
                 .width(Length::Fill)
                 .on_press(Message::ExitApp),
         ]
@@ -303,25 +319,20 @@ impl<'a> Step {
             .width(Length::Units(650))
             .spacing(30);
 
-        container(controls)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center_x(controls).center_y().into()
     }
 
     fn main(data: &'a Data) -> Element<'a, Message> {
         let buttons = col![
-            neo_button(centered_text("Select File").size(30))
+            neo_button("Select File")
                 .on_press(Message::OpenMidiFilePicker)
                 .width(Length::Fill)
                 .height(Length::Units(80)),
-            neo_button(centered_text("Settings").size(30))
+            neo_button("Settings")
                 .on_press(Message::GoToPage(Step::Settings))
                 .width(Length::Fill)
                 .height(Length::Units(80)),
-            neo_button(centered_text("Exit").size(30))
+            neo_button("Exit")
                 .on_press(Message::GoToPage(Step::Exit))
                 .width(Length::Fill)
                 .height(Length::Units(80))
@@ -333,21 +344,10 @@ impl<'a> Step {
             .spacing(40)
             .align_items(Alignment::Center);
 
-        let mut content = {
-            let spacer = vertical_space(Length::FillPortion(1));
-            let content = container(column)
-                .height(Length::FillPortion(4))
-                .center_x()
-                .max_width(650);
-
-            col![spacer, content]
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .align_items(Alignment::Center)
-        };
+        let mut content = top_padded(column);
 
         if data.midi_file.is_some() {
-            let play = neo_button(centered_text("Play").size(30))
+            let play = neo_button("Play")
                 .height(Length::Units(80))
                 .min_width(80)
                 .on_press(Message::Play);
@@ -365,11 +365,7 @@ impl<'a> Step {
             content = content.push(container);
         }
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .into()
+        center_x(content).into()
     }
 
     fn settings(data: &'a Data) -> Element<'a, Message> {
@@ -380,10 +376,7 @@ impl<'a> Step {
 
         let output_list = pick_list(outputs, selected_output, Message::SelectOutput)
             .width(Length::Fill)
-            .style(iced_native::theme::PickList::Custom(
-                Rc::new(PickListStyle),
-                Rc::new(MenuStyle),
-            ));
+            .style(theme::pick_list());
 
         let output_title = text("Output:")
             .vertical_alignment(Vertical::Center)
@@ -393,7 +386,7 @@ impl<'a> Step {
             let btn = button(centered_text("SoundFont"))
                 .width(Length::Units(50))
                 .on_press(Message::OpenSoundFontPicker)
-                .style(iced_native::theme::Button::Custom(Box::new(ButtonStyle)));
+                .style(theme::button());
 
             row![
                 output_title.width(Length::Units(60)),
@@ -410,10 +403,7 @@ impl<'a> Step {
 
         let input_list = pick_list(inputs, selected_input, Message::SelectInput)
             .width(Length::Fill)
-            .style(iced_native::theme::PickList::Custom(
-                Rc::new(PickListStyle),
-                Rc::new(MenuStyle),
-            ));
+            .style(theme::pick_list());
 
         let input_title = text("Input:")
             .vertical_alignment(Vertical::Center)
@@ -425,7 +415,7 @@ impl<'a> Step {
         ]
         .spacing(10);
 
-        let buttons = row![neo_button(centered_text("Back"))
+        let buttons = row![neo_button("Back")
             .on_press(Message::GoToPage(Step::Main))
             .width(Length::Fill),]
         .width(Length::Shrink)
@@ -439,24 +429,7 @@ impl<'a> Step {
         .spacing(40)
         .align_items(Alignment::Center);
 
-        let content = {
-            let spacer = vertical_space(Length::FillPortion(1));
-            let content = container(column)
-                .height(Length::FillPortion(4))
-                .center_x()
-                .max_width(650);
-
-            col![spacer, content]
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .align_items(Alignment::Center)
-        };
-
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .into()
+        center_x(top_padded(column)).into()
     }
 }
 
@@ -464,4 +437,28 @@ fn centered_text<'a>(label: impl ToString) -> widget::Text<'a, iced_wgpu::Render
     text(label)
         .horizontal_alignment(Horizontal::Center)
         .vertical_alignment(Vertical::Center)
+}
+
+fn top_padded<'a, MSG: 'a>(
+    content: impl Into<Element<'a, MSG>>,
+) -> widget::Column<'a, MSG, iced_wgpu::Renderer> {
+    let spacer = vertical_space(Length::FillPortion(1));
+    let content = container(content)
+        .height(Length::FillPortion(4))
+        .center_x()
+        .max_width(650);
+
+    col![spacer, content]
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .align_items(Alignment::Center)
+}
+
+fn center_x<'a, MSG: 'a>(
+    content: impl Into<Element<'a, MSG>>,
+) -> widget::Container<'a, MSG, iced_wgpu::Renderer> {
+    container(content)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
 }

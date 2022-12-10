@@ -1,20 +1,20 @@
-// For now, to implement a custom native widget you will need to add
-// `iced_native` and `iced_wgpu` to your dependencies.
-//
-// Then, you simply need to define your widget type and implement the
-// `iced_native::Widget` trait with the `iced_wgpu::Renderer`.
-//
-// Of course, you can choose to make the implementation renderer-agnostic,
-// if you wish to, by creating your own `Renderer` trait, which could be
-// implemented by `iced_wgpu` and other renderers.
-use iced_graphics::{Backend, Primitive, Rectangle, Renderer};
+use iced_graphics::{Primitive, Rectangle};
 use iced_native::{
-    layout, mouse, renderer::Style, widget::Tree, Background, Clipboard, Color, Element, Event,
-    Layout, Length, Padding, Point, Shell, Widget,
+    layout, mouse,
+    renderer::Style,
+    widget::{tree, Tree},
+    Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Point, Shell, Widget,
 };
+use iced_wgpu::Renderer;
 
-pub struct NeoBtn<'a, Message: Clone, B: Backend, Theme> {
-    state: &'a mut State,
+/// Creates a new [`Button`] with the provided content.
+pub fn neo_button<'a, Message: Clone>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> NeoBtn<'a, Message> {
+    NeoBtn::new(content)
+}
+
+pub struct NeoBtn<'a, Message> {
     width: Length,
     height: Length,
     min_width: u32,
@@ -22,17 +22,16 @@ pub struct NeoBtn<'a, Message: Clone, B: Backend, Theme> {
     padding: u16,
     border_radius: f32,
     disabled: bool,
-    content: Element<'a, Message, Renderer<B, Theme>>,
+    content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
 }
 
-impl<'a, Message: Clone, B: Backend, Theme> NeoBtn<'a, Message, B, Theme> {
-    pub fn new<E>(state: &'a mut State, content: E) -> Self
+impl<'a, Message: Clone> NeoBtn<'a, Message> {
+    pub fn new<E>(content: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer<B, Theme>>>,
+        E: Into<Element<'a, Message, Renderer>>,
     {
         Self {
-            state,
             on_press: None,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -55,10 +54,10 @@ impl<'a, Message: Clone, B: Backend, Theme> NeoBtn<'a, Message, B, Theme> {
         self
     }
 
-    // pub fn min_width(mut self, min_width: u32) -> Self {
-    //     self.min_width = min_width;
-    //     self
-    // }
+    pub fn min_width(mut self, min_width: u32) -> Self {
+        self.min_width = min_width;
+        self
+    }
 
     pub fn min_height(mut self, min_height: u32) -> Self {
         self.min_height = min_height;
@@ -76,16 +75,23 @@ impl<'a, Message: Clone, B: Backend, Theme> NeoBtn<'a, Message, B, Theme> {
     }
 }
 
-// impl<'a, Message, B> Widget<Message, Renderer<B>> for Circle<'a, Message, B>
-// where
-//     Message: Clone,
-//     B: Backend,
-// {
-impl<'a, Message: Clone, B, Theme> Widget<Message, Renderer<B, Theme>>
-    for NeoBtn<'a, Message, B, Theme>
-where
-    B: Backend,
-{
+impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -94,7 +100,7 @@ where
         self.height
     }
 
-    fn layout(&self, renderer: &Renderer<B, Theme>, limits: &layout::Limits) -> layout::Node {
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
         let limits = limits
             .min_width(self.min_width)
             .min_height(self.min_height)
@@ -118,7 +124,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-        _renderer: &Renderer<B, Theme>,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let is_mouse_over = layout.bounds().contains(cursor_position);
 
@@ -131,11 +137,11 @@ where
 
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _renderer: &Renderer<B, Theme>,
+        _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> iced_native::event::Status {
@@ -148,16 +154,19 @@ where
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
-                    self.state.is_pressed = bounds.contains(cursor_position);
+                    tree.state.downcast_mut::<State>().is_pressed =
+                        bounds.contains(cursor_position);
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
-                    let is_clicked = self.state.is_pressed && bounds.contains(cursor_position);
+                    let is_pressed = &mut tree.state.downcast_mut::<State>().is_pressed;
 
-                    self.state.is_pressed = false;
+                    let is_clicked = *is_pressed && bounds.contains(cursor_position);
+
+                    *is_pressed = false;
 
                     if is_clicked {
                         shell.publish(on_press);
@@ -173,8 +182,8 @@ where
     fn draw(
         &self,
         state: &Tree,
-        renderer: &mut Renderer<B, Theme>,
-        theme: &Theme,
+        renderer: &mut Renderer,
+        theme: &iced_native::Theme,
         _style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -250,14 +259,11 @@ where
     }
 }
 
-impl<'a, Message, B, Theme> From<NeoBtn<'a, Message, B, Theme>>
-    for Element<'a, Message, Renderer<B, Theme>>
+impl<'a, Message> From<NeoBtn<'a, Message>> for Element<'a, Message, Renderer>
 where
-    B: 'a + Backend,
     Message: 'a + Clone,
-    Theme: 'a,
 {
-    fn from(from: NeoBtn<'a, Message, B, Theme>) -> Element<'a, Message, Renderer<B, Theme>> {
+    fn from(from: NeoBtn<'a, Message>) -> Element<'a, Message, Renderer> {
         Element::new(from)
     }
 }
@@ -271,7 +277,6 @@ impl State {
     /// Creates a new [`State`].
     ///
     /// [`State`]: struct.State.html
-    #[allow(dead_code)]
     pub fn new() -> State {
         State::default()
     }

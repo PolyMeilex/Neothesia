@@ -1,10 +1,12 @@
 use iced_graphics::Color;
 use iced_native::mouse;
 use iced_native::user_interface::{self, UserInterface};
-use iced_native::{Command, Element, Event, Size};
+use iced_native::{Command, Event, Size};
 
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
 use crate::target::Target;
+
+pub type Element<'a, M> = iced_native::Element<'a, M, iced_wgpu::Renderer>;
 
 /// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {
@@ -19,12 +21,12 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    fn update(&mut self, target: &mut Target, message: Self::Message);
+    fn update(&mut self, target: &mut Target, message: Self::Message) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message, iced_wgpu::Renderer>;
+    fn view(&self) -> Element<'_, Self::Message>;
 
     fn keyboard_input(&self, _event: &iced_native::keyboard::Event) -> Option<Self::Message> {
         None
@@ -150,12 +152,11 @@ where
             // for now :^)
             let temp_cache = user_interface.into_cache();
 
-            let _commands: Vec<_> = messages
+            let commands = messages
                 .into_iter()
-                .map(|message| self.program.update(target, message))
-                .collect();
+                .map(|message| self.program.update(target, message));
 
-            // let commands = Command::batch(commands);
+            let commands = Command::batch(commands);
 
             let mut user_interface = build_user_interface(
                 &mut self.program,
@@ -175,8 +176,7 @@ where
 
             self.cache = Some(user_interface.into_cache());
 
-            // Some(commands)
-            None
+            Some(commands)
         }
     }
 }

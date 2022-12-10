@@ -13,7 +13,7 @@ use std::{
     path::PathBuf,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum OutputDescriptor {
     #[cfg(feature = "synth")]
     Synth(Option<PathBuf>),
@@ -101,7 +101,7 @@ impl OutputManager {
         &self.output_connection.0
     }
 
-    pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
+    pub fn outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
 
         #[cfg(feature = "synth")]

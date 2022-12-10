@@ -1,4 +1,8 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
+
+use crate::output_manager::OutputDescriptor;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct ColorSchema {
@@ -25,7 +29,10 @@ pub struct Config {
     pub background_color: (u8, u8, u8),
 
     #[serde(default = "default_output")]
-    pub output: String,
+    pub output: Option<String>,
+    pub input: Option<String>,
+
+    pub soundfont_path: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -59,7 +66,21 @@ impl Config {
             color_schema: default_color_schema(),
             background_color: Default::default(),
             output: default_output(),
+            input: None,
+            soundfont_path: None,
         })
+    }
+
+    pub fn set_output(&mut self, v: &OutputDescriptor) {
+        if let OutputDescriptor::DummyOutput = v {
+            self.output = None;
+        } else {
+            self.output = Some(v.to_string());
+        }
+    }
+
+    pub fn set_input<D: std::fmt::Display>(&mut self, v: Option<D>) {
+        self.input = v.map(|v| v.to_string());
     }
 }
 
@@ -99,6 +120,6 @@ fn default_color_schema() -> Vec<ColorSchema> {
     ]
 }
 
-fn default_output() -> String {
-    "Buildin Synth".into()
+fn default_output() -> Option<String> {
+    Some("Buildin Synth".into())
 }

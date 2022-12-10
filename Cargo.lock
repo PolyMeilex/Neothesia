@@ -121,6 +121,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-thread"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f8127d0634ad2b788f12e8c8623f91c584c2eb7496157b2e0cada5b01e0fbfd"
+dependencies = [
+ "futures-channel",
+]
+
+[[package]]
 name = "atk-sys"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1310,7 +1319,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "iced_core"
 version = "0.6.1"
-source = "git+https://github.com/iced-rs/iced.git?rev=23da5a32515a2eaf567d35d1b81e4b8400a27219#23da5a32515a2eaf567d35d1b81e4b8400a27219"
+source = "git+https://github.com/iced-rs/iced.git?rev=da244ff8048e0b339c1502372894a2460a637241#da244ff8048e0b339c1502372894a2460a637241"
 dependencies = [
  "bitflags",
  "palette",
@@ -1320,7 +1329,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.5.1"
-source = "git+https://github.com/iced-rs/iced.git?rev=23da5a32515a2eaf567d35d1b81e4b8400a27219#23da5a32515a2eaf567d35d1b81e4b8400a27219"
+source = "git+https://github.com/iced-rs/iced.git?rev=da244ff8048e0b339c1502372894a2460a637241#da244ff8048e0b339c1502372894a2460a637241"
 dependencies = [
  "futures",
  "log",
@@ -1331,7 +1340,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.4.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=23da5a32515a2eaf567d35d1b81e4b8400a27219#23da5a32515a2eaf567d35d1b81e4b8400a27219"
+source = "git+https://github.com/iced-rs/iced.git?rev=da244ff8048e0b339c1502372894a2460a637241#da244ff8048e0b339c1502372894a2460a637241"
 dependencies = [
  "bitflags",
  "bytemuck",
@@ -1348,7 +1357,7 @@ dependencies = [
 [[package]]
 name = "iced_native"
 version = "0.6.1"
-source = "git+https://github.com/iced-rs/iced.git?rev=23da5a32515a2eaf567d35d1b81e4b8400a27219#23da5a32515a2eaf567d35d1b81e4b8400a27219"
+source = "git+https://github.com/iced-rs/iced.git?rev=da244ff8048e0b339c1502372894a2460a637241#da244ff8048e0b339c1502372894a2460a637241"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -1361,7 +1370,7 @@ dependencies = [
 [[package]]
 name = "iced_style"
 version = "0.5.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=23da5a32515a2eaf567d35d1b81e4b8400a27219#23da5a32515a2eaf567d35d1b81e4b8400a27219"
+source = "git+https://github.com/iced-rs/iced.git?rev=da244ff8048e0b339c1502372894a2460a637241#da244ff8048e0b339c1502372894a2460a637241"
 dependencies = [
  "iced_core",
  "once_cell",
@@ -1371,7 +1380,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.6.1"
-source = "git+https://github.com/iced-rs/iced.git?rev=23da5a32515a2eaf567d35d1b81e4b8400a27219#23da5a32515a2eaf567d35d1b81e4b8400a27219"
+source = "git+https://github.com/iced-rs/iced.git?rev=da244ff8048e0b339c1502372894a2460a637241#da244ff8048e0b339c1502372894a2460a637241"
 dependencies = [
  "bitflags",
  "bytemuck",
@@ -1832,6 +1841,7 @@ dependencies = [
 name = "neothesia"
 version = "0.0.14"
 dependencies = [
+ "async-thread",
  "bytemuck",
  "cpal",
  "env_logger 0.9.3",

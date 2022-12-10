@@ -4,7 +4,7 @@ mod neo_btn;
 
 use std::time::Duration;
 
-use iced_menu::IcedMenu;
+use iced_menu::AppUi;
 use iced_native::mouse::Interaction;
 use neothesia_pipelines::background_animation::BgPipeline;
 
@@ -26,12 +26,15 @@ pub enum Event {
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
-    iced_state: iced_state::State<IcedMenu>,
+    iced_state: iced_state::State<AppUi>,
+
+    context: std::task::Context<'static>,
+    futures: Vec<futures::future::BoxFuture<'static, iced_menu::Message>>,
 }
 
 impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
-        let menu = IcedMenu::new(target);
+        let menu = AppUi::new(target);
         let iced_state = iced_state::State::new(
             menu,
             target.iced_manager.viewport.logical_size(),
@@ -41,6 +44,9 @@ impl MenuScene {
         let mut scene = Self {
             bg_pipeline: BgPipeline::new(&target.gpu),
             iced_state,
+
+            context: std::task::Context::from_waker(futures::task::noop_waker_ref()),
+            futures: Vec::new(),
         };
 
         scene.resize(target);
@@ -55,10 +61,7 @@ impl Scene for MenuScene {
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
         self.bg_pipeline.update_time(&mut target.gpu, delta);
-
-        let outs = target.output_manager.get_outputs();
-        self.iced_state
-            .queue_message(iced_menu::Message::OutputsUpdated(outs));
+        self.iced_state.queue_message(iced_menu::Message::Tick);
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
@@ -133,7 +136,31 @@ impl Scene for MenuScene {
 
     fn main_events_cleared(&mut self, target: &mut Target) {
         if !self.iced_state.is_queue_empty() {
-            self.iced_state.update(target);
+            if let Some(command) = self.iced_state.update(target) {
+                for a in command.actions() {
+                    match a {
+                        iced_native::command::Action::Future(f) => {
+                            self.futures.push(f);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        let context = &mut self.context;
+        let mut messages = Vec::new();
+
+        self.futures.retain_mut(|f| match f.as_mut().poll(context) {
+            std::task::Poll::Ready(msg) => {
+                messages.push(msg);
+                false
+            }
+            std::task::Poll::Pending => true,
+        });
+
+        for msg in messages {
+            self.iced_state.queue_message(msg);
         }
     }
 }

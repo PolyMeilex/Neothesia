@@ -1,6 +1,6 @@
 use crate::{utils, MidiTrack};
 use midly::{Format, Smf, Timing};
-use std::fs;
+use std::{fs, path::Path};
 
 #[derive(Debug, Clone)]
 pub struct Midi {
@@ -10,7 +10,7 @@ pub struct Midi {
 }
 
 impl Midi {
-    pub fn new(path: &str) -> Result<Self, String> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, String> {
         let data = match fs::read(path) {
             Ok(buff) => buff,
             Err(_) => return Err(String::from("Could Not Open File")),

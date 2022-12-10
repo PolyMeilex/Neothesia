@@ -85,7 +85,7 @@ impl Drop for MidiOutputConnection {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct MidiPortInfo {
     id: usize,
     port: midi_io::MidiOutputPort,

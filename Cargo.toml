@@ -24,6 +24,7 @@ app = [
     "iced_wgpu",
     "iced_graphics",
     "iced_style",
+    "play_along",
 ]
 record = ["mpeg_encoder", "build-ffmpeg"]
 # Download and compile ffmpeg
@@ -60,13 +61,13 @@ midir = "0.8.0"
 
 fps_ticker = "1.0.0"
 
-iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", optional = true }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", features = [
+iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", optional = true }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", features = [
     "png",
     "image",
 ], optional = true }
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", optional = true }
-iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "23da5a32515a2eaf567d35d1b81e4b8400a27219", optional = true }
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", optional = true }
+iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", optional = true }
 
 cpal = { version = "0.13.1", optional = true }
 fluidlite = { version = "0.2.1", features = ["builtin"], optional = true }
@@ -78,6 +79,7 @@ serde = { version = "1.0.123", features = ["serde_derive"] }
 mpeg_encoder = { git = "https://github.com/PolyMeilex/mpeg_encoder_next.git", optional = true }
 midi = "0.1.0"
 num = "0.4.0"
+async-thread = "0.1.2"
 # mpeg_encoder = {path="../mpeg_encoder_next", optional=true}
 
 [target.'cfg(target_os = "macos")'.dependencies]

@@ -71,7 +71,7 @@ impl PianoKeyboard {
             }
         }
 
-        self.should_reupload = true;
+        self.queue_reupload();
     }
 
     pub fn resize(&mut self, window_size: winit::dpi::LogicalSize<f32>) {
@@ -91,10 +91,8 @@ impl PianoKeyboard {
                     let id = *key as usize - 21;
                     let key = &mut self.keys[id];
 
-                    if !key.pressed_by_user() {
-                        key.set_pressed_by_user(true);
-                        self.should_reupload = true;
-                    }
+                    key.set_pressed_by_user(true);
+                    self.queue_reupload();
                 }
             }
             crate::MidiEvent::NoteOff { key, .. } => {
@@ -102,10 +100,8 @@ impl PianoKeyboard {
                     let id = *key as usize - 21;
                     let key = &mut self.keys[id];
 
-                    if key.pressed_by_user() {
-                        key.set_pressed_by_user(false);
-                        self.should_reupload = true;
-                    }
+                    key.set_pressed_by_user(false);
+                    self.queue_reupload();
                 }
             }
         }
@@ -122,8 +118,8 @@ impl PianoKeyboard {
                         let key = &mut self.keys[id];
 
                         let color = &config.color_schema[e.track_id % config.color_schema.len()];
-                        key.set_color(color);
-                        self.should_reupload = true;
+                        key.pressed_by_file_on(color);
+                        self.queue_reupload();
                     }
                 }
                 lib_midi::midly::MidiMessage::NoteOff { key, .. } => {
@@ -132,8 +128,8 @@ impl PianoKeyboard {
                         let id = key as usize - 21;
                         let key = &mut self.keys[id];
 
-                        key.reset_color();
-                        self.should_reupload = true;
+                        key.pressed_by_file_off();
+                        self.queue_reupload();
                     }
                 }
                 _ => continue,
@@ -143,8 +139,12 @@ impl PianoKeyboard {
 
     pub fn reset_notes(&mut self) {
         for key in self.keys.iter_mut() {
-            key.reset_color();
+            key.pressed_by_file_off();
         }
+        self.queue_reupload();
+    }
+
+    fn queue_reupload(&mut self) {
         self.should_reupload = true;
     }
 

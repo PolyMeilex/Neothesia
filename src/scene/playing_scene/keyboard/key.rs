@@ -11,7 +11,7 @@ pub struct Key {
     pub(super) is_black: bool,
     pub(super) note_id: u8,
 
-    pub(super) color: Color,
+    pressed_by_file: Option<Color>,
     pressed_by_user: bool,
 }
 
@@ -23,11 +23,7 @@ impl Key {
             is_black,
             note_id: 0,
 
-            color: if is_black {
-                Color::new(0.0, 0.0, 0.0, 1.0)
-            } else {
-                Color::new(1.0, 1.0, 1.0, 1.0)
-            },
+            pressed_by_file: None,
             pressed_by_user: false,
         }
     }
@@ -36,8 +32,18 @@ impl Key {
         self.pressed_by_user = is;
     }
 
-    pub fn pressed_by_user(&self) -> bool {
-        self.pressed_by_user
+    pub fn pressed_by_file_on(&mut self, schem: &ColorSchema) {
+        let (r, g, b) = if self.is_black {
+            schem.dark
+        } else {
+            schem.base
+        };
+
+        self.pressed_by_file = Some(Color::from_rgba8(r, g, b, 1.0));
+    }
+
+    pub fn pressed_by_file_off(&mut self) {
+        self.pressed_by_file = None;
     }
 
     pub fn x_position(&self) -> f32 {
@@ -51,23 +57,6 @@ impl Key {
     pub fn is_black(&self) -> bool {
         self.is_black
     }
-
-    pub fn set_color(&mut self, schem: &ColorSchema) {
-        let (r, g, b) = if self.is_black {
-            schem.dark
-        } else {
-            schem.base
-        };
-        self.color = Color::from_rgba8(r, g, b, 1.0);
-    }
-
-    pub fn reset_color(&mut self) {
-        if self.is_black {
-            self.color = Color::new(0.0, 0.0, 0.0, 1.0);
-        } else {
-            self.color = Color::new(1.0, 1.0, 1.0, 1.0);
-        }
-    }
 }
 
 impl From<&Key> for QuadInstance {
@@ -80,8 +69,12 @@ impl From<&Key> for QuadInstance {
         let color = if key.pressed_by_user {
             let v = if key.is_black() { 0.3 } else { 0.5 };
             Color::new(v, v, v, 1.0)
+        } else if let Some(color) = key.pressed_by_file {
+            color
+        } else if key.is_black {
+            Color::new(0.0, 0.0, 0.0, 1.0)
         } else {
-            key.color
+            Color::new(1.0, 1.0, 1.0, 1.0)
         };
 
         QuadInstance {

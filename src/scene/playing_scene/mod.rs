@@ -86,7 +86,7 @@ impl Scene for PlayingScene {
         if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
             if let Some(midi_events) = self.player.update(target, delta) {
                 self.piano_keyboard
-                    .update_note_events(&target.config, &midi_events);
+                    .file_midi_events(&target.config, &midi_events);
             } else {
                 self.piano_keyboard.reset_notes();
             }
@@ -176,6 +176,8 @@ impl Scene for PlayingScene {
                 false,
             ),
         }
+
+        self.piano_keyboard.user_midi_event(event);
     }
 }
 

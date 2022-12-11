@@ -12,6 +12,7 @@ pub struct Key {
     pub(super) note_id: u8,
 
     pub(super) color: Color,
+    pressed_by_user: bool,
 }
 
 impl Key {
@@ -27,7 +28,16 @@ impl Key {
             } else {
                 Color::new(1.0, 1.0, 1.0, 1.0)
             },
+            pressed_by_user: false,
         }
+    }
+
+    pub fn set_pressed_by_user(&mut self, is: bool) {
+        self.pressed_by_user = is;
+    }
+
+    pub fn pressed_by_user(&self) -> bool {
+        self.pressed_by_user
     }
 
     pub fn x_position(&self) -> f32 {
@@ -67,10 +77,17 @@ impl From<&Key> for QuadInstance {
         let radius = key.size.w * 0.08;
         let radius = radius * kind_multiplier;
 
+        let color = if key.pressed_by_user {
+            let v = if key.is_black() { 0.3 } else { 0.5 };
+            Color::new(v, v, v, 1.0)
+        } else {
+            key.color
+        };
+
         QuadInstance {
             position: key.pos.into(),
             size: key.size.into(),
-            color: key.color.into_linear_rgba(),
+            color: color.into_linear_rgba(),
             border_radius: [0.0, 0.0, radius, radius],
         }
     }

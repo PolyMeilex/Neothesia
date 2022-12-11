@@ -4,7 +4,6 @@ use crate::{
     TransformUniform, Uniform,
 };
 
-use lib_midi::MidiEvent;
 use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 use piano_math::range::KeyboardRange;
 use wgpu_glyph::{GlyphBrush, Section};
@@ -85,7 +84,34 @@ impl PianoKeyboard {
         self.calculate_positions();
     }
 
-    pub fn update_note_events(&mut self, config: &Config, events: &[MidiEvent]) {
+    pub fn user_midi_event(&mut self, event: &crate::MidiEvent) {
+        match event {
+            crate::MidiEvent::NoteOn { key, .. } => {
+                if self.range.contains(*key) {
+                    let id = *key as usize - 21;
+                    let key = &mut self.keys[id];
+
+                    if !key.pressed_by_user() {
+                        key.set_pressed_by_user(true);
+                        self.should_reupload = true;
+                    }
+                }
+            }
+            crate::MidiEvent::NoteOff { key, .. } => {
+                if self.range.contains(*key) {
+                    let id = *key as usize - 21;
+                    let key = &mut self.keys[id];
+
+                    if key.pressed_by_user() {
+                        key.set_pressed_by_user(false);
+                        self.should_reupload = true;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn file_midi_events(&mut self, config: &Config, events: &[lib_midi::MidiEvent]) {
         for e in events {
             match e.message {
                 lib_midi::midly::MidiMessage::NoteOn { key, .. } => {

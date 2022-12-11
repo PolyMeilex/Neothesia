@@ -1,6 +1,6 @@
 use crate::{target::Target, OutputManager};
 use num::FromPrimitive;
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::{cell::RefCell, collections::HashSet, rc::Rc, time::Duration};
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, KeyboardInput, MouseButton},
@@ -16,6 +16,7 @@ pub struct MidiPlayer {
     rewind_controller: RewindController,
     output_manager: Rc<RefCell<OutputManager>>,
     midi_file: Rc<lib_midi::Midi>,
+    play_along: PlayAlong,
 }
 
 impl MidiPlayer {
@@ -27,6 +28,7 @@ impl MidiPlayer {
             rewind_controller: RewindController::None,
             output_manager: target.output_manager.clone(),
             midi_file: midi_file.clone(),
+            play_along: PlayAlong::default(),
         };
         player.update(target, Duration::ZERO);
 
@@ -57,6 +59,8 @@ impl MidiPlayer {
                         vel.as_int(),
                     );
                     self.output_manager.borrow_mut().midi_event(event);
+                    self.play_along
+                        .press_key(KeyPressSource::File, key.as_int(), true);
                 }
                 MidiMessage::NoteOff { key, .. } => {
                     let event = midi::Message::NoteOff(
@@ -65,6 +69,8 @@ impl MidiPlayer {
                         0,
                     );
                     self.output_manager.borrow_mut().midi_event(event);
+                    self.play_along
+                        .press_key(KeyPressSource::File, key.as_int(), false);
                 }
                 _ => {}
             }
@@ -88,6 +94,12 @@ impl MidiPlayer {
                 .into(),
             )
         }
+    }
+}
+
+impl Drop for MidiPlayer {
+    fn drop(&mut self) {
+        self.clear();
     }
 }
 
@@ -172,9 +184,50 @@ impl MidiPlayer {
     }
 }
 
-impl Drop for MidiPlayer {
-    fn drop(&mut self) {
-        self.clear();
+impl MidiPlayer {
+    pub fn play_along(&self) -> &PlayAlong {
+        &self.play_along
+    }
+
+    pub fn play_along_mut(&mut self) -> &mut PlayAlong {
+        &mut self.play_along
+    }
+}
+
+pub enum KeyPressSource {
+    File,
+    User,
+}
+
+#[derive(Debug, Default)]
+pub struct PlayAlong {
+    required_notes: HashSet<u8>,
+}
+
+impl PlayAlong {
+    fn user_press_key(&mut self, note_id: u8, active: bool) {
+        if active {
+            self.required_notes.remove(&note_id);
+        }
+    }
+
+    fn file_press_key(&mut self, note_id: u8, active: bool) {
+        if active {
+            self.required_notes.insert(note_id);
+        } else {
+            self.required_notes.remove(&note_id);
+        }
+    }
+
+    pub fn press_key(&mut self, src: KeyPressSource, note_id: u8, active: bool) {
+        match src {
+            KeyPressSource::User => self.user_press_key(note_id, active),
+            KeyPressSource::File => self.file_press_key(note_id, active),
+        }
+    }
+
+    pub fn are_required_keys_pressed(&self) -> bool {
+        self.required_notes.is_empty()
     }
 }
 

@@ -96,6 +96,10 @@ impl iced_style::button::StyleSheet for ButtonStyle {
     }
 }
 
+pub fn checkbox() -> iced_native::theme::Checkbox {
+    iced_native::theme::Checkbox::Custom(Box::new(CheckboxStyle))
+}
+
 struct CheckboxStyle;
 
 impl iced_style::checkbox::StyleSheet for CheckboxStyle {

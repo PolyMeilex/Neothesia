@@ -8,7 +8,7 @@ use iced_native::{
     column as col,
     image::Handle as ImageHandle,
     row,
-    widget::{self, button, container, image, pick_list, text, vertical_space},
+    widget::{self, button, checkbox, container, image, pick_list, text, vertical_space},
     Command, Length, Padding,
 };
 
@@ -39,7 +39,6 @@ pub enum Message {
 
     Play,
 
-    #[allow(unused)]
     PlayAlongCheckbox(bool),
 
     GoToPage(Step),
@@ -112,6 +111,10 @@ impl Program for AppUi {
                         target.output_manager.borrow_mut().connect(out)
                     }
 
+                    if let Some(port) = self.data.selected_input.clone() {
+                        target.input_manager.connect_input(port);
+                    }
+
                     target
                         .proxy
                         .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
@@ -148,6 +151,7 @@ impl Program for AppUi {
                 self.data.selected_input = Some(input);
             }
             Message::PlayAlongCheckbox(v) => {
+                target.config.play_along = v;
                 self.data.play_along = v;
             }
             Message::Tick => {
@@ -200,6 +204,10 @@ impl Program for AppUi {
                 },
                 KeyCode::S => match self.current {
                     Step::Main => Some(Message::GoToPage(Step::Settings)),
+                    _ => None,
+                },
+                KeyCode::A => match self.current {
+                    Step::Main => Some(Message::PlayAlongCheckbox(!self.data.play_along)),
                     _ => None,
                 },
                 KeyCode::Enter => match self.current {
@@ -299,12 +307,19 @@ impl<'a> Step {
         let mut content = top_padded(column);
 
         if data.midi_file.is_some() {
+            let play_along = checkbox("PlayAlong", data.play_along, Message::PlayAlongCheckbox)
+                .style(theme::checkbox());
+
             let play = neo_button("Play")
-                .height(Length::Units(80))
+                .height(Length::Units(60))
                 .min_width(80)
                 .on_press(Message::Play);
 
-            let container = container(play)
+            let row = row![play_along, play]
+                .spacing(20)
+                .align_items(Alignment::Center);
+
+            let container = container(row)
                 .width(Length::Fill)
                 .align_x(Horizontal::Right)
                 .padding(Padding {

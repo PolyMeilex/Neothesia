@@ -83,11 +83,13 @@ impl Scene for PlayingScene {
     }
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
-        if let Some(midi_events) = self.player.update(target, delta) {
-            self.piano_keyboard
-                .update_note_events(&target.config, &midi_events);
-        } else {
-            self.piano_keyboard.reset_notes();
+        if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
+            if let Some(midi_events) = self.player.update(target, delta) {
+                self.piano_keyboard
+                    .update_note_events(&target.config, &midi_events);
+            } else {
+                self.piano_keyboard.reset_notes();
+            }
         }
 
         self.update_progresbar(target);
@@ -161,8 +163,19 @@ impl Scene for PlayingScene {
         }
     }
 
-    fn midi_event(&mut self, _target: &mut Target, _event: &MidiEvent) {
-        // TODO
+    fn midi_event(&mut self, _target: &mut Target, event: &MidiEvent) {
+        match event {
+            MidiEvent::NoteOn { key, .. } => self.player.play_along_mut().press_key(
+                midi_player::KeyPressSource::User,
+                *key,
+                true,
+            ),
+            MidiEvent::NoteOff { key, .. } => self.player.play_along_mut().press_key(
+                midi_player::KeyPressSource::User,
+                *key,
+                false,
+            ),
+        }
     }
 }
 

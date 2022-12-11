@@ -77,7 +77,6 @@ impl Neothesia {
     }
 
     pub fn midi_event(&mut self, event: &MidiEvent) {
-        dbg!(event);
         self.game_scene.midi_event(&mut self.target, event);
     }
 

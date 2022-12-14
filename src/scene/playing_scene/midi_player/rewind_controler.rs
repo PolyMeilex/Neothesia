@@ -14,9 +14,9 @@ pub enum RewindController {
 
 pub fn update(player: &mut MidiPlayer, target: &mut Target) {
     if let RewindController::Keyboard { speed, .. } = player.rewind_controller {
-        if target.window.state.modifers_state.shift() {
+        if target.window_state.modifers_state.shift() {
             player.rewind(speed * 2);
-        } else if target.window.state.modifers_state.ctrl() {
+        } else if target.window_state.modifers_state.ctrl() {
             player.rewind(speed / 2);
         } else {
             player.rewind(speed);
@@ -57,13 +57,13 @@ pub fn handle_mouse_input(
     button: &MouseButton,
 ) {
     if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
-        let pos = &target.window.state.cursor_logical_position;
+        let pos = &target.window_state.cursor_logical_position;
 
         if pos.y < 20.0 && !player.is_rewinding() {
             player.start_mouse_rewind();
 
-            let x = target.window.state.cursor_logical_position.x;
-            let w = target.window.state.logical_size.width;
+            let x = target.window_state.cursor_logical_position.x;
+            let w = target.window_state.logical_size.width;
 
             let p = x / w;
             log::debug!("Progressbar: x:{},p:{}", x, p);
@@ -83,9 +83,9 @@ pub fn handle_cursor_moved(
 ) {
     if let RewindController::Mouse { .. } = player.rewind_controller() {
         let x = position
-            .to_logical::<f32>(target.window.state.scale_factor)
+            .to_logical::<f32>(target.window_state.scale_factor)
             .x;
-        let w = &target.window.state.logical_size.width;
+        let w = &target.window_state.logical_size.width;
 
         let p = x / w;
         log::debug!("Progressbar: x:{},p:{}", x, p);

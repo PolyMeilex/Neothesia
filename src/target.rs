@@ -4,18 +4,28 @@ use winit::event_loop::EventLoopProxy;
 
 use crate::config::Config;
 use crate::input_manager::InputManager;
-use crate::ui::{self, TextRenderer};
+use crate::ui::TextRenderer;
+use crate::utils::window::WindowState;
 use crate::{NeothesiaEvent, OutputManager, TransformUniform};
-use wgpu_jumpstart::{Gpu, Uniform, Window};
+use wgpu_jumpstart::{Gpu, Uniform};
+
+#[cfg(feature = "app")]
+use crate::ui::IcedManager;
+#[cfg(feature = "app")]
+use winit::window::Window;
 
 pub struct Target {
+    #[cfg(feature = "app")]
     pub window: Window,
+    #[cfg(feature = "app")]
+    pub iced_manager: IcedManager,
+
+    pub window_state: WindowState,
     pub gpu: Gpu,
+
     pub transform_uniform: Uniform<TransformUniform>,
 
     pub text_renderer: TextRenderer,
-    #[cfg(feature = "app")]
-    pub iced_manager: ui::IcedManager,
 
     pub output_manager: Rc<RefCell<OutputManager>>,
     pub input_manager: InputManager,
@@ -26,7 +36,12 @@ pub struct Target {
 }
 
 impl Target {
-    pub fn new(window: Window, proxy: EventLoopProxy<NeothesiaEvent>, gpu: Gpu) -> Self {
+    pub fn new(
+        #[cfg(feature = "app")] window: Window,
+        window_state: WindowState,
+        proxy: EventLoopProxy<NeothesiaEvent>,
+        gpu: Gpu,
+    ) -> Self {
         let transform_uniform = Uniform::new(
             &gpu.device,
             TransformUniform::default(),
@@ -36,7 +51,14 @@ impl Target {
         let text_renderer = TextRenderer::new(&gpu);
 
         #[cfg(feature = "app")]
-        let iced_manager = ui::IcedManager::new(&gpu.device, &window);
+        let iced_manager = IcedManager::new(
+            &gpu.device,
+            (
+                window_state.physical_size.width,
+                window_state.physical_size.height,
+            ),
+            window_state.scale_factor,
+        );
 
         let args: Vec<String> = std::env::args().collect();
 
@@ -51,13 +73,16 @@ impl Target {
         };
 
         Self {
+            #[cfg(feature = "app")]
             window,
+            #[cfg(feature = "app")]
+            iced_manager,
+
+            window_state,
             gpu,
             transform_uniform,
 
             text_renderer,
-            #[cfg(feature = "app")]
-            iced_manager,
 
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),
@@ -68,19 +93,19 @@ impl Target {
     }
 
     pub fn resize(&mut self) {
-        {
-            let winit::dpi::LogicalSize { width, height } = self.window.state.logical_size;
-            self.transform_uniform.data.update(width, height);
-            self.transform_uniform.update(&self.gpu.queue);
-        }
+        self.transform_uniform.data.update(
+            self.window_state.logical_size.width,
+            self.window_state.logical_size.height,
+        );
+        self.transform_uniform.update(&self.gpu.queue);
 
         #[cfg(feature = "app")]
-        {
-            let physical_size = self.window.state.physical_size;
-            self.iced_manager.viewport = iced_wgpu::Viewport::with_physical_size(
-                iced_native::Size::new(physical_size.width, physical_size.height),
-                self.window.state.scale_factor,
-            );
-        }
+        self.iced_manager.resize(
+            (
+                self.window_state.physical_size.width,
+                self.window_state.physical_size.height,
+            ),
+            self.window_state.scale_factor,
+        );
     }
 }

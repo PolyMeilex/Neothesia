@@ -110,7 +110,7 @@ where
 
         let bounds = target.iced_manager.viewport.logical_size();
         let cursor_position = iced_conversion::cursor_position(
-            target.window.state.cursor_physical_position,
+            target.window_state.cursor_physical_position,
             target.iced_manager.viewport.scale_factor(),
         );
 

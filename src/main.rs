@@ -4,13 +4,19 @@ use neothesia::{
     midi_event::MidiEvent,
     scene::{menu_scene, playing_scene, scene_manager, SceneType},
     target::Target,
-    NeothesiaEvent,
+    utils::window::WindowState,
+    Gpu, NeothesiaEvent,
 };
 
-use winit::{event::WindowEvent, event_loop::ControlFlow};
+use wgpu_jumpstart::Surface;
+use winit::{
+    event::WindowEvent,
+    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
+};
 
 pub struct Neothesia {
     pub target: Target,
+    surface: Surface,
 
     last_time: std::time::Instant,
     pub fps_timer: fps_ticker::Fps,
@@ -18,7 +24,7 @@ pub struct Neothesia {
 }
 
 impl Neothesia {
-    pub fn new(mut target: Target) -> Self {
+    pub fn new(mut target: Target, surface: Surface) -> Self {
         let game_scene = menu_scene::MenuScene::new(&mut target);
         let mut game_scene = scene_manager::SceneManager::new(game_scene);
 
@@ -28,6 +34,7 @@ impl Neothesia {
 
         Self {
             target,
+            surface,
             last_time: std::time::Instant::now(),
             fps_timer: Default::default(),
             game_scene,
@@ -35,8 +42,15 @@ impl Neothesia {
     }
 
     pub fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
+        self.target.window_state.window_event(event);
+
         match &event {
             WindowEvent::Resized(_) => {
+                self.surface.resize_swap_chain(
+                    &self.target.gpu.device,
+                    self.target.window_state.physical_size,
+                );
+
                 self.target.resize();
                 self.game_scene.resize(&mut self.target);
 
@@ -115,7 +129,7 @@ impl Neothesia {
 
     pub fn render(&mut self) {
         let frame = loop {
-            let swap_chain_output = self.target.window.get_current_texture();
+            let swap_chain_output = self.surface.get_current_texture();
             match swap_chain_output {
                 Ok(s) => break s,
                 Err(err) => log::warn!("{:?}", err),
@@ -132,9 +146,14 @@ impl Neothesia {
 
         self.game_scene.render(&mut self.target, view);
 
-        self.target
-            .text_renderer
-            .render(&self.target.window, &mut self.target.gpu, view);
+        self.target.text_renderer.render(
+            (
+                self.target.window_state.logical_size.width,
+                self.target.window_state.logical_size.height,
+            ),
+            &mut self.target.gpu,
+            view,
+        );
 
         self.target.gpu.submit();
         frame.present();
@@ -147,16 +166,14 @@ fn main() {
         height: 720.0,
     });
 
-    let (event_loop, target) = neothesia::init(builder);
+    let (event_loop, target, surface) = init(builder);
 
-    let mut app = Neothesia::new(target);
+    let mut app = Neothesia::new(target, surface);
 
     // Investigate:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
 
     event_loop.run(move |event, _, control_flow| {
-        app.target.window.on_event(&mut app.target.gpu, &event);
-
         use winit::event::Event;
         match &event {
             Event::UserEvent(event) => {
@@ -177,4 +194,42 @@ fn main() {
             _ => {}
         }
     });
+}
+
+pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Target, Surface) {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
+        .init();
+
+    let event_loop = EventLoopBuilder::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+
+    let builder = builder.with_title("Neothesia");
+
+    #[cfg(target_os = "windows")]
+    let builder = {
+        use winit::platform::windows::WindowBuilderExtWindows;
+        builder.with_drag_and_drop(false)
+    };
+
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    let builder = {
+        use winit::platform::unix::WindowBuilderExtUnix;
+        builder.with_wayland_csd_theme(winit::window::Theme::Dark)
+    };
+
+    let window = builder.build(&event_loop).unwrap();
+
+    let window_state = WindowState::new(&window);
+    let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
+    let (gpu, surface) = neothesia::block_on(Gpu::for_window(&instance, &window)).unwrap();
+
+    let target = Target::new(window, window_state, proxy, gpu);
+
+    (event_loop, target, surface)
 }

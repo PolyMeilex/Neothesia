@@ -1,5 +1,5 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
-use wgpu_jumpstart::{Gpu, Window};
+use wgpu_jumpstart::Gpu;
 
 pub struct TextRenderer {
     glyph_brush: GlyphBrush<()>,
@@ -42,13 +42,11 @@ impl TextRenderer {
         });
     }
 
-    pub fn render(&mut self, window: &Window, gpu: &mut Gpu, view: &wgpu::TextureView) {
+    pub fn render(&mut self, logical_size: (f32, f32), gpu: &mut Gpu, view: &wgpu::TextureView) {
         let encoder = &mut gpu.encoder;
 
-        let (window_w, window_h) = {
-            let winit::dpi::LogicalSize { width, height } = window.state.logical_size;
-            (width, height)
-        };
+        let (window_w, window_h) = logical_size;
+
         self.glyph_brush
             .draw_queued(
                 &gpu.device,

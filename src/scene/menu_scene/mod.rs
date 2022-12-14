@@ -126,7 +126,7 @@ impl Scene for MenuScene {
                 ..
             } => {
                 if self.iced_state.mouse_interaction() == Interaction::Idle {
-                    target.window.drag_window();
+                    target.window.drag_window().ok();
                 }
             }
 

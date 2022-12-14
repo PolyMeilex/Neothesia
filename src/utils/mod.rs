@@ -1,4 +1,5 @@
 pub mod resources;
+pub mod window;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Point<T> {

@@ -1,46 +1,48 @@
+use winit::dpi::PhysicalSize;
+
 use super::color::Color;
 use super::GpuInitError;
+
+pub fn default_backends() -> wgpu::Backends {
+    wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all())
+}
 
 pub struct Gpu {
     pub device: wgpu::Device,
 
+    pub adapter: wgpu::Adapter,
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
     pub staging_belt: wgpu::util::StagingBelt,
-
-    pub backend: wgpu::Backend,
 }
 
 impl Gpu {
     pub async fn for_window(
+        instance: &wgpu::Instance,
         window: &winit::window::Window,
-    ) -> Result<(Self, wgpu::Surface), GpuInitError> {
-        let backend = wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all());
+    ) -> Result<(Self, Surface), GpuInitError> {
+        let surface = unsafe { instance.create_surface(window) };
+        let gpu = Self::new(instance, Some(&surface)).await?;
+        let surface = Surface::new(&gpu.device, surface, window.inner_size());
+
+        Ok((gpu, surface))
+    }
+
+    pub async fn new(
+        instance: &wgpu::Instance,
+        compatible_surface: Option<&wgpu::Surface>,
+    ) -> Result<Self, GpuInitError> {
         let power_preference = wgpu::util::power_preference_from_env()
             .unwrap_or(wgpu::PowerPreference::HighPerformance);
-
-        let instance = wgpu::Instance::new(backend);
-
-        let surface = unsafe { instance.create_surface(window) };
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference,
-                compatible_surface: Some(&surface),
+                compatible_surface,
                 force_fallback_adapter: false,
             })
             .await
             .ok_or(GpuInitError::AdapterRequest)?;
-
-        let adapter_info = adapter.get_info();
-        let format = surface.get_supported_formats(&adapter)[0];
-
-        log::info!(
-            "Using {} ({:?}, Preferred Format: {:?})",
-            adapter_info.name,
-            adapter_info.backend,
-            format
-        );
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor::default(), None)
@@ -52,17 +54,23 @@ impl Gpu {
 
         let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
 
-        Ok((
-            Self {
-                device,
-                queue,
-                encoder,
-                staging_belt,
+        let adapter_info = adapter.get_info();
+        let format = compatible_surface.map(|s| s.get_supported_formats(&adapter)[0]);
 
-                backend: adapter_info.backend,
-            },
-            surface,
-        ))
+        log::info!(
+            "Using {} ({:?}, Preferred Format: {:?})",
+            adapter_info.name,
+            adapter_info.backend,
+            format
+        );
+
+        Ok(Self {
+            device,
+            adapter,
+            queue,
+            encoder,
+            staging_belt,
+        })
     }
 
     pub fn clear(&mut self, view: &wgpu::TextureView, color: Color) {
@@ -99,5 +107,42 @@ impl Gpu {
         self.queue.submit(Some(encoder.finish()));
 
         self.staging_belt.recall();
+    }
+}
+
+pub struct Surface {
+    surface: wgpu::Surface,
+    surface_configuration: wgpu::SurfaceConfiguration,
+}
+
+impl Surface {
+    pub fn new(device: &wgpu::Device, surface: wgpu::Surface, size: PhysicalSize<u32>) -> Self {
+        let surface_configuration = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: super::TEXTURE_FORMAT,
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+        };
+
+        surface.configure(device, &surface_configuration);
+
+        Self {
+            surface,
+            surface_configuration,
+        }
+    }
+
+    #[inline]
+    pub fn get_current_texture(&mut self) -> Result<wgpu::SurfaceTexture, wgpu::SurfaceError> {
+        self.surface.get_current_texture()
+    }
+
+    pub fn resize_swap_chain(&mut self, device: &wgpu::Device, size: PhysicalSize<u32>) {
+        self.surface_configuration.width = size.width;
+        self.surface_configuration.height = size.height;
+
+        self.surface.configure(device, &self.surface_configuration);
     }
 }

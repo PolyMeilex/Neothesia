@@ -31,7 +31,7 @@ impl PlayingScene {
         let piano_keyboard = PianoKeyboard::new(
             &target.gpu,
             &target.transform_uniform,
-            target.window.state.logical_size,
+            target.window_state.logical_size,
         );
 
         let mut notes = Notes::new(target, piano_keyboard.keys());
@@ -50,7 +50,7 @@ impl PlayingScene {
     }
 
     fn update_progresbar(&mut self, target: &mut Target) {
-        let size_x = target.window.state.logical_size.width * self.player.percentage();
+        let size_x = target.window_state.logical_size.width * self.player.percentage();
         self.quad_pipeline.update_instance_buffer(
             &target.gpu.queue,
             vec![QuadInstance {
@@ -78,7 +78,7 @@ impl Scene for PlayingScene {
     }
 
     fn resize(&mut self, target: &mut Target) {
-        self.piano_keyboard.resize(target.window.state.logical_size);
+        self.piano_keyboard.resize(target.window_state.logical_size);
         self.notes.resize(target, self.piano_keyboard.keys());
     }
 
@@ -200,7 +200,7 @@ fn settings_keyboard_input(
 
     match virtual_keycode {
         VirtualKeyCode::Up | VirtualKeyCode::Down => {
-            let amount = if target.window.state.modifers_state.shift() {
+            let amount = if target.window_state.modifers_state.shift() {
                 0.5
             } else {
                 0.1
@@ -217,7 +217,7 @@ fn settings_keyboard_input(
         }
 
         VirtualKeyCode::Minus | VirtualKeyCode::Plus | VirtualKeyCode::Equals => {
-            let amount = if target.window.state.modifers_state.shift() {
+            let amount = if target.window_state.modifers_state.shift() {
                 0.1
             } else {
                 0.01

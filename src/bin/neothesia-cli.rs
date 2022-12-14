@@ -5,7 +5,10 @@ use std::{default::Default, num::NonZeroU32, time::Duration};
 use neothesia::{
     scene::{playing_scene::PlayingScene, Scene},
     target::Target,
+    utils::window::WindowState,
+    Gpu, NeothesiaEvent,
 };
+use winit::event_loop::{EventLoop, EventLoopBuilder};
 
 pub struct Recorder {
     pub target: Target,
@@ -46,9 +49,14 @@ impl Recorder {
 
         self.scene.render(&mut self.target, view);
 
-        self.target
-            .text_renderer
-            .render(&self.target.window, &mut self.target.gpu, view);
+        self.target.text_renderer.render(
+            (
+                self.target.window_state.logical_size.width,
+                self.target.window_state.logical_size.height,
+            ),
+            &mut self.target.gpu,
+            view,
+        );
 
         {
             let u32_size = std::mem::size_of::<u32>() as u32;
@@ -77,14 +85,7 @@ impl Recorder {
 }
 
 fn main() {
-    let builder = winit::window::WindowBuilder::new()
-        .with_inner_size(winit::dpi::LogicalSize {
-            width: 1920,
-            height: 1080,
-        })
-        .with_visible(false);
-
-    let (_event_loop, target) = neothesia::init(builder);
+    let (_event_loop, target) = init();
     let mut recorder = Recorder::new(target);
 
     recorder.resize();
@@ -172,4 +173,20 @@ fn main() {
 
         n += 1;
     }
+}
+
+fn init() -> (EventLoop<NeothesiaEvent>, Target) {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
+        .init();
+
+    let event_loop = EventLoopBuilder::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+
+    let window_state = WindowState::for_recorder(1920, 1080);
+    let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
+    let gpu = neothesia::block_on(Gpu::new(&instance, None)).unwrap();
+
+    let target = Target::new(window_state, proxy, gpu);
+
+    (event_loop, target)
 }

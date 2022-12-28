@@ -3327,8 +3327,8 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "log",
+ "raw-window-handle 0.5.0",
  "wgpu",
- "winit",
 ]
 
 [[package]]

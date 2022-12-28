@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 wgpu = "0.14"
-winit = "0.27"
 log = "0.4"
 bytemuck = "1.5"
+raw-window-handle = "0.5.0"

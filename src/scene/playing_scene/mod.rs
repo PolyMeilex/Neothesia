@@ -144,7 +144,7 @@ impl Scene for PlayingScene {
                 if input.state == ElementState::Released {
                     match input.virtual_keycode {
                         Some(VirtualKeyCode::Escape) => {
-                            target.proxy.send_event(NeothesiaEvent::GoBack).unwrap();
+                            target.proxy.send_event(NeothesiaEvent::GoBack);
                         }
                         Some(VirtualKeyCode::Space) => {
                             self.player.pause_resume();

@@ -6,9 +6,8 @@ use neothesia::{
     scene::{playing_scene::PlayingScene, Scene},
     target::Target,
     utils::window::WindowState,
-    Gpu, NeothesiaEvent,
+    Gpu,
 };
-use winit::event_loop::{EventLoop, EventLoopBuilder};
 
 pub struct Recorder {
     pub target: Target,
@@ -85,7 +84,7 @@ impl Recorder {
 }
 
 fn main() {
-    let (_event_loop, target) = init();
+    let target = init();
     let mut recorder = Recorder::new(target);
 
     recorder.resize();
@@ -175,18 +174,15 @@ fn main() {
     }
 }
 
-fn init() -> (EventLoop<NeothesiaEvent>, Target) {
+fn init() -> Target {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
         .init();
 
-    let event_loop = EventLoopBuilder::with_user_event().build();
-    let proxy = event_loop.create_proxy();
+    let proxy = neothesia::EventLoopProxy::new_mock();
 
     let window_state = WindowState::for_recorder(1920, 1080);
     let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
     let gpu = neothesia::block_on(Gpu::new(&instance, None)).unwrap();
 
-    let target = Target::new(window_state, proxy, gpu);
-
-    (event_loop, target)
+    Target::new(window_state, proxy, gpu)
 }

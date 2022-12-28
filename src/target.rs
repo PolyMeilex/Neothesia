@@ -1,12 +1,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use winit::event_loop::EventLoopProxy;
 
 use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::ui::TextRenderer;
 use crate::utils::window::WindowState;
-use crate::{NeothesiaEvent, OutputManager, TransformUniform};
+use crate::{EventLoopProxy, OutputManager, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};
 
 #[cfg(feature = "app")]
@@ -32,14 +31,14 @@ pub struct Target {
     pub midi_file: Option<Rc<lib_midi::Midi>>,
     pub config: Config,
 
-    pub proxy: EventLoopProxy<NeothesiaEvent>,
+    pub proxy: EventLoopProxy,
 }
 
 impl Target {
     pub fn new(
         #[cfg(feature = "app")] window: Window,
         window_state: WindowState,
-        proxy: EventLoopProxy<NeothesiaEvent>,
+        proxy: EventLoopProxy,
         gpu: Gpu,
     ) -> Self {
         let transform_uniform = Uniform::new(

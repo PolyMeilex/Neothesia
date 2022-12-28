@@ -48,7 +48,8 @@ impl Neothesia {
             WindowEvent::Resized(_) => {
                 self.surface.resize_swap_chain(
                     &self.target.gpu.device,
-                    self.target.window_state.physical_size,
+                    self.target.window_state.physical_size.width,
+                    self.target.window_state.physical_size.height,
                 );
 
                 self.target.resize();
@@ -227,7 +228,12 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
 
     let window_state = WindowState::new(&window);
     let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
-    let (gpu, surface) = neothesia::block_on(Gpu::for_window(&instance, &window)).unwrap();
+
+    let size = window.inner_size();
+    let (gpu, surface) =
+        neothesia::block_on(Gpu::for_window(&instance, &window, size.width, size.height)).unwrap();
+
+    let proxy = neothesia::EventLoopProxy::new_winit(proxy);
 
     let target = Target::new(window, window_state, proxy, gpu);
 

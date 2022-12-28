@@ -1,4 +1,4 @@
-use winit::dpi::PhysicalSize;
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use super::color::Color;
 use super::GpuInitError;
@@ -17,13 +17,15 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    pub async fn for_window(
+    pub async fn for_window<H: HasRawWindowHandle + HasRawDisplayHandle>(
         instance: &wgpu::Instance,
-        window: &winit::window::Window,
+        window: &H,
+        width: u32,
+        height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
         let surface = unsafe { instance.create_surface(window) };
         let gpu = Self::new(instance, Some(&surface)).await?;
-        let surface = Surface::new(&gpu.device, surface, window.inner_size());
+        let surface = Surface::new(&gpu.device, surface, width, height);
 
         Ok((gpu, surface))
     }
@@ -116,12 +118,12 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub fn new(device: &wgpu::Device, surface: wgpu::Surface, size: PhysicalSize<u32>) -> Self {
+    pub fn new(device: &wgpu::Device, surface: wgpu::Surface, width: u32, height: u32) -> Self {
         let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: super::TEXTURE_FORMAT,
-            width: size.width,
-            height: size.height,
+            width,
+            height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
         };
@@ -139,9 +141,9 @@ impl Surface {
         self.surface.get_current_texture()
     }
 
-    pub fn resize_swap_chain(&mut self, device: &wgpu::Device, size: PhysicalSize<u32>) {
-        self.surface_configuration.width = size.width;
-        self.surface_configuration.height = size.height;
+    pub fn resize_swap_chain(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        self.surface_configuration.width = width;
+        self.surface_configuration.height = height;
 
         self.surface.configure(device, &self.surface_configuration);
     }

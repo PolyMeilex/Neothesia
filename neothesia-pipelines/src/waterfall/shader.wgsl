@@ -100,11 +100,12 @@ fn fragment_alpha(
 
 @fragment
 fn fs_main(in: VertexOutput) ->  @location(0) vec4<f32> {
-    let alpha: f32 = fragment_alpha(
-        in.src_position.xy,
-        in.size,
-        vec4<f32>(in.radius)
-    );
+    // let alpha: f32 = fragment_alpha(
+    //     in.src_position.xy,
+    //     in.size,
+    //     vec4<f32>(in.radius)
+    // );
+    let alpha: f32 = 1.0;
 
     return vec4<f32>(in.color, alpha);
 }

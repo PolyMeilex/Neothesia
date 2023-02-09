@@ -2204,9 +2204,9 @@ dependencies = [
 
 [[package]]
 name = "oxisynth"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "357b3700ecf6731a337f1003418764f7cc2038ec8209336998cda9e64b5d227f"
+checksum = "a245a73af80b7e84354983ab79553896119fe22749bcb3e9add63596a273cbb0"
 dependencies = [
  "bitflags",
  "byte-slice-cast",
@@ -2798,9 +2798,9 @@ dependencies = [
 
 [[package]]
 name = "soundfont"
-version = "0.0.1"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8029f6bb9e4243ae769172bd0c4bbcbff63ad55e594fb85119f8302c917fba45"
+checksum = "1fc966ccbaedaff67e1eecd139975d8856b30d95842791d262835569f64796ba"
 dependencies = [
  "riff",
 ]

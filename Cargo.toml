@@ -19,7 +19,7 @@ default = ["app"]
 
 app = [
     "rfd",
-    "oxi-synth",
+    "fluid-synth",
     "iced_native",
     "iced_wgpu",
     "iced_graphics",

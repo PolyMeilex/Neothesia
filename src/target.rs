@@ -95,6 +95,7 @@ impl Target {
         self.transform_uniform.data.update(
             self.window_state.logical_size.width,
             self.window_state.logical_size.height,
+            self.window_state.scale_factor as f32,
         );
         self.transform_uniform.update(&self.gpu.queue);
 

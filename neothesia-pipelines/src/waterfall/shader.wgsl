@@ -1,6 +1,7 @@
 struct ViewUniform {
     transform: mat4x4<f32>,
     size: vec2<f32>,
+    scale: f32,
 }
 
 struct TimeUniform {
@@ -38,6 +39,7 @@ let speed: f32 = 400.0;
 
 @vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
+    let speed = speed / view_uniform.scale;
     let size = vec2<f32>(note.size.x, note.size.y * speed);
 
     let y = view_uniform.size.y - view_uniform.size.y / 5.0 - size.y / 2.0;
@@ -88,7 +90,7 @@ fn dist(
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let dist: f32 = dist(
-        in.position.xy,
+        in.position.xy / view_uniform.scale,
         in.note_pos,
         in.size,
         in.radius,

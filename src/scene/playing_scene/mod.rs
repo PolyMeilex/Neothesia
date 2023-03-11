@@ -5,13 +5,11 @@ use winit::event::{KeyboardInput, WindowEvent};
 
 use super::{Scene, SceneType};
 use crate::{
-    keyboard_renderer::KeyboardRenderer, midi_event::MidiEvent, target::Target, NeothesiaEvent,
+    keyboard_renderer::KeyboardRenderer, midi_event::MidiEvent, target::Target,
+    waterfall_renderer::WaterfallRenderer, NeothesiaEvent,
 };
 
 mod keyboard_events;
-
-mod notes;
-use notes::Notes;
 
 mod midi_player;
 use midi_player::MidiPlayer;
@@ -23,7 +21,7 @@ pub struct PlayingScene {
     keyboard_layout: piano_math::KeyboardLayout,
 
     piano_keyboard: KeyboardRenderer,
-    notes: Notes,
+    notes: WaterfallRenderer,
 
     player: MidiPlayer,
     quad_pipeline: QuadPipeline,
@@ -53,10 +51,16 @@ impl PlayingScene {
 
         piano_keyboard.position_on_bottom_of_parent(target.window_state.logical_size.height);
 
-        let mut notes = Notes::new(target, keyboard_layout.clone());
+        let mut notes = WaterfallRenderer::new(
+            &target.gpu,
+            target.midi_file.as_ref().unwrap(),
+            &target.config,
+            &target.transform_uniform,
+            keyboard_layout.clone(),
+        );
 
         let player = MidiPlayer::new(target);
-        notes.update(target, player.time_without_lead_in());
+        notes.update(&target.gpu.queue, player.time_without_lead_in());
 
         Self {
             keyboard_layout,
@@ -108,7 +112,12 @@ impl Scene for PlayingScene {
         self.piano_keyboard
             .position_on_bottom_of_parent(target.window_state.logical_size.height);
 
-        self.notes.resize(target, self.keyboard_layout.clone());
+        self.notes.resize(
+            &target.gpu.queue,
+            target.midi_file.as_ref().unwrap(),
+            &target.config,
+            self.keyboard_layout.clone(),
+        );
     }
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
@@ -127,7 +136,7 @@ impl Scene for PlayingScene {
         self.update_progresbar(target);
 
         self.notes.update(
-            target,
+            &target.gpu.queue,
             self.player.time_without_lead_in() + target.config.playback_offset,
         );
 

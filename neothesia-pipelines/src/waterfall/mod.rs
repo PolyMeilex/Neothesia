@@ -89,14 +89,14 @@ impl<'a> WaterfallPipeline {
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
 
-    pub fn update_instance_buffer(&mut self, gpu: &mut Gpu, instances: Vec<NoteInstance>) {
+    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: Vec<NoteInstance>) {
         self.instances.data = instances;
-        self.instances.update(&gpu.queue);
+        self.instances.update(queue);
     }
 
-    pub fn update_time(&mut self, gpu: &mut Gpu, time: f32) {
+    pub fn update_time(&mut self, queue: &wgpu::Queue, time: f32) {
         self.time_uniform.data.time = time;
-        self.time_uniform.update(&gpu.queue);
+        self.time_uniform.update(queue);
     }
 }
 

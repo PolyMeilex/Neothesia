@@ -19,6 +19,36 @@ impl<T> From<Point<T>> for [T; 2] {
     }
 }
 
+impl<T: Copy> From<&Point<T>> for [T; 2] {
+    fn from(p: &Point<T>) -> Self {
+        (*p).into()
+    }
+}
+
+impl<T> std::ops::Add for Point<T>
+where
+    T: std::ops::Add<Output = T>,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl<T> std::ops::AddAssign for Point<T>
+where
+    T: std::ops::AddAssign,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Size<T> {
     pub w: T,
@@ -34,5 +64,11 @@ impl<T> From<(T, T)> for Size<T> {
 impl<T> From<Size<T>> for [T; 2] {
     fn from(p: Size<T>) -> Self {
         [p.w, p.h]
+    }
+}
+
+impl<T: Copy> From<&Size<T>> for [T; 2] {
+    fn from(p: &Size<T>) -> Self {
+        (*p).into()
     }
 }

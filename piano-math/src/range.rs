@@ -8,7 +8,7 @@ const KEY_FIS: u8 = 6;
 const KEY_GIS: u8 = 8;
 const KEY_AIS: u8 = 10;
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct KeyId(u8);
 
 impl KeyId {
@@ -19,6 +19,7 @@ impl KeyId {
 }
 
 /// Describe used slice of piano keyboard
+#[derive(Debug, Clone)]
 pub struct KeyboardRange {
     range: Range<u8>,
 

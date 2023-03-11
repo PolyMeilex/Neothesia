@@ -1,31 +1,53 @@
 pub mod range;
+pub use range::KeyboardRange;
 
-pub struct Keybard {
+#[derive(Debug, Clone)]
+pub struct KeyboardLayout {
     pub keys: Vec<Key>,
+
+    pub width: f32,
+    pub height: f32,
 
     pub neutral_width: f32,
     pub sharp_width: f32,
 
     pub neutral_height: f32,
     pub sharp_height: f32,
+
+    pub range: KeyboardRange,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum KeyKind {
     Neutral,
     Sharp,
 }
 
-#[derive(Debug)]
+impl KeyKind {
+    pub fn is_neutral(&self) -> bool {
+        matches!(self, Self::Neutral)
+    }
+
+    pub fn is_sharp(&self) -> bool {
+        matches!(self, Self::Sharp)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Key {
     x: f32,
     width: f32,
     height: f32,
     kind: KeyKind,
     note_id: u8,
+    id: usize,
 }
 
 impl Key {
+    pub fn id(&self) -> usize {
+        self.id
+    }
+
     pub fn x(&self) -> f32 {
         self.x
     }
@@ -64,7 +86,7 @@ struct Sizing {
     sharp_height: f32,
 }
 
-pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> Keybard {
+pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> KeyboardLayout {
     let sharp_width = neutral_width * 0.625; // 62.5%
     let sharp_height = neutral_height * 0.635;
 
@@ -90,8 +112,13 @@ pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> Keybard {
     let mut keys = Vec::with_capacity(88);
 
     let mut offset = 0.0;
+    let mut id = 0;
+
     for octave in octaves {
         for mut key in octave.keys {
+            key.id = id;
+            id += 1;
+
             match key.kind {
                 KeyKind::Neutral => {
                     key.x += offset;
@@ -107,12 +134,23 @@ pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> Keybard {
         offset += octave.width;
     }
 
-    Keybard {
+    // Board size
+    let width = neutral_width * 52.0; // Neutral keys count
+    let height = neutral_height;
+
+    KeyboardLayout {
         keys,
+
+        width,
+        height,
+
         neutral_width,
         sharp_width,
+
         neutral_height,
         sharp_height,
+
+        range: KeyboardRange::standard_88_keys(),
     }
 }
 
@@ -132,6 +170,7 @@ fn partial_octave(sizing: &Sizing, range: std::ops::Range<u8>) -> Octave {
 
         if range.contains(note_id) {
             keys.push(Key {
+                id: 0,
                 x,
                 width: sizing.neutral_width,
                 height: sizing.neutral_height,
@@ -163,6 +202,7 @@ fn partial_octave(sizing: &Sizing, range: std::ops::Range<u8>) -> Octave {
 
         if range.contains(&note_id) {
             keys.push(Key {
+                id: 0,
                 x,
                 width: sizing.sharp_width,
                 height: sizing.sharp_height,

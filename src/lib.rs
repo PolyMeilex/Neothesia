@@ -17,6 +17,8 @@ pub mod config;
 
 pub mod target;
 
+pub mod keyboard_renderer;
+
 pub mod midi_event;
 use midi_event::MidiEvent;
 

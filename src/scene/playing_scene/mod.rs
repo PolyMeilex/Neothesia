@@ -4,10 +4,11 @@ use wgpu_jumpstart::Color;
 use winit::event::{KeyboardInput, WindowEvent};
 
 use super::{Scene, SceneType};
-use crate::{midi_event::MidiEvent, target::Target, NeothesiaEvent};
+use crate::{
+    keyboard_renderer::KeyboardRenderer, midi_event::MidiEvent, target::Target, NeothesiaEvent,
+};
 
-mod keyboard;
-use keyboard::PianoKeyboard;
+mod keyboard_events;
 
 mod notes;
 use notes::Notes;
@@ -19,27 +20,47 @@ mod toast_manager;
 use toast_manager::ToastManager;
 
 pub struct PlayingScene {
-    piano_keyboard: PianoKeyboard,
+    keyboard_layout: piano_math::KeyboardLayout,
+
+    piano_keyboard: KeyboardRenderer,
     notes: Notes,
+
     player: MidiPlayer,
     quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
 }
 
+fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
+    let white_count = piano_math::KeyboardRange::standard_88_keys().white_count();
+    let neutral_width = width / white_count as f32;
+    let neutral_height = height * 0.2;
+
+    piano_math::standard_88_keys(neutral_width, neutral_height)
+}
+
 impl PlayingScene {
     pub fn new(target: &mut Target) -> Self {
-        let piano_keyboard = PianoKeyboard::new(
-            &target.gpu,
-            &target.transform_uniform,
-            target.window_state.logical_size,
+        let keyboard_layout = get_layout(
+            target.window_state.logical_size.width,
+            target.window_state.logical_size.height,
         );
 
-        let mut notes = Notes::new(target, piano_keyboard.keys());
+        let mut piano_keyboard = KeyboardRenderer::new(
+            &target.gpu,
+            &target.transform_uniform,
+            keyboard_layout.clone(),
+        );
+
+        piano_keyboard.position_on_bottom_of_parent(target.window_state.logical_size.height);
+
+        let mut notes = Notes::new(target, keyboard_layout.clone());
 
         let player = MidiPlayer::new(target);
         notes.update(target, player.time_without_lead_in());
 
         Self {
+            keyboard_layout,
+
             piano_keyboard,
             notes,
             player,
@@ -78,15 +99,26 @@ impl Scene for PlayingScene {
     }
 
     fn resize(&mut self, target: &mut Target) {
-        self.piano_keyboard.resize(target.window_state.logical_size);
-        self.notes.resize(target, self.piano_keyboard.keys());
+        self.keyboard_layout = get_layout(
+            target.window_state.logical_size.width,
+            target.window_state.logical_size.height,
+        );
+
+        self.piano_keyboard.set_layout(self.keyboard_layout.clone());
+        self.piano_keyboard
+            .position_on_bottom_of_parent(target.window_state.logical_size.height);
+
+        self.notes.resize(target, self.keyboard_layout.clone());
     }
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
         if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
             if let Some(midi_events) = self.player.update(target, delta) {
-                self.piano_keyboard
-                    .file_midi_events(&target.config, &midi_events);
+                keyboard_events::file_midi_events(
+                    &mut self.piano_keyboard,
+                    &target.config,
+                    &midi_events,
+                );
             } else {
                 self.piano_keyboard.reset_notes();
             }
@@ -177,7 +209,7 @@ impl Scene for PlayingScene {
             ),
         }
 
-        self.piano_keyboard.user_midi_event(event);
+        keyboard_events::user_midi_event(&mut self.piano_keyboard, event);
     }
 }
 

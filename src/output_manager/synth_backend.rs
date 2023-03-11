@@ -42,7 +42,11 @@ impl SynthBackend {
         })
     }
 
-    fn run<T: cpal::Sample>(&self, rx: Receiver<MidiEvent>, path: &Path) -> cpal::Stream {
+    fn run<T: cpal::SizedSample + cpal::FromSample<f32>>(
+        &self,
+        rx: Receiver<MidiEvent>,
+        path: &Path,
+    ) -> cpal::Stream {
         #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
         let mut next_value = {
             use fluidlite::{IsSettings, Settings};
@@ -149,8 +153,8 @@ impl SynthBackend {
                     for frame in output.chunks_mut(channels) {
                         let (l, r) = next_value();
 
-                        let l: T = cpal::Sample::from::<f32>(&l);
-                        let r: T = cpal::Sample::from::<f32>(&r);
+                        let l = T::from_sample(l);
+                        let r = T::from_sample(r);
 
                         let channels = [l, r];
 
@@ -160,6 +164,7 @@ impl SynthBackend {
                     }
                 },
                 err_fn,
+                None,
             )
             .unwrap();
         stream.play().unwrap();
@@ -170,9 +175,19 @@ impl SynthBackend {
     pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
         let _stream = match self.sample_format {
-            cpal::SampleFormat::F32 => self.run::<f32>(rx, path),
+            cpal::SampleFormat::I8 => self.run::<i8>(rx, path),
             cpal::SampleFormat::I16 => self.run::<i16>(rx, path),
+            cpal::SampleFormat::I32 => self.run::<i32>(rx, path),
+            cpal::SampleFormat::I64 => self.run::<i64>(rx, path),
+
+            cpal::SampleFormat::U8 => self.run::<u8>(rx, path),
             cpal::SampleFormat::U16 => self.run::<u16>(rx, path),
+            cpal::SampleFormat::U32 => self.run::<u32>(rx, path),
+            cpal::SampleFormat::U64 => self.run::<u64>(rx, path),
+
+            cpal::SampleFormat::F32 => self.run::<f32>(rx, path),
+            cpal::SampleFormat::F64 => self.run::<f64>(rx, path),
+            sample_format => unimplemented!("Unsupported sample format '{sample_format}'"),
         };
 
         SynthOutputConnection { _stream, tx }

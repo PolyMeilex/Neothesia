@@ -5,18 +5,15 @@ use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::ui::TextRenderer;
 use crate::utils::window::WindowState;
-use crate::{EventLoopProxy, OutputManager, TransformUniform};
+use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};
+use winit::event_loop::EventLoopProxy;
 
-#[cfg(feature = "app")]
 use crate::ui::IcedManager;
-#[cfg(feature = "app")]
 use winit::window::Window;
 
 pub struct Target {
-    #[cfg(feature = "app")]
     pub window: Window,
-    #[cfg(feature = "app")]
     pub iced_manager: IcedManager,
 
     pub window_state: WindowState,
@@ -31,14 +28,14 @@ pub struct Target {
     pub midi_file: Option<Rc<lib_midi::Midi>>,
     pub config: Config,
 
-    pub proxy: EventLoopProxy,
+    pub proxy: EventLoopProxy<NeothesiaEvent>,
 }
 
 impl Target {
     pub fn new(
-        #[cfg(feature = "app")] window: Window,
+        window: Window,
         window_state: WindowState,
-        proxy: EventLoopProxy,
+        proxy: EventLoopProxy<NeothesiaEvent>,
         gpu: Gpu,
     ) -> Self {
         let transform_uniform = Uniform::new(
@@ -49,7 +46,6 @@ impl Target {
 
         let text_renderer = TextRenderer::new(&gpu);
 
-        #[cfg(feature = "app")]
         let iced_manager = IcedManager::new(
             &gpu.device,
             (
@@ -72,9 +68,7 @@ impl Target {
         };
 
         Self {
-            #[cfg(feature = "app")]
             window,
-            #[cfg(feature = "app")]
             iced_manager,
 
             window_state,
@@ -99,7 +93,6 @@ impl Target {
         );
         self.transform_uniform.update(&self.gpu.queue);
 
-        #[cfg(feature = "app")]
         self.iced_manager.resize(
             (
                 self.window_state.physical_size.width,

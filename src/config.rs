@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "app")]
 use crate::output_manager::OutputDescriptor;
 
 #[derive(Serialize, Deserialize, Default)]
@@ -71,6 +72,7 @@ impl Config {
         })
     }
 
+    #[cfg(feature = "app")]
     pub fn set_output(&mut self, v: &OutputDescriptor) {
         if let OutputDescriptor::DummyOutput = v {
             self.output = None;

@@ -2,8 +2,8 @@ use crate::{config::Config, keyboard_renderer::KeyboardRenderer};
 
 pub use crate::keyboard_renderer::KeyState;
 
-pub fn user_midi_event(keyboard: &mut KeyboardRenderer, event: &crate::MidiEvent) {
-    use crate::MidiEvent;
+pub fn user_midi_event(keyboard: &mut KeyboardRenderer, event: &crate::midi_event::MidiEvent) {
+    use crate::midi_event::MidiEvent;
 
     let (is_on, key) = match event {
         MidiEvent::NoteOn { key, .. } => (true, key),

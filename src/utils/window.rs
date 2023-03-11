@@ -22,40 +22,11 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    // #[cfg(feature = "record")]
-    pub fn for_recorder(width: u32, height: u32) -> Self {
-        let scale_factor = 1.0;
-
-        let physical_size = PhysicalSize::new(width, height);
-        let logical_size = physical_size.to_logical::<f32>(scale_factor);
-
-        Self {
-            physical_size,
-            logical_size,
-
-            scale_factor,
-
-            cursor_physical_position: Default::default(),
-            cursor_logical_position: Default::default(),
-
-            focused: false,
-
-            modifers_state: ModifiersState::default(),
-        }
-    }
-
     pub fn new(window: &winit::window::Window) -> Self {
         let scale_factor = window.scale_factor();
 
-        #[cfg(not(feature = "record"))]
         let (physical_size, logical_size) = {
             let physical_size = window.inner_size();
-            let logical_size = physical_size.to_logical::<f32>(scale_factor);
-            (physical_size, logical_size)
-        };
-        #[cfg(feature = "record")]
-        let (physical_size, logical_size) = {
-            let physical_size = PhysicalSize::new(1920, 1080);
             let logical_size = physical_size.to_logical::<f32>(scale_factor);
             (physical_size, logical_size)
         };

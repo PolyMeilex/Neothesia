@@ -1,9 +1,5 @@
-#[cfg(feature = "app")]
 pub mod menu_scene;
-
 pub mod playing_scene;
-
-#[cfg(feature = "app")]
 pub mod scene_manager;
 
 use crate::{midi_event::MidiEvent, target::Target};

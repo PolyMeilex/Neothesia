@@ -1,13 +1,15 @@
-use crate::{midi_event::MidiEvent, EventLoopProxy, NeothesiaEvent};
+use winit::event_loop::EventLoopProxy;
+
+use crate::{midi_event::MidiEvent, NeothesiaEvent};
 
 pub struct InputManager {
     input: midi_io::MidiInputManager,
-    tx: EventLoopProxy,
+    tx: EventLoopProxy<NeothesiaEvent>,
     current_connection: Option<midi_io::MidiInputConnection>,
 }
 
 impl InputManager {
-    pub fn new(tx: EventLoopProxy) -> Self {
+    pub fn new(tx: EventLoopProxy<NeothesiaEvent>) -> Self {
         let input = midi_io::MidiInputManager::new().unwrap();
         Self {
             input,
@@ -36,14 +38,16 @@ impl InputManager {
                         tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOff {
                             channel: ch as u8,
                             key,
-                        }));
+                        }))
+                        .ok();
                     } else {
                         tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOn {
                             channel: ch as u8,
                             track_id: 0,
                             key,
                             vel,
-                        }));
+                        }))
+                        .ok();
                     }
                 } else if message[0] >= 0x80 && message[0] <= 0x8F {
                     let (s, ch) = midi::utils::from_status_byte(message[0]);
@@ -52,7 +56,8 @@ impl InputManager {
                     tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOff {
                         channel: ch as u8,
                         key: message[1],
-                    }));
+                    }))
+                    .ok();
                 }
             }
         });

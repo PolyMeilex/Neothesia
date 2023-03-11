@@ -86,11 +86,6 @@ impl PlayingScene {
             }],
         );
     }
-
-    #[cfg(feature = "record")]
-    pub fn playback_progress(&self) -> f32 {
-        self.player.percentage() * 100.0
-    }
 }
 
 impl Scene for PlayingScene {
@@ -185,7 +180,7 @@ impl Scene for PlayingScene {
                 if input.state == ElementState::Released {
                     match input.virtual_keycode {
                         Some(VirtualKeyCode::Escape) => {
-                            target.proxy.send_event(NeothesiaEvent::GoBack);
+                            target.proxy.send_event(NeothesiaEvent::GoBack).ok();
                         }
                         Some(VirtualKeyCode::Space) => {
                             self.player.pause_resume();

@@ -1,4 +1,6 @@
 pub mod resources;
+
+#[cfg(feature = "app")]
 pub mod window;
 
 #[derive(Debug, Default, Clone, Copy)]

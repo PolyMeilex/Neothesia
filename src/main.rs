@@ -233,8 +233,6 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
     let (gpu, surface) =
         neothesia::block_on(Gpu::for_window(&instance, &window, size.width, size.height)).unwrap();
 
-    let proxy = neothesia::EventLoopProxy::new_winit(proxy);
-
     let target = Target::new(window, window_state, proxy, gpu);
 
     (event_loop, target, surface)

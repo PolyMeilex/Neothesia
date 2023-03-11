@@ -1,4 +1,4 @@
-use crate::{target::Target, OutputManager};
+use crate::{output_manager::OutputManager, target::Target};
 use num::FromPrimitive;
 use std::{cell::RefCell, collections::HashSet, rc::Rc, time::Duration};
 use winit::{

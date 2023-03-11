@@ -1,5 +1,3 @@
-#![cfg(feature = "record")]
-
 use std::{default::Default, num::NonZeroU32, time::Duration};
 
 use neothesia::{

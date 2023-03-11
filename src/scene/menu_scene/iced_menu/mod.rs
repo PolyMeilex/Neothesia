@@ -117,7 +117,8 @@ impl Program for AppUi {
 
                     target
                         .proxy
-                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play));
+                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
+                        .ok();
                 }
             }
             Message::OpenMidiFilePicker => {
@@ -184,7 +185,7 @@ impl Program for AppUi {
                 }
             }
             Message::ExitApp => {
-                target.proxy.send_event(NeothesiaEvent::GoBack);
+                target.proxy.send_event(NeothesiaEvent::GoBack).ok();
             }
         }
 

@@ -3,36 +3,112 @@
 use std::{default::Default, num::NonZeroU32, time::Duration};
 
 use neothesia::{
-    scene::{playing_scene::PlayingScene, Scene},
-    target::Target,
-    utils::window::WindowState,
-    Gpu,
+    config::Config, keyboard_renderer::KeyboardRenderer, ui::TextRenderer,
+    waterfall_renderer::WaterfallRenderer, Gpu, TransformUniform, Uniform,
 };
 
 pub struct Recorder {
-    pub target: Target,
+    gpu: Gpu,
+    transform_uniform: Uniform<TransformUniform>,
 
-    pub scene: PlayingScene,
+    playback: lib_midi::PlaybackState,
+    midi: lib_midi::Midi,
+
+    keyboard: KeyboardRenderer,
+    waterfall: WaterfallRenderer,
+    text: TextRenderer,
+
+    config: Config,
+    width: u32,
+    height: u32,
+}
+
+fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
+    let white_count = piano_math::KeyboardRange::standard_88_keys().white_count();
+    let neutral_width = width / white_count as f32;
+    let neutral_height = height * 0.2;
+
+    piano_math::standard_88_keys(neutral_width, neutral_height)
+}
+
+pub fn time_without_lead_in(playback: &lib_midi::PlaybackState) -> f32 {
+    playback.time().as_secs_f32() - playback.leed_in().as_secs_f32()
 }
 
 impl Recorder {
-    pub fn new(mut target: Target) -> Self {
-        // target.resize();
-        target.gpu.submit();
-        let scene = PlayingScene::new(&mut target);
+    pub fn new() -> Self {
+        env_logger::Builder::from_env(
+            env_logger::Env::default().default_filter_or("neothesia=info"),
+        )
+        .init();
 
-        Self { target, scene }
-    }
+        let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
+        let gpu = neothesia::block_on(Gpu::new(&instance, None)).unwrap();
 
-    pub fn resize(&mut self) {
-        self.target.resize();
-        self.scene.resize(&mut self.target);
+        let args: Vec<String> = std::env::args().collect();
 
-        self.target.gpu.submit();
+        let midi = if args.len() > 1 {
+            lib_midi::Midi::new(&args[1]).ok()
+        } else {
+            None
+        }
+        .unwrap();
+
+        let config = Config::new();
+
+        let width = 1920;
+        let height = 1080;
+
+        let mut transform_uniform = TransformUniform::default();
+        transform_uniform.update(width as f32, height as f32, 1.0);
+
+        let transform_uniform = Uniform::new(
+            &gpu.device,
+            transform_uniform,
+            wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+        );
+
+        let keyboard_layout = get_layout(width as f32, height as f32);
+
+        let mut keyboard = KeyboardRenderer::new(&gpu, &transform_uniform, keyboard_layout.clone());
+
+        keyboard.position_on_bottom_of_parent(height as f32);
+
+        let mut waterfall =
+            WaterfallRenderer::new(&gpu, &midi, &config, &transform_uniform, keyboard_layout);
+
+        let playback = lib_midi::PlaybackState::new(Duration::from_secs(3), &midi.merged_track);
+
+        waterfall.update(&gpu.queue, time_without_lead_in(&playback));
+
+        let text = TextRenderer::new(&gpu);
+
+        Self {
+            gpu,
+            transform_uniform,
+
+            playback,
+            midi,
+
+            keyboard,
+            waterfall,
+            text,
+
+            config,
+            width,
+            height,
+        }
     }
 
     pub fn update(&mut self, delta: Duration) {
-        self.scene.update(&mut self.target, delta);
+        let events = self.playback.update(&self.midi.merged_track, delta);
+        file_midi_events(&mut self.keyboard, &self.config, &events);
+
+        self.waterfall
+            .update(&self.gpu.queue, time_without_lead_in(&self.playback));
+
+        self.keyboard
+            .update(&self.gpu.queue, self.text.glyph_brush());
     }
 
     pub fn render<'a>(
@@ -42,25 +118,39 @@ impl Recorder {
         texture_desc: &wgpu::TextureDescriptor<'a>,
         output_buffer: &wgpu::Buffer,
     ) {
-        self.target
-            .gpu
-            .clear(view, self.target.config.background_color.into());
+        self.gpu.clear(view, self.config.background_color.into());
 
-        self.scene.render(&mut self.target, view);
+        {
+            let mut render_pass = self
+                .gpu
+                .encoder
+                .begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: None,
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: true,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                });
 
-        self.target.text_renderer.render(
-            (
-                self.target.window_state.logical_size.width,
-                self.target.window_state.logical_size.height,
-            ),
-            &mut self.target.gpu,
-            view,
-        );
+            self.waterfall
+                .render(&self.transform_uniform, &mut render_pass);
+
+            self.keyboard
+                .render(&self.transform_uniform, &mut render_pass);
+        }
+
+        self.text
+            .render((self.width as f32, self.height as f32), &mut self.gpu, view);
 
         {
             let u32_size = std::mem::size_of::<u32>() as u32;
 
-            self.target.gpu.encoder.copy_texture_to_buffer(
+            self.gpu.encoder.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
                     texture: &texture,
                     mip_level: 0,
@@ -71,23 +161,21 @@ impl Recorder {
                     buffer: &output_buffer,
                     layout: wgpu::ImageDataLayout {
                         offset: 0,
-                        bytes_per_row: NonZeroU32::new(u32_size * 1920),
-                        rows_per_image: NonZeroU32::new(1080),
+                        bytes_per_row: NonZeroU32::new(u32_size * self.width),
+                        rows_per_image: NonZeroU32::new(self.height),
                     },
                 },
                 texture_desc.size,
             );
 
-            self.target.gpu.submit();
+            self.gpu.submit();
         }
     }
 }
 
 fn main() {
-    let target = init();
-    let mut recorder = Recorder::new(target);
+    let mut recorder = Recorder::new();
 
-    recorder.resize();
     let texture_desc = wgpu::TextureDescriptor {
         size: wgpu::Extent3d {
             width: 1920,
@@ -101,7 +189,7 @@ fn main() {
         usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
         label: None,
     };
-    let texture = recorder.target.gpu.device.create_texture(&texture_desc);
+    let texture = recorder.gpu.device.create_texture(&texture_desc);
     let view = &texture.create_view(&wgpu::TextureViewDescriptor {
         label: None,
         format: None,
@@ -114,7 +202,7 @@ fn main() {
     });
 
     let u32_size = std::mem::size_of::<u32>() as u32;
-    let output_buffer_size = (u32_size * 1920 * 1080) as wgpu::BufferAddress;
+    let output_buffer_size = (u32_size * recorder.width * recorder.height) as wgpu::BufferAddress;
 
     let output_buffer_desc = wgpu::BufferDescriptor {
         size: output_buffer_size,
@@ -124,7 +212,11 @@ fn main() {
     };
 
     std::fs::create_dir("./out").ok();
-    let mut encoder = mpeg_encoder::Encoder::new("./out/video.mp4", 1920, 1080);
+    let mut encoder = mpeg_encoder::Encoder::new(
+        "./out/video.mp4",
+        recorder.width as usize,
+        recorder.height as usize,
+    );
 
     encoder.init(Some(0.0), Some("medium"));
 
@@ -132,12 +224,8 @@ fn main() {
 
     println!("Encoding started:");
     let mut n = 1;
-    while recorder.scene.playback_progress() < 101.0 {
-        let output_buffer = recorder
-            .target
-            .gpu
-            .device
-            .create_buffer(&output_buffer_desc);
+    while recorder.playback.percentage() * 100.0 < 101.0 {
+        let output_buffer = recorder.gpu.device.create_buffer(&output_buffer_desc);
 
         let frame_time = Duration::from_secs(1) / 60;
         recorder.update(frame_time);
@@ -152,7 +240,7 @@ fn main() {
                     tx.send(()).unwrap();
                 });
 
-                recorder.target.gpu.device.poll(wgpu::Maintain::Wait);
+                recorder.gpu.device.poll(wgpu::Maintain::Wait);
 
                 rx.await.unwrap();
 
@@ -164,7 +252,7 @@ fn main() {
                     "\r Encoded {} frames ({}s, {}%) in {}s",
                     n,
                     (n as f32 / 60.0).round(),
-                    recorder.scene.playback_progress().round(),
+                    (recorder.playback.percentage() * 100.0).round().min(100.0),
                     start.elapsed().as_secs()
                 );
             });
@@ -174,15 +262,32 @@ fn main() {
     }
 }
 
-fn init() -> Target {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
-        .init();
+pub fn file_midi_events(
+    keyboard: &mut KeyboardRenderer,
+    config: &Config,
+    events: &[lib_midi::MidiEvent],
+) {
+    use lib_midi::midly::MidiMessage;
 
-    let proxy = neothesia::EventLoopProxy::new_mock();
+    for e in events {
+        let (is_on, key) = match e.message {
+            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+            _ => continue,
+        };
 
-    let window_state = WindowState::for_recorder(1920, 1080);
-    let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
-    let gpu = neothesia::block_on(Gpu::new(&instance, None)).unwrap();
+        if keyboard.range().contains(key) && e.channel != 9 {
+            let id = key as usize - 21;
+            let key = &mut keyboard.key_states_mut()[id];
 
-    Target::new(window_state, proxy, gpu)
+            if is_on {
+                let color = &config.color_schema[e.track_id % config.color_schema.len()];
+                key.pressed_by_file_on(color);
+            } else {
+                key.pressed_by_file_off();
+            }
+
+            keyboard.queue_reupload();
+        }
+    }
 }

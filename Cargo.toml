@@ -24,7 +24,6 @@ app = [
     "iced_wgpu",
     "iced_graphics",
     "iced_style",
-    "play_along",
     "midi-io",
     "async-thread",
     "winit",
@@ -32,8 +31,6 @@ app = [
 record = ["mpeg_encoder", "build-ffmpeg"]
 # Download and compile ffmpeg
 build-ffmpeg = ["mpeg_encoder/build"]
-
-play_along = []
 
 synth = []
 fluid-synth = ["synth", "cpal", "fluidlite"]

@@ -204,24 +204,14 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
-    let builder = builder.with_title("Neothesia");
+    let builder = builder
+        .with_title("Neothesia")
+        .with_theme(Some(winit::window::Theme::Dark));
 
     #[cfg(target_os = "windows")]
     let builder = {
         use winit::platform::windows::WindowBuilderExtWindows;
         builder.with_drag_and_drop(false)
-    };
-
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    let builder = {
-        use winit::platform::unix::WindowBuilderExtUnix;
-        builder.with_wayland_csd_theme(winit::window::Theme::Dark)
     };
 
     let window = builder.build(&event_loop).unwrap();

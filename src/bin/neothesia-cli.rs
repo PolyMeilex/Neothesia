@@ -1,7 +1,7 @@
 use std::{default::Default, num::NonZeroU32, time::Duration};
 
 use neothesia::{
-    config::Config, keyboard_renderer::KeyboardRenderer, ui::TextRenderer,
+    config::Config, keyboard_renderer::KeyboardRenderer, text_renderer::TextRenderer,
     waterfall_renderer::WaterfallRenderer, Gpu, TransformUniform, Uniform,
 };
 

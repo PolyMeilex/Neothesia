@@ -13,7 +13,7 @@ use winit::event::{MouseButton, WindowEvent};
 use crate::{
     scene::{Scene, SceneType},
     target::Target,
-    ui::{
+    iced_utils::{
         iced_conversion,
         iced_state::{self, Program},
     },

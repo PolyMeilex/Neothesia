@@ -3,13 +3,13 @@ use std::rc::Rc;
 
 use crate::config::Config;
 use crate::input_manager::InputManager;
-use crate::ui::TextRenderer;
+use crate::text_renderer::TextRenderer;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;
 
-use crate::ui::IcedManager;
+use crate::iced_utils::IcedManager;
 use winit::window::Window;
 
 pub struct Target {

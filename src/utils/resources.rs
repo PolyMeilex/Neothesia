@@ -23,6 +23,18 @@ pub fn default_sf2() -> Option<PathBuf> {
             }
         }
 
+        // <prefix>/bin/neothesia -> <prefix>/share/neothesia/default.sf2
+        if let Some(path) = std::env::current_exe().ok().and_then(|exe_path| {
+            exe_path
+                .parent()
+                .and_then(|path| path.parent())
+                .map(|pfx_path| pfx_path.join("share").join("neothesia").join("default.sf2"))
+        }) {
+            if path.exists() {
+                return Some(path);
+            }
+        }
+
         let flatpak = PathBuf::from("/app/share/neothesia/default.sf2");
         if flatpak.exists() {
             Some(flatpak)

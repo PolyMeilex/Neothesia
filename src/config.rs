@@ -119,6 +119,22 @@ fn default_color_schema() -> Vec<ColorSchema> {
             base: (210, 89, 222),
             dark: (125, 69, 134),
         },
+        ColorSchema {
+            base: (255, 126, 51),
+            dark: (192, 73, 0),
+        },
+        ColorSchema {
+            base: (51, 255, 102),
+            dark: (0, 168, 2),
+        },
+        ColorSchema {
+            base: (255, 51, 129),
+            dark: (48, 124, 255),
+        },
+        ColorSchema {
+            base: (210, 89, 222),
+            dark: (125, 69, 134),
+        },
     ]
 }
 

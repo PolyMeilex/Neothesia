@@ -20,10 +20,12 @@ default = ["app"]
 app = [
     "rfd",
     "oxi-synth",
-    "iced_native",
+    "iced_core",
+    "iced_runtime",
     "iced_wgpu",
     "iced_graphics",
     "iced_style",
+    "iced_widget",
     "midi-io",
     "async-thread",
     "winit",
@@ -47,8 +49,8 @@ serde = { version = "1.0", features = ["serde_derive"] }
 midi = "0.1"
 num = "0.4"
 
-wgpu = "0.14"
-wgpu_glyph = "0.18"
+wgpu = "0.16.1"
+wgpu_glyph = "0.20.0"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 
 neothesia-pipelines = { path = "./neothesia-pipelines" }
@@ -67,13 +69,16 @@ oxisynth = { version = "0.0.3", optional = true }
 
 midi-io = { path = "./midi-io", optional = true }
 
-iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", optional = true }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", features = [
-    "png",
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", features = [
     "image",
 ], optional = true }
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", optional = true }
-iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "da244ff8048e0b339c1502372894a2460a637241", optional = true }
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true, features = [
+    "image",
+] }
 
 # Recorder Deps
 

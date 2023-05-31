@@ -1,22 +1,21 @@
 use std::{path::PathBuf, rc::Rc};
 
-use iced_graphics::{
+use iced_core::{
     alignment::{Horizontal, Vertical},
-    Alignment,
-};
-use iced_native::{
-    column as col,
     image::Handle as ImageHandle,
-    row,
-    widget::{self, button, checkbox, container, image, pick_list, text, vertical_space},
-    Command, Length, Padding,
+    Alignment, Length, Padding,
+};
+use iced_runtime::Command;
+use iced_style::Theme;
+use iced_widget::{
+    button, checkbox, column as col, container, image, pick_list, row, text, vertical_space,
 };
 
 use crate::{
+    iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::neo_btn::neo_button,
     target::Target,
-    iced_utils::iced_state::{Element, Program},
     NeothesiaEvent,
 };
 
@@ -192,8 +191,8 @@ impl Program for AppUi {
         Command::none()
     }
 
-    fn keyboard_input(&self, event: &iced_native::keyboard::Event) -> Option<Message> {
-        use iced_native::keyboard::{Event, KeyCode};
+    fn keyboard_input(&self, event: &iced_runtime::keyboard::Event) -> Option<Message> {
+        use iced_runtime::keyboard::{Event, KeyCode};
 
         if let Event::KeyPressed { key_code, .. } = event {
             match key_code {
@@ -272,11 +271,11 @@ impl<'a> Step {
                 .on_press(Message::ExitApp),
         ]
         .spacing(5)
-        .height(Length::Units(50));
+        .height(Length::Fixed(50.0));
 
         let controls = col![output, select_row]
             .align_items(Alignment::Center)
-            .width(Length::Units(650))
+            .width(Length::Fixed(650.0))
             .spacing(30);
 
         center_x(controls).center_y().into()
@@ -287,17 +286,17 @@ impl<'a> Step {
             neo_button("Select File")
                 .on_press(Message::OpenMidiFilePicker)
                 .width(Length::Fill)
-                .height(Length::Units(80)),
+                .height(Length::Fixed(80.0)),
             neo_button("Settings")
                 .on_press(Message::GoToPage(Step::Settings))
                 .width(Length::Fill)
-                .height(Length::Units(80)),
+                .height(Length::Fixed(80.0)),
             neo_button("Exit")
                 .on_press(Message::GoToPage(Step::Exit))
                 .width(Length::Fill)
-                .height(Length::Units(80))
+                .height(Length::Fixed(80.0))
         ]
-        .width(Length::Units(450))
+        .width(Length::Fixed(450.0))
         .spacing(10);
 
         let column = col![image(data.logo_handle.clone()), buttons]
@@ -311,8 +310,8 @@ impl<'a> Step {
                 .style(theme::checkbox());
 
             let play = neo_button("Play")
-                .height(Length::Units(60))
-                .min_width(80)
+                .height(Length::Fixed(60.0))
+                .min_width(80.0)
                 .on_press(Message::Play);
 
             let row = row![play_along, play]
@@ -323,10 +322,10 @@ impl<'a> Step {
                 .width(Length::Fill)
                 .align_x(Horizontal::Right)
                 .padding(Padding {
-                    top: 0,
-                    right: 10,
-                    bottom: 10,
-                    left: 0,
+                    top: 0.0,
+                    right: 10.0,
+                    bottom: 10.0,
+                    left: 0.0,
                 });
 
             content = content.push(container);
@@ -347,16 +346,16 @@ impl<'a> Step {
 
         let output_title = text("Output:")
             .vertical_alignment(Vertical::Center)
-            .height(Length::Units(30));
+            .height(Length::Fixed(30.0));
 
         let output_list = if is_synth {
             let btn = button(centered_text("SoundFont"))
-                .width(Length::Units(50))
+                .width(Length::Fixed(50.0))
                 .on_press(Message::OpenSoundFontPicker)
                 .style(theme::button());
 
             row![
-                output_title.width(Length::Units(60)),
+                output_title.width(Length::Fixed(60.0)),
                 output_list.width(Length::FillPortion(3)),
                 btn.width(Length::FillPortion(1))
             ]
@@ -374,10 +373,10 @@ impl<'a> Step {
 
         let input_title = text("Input:")
             .vertical_alignment(Vertical::Center)
-            .height(Length::Units(30));
+            .height(Length::Fixed(30.0));
 
         let input_list = row![
-            input_title.width(Length::Units(60)),
+            input_title.width(Length::Fixed(60.0)),
             input_list.width(Length::FillPortion(3)),
         ]
         .spacing(10);
@@ -386,7 +385,7 @@ impl<'a> Step {
             .on_press(Message::GoToPage(Step::Main))
             .width(Length::Fill),]
         .width(Length::Shrink)
-        .height(Length::Units(50));
+        .height(Length::Fixed(50.0));
 
         let column = col![
             image(data.logo_handle.clone()),
@@ -400,7 +399,7 @@ impl<'a> Step {
     }
 }
 
-fn centered_text<'a>(label: impl ToString) -> widget::Text<'a, iced_wgpu::Renderer> {
+fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, iced_wgpu::Renderer<Theme>> {
     text(label)
         .horizontal_alignment(Horizontal::Center)
         .vertical_alignment(Vertical::Center)
@@ -408,7 +407,7 @@ fn centered_text<'a>(label: impl ToString) -> widget::Text<'a, iced_wgpu::Render
 
 fn top_padded<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
-) -> widget::Column<'a, MSG, iced_wgpu::Renderer> {
+) -> iced_widget::Column<'a, MSG, iced_wgpu::Renderer<Theme>> {
     let spacer = vertical_space(Length::FillPortion(1));
     let content = container(content)
         .height(Length::FillPortion(4))
@@ -423,7 +422,7 @@ fn top_padded<'a, MSG: 'a>(
 
 fn center_x<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
-) -> widget::Container<'a, MSG, iced_wgpu::Renderer> {
+) -> iced_widget::Container<'a, MSG, iced_wgpu::Renderer<Theme>> {
     container(content)
         .width(Length::Fill)
         .height(Length::Fill)

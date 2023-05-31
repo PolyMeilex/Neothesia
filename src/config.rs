@@ -91,7 +91,7 @@ impl Drop for Config {
         if let Ok(s) = ron::ser::to_string_pretty(self, Default::default()) {
             if let Some(path) = crate::utils::resources::settings_ron() {
                 std::fs::create_dir_all(path.parent().unwrap()).ok();
-                std::fs::write(path, &s).ok();
+                std::fs::write(path, s).ok();
             }
         }
     }

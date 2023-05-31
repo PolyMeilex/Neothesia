@@ -1,14 +1,16 @@
-use iced_graphics::{
+use iced_core::{
     alignment::{Horizontal, Vertical},
-    Primitive, Rectangle,
-};
-use iced_native::{
     layout, mouse,
     renderer::Style,
-    widget::{text, tree, Tree},
-    Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Point, Shell, Widget,
+    widget::{tree, Tree},
+    Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Point, Rectangle, Shell,
+    Widget,
 };
-use iced_wgpu::Renderer;
+use iced_graphics::Primitive;
+use iced_style::Theme;
+use iced_widget::text;
+
+type Renderer = iced_wgpu::Renderer<Theme>;
 
 /// Creates a new [`Button`] with the provided content.
 pub fn neo_button<'a, Message: Clone>(label: &str) -> NeoBtn<'a, Message> {
@@ -23,9 +25,9 @@ pub fn neo_button<'a, Message: Clone>(label: &str) -> NeoBtn<'a, Message> {
 pub struct NeoBtn<'a, Message> {
     width: Length,
     height: Length,
-    min_width: u32,
-    min_height: u32,
-    padding: u16,
+    min_width: f32,
+    min_height: f32,
+    padding: f32,
     border_radius: f32,
     disabled: bool,
     content: Element<'a, Message, Renderer>,
@@ -41,9 +43,9 @@ impl<'a, Message: Clone> NeoBtn<'a, Message> {
             on_press: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            min_width: 0,
-            min_height: 0,
-            padding: 5,
+            min_width: 0.0,
+            min_height: 0.0,
+            padding: 5.0,
             border_radius: 7.0,
             disabled: false,
             content: content.into(),
@@ -60,12 +62,12 @@ impl<'a, Message: Clone> NeoBtn<'a, Message> {
         self
     }
 
-    pub fn min_width(mut self, min_width: u32) -> Self {
+    pub fn min_width(mut self, min_width: f32) -> Self {
         self.min_width = min_width;
         self
     }
 
-    pub fn min_height(mut self, min_height: u32) -> Self {
+    pub fn min_height(mut self, min_height: f32) -> Self {
         self.min_height = min_height;
         self
     }
@@ -150,9 +152,9 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
-    ) -> iced_native::event::Status {
+    ) -> iced_core::event::Status {
         if self.disabled {
-            return iced_native::event::Status::Ignored;
+            return iced_core::event::Status::Ignored;
         };
 
         match event {
@@ -182,14 +184,14 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
             _ => {}
         };
 
-        iced_native::event::Status::Ignored
+        iced_core::event::Status::Ignored
     }
 
     fn draw(
         &self,
         state: &Tree,
         renderer: &mut Renderer,
-        theme: &iced_native::Theme,
+        theme: &iced_style::Theme,
         _style: &Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -216,7 +218,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
                 ..bounds
             },
             background: Background::Color(colors.0),
-            border_radius: self.border_radius,
+            border_radius: iced_core::BorderRadius::from(self.border_radius).into(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         };
@@ -224,8 +226,8 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
 
         let btn_bar = Primitive::Clip {
             bounds: Rectangle {
-                y: bounds.y + bounds.height - self.border_radius as f32,
-                height: self.border_radius as f32,
+                y: bounds.y + bounds.height - self.border_radius,
+                height: self.border_radius,
                 ..bounds
             },
             content: Box::new(Primitive::Quad {
@@ -234,7 +236,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
                     ..bounds
                 },
                 background: Background::Color(colors.1),
-                border_radius: self.border_radius,
+                border_radius: iced_core::BorderRadius::from(self.border_radius).into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             }),

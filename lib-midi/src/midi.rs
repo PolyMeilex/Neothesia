@@ -34,11 +34,21 @@ impl Midi {
 
         let tempo_track = utils::TempoTrack::build(&smf.tracks);
 
+        let mut track_color_id = 0;
         let tracks: Vec<MidiTrack> = smf
             .tracks
             .iter()
             .enumerate()
-            .map(|(id, events)| MidiTrack::new(id, &tempo_track, events, u_per_quarter_note))
+            .map(|(id, events)| {
+                let track =
+                    MidiTrack::new(id, track_color_id, &tempo_track, events, u_per_quarter_note);
+
+                if !track.notes.is_empty() {
+                    track_color_id += 1;
+                }
+
+                track
+            })
             .collect();
 
         let mut merged_track: MidiTrack = tracks[0].clone();

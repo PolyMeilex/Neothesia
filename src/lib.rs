@@ -11,6 +11,8 @@ pub mod text_renderer;
 pub mod waterfall_renderer;
 
 #[cfg(feature = "app")]
+pub mod iced_utils;
+#[cfg(feature = "app")]
 pub mod input_manager;
 #[cfg(feature = "app")]
 pub mod midi_event;
@@ -20,8 +22,6 @@ pub mod output_manager;
 pub mod scene;
 #[cfg(feature = "app")]
 pub mod target;
-#[cfg(feature = "app")]
-pub mod iced_utils;
 
 #[cfg(feature = "app")]
 #[derive(Debug)]

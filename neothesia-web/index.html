@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trunk | Vanilla | web-sys</title>
+
+    <base data-trunk-public-url />
+
+    <style>
+        html {
+            background-color: black;
+            height: 100%;
+
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="neothesia-web" />
+</body>
+
+</html>

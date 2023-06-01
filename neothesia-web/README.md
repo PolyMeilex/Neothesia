@@ -1,0 +1,4 @@
+# Run
+```
+trunk serve --open
+```

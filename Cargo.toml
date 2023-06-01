@@ -6,6 +6,7 @@ members = [
     "neothesia-cli",
     "neothesia-core",
     "neothesia-pipelines",
+    "neothesia-web",
     "midi-file",
     "midi-io",
 ]

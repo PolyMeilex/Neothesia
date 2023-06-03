@@ -8,6 +8,7 @@ impl IcedManager {
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        texture_format: wgpu::TextureFormat,
         physical_size: (u32, u32),
         scale_factor: f64,
     ) -> Self {
@@ -19,7 +20,7 @@ impl IcedManager {
             device,
             queue,
             settings,
-            wgpu_jumpstart::TEXTURE_FORMAT,
+            texture_format,
         ));
 
         let viewport = iced_wgpu::graphics::Viewport::with_physical_size(

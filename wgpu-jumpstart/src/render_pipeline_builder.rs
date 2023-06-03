@@ -1,3 +1,22 @@
+pub fn default_color_target_state(texture_format: wgpu::TextureFormat) -> wgpu::ColorTargetState {
+    wgpu::ColorTargetState {
+        format: texture_format,
+        blend: Some(wgpu::BlendState {
+            color: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::SrcAlpha,
+                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                operation: wgpu::BlendOperation::Add,
+            },
+            alpha: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                operation: wgpu::BlendOperation::Add,
+            },
+        }),
+        write_mask: wgpu::ColorWrites::ALL,
+    }
+}
+
 pub struct RenderPipelineBuilder<'a> {
     render_pipeline_descriptor: wgpu::RenderPipelineDescriptor<'a>,
 }
@@ -34,26 +53,12 @@ impl<'a> RenderPipelineBuilder<'a> {
         mut self,
         entry_point: &'a str,
         fragment_module: &'a wgpu::ShaderModule,
+        targets: &'a [Option<wgpu::ColorTargetState>],
     ) -> Self {
         self.render_pipeline_descriptor.fragment = Some(wgpu::FragmentState {
             module: fragment_module,
             entry_point,
-            targets: &[Some(wgpu::ColorTargetState {
-                format: super::TEXTURE_FORMAT,
-                blend: Some(wgpu::BlendState {
-                    color: wgpu::BlendComponent {
-                        src_factor: wgpu::BlendFactor::SrcAlpha,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    alpha: wgpu::BlendComponent {
-                        src_factor: wgpu::BlendFactor::One,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                }),
-                write_mask: wgpu::ColorWrites::ALL,
-            })],
+            targets,
         });
         self
     }

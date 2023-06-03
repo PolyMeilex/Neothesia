@@ -51,9 +51,11 @@ impl<'a> WaterfallPipeline {
 
         let ni_attrs = NoteInstance::attributes();
 
+        let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
+
         let render_pipeline =
             RenderPipelineBuilder::new(render_pipeline_layout, "vs_main", &shader)
-                .fragment("fs_main", &shader)
+                .fragment("fs_main", &shader, &[Some(target)])
                 .vertex_buffers(&[Shape::layout(), NoteInstance::layout(&ni_attrs)])
                 .build(&gpu.device);
 

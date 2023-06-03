@@ -11,7 +11,7 @@ impl TextRenderer {
             wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("./Roboto-Regular.ttf"))
                 .expect("Load font");
         let glyph_brush =
-            GlyphBrushBuilder::using_font(font).build(&gpu.device, wgpu_jumpstart::TEXTURE_FORMAT);
+            GlyphBrushBuilder::using_font(font).build(&gpu.device, gpu.texture_format);
 
         Self { glyph_brush }
     }

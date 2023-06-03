@@ -17,10 +17,8 @@ pub use {
     color::Color,
     gpu::{default_backends, Gpu, Surface},
     instances::Instances,
-    render_pipeline_builder::RenderPipelineBuilder,
+    render_pipeline_builder::{default_color_target_state, RenderPipelineBuilder},
     shape::Shape,
     transform_uniform::TransformUniform,
     uniform::Uniform,
 };
-
-pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;

@@ -14,6 +14,7 @@ pub struct Gpu {
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
     pub staging_belt: wgpu::util::StagingBelt,
+    pub texture_format: wgpu::TextureFormat,
 }
 
 impl Gpu {
@@ -25,7 +26,7 @@ impl Gpu {
     ) -> Result<(Self, Surface), GpuInitError> {
         let surface = unsafe { instance.create_surface(window) }?;
         let gpu = Self::new(instance, Some(&surface)).await?;
-        let surface = Surface::new(&gpu.device, surface, width, height);
+        let surface = Surface::new(&gpu.device, surface, gpu.texture_format, width, height);
 
         Ok((gpu, surface))
     }
@@ -73,13 +74,13 @@ impl Gpu {
         let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
 
         let adapter_info = adapter.get_info();
-        let format = compatible_surface.map(|s| s.get_capabilities(&adapter).formats[0]);
+        let texture_format = compatible_surface.map(|s| s.get_capabilities(&adapter).formats[0]);
 
         log::info!(
             "Using {} ({:?}, Preferred Format: {:?})",
             adapter_info.name,
             adapter_info.backend,
-            format
+            texture_format,
         );
 
         Ok(Self {
@@ -88,6 +89,7 @@ impl Gpu {
             queue,
             encoder,
             staging_belt,
+            texture_format: texture_format.unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb),
         })
     }
 
@@ -134,11 +136,17 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub fn new(device: &wgpu::Device, surface: wgpu::Surface, width: u32, height: u32) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        surface: wgpu::Surface,
+        texture_format: wgpu::TextureFormat,
+        width: u32,
+        height: u32,
+    ) -> Self {
         let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: super::TEXTURE_FORMAT,
-            view_formats: vec![super::TEXTURE_FORMAT],
+            format: texture_format,
+            view_formats: vec![texture_format],
             width,
             height,
             present_mode: wgpu::PresentMode::Fifo,

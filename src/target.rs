@@ -49,6 +49,7 @@ impl Target {
         let iced_manager = IcedManager::new(
             &gpu.device,
             &gpu.queue,
+            gpu.texture_format,
             (
                 window_state.physical_size.width,
                 window_state.physical_size.height,

@@ -112,12 +112,12 @@ fn default_play_along() -> bool {
 fn default_color_schema() -> Vec<ColorSchema> {
     vec![
         ColorSchema {
-            base: (93, 188, 255),
-            dark: (48, 124, 255),
-        },
-        ColorSchema {
             base: (210, 89, 222),
             dark: (125, 69, 134),
+        },
+        ColorSchema {
+            base: (93, 188, 255),
+            dark: (48, 124, 255),
         },
         ColorSchema {
             base: (255, 126, 51),

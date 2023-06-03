@@ -11,12 +11,12 @@ use neothesia_pipelines::background_animation::BgPipeline;
 use winit::event::{MouseButton, WindowEvent};
 
 use crate::{
-    scene::{Scene, SceneType},
-    target::Target,
     iced_utils::{
         iced_conversion,
         iced_state::{self, Program},
     },
+    scene::{Scene, SceneType},
+    target::Target,
 };
 
 #[derive(Debug)]

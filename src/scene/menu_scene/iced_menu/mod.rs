@@ -13,10 +13,10 @@ use iced_native::{
 };
 
 use crate::{
+    iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::neo_btn::neo_button,
     target::Target,
-    iced_utils::iced_state::{Element, Program},
     NeothesiaEvent,
 };
 

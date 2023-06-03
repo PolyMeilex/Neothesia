@@ -14,6 +14,7 @@ pub struct MidiEvent {
     pub timestamp: Duration,
     pub message: MidiMessage,
     pub track_id: usize,
+    pub track_color_id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +34,7 @@ pub struct MidiNote {
     pub velocity: u8,
     pub channel: u8,
     pub track_id: usize,
+    pub track_color_id: usize,
     pub id: usize,
 }
 
@@ -44,17 +46,20 @@ pub struct MidiTrack {
     pub events: Vec<MidiEvent>,
 
     pub track_id: usize,
+    pub track_color_id: usize,
 }
 
 impl MidiTrack {
     pub fn new(
         track_id: usize,
+        track_color_id: usize,
         tempo_events: &TempoTrack,
         track_events: &[TrackEvent],
         pulses_per_quarter_note: u16,
     ) -> Self {
         let notes = build_notes(
             track_id,
+            track_color_id,
             tempo_events,
             track_events,
             pulses_per_quarter_note,
@@ -88,6 +93,7 @@ impl MidiTrack {
                             ),
                             message,
                             track_id,
+                            track_color_id,
                         })
                     }
                     _ => None,
@@ -97,6 +103,7 @@ impl MidiTrack {
 
         Self {
             track_id,
+            track_color_id,
             notes,
             events,
         }
@@ -105,6 +112,7 @@ impl MidiTrack {
 
 fn build_notes(
     track_id: usize,
+    track_color_id: usize,
     tempo_events: &TempoTrack,
     track_events: &[TrackEvent],
     pulses_per_quarter_note: u16,
@@ -147,6 +155,7 @@ fn build_notes(
                     velocity: active.velocity,
                     channel: active.channel,
                     track_id,
+                    track_color_id,
                     id: notes.len(),
                 };
 

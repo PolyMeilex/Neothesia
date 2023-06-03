@@ -90,7 +90,7 @@ impl TempoTrack {
             }
         }
 
-        let mut tempo_events: Vec<_> = tempo_events.into_iter().map(|(_, e)| e).collect();
+        let mut tempo_events: Vec<_> = tempo_events.into_values().collect();
         tempo_events.sort_by_key(|e| e.absolute_pulses);
 
         let mut previous_absolute_pulses = 0u64;

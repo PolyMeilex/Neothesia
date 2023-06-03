@@ -2,9 +2,16 @@
 pub enum GpuInitError {
     AdapterRequest,
     DeviceRequest(wgpu::RequestDeviceError),
+    CreateSurfaceError(wgpu::CreateSurfaceError),
 
     #[cfg(target_arch = "wasm32")]
     AppendToBody,
+}
+
+impl From<wgpu::CreateSurfaceError> for GpuInitError {
+    fn from(value: wgpu::CreateSurfaceError) -> Self {
+        Self::CreateSurfaceError(value)
+    }
 }
 
 impl std::fmt::Display for GpuInitError {

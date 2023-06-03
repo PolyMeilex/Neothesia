@@ -4,8 +4,8 @@ mod neo_btn;
 
 use std::time::Duration;
 
+use iced_core::mouse::Interaction;
 use iced_menu::AppUi;
-use iced_native::mouse::Interaction;
 use neothesia_pipelines::background_animation::BgPipeline;
 
 use winit::event::{MouseButton, WindowEvent};
@@ -90,8 +90,9 @@ impl Scene for MenuScene {
             .with_primitives(|backend, primitive| {
                 backend.present(
                     &target.gpu.device,
-                    &mut target.gpu.staging_belt,
+                    &target.gpu.queue,
                     &mut target.gpu.encoder,
+                    None,
                     view,
                     primitive,
                     &target.iced_manager.viewport,
@@ -112,7 +113,7 @@ impl Scene for MenuScene {
         ) {
             self.iced_state.queue_event(event.clone());
 
-            if let iced_native::event::Event::Keyboard(event) = &event {
+            if let iced_core::event::Event::Keyboard(event) = &event {
                 if let Some(msg) = self.iced_state.program().keyboard_input(event) {
                     self.iced_state.queue_message(msg);
                 }
@@ -139,7 +140,7 @@ impl Scene for MenuScene {
             if let Some(command) = self.iced_state.update(target) {
                 for a in command.actions() {
                     match a {
-                        iced_native::command::Action::Future(f) => {
+                        iced_runtime::command::Action::Future(f) => {
                             self.futures.push(f);
                         }
                         _ => {}

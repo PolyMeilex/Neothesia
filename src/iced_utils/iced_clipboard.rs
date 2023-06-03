@@ -1,4 +1,4 @@
-use iced_native::Clipboard;
+use iced_core::Clipboard;
 
 pub struct DummyClipboard {}
 

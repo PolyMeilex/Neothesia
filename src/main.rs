@@ -217,7 +217,10 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
     let window = builder.build(&event_loop).unwrap();
 
     let window_state = WindowState::new(&window);
-    let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends: wgpu_jumpstart::default_backends(),
+        dx12_shader_compiler: wgpu::Dx12Compiler::default(),
+    });
 
     let size = window.inner_size();
     let (gpu, surface) =

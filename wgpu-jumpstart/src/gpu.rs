@@ -23,7 +23,7 @@ impl Gpu {
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
-        let surface = unsafe { instance.create_surface(window) };
+        let surface = unsafe { instance.create_surface(window) }?;
         let gpu = Self::new(instance, Some(&surface)).await?;
         let surface = Surface::new(&gpu.device, surface, width, height);
 
@@ -73,7 +73,7 @@ impl Gpu {
         let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
 
         let adapter_info = adapter.get_info();
-        let format = compatible_surface.map(|s| s.get_supported_formats(&adapter)[0]);
+        let format = compatible_surface.map(|s| s.get_capabilities(&adapter).formats[0]);
 
         log::info!(
             "Using {} ({:?}, Preferred Format: {:?})",
@@ -138,6 +138,7 @@ impl Surface {
         let surface_configuration = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: super::TEXTURE_FORMAT,
+            view_formats: vec![super::TEXTURE_FORMAT],
             width,
             height,
             present_mode: wgpu::PresentMode::Fifo,

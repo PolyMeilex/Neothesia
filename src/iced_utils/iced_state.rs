@@ -1,12 +1,14 @@
-use iced_graphics::Color;
-use iced_native::mouse;
-use iced_native::user_interface::{self, UserInterface};
-use iced_native::{Command, Event, Size};
+use iced_core::mouse;
+use iced_core::{Event, Size};
+use iced_graphics::core::Color;
+use iced_runtime::user_interface::{self, UserInterface};
+use iced_runtime::Command;
+use iced_style::Theme;
 
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
 use crate::target::Target;
 
-pub type Element<'a, M> = iced_native::Element<'a, M, iced_wgpu::Renderer>;
+pub type Element<'a, M> = iced_core::Element<'a, M, iced_wgpu::Renderer<Theme>>;
 
 /// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {
@@ -28,7 +30,7 @@ pub trait Program: Sized {
     /// These widgets can produce __messages__ based on user interaction.
     fn view(&self) -> Element<'_, Self::Message>;
 
-    fn keyboard_input(&self, _event: &iced_native::keyboard::Event) -> Option<Self::Message> {
+    fn keyboard_input(&self, _event: &iced_core::keyboard::Event) -> Option<Self::Message> {
         None
     }
 }
@@ -52,7 +54,7 @@ where
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
-    pub fn new(mut program: P, bounds: Size, renderer: &mut iced_wgpu::Renderer) -> Self {
+    pub fn new(mut program: P, bounds: Size, renderer: &mut iced_wgpu::Renderer<Theme>) -> Self {
         let user_interface = build_user_interface(
             &mut program,
             user_interface::Cache::default(),
@@ -137,8 +139,8 @@ where
         if messages.is_empty() {
             self.mouse_interaction = user_interface.draw(
                 &mut target.iced_manager.renderer,
-                &iced_wgpu::Theme::Dark,
-                &iced_native::renderer::Style {
+                &iced_style::Theme::Dark,
+                &iced_core::renderer::Style {
                     text_color: Color::WHITE,
                 },
                 cursor_position,
@@ -167,8 +169,8 @@ where
 
             self.mouse_interaction = user_interface.draw(
                 &mut target.iced_manager.renderer,
-                &iced_wgpu::Theme::Dark,
-                &iced_native::renderer::Style {
+                &iced_style::Theme::Dark,
+                &iced_core::renderer::Style {
                     text_color: Color::WHITE,
                 },
                 cursor_position,
@@ -184,9 +186,9 @@ where
 fn build_user_interface<'a, P: Program>(
     program: &'a mut P,
     cache: user_interface::Cache,
-    renderer: &mut iced_wgpu::Renderer,
+    renderer: &mut iced_wgpu::Renderer<Theme>,
     size: Size,
-) -> UserInterface<'a, P::Message, iced_wgpu::Renderer> {
+) -> UserInterface<'a, P::Message, iced_wgpu::Renderer<Theme>> {
     let view = program.view();
     UserInterface::build(view, size, cache, renderer)
 }

@@ -48,8 +48,8 @@ fn note_render(uv: vec2<f32>, pos: f32, color: vec3<f32>) -> vec3<f32> {
     }
 }
 
-let speed: f32 = -0.5;
-let live_time: f32 = 2.6;
+const speed: f32 = -0.5;
+const live_time: f32 = 2.6;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {

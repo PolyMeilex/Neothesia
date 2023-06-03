@@ -35,7 +35,7 @@ struct VertexOutput {
     @location(4) note_pos: vec2<f32>,
 }
 
-let speed: f32 = 400.0;
+const speed: f32 = 400.0;
 
 @vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {

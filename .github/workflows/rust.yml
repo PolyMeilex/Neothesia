@@ -52,3 +52,23 @@ jobs:
         with:
           name: macos-artifact
           path: .github/app/app.zip
+
+  build_ubuntu_recorder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install alsa
+        run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --no-default-features --features record
+      - name: Chmod +x
+        run: chmod +x target/release/neothesia-cli
+      - name: zip binary
+        run: zip -rj app.zip target/release/neothesia-cli
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ubuntu-recorder-artifact
+          path: app.zip

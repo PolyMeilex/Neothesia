@@ -30,7 +30,7 @@ app = [
     "async-thread",
     "winit",
 ]
-record = ["mpeg_encoder", "build-ffmpeg"]
+record = ["mpeg_encoder"]
 # Download and compile ffmpeg
 build-ffmpeg = ["mpeg_encoder/build"]
 

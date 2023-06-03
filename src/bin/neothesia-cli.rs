@@ -1,4 +1,4 @@
-use std::{default::Default, num::NonZeroU32, time::Duration};
+use std::{default::Default, time::Duration};
 
 use neothesia::{
     config::Config, keyboard_renderer::KeyboardRenderer, text_renderer::TextRenderer,
@@ -40,7 +40,10 @@ impl Recorder {
         )
         .init();
 
-        let instance = wgpu::Instance::new(wgpu_jumpstart::default_backends());
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu_jumpstart::default_backends(),
+            ..Default::default()
+        });
         let gpu = neothesia::block_on(Gpu::new(&instance, None)).unwrap();
 
         let args: Vec<String> = std::env::args().collect();
@@ -159,8 +162,8 @@ impl Recorder {
                     buffer: &output_buffer,
                     layout: wgpu::ImageDataLayout {
                         offset: 0,
-                        bytes_per_row: NonZeroU32::new(u32_size * self.width),
-                        rows_per_image: NonZeroU32::new(self.height),
+                        bytes_per_row: Some(u32_size * self.width),
+                        rows_per_image: Some(self.height),
                     },
                 },
                 texture_desc.size,
@@ -184,6 +187,7 @@ fn main() {
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Bgra8UnormSrgb,
+        view_formats: &[wgpu::TextureFormat::Bgra8UnormSrgb],
         usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
         label: None,
     };
@@ -279,7 +283,7 @@ pub fn file_midi_events(
             let key = &mut keyboard.key_states_mut()[id];
 
             if is_on {
-                let color = &config.color_schema[e.track_id % config.color_schema.len()];
+                let color = &config.color_schema[e.track_color_id % config.color_schema.len()];
                 key.pressed_by_file_on(color);
             } else {
                 key.pressed_by_file_off();

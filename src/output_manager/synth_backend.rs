@@ -181,7 +181,7 @@ pub struct SynthOutputConnection {
 }
 
 impl OutputConnection for SynthOutputConnection {
-    fn midi_event(&mut self, msg: &lib_midi::MidiEvent) {
+    fn midi_event(&mut self, msg: &midi_file::MidiEvent) {
         let event = libmidi_to_oxisynth_event(msg);
         self.tx.send(event).ok();
     }
@@ -191,8 +191,8 @@ impl OutputConnection for SynthOutputConnection {
     }
 }
 
-fn libmidi_to_oxisynth_event(msg: &lib_midi::MidiEvent) -> oxisynth::MidiEvent {
-    use lib_midi::midly;
+fn libmidi_to_oxisynth_event(msg: &midi_file::MidiEvent) -> oxisynth::MidiEvent {
+    use midi_file::midly;
 
     let channel = msg.channel;
     match msg.message {

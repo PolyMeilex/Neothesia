@@ -25,7 +25,7 @@ pub struct Target {
 
     pub output_manager: Rc<RefCell<OutputManager>>,
     pub input_manager: InputManager,
-    pub midi_file: Option<Rc<lib_midi::Midi>>,
+    pub midi_file: Option<Rc<midi_file::Midi>>,
     pub config: Config,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
@@ -60,7 +60,7 @@ impl Target {
         let args: Vec<String> = std::env::args().collect();
 
         let midi_file = if args.len() > 1 {
-            if let Ok(midi) = lib_midi::Midi::new(&args[1]) {
+            if let Ok(midi) = midi_file::Midi::new(&args[1]) {
                 Some(Rc::new(midi))
             } else {
                 None

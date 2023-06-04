@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
-use lib_midi::ActiveNote;
 use midi::ToRawMessages;
+use midi_file::ActiveNote;
 use num::FromPrimitive;
 
 pub struct MidiOutputConnection {
@@ -46,8 +46,8 @@ impl MidiBackend {
 }
 
 impl OutputConnection for MidiOutputConnection {
-    fn midi_event(&mut self, msg: &lib_midi::MidiEvent) {
-        use lib_midi::midly::MidiMessage;
+    fn midi_event(&mut self, msg: &midi_file::MidiEvent) {
+        use midi_file::midly::MidiMessage;
         match &msg.message {
             MidiMessage::NoteOff { key, .. } => {
                 self.active_notes.remove(&ActiveNote {
@@ -116,8 +116,8 @@ impl std::fmt::Display for MidiPortInfo {
     }
 }
 
-fn libmidi_to_midi_event(msg: &lib_midi::MidiEvent) -> midi::Message {
-    use lib_midi::midly;
+fn libmidi_to_midi_event(msg: &midi_file::MidiEvent) -> midi::Message {
+    use midi_file::midly;
 
     let ch = midi::Channel::from_u8(msg.channel).unwrap();
     match msg.message {

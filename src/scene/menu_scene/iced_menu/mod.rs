@@ -31,7 +31,7 @@ pub enum Message {
     SelectInput(InputDescriptor),
 
     OpenMidiFilePicker,
-    MidiFileLoaded(Option<lib_midi::Midi>),
+    MidiFileLoaded(Option<midi_file::Midi>),
 
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
@@ -48,7 +48,7 @@ struct Data {
     outputs: Vec<OutputDescriptor>,
     selected_output: Option<OutputDescriptor>,
     font_path: Option<PathBuf>,
-    midi_file: Option<Rc<lib_midi::Midi>>,
+    midi_file: Option<Rc<midi_file::Midi>>,
 
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
@@ -430,7 +430,7 @@ fn center_x<'a, MSG: 'a>(
 }
 
 fn open_midi_file_picker(
-    f: impl FnOnce(Option<lib_midi::Midi>) -> Message + 'static + Send,
+    f: impl FnOnce(Option<midi_file::Midi>) -> Message + 'static + Send,
 ) -> Command<Message> where
 {
     Command::perform(
@@ -446,7 +446,7 @@ fn open_midi_file_picker(
                 let thread = async_thread::Builder::new()
                     .name("midi-loader".into())
                     .spawn(move || {
-                        let midi = lib_midi::Midi::new(file.path());
+                        let midi = midi_file::Midi::new(file.path());
 
                         if let Err(e) = &midi {
                             log::error!("{}", e);

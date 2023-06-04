@@ -20,9 +20,9 @@ pub fn user_midi_event(keyboard: &mut KeyboardRenderer, event: &crate::midi_even
 pub fn file_midi_events(
     keyboard: &mut KeyboardRenderer,
     config: &Config,
-    events: &[lib_midi::MidiEvent],
+    events: &[midi_file::MidiEvent],
 ) {
-    use lib_midi::midly::MidiMessage;
+    use midi_file::midly::MidiMessage;
 
     for e in events {
         let (is_on, key) = match e.message {

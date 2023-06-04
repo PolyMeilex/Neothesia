@@ -9,10 +9,10 @@ mod rewind_controler;
 use rewind_controler::RewindController;
 
 pub struct MidiPlayer {
-    playback: lib_midi::PlaybackState,
+    playback: midi_file::PlaybackState,
     rewind_controller: RewindController,
     output_manager: Rc<RefCell<OutputManager>>,
-    midi_file: Rc<lib_midi::Midi>,
+    midi_file: Rc<midi_file::Midi>,
     play_along: PlayAlong,
 }
 
@@ -21,7 +21,10 @@ impl MidiPlayer {
         let midi_file = target.midi_file.as_ref().unwrap();
 
         let mut player = Self {
-            playback: lib_midi::PlaybackState::new(Duration::from_secs(3), &midi_file.merged_track),
+            playback: midi_file::PlaybackState::new(
+                Duration::from_secs(3),
+                &midi_file.merged_track,
+            ),
             rewind_controller: RewindController::None,
             output_manager: target.output_manager.clone(),
             midi_file: midi_file.clone(),
@@ -39,7 +42,7 @@ impl MidiPlayer {
         &mut self,
         target: &mut Target,
         delta: Duration,
-    ) -> Option<Vec<lib_midi::MidiEvent>> {
+    ) -> Option<Vec<midi_file::MidiEvent>> {
         rewind_controler::update(self, target);
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
@@ -49,7 +52,7 @@ impl MidiPlayer {
         events.iter().for_each(|event| {
             self.output_manager.borrow_mut().midi_event(event);
 
-            use lib_midi::midly::MidiMessage;
+            use midi_file::midly::MidiMessage;
             match event.message {
                 MidiMessage::NoteOn { key, .. } => {
                     self.play_along

@@ -10,8 +10,8 @@ pub struct Recorder {
     gpu: Gpu,
     transform_uniform: Uniform<TransformUniform>,
 
-    playback: lib_midi::PlaybackState,
-    midi: lib_midi::Midi,
+    playback: midi_file::PlaybackState,
+    midi: midi_file::Midi,
 
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
@@ -30,7 +30,7 @@ fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
     piano_math::standard_88_keys(neutral_width, neutral_height)
 }
 
-pub fn time_without_lead_in(playback: &lib_midi::PlaybackState) -> f32 {
+pub fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
     playback.time().as_secs_f32() - playback.leed_in().as_secs_f32()
 }
 
@@ -50,7 +50,7 @@ impl Recorder {
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {
-            lib_midi::Midi::new(&args[1]).ok()
+            midi_file::Midi::new(&args[1]).ok()
         } else {
             None
         }
@@ -79,7 +79,7 @@ impl Recorder {
         let mut waterfall =
             WaterfallRenderer::new(&gpu, &midi, &config, &transform_uniform, keyboard_layout);
 
-        let playback = lib_midi::PlaybackState::new(Duration::from_secs(3), &midi.merged_track);
+        let playback = midi_file::PlaybackState::new(Duration::from_secs(3), &midi.merged_track);
 
         waterfall.update(&gpu.queue, time_without_lead_in(&playback));
 
@@ -268,9 +268,9 @@ fn main() {
 pub fn file_midi_events(
     keyboard: &mut KeyboardRenderer,
     config: &Config,
-    events: &[lib_midi::MidiEvent],
+    events: &[midi_file::MidiEvent],
 ) {
-    use lib_midi::midly::MidiMessage;
+    use midi_file::midly::MidiMessage;
 
     for e in events {
         let (is_on, key) = match e.message {

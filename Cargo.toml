@@ -7,10 +7,10 @@ default-run = "neothesia"
 
 [workspace]
 members = [
-    "lib-midi",
     "piano-math",
     "wgpu-jumpstart",
     "neothesia-pipelines",
+    "midi-file",
     "midi-io",
 ]
 
@@ -54,7 +54,6 @@ wgpu_glyph = "0.20.0"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 
 neothesia-pipelines = { path = "./neothesia-pipelines" }
-lib-midi = { path = "./lib-midi" }
 piano-math = { path = "./piano-math" }
 
 # App Deps
@@ -67,6 +66,7 @@ async-thread = { version = "0.1", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }
 oxisynth = { version = "0.0.3", optional = true }
 
+midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io", optional = true }
 
 iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }

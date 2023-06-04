@@ -32,7 +32,7 @@ impl Display for OutputDescriptor {
 }
 
 pub trait OutputConnection {
-    fn midi_event(&mut self, _msg: &lib_midi::MidiEvent) {}
+    fn midi_event(&mut self, _msg: &midi_file::MidiEvent) {}
     fn stop_all(&mut self) {}
 }
 
@@ -137,7 +137,7 @@ impl OutputManager {
         }
     }
 
-    pub fn midi_event(&mut self, msg: &lib_midi::MidiEvent) {
+    pub fn midi_event(&mut self, msg: &midi_file::MidiEvent) {
         self.output_connection.1.midi_event(msg);
     }
 

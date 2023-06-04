@@ -1694,13 +1694,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03087c2bad5e1034e8cace5926dec053fb3790248370865f5117a7d0213354c8"
 
 [[package]]
-name = "lib-midi"
-version = "0.1.0"
-dependencies = [
- "midly",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1856,6 +1849,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "691e490e75c3fb13911f6a6458ae0e1f97d20e3c5674b454e1f30d2683f7ca74"
 dependencies = [
  "num",
+]
+
+[[package]]
+name = "midi-file"
+version = "0.1.0"
+dependencies = [
+ "midly",
 ]
 
 [[package]]
@@ -2017,9 +2017,9 @@ dependencies = [
  "iced_style",
  "iced_wgpu",
  "iced_widget",
- "lib-midi",
  "log",
  "midi",
+ "midi-file",
  "midi-io",
  "mpeg_encoder",
  "neothesia-pipelines",

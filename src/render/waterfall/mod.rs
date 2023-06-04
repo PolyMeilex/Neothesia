@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::TransformUniform;
 use crate::Uniform;
-use lib_midi::Midi;
+use midi_file::Midi;
 use neothesia_pipelines::waterfall::{NoteInstance, WaterfallPipeline};
 use wgpu_jumpstart::Color;
 use wgpu_jumpstart::Gpu;

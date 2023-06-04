@@ -421,9 +421,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8790cf1286da485c72cf5fc7aeba308438800036ec67d89425924c4807268c9"
+checksum = "e70d3ad08698a0568b0562f22710fe6bfc1f4a61a367c77d0398c562eadd453a"
 dependencies = [
  "smallvec",
  "target-lexicon",
@@ -824,15 +824,15 @@ checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 
 [[package]]
 name = "exr"
-version = "1.6.3"
+version = "1.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdd2162b720141a91a054640662d3edce3d50a944a50ffca5313cd951abb35b4"
+checksum = "279d3efcc55e19917fff7ab3ddd6c14afb6a90881a0078465196fe2f99d08c56"
 dependencies = [
  "bit_field",
  "flume",
  "half",
  "lebe",
- "miniz_oxide 0.6.2",
+ "miniz_oxide 0.7.1",
  "rayon-core",
  "smallvec",
  "zune-inflate",
@@ -2005,7 +2005,6 @@ name = "neothesia"
 version = "0.0.16"
 dependencies = [
  "async-thread",
- "bytemuck",
  "cpal",
  "env_logger",
  "fluidlite",
@@ -3023,9 +3022,9 @@ dependencies = [
 
 [[package]]
 name = "softbuffer"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3177eca2c15033e254b9b70c4915150200b1cf6fa777de18be9977ae5850077f"
+checksum = "c2b953f6ba7285f0af131eb748aabd8ddaf53e0b81dda3ba5d803b0847d6559f"
 dependencies = [
  "bytemuck",
  "cfg_aliases",
@@ -3044,7 +3043,7 @@ dependencies = [
  "wayland-client 0.30.2",
  "wayland-sys 0.30.1",
  "web-sys",
- "windows-sys 0.42.0",
+ "windows-sys 0.48.0",
  "x11-dl",
  "x11rb",
 ]
@@ -3835,21 +3834,6 @@ dependencies = [
 
 [[package]]
 name = "windows-sys"
-version = "0.42.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a3e1820f08b8513f676f7ab6c1f99ff312fb97b553d30ff4dd86f9f15728aa7"
-dependencies = [
- "windows_aarch64_gnullvm 0.42.2",
- "windows_aarch64_msvc 0.42.2",
- "windows_i686_gnu 0.42.2",
- "windows_i686_msvc 0.42.2",
- "windows_x86_64_gnu 0.42.2",
- "windows_x86_64_gnullvm 0.42.2",
- "windows_x86_64_msvc 0.42.2",
-]
-
-[[package]]
-name = "windows-sys"
 version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75283be5efb2831d37ea142365f009c02ec203cd29a3ebecbc093d52315b66d0"
@@ -4107,9 +4091,9 @@ checksum = "a67300977d3dc3f8034dae89778f502b6ba20b269527b3223ba59c0cf393bb8a"
 
 [[package]]
 name = "xml-rs"
-version = "0.8.13"
+version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d8f380ae16a37b30e6a2cf67040608071384b1450c189e61bea3ff57cde922d"
+checksum = "52839dc911083a8ef63efa4d039d1f58b5e409f923e44c80828f206f66e5541c"
 
 [[package]]
 name = "yazi"

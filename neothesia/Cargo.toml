@@ -1,0 +1,86 @@
+[package]
+name = "neothesia"
+version = "0.0.16"
+authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
+edition = "2021"
+default-run = "neothesia"
+
+[features]
+default = ["app"]
+
+app = [
+    "rfd",
+    "oxi-synth",
+    "iced_core",
+    "iced_runtime",
+    "iced_wgpu",
+    "iced_graphics",
+    "iced_style",
+    "iced_widget",
+    "midi-io",
+    "async-thread",
+    "winit",
+]
+record = ["mpeg_encoder"]
+# Download and compile ffmpeg
+build-ffmpeg = ["mpeg_encoder/build"]
+
+synth = []
+fluid-synth = ["synth", "cpal", "fluidlite"]
+oxi-synth = ["synth", "cpal", "oxisynth"]
+
+[dependencies]
+futures = "0.3"
+log = { workspace = true }
+env_logger = "0.10"
+fps_ticker = "1.0"
+ron = "0.8"
+serde = { version = "1.0", features = ["serde_derive"] }
+midi = "0.1"
+num = "0.4"
+
+wgpu = { workspace = true }
+wgpu_glyph = "0.20.0"
+wgpu-jumpstart = { workspace = true }
+
+neothesia-pipelines = { path = "../neothesia-pipelines" }
+piano-math = { path = "../piano-math" }
+
+# App Deps
+
+winit = { version = "0.28.2", optional = true }
+rfd = { version = "0.11.2", optional = true }
+cpal = { version = "0.15.0", optional = true }
+async-thread = { version = "0.1", optional = true }
+
+fluidlite = { version = "0.2", features = ["builtin"], optional = true }
+oxisynth = { version = "0.0.3", optional = true }
+
+midi-file = { path = "../midi-file" }
+midi-io = { path = "../midi-io", optional = true }
+
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", features = [
+    "image",
+], optional = true }
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true }
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", optional = true, features = [
+    "image",
+] }
+
+# Recorder Deps
+
+mpeg_encoder = { git = "https://github.com/PolyMeilex/mpeg_encoder_next.git", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+
+[[bin]]
+name = "neothesia-cli"
+required-features = ["record"]
+
+[[bin]]
+name = "neothesia"
+required-features = ["app"]

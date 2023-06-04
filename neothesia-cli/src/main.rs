@@ -5,6 +5,7 @@ use neothesia::{
     render::{KeyboardRenderer, TextRenderer, WaterfallRenderer},
     Gpu, TransformUniform, Uniform,
 };
+use wgpu_jumpstart::wgpu;
 
 pub struct Recorder {
     gpu: Gpu,

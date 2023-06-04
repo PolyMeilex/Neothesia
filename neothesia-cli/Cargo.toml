@@ -1,0 +1,18 @@
+[package]
+name = "neothesia-cli"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+# Download and compile ffmpeg
+build-ffmpeg = ["mpeg_encoder/build"]
+
+[dependencies]
+neothesia = { workspace = true }
+midi-file = { workspace = true }
+piano-math = { workspace = true }
+wgpu-jumpstart = { workspace = true }
+env_logger = { workspace = true }
+futures = { workspace = true }
+
+mpeg_encoder = { git = "https://github.com/PolyMeilex/mpeg_encoder_next.git" }

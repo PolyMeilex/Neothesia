@@ -63,7 +63,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --no-default-features --features record
+          args: --release -p neothesia-cli
       - name: Chmod +x
         run: chmod +x target/release/neothesia-cli
       - name: zip binary

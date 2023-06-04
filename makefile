@@ -1,11 +1,11 @@
 build-app:
-	cargo build --release
+	cargo build --release --bin neothesia
 run-app:
-	cargo run --release
+	cargo run --release --bin neothesia
 
 check-recorder:
-	cargo check --no-default-features --features record
+	cargo check -p neothesia-cli
 build-recorder:
-	cargo build --release --no-default-features --features record
+	cargo build --release -p neothesia-cli
 run-recorder:
-	cargo run --release --no-default-features --bin neothesia-cli --features record -- $(file)
+	cargo run --release -p neothesia-cli -- $(file)

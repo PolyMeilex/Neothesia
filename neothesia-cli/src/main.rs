@@ -7,7 +7,7 @@ use neothesia::{
 };
 use wgpu_jumpstart::wgpu;
 
-pub struct Recorder {
+struct Recorder {
     gpu: Gpu,
     transform_uniform: Uniform<TransformUniform>,
 
@@ -31,12 +31,12 @@ fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
     piano_math::standard_88_keys(neutral_width, neutral_height)
 }
 
-pub fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
+fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
     playback.time().as_secs_f32() - playback.leed_in().as_secs_f32()
 }
 
 impl Recorder {
-    pub fn new() -> Self {
+    fn new() -> Self {
         env_logger::Builder::from_env(
             env_logger::Env::default().default_filter_or("neothesia=info"),
         )
@@ -103,7 +103,7 @@ impl Recorder {
         }
     }
 
-    pub fn update(&mut self, delta: Duration) {
+    fn update(&mut self, delta: Duration) {
         let events = self.playback.update(&self.midi.merged_track, delta);
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
@@ -114,11 +114,11 @@ impl Recorder {
             .update(&self.gpu.queue, self.text.glyph_brush());
     }
 
-    pub fn render<'a>(
+    fn render(
         &mut self,
         texture: &wgpu::Texture,
         view: &wgpu::TextureView,
-        texture_desc: &wgpu::TextureDescriptor<'a>,
+        texture_desc: &wgpu::TextureDescriptor<'_>,
         output_buffer: &wgpu::Buffer,
     ) {
         self.gpu.clear(view, self.config.background_color.into());
@@ -155,13 +155,13 @@ impl Recorder {
 
             self.gpu.encoder.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
-                    texture: &texture,
+                    texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d::ZERO,
                     aspect: Default::default(),
                 },
                 wgpu::ImageCopyBuffer {
-                    buffer: &output_buffer,
+                    buffer: output_buffer,
                     layout: wgpu::ImageDataLayout {
                         offset: 0,
                         bytes_per_row: Some(u32_size * self.width),
@@ -233,7 +233,7 @@ fn main() {
 
         let frame_time = Duration::from_secs(1) / 60;
         recorder.update(frame_time);
-        recorder.render(&texture, &view, &texture_desc, &output_buffer);
+        recorder.render(&texture, view, &texture_desc, &output_buffer);
 
         {
             let slice = output_buffer.slice(..);
@@ -266,7 +266,7 @@ fn main() {
     }
 }
 
-pub fn file_midi_events(
+fn file_midi_events(
     keyboard: &mut KeyboardRenderer,
     config: &Config,
     events: &[midi_file::MidiEvent],

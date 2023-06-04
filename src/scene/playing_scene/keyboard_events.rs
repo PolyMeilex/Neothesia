@@ -1,6 +1,4 @@
-use crate::{config::Config, keyboard_renderer::KeyboardRenderer};
-
-pub use crate::keyboard_renderer::KeyState;
+use crate::{config::Config, render::KeyboardRenderer};
 
 pub fn user_midi_event(keyboard: &mut KeyboardRenderer, event: &crate::midi_event::MidiEvent) {
     use crate::midi_event::MidiEvent;

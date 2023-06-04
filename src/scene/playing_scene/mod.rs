@@ -5,8 +5,10 @@ use winit::event::{KeyboardInput, WindowEvent};
 
 use super::{Scene, SceneType};
 use crate::{
-    keyboard_renderer::KeyboardRenderer, midi_event::MidiEvent, target::Target,
-    waterfall_renderer::WaterfallRenderer, NeothesiaEvent,
+    midi_event::MidiEvent,
+    render::{KeyboardRenderer, WaterfallRenderer},
+    target::Target,
+    NeothesiaEvent,
 };
 
 mod keyboard_events;

@@ -4,11 +4,8 @@ use futures::Future;
 pub use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
 pub mod config;
+pub mod render;
 pub mod utils;
-
-pub mod keyboard_renderer;
-pub mod text_renderer;
-pub mod waterfall_renderer;
 
 #[cfg(feature = "app")]
 pub mod iced_utils;

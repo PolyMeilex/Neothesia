@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::config::Config;
 use crate::input_manager::InputManager;
-use crate::text_renderer::TextRenderer;
+use crate::render::TextRenderer;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};

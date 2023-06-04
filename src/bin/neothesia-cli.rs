@@ -1,8 +1,9 @@
 use std::{default::Default, time::Duration};
 
 use neothesia::{
-    config::Config, keyboard_renderer::KeyboardRenderer, text_renderer::TextRenderer,
-    waterfall_renderer::WaterfallRenderer, Gpu, TransformUniform, Uniform,
+    config::Config,
+    render::{KeyboardRenderer, TextRenderer, WaterfallRenderer},
+    Gpu, TransformUniform, Uniform,
 };
 
 pub struct Recorder {

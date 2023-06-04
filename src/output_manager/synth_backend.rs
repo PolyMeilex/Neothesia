@@ -7,11 +7,6 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 const SAMPLES_SIZE: usize = 1410;
 
-enum MidiEvent {
-    NoteOn { ch: u8, key: u8, vel: u8 },
-    NoteOff { ch: u8, key: u8 },
-}
-
 pub struct SynthBackend {
     _host: cpal::Host,
     device: cpal::Device,
@@ -44,7 +39,7 @@ impl SynthBackend {
 
     fn run<T: cpal::SizedSample + cpal::FromSample<f32>>(
         &self,
-        rx: Receiver<MidiEvent>,
+        rx: Receiver<oxisynth::MidiEvent>,
         path: &Path,
     ) -> cpal::Stream {
         #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
@@ -82,11 +77,11 @@ impl SynthBackend {
 
                 if let Ok(e) = rx.try_recv() {
                     match e {
-                        MidiEvent::NoteOn { ch, key, vel } => {
-                            synth.note_on(ch as u32, key as u32, vel as u32).ok();
+                        oxisynth::MidiEvent::NoteOn { channel, key, vel } => {
+                            synth.note_on(channel as u32, key as u32, vel as u32).ok();
                         }
-                        MidiEvent::NoteOff { ch, key } => {
-                            synth.note_off(ch as u32, key as u32).ok();
+                        oxisynth::MidiEvent::NoteOff { channel, key } => {
+                            synth.note_off(channel as u32, key as u32).ok();
                         }
                     }
                 }
@@ -115,26 +110,8 @@ impl SynthBackend {
             move || {
                 let (l, r) = synth.read_next();
 
-                if let Ok(e) = rx.try_recv() {
-                    match e {
-                        MidiEvent::NoteOn { ch, key, vel } => {
-                            synth
-                                .send_event(oxisynth::MidiEvent::NoteOn {
-                                    channel: ch as _,
-                                    key: key as _,
-                                    vel: vel as _,
-                                })
-                                .ok();
-                        }
-                        MidiEvent::NoteOff { ch, key } => {
-                            synth
-                                .send_event(oxisynth::MidiEvent::NoteOff {
-                                    channel: ch as _,
-                                    key: key as _,
-                                })
-                                .ok();
-                        }
-                    }
+                if let Ok(event) = rx.try_recv() {
+                    synth.send_event(event).ok();
                 }
 
                 (l, r)
@@ -173,7 +150,7 @@ impl SynthBackend {
     }
 
     pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
-        let (tx, rx) = std::sync::mpsc::channel::<MidiEvent>();
+        let (tx, rx) = std::sync::mpsc::channel::<oxisynth::MidiEvent>();
         let _stream = match self.sample_format {
             cpal::SampleFormat::I8 => self.run::<i8>(rx, path),
             cpal::SampleFormat::I16 => self.run::<i16>(rx, path),
@@ -200,25 +177,57 @@ impl SynthBackend {
 
 pub struct SynthOutputConnection {
     _stream: cpal::Stream,
-    tx: std::sync::mpsc::Sender<MidiEvent>,
+    tx: std::sync::mpsc::Sender<oxisynth::MidiEvent>,
 }
 
 impl OutputConnection for SynthOutputConnection {
-    fn midi_event(&mut self, msg: midi::Message) {
-        match msg {
-            midi::NoteOn(ch, key, vel) => {
-                self.tx
-                    .send(MidiEvent::NoteOn {
-                        ch: ch as u8,
-                        key,
-                        vel,
-                    })
-                    .ok();
+    fn midi_event(&mut self, msg: &lib_midi::MidiEvent) {
+        let event = libmidi_to_oxisynth_event(msg);
+        self.tx.send(event).ok();
+    }
+
+    fn stop_all(&mut self) {
+        self.tx.send(oxisynth::MidiEvent::SystemReset).ok();
+    }
+}
+
+fn libmidi_to_oxisynth_event(msg: &lib_midi::MidiEvent) -> oxisynth::MidiEvent {
+    use lib_midi::midly;
+
+    let channel = msg.channel;
+    match msg.message {
+        midly::MidiMessage::NoteOff { key, .. } => oxisynth::MidiEvent::NoteOff {
+            channel,
+            key: key.as_int(),
+        },
+        midly::MidiMessage::NoteOn { key, vel } => oxisynth::MidiEvent::NoteOn {
+            channel,
+            key: key.as_int(),
+            vel: vel.as_int(),
+        },
+        midly::MidiMessage::Aftertouch { key, vel } => oxisynth::MidiEvent::PolyphonicKeyPressure {
+            channel,
+            key: key.as_int(),
+            value: vel.as_int(),
+        },
+        midly::MidiMessage::Controller { controller, value } => {
+            oxisynth::MidiEvent::ControlChange {
+                channel,
+                ctrl: controller.as_int(),
+                value: value.as_int(),
             }
-            midi::NoteOff(ch, key, _vel) => {
-                self.tx.send(MidiEvent::NoteOff { ch: ch as u8, key }).ok();
-            }
-            _ => {}
         }
+        midly::MidiMessage::ProgramChange { program } => oxisynth::MidiEvent::ProgramChange {
+            channel,
+            program_id: program.as_int(),
+        },
+        midly::MidiMessage::ChannelAftertouch { vel } => oxisynth::MidiEvent::ChannelPressure {
+            channel,
+            value: vel.as_int(),
+        },
+        midly::MidiMessage::PitchBend { bend } => oxisynth::MidiEvent::PitchBend {
+            channel,
+            value: bend.0.as_int(),
+        },
     }
 }

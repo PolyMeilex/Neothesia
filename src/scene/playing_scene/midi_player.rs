@@ -1,12 +1,9 @@
 use crate::{output_manager::OutputManager, target::Target};
-use num::FromPrimitive;
 use std::{cell::RefCell, collections::HashSet, rc::Rc, time::Duration};
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, KeyboardInput, MouseButton},
 };
-
-use crate::midi_event::MidiEvent;
 
 mod rewind_controler;
 use rewind_controler::RewindController;
@@ -50,25 +47,15 @@ impl MidiPlayer {
         let events = self.playback.update(&self.midi_file.merged_track, elapsed);
 
         events.iter().for_each(|event| {
+            self.output_manager.borrow_mut().midi_event(event);
+
             use lib_midi::midly::MidiMessage;
             match event.message {
-                MidiMessage::NoteOn { key, vel } => {
-                    let event = midi::Message::NoteOn(
-                        midi::Channel::from_u8(event.channel).unwrap(),
-                        key.as_int(),
-                        vel.as_int(),
-                    );
-                    self.output_manager.borrow_mut().midi_event(event);
+                MidiMessage::NoteOn { key, .. } => {
                     self.play_along
                         .press_key(KeyPressSource::File, key.as_int(), true);
                 }
                 MidiMessage::NoteOff { key, .. } => {
-                    let event = midi::Message::NoteOff(
-                        midi::Channel::from_u8(event.channel).unwrap(),
-                        key.as_int(),
-                        0,
-                    );
-                    self.output_manager.borrow_mut().midi_event(event);
                     self.play_along
                         .press_key(KeyPressSource::File, key.as_int(), false);
                 }
@@ -84,16 +71,7 @@ impl MidiPlayer {
     }
 
     fn clear(&mut self) {
-        let mut output = self.output_manager.borrow_mut();
-        for note in self.playback.active_notes().iter() {
-            output.midi_event(
-                MidiEvent::NoteOff {
-                    channel: note.channel,
-                    key: note.key,
-                }
-                .into(),
-            )
-        }
+        self.output_manager.borrow_mut().stop_all();
     }
 }
 

@@ -46,21 +46,30 @@ impl MidiBackend {
 }
 
 impl OutputConnection for MidiOutputConnection {
-    fn midi_event(&mut self, msg: midi::Message) {
-        match &msg {
-            midi::Message::NoteOff(ch, key, _) => {
-                let channel = channel_to_u8(ch);
-                self.active_notes.remove(&ActiveNote { key: *key, channel });
+    fn midi_event(&mut self, msg: &lib_midi::MidiEvent) {
+        use lib_midi::midly::MidiMessage;
+        match &msg.message {
+            MidiMessage::NoteOff { key, .. } => {
+                self.active_notes.remove(&ActiveNote {
+                    key: key.as_int(),
+                    channel: msg.channel,
+                });
             }
-            midi::Message::NoteOn(ch, key, _) => {
-                let channel = channel_to_u8(ch);
-                self.active_notes.insert(ActiveNote { key: *key, channel });
+            MidiMessage::NoteOn { key, .. } => {
+                self.active_notes.insert(ActiveNote {
+                    key: key.as_int(),
+                    channel: msg.channel,
+                });
             }
             _ => {}
         }
 
+        let msg = libmidi_to_midi_event(msg);
         if let Some(msg) = msg.to_raw_messages().first() {
             match *msg {
+                midi::RawMessage::StatusData(a, b) => {
+                    self.conn.send(&[a, b]).ok();
+                }
                 midi::RawMessage::StatusDataData(a, b, c) => {
                     self.conn.send(&[a, b, c]).ok();
                 }
@@ -68,11 +77,9 @@ impl OutputConnection for MidiOutputConnection {
             }
         }
     }
-}
 
-impl Drop for MidiOutputConnection {
-    fn drop(&mut self) {
-        for note in self.active_notes.iter() {
+    fn stop_all(&mut self) {
+        for note in std::mem::take(&mut self.active_notes).iter() {
             use midi::utils::{mask7, status_byte};
 
             let sb = status_byte(
@@ -82,6 +89,12 @@ impl Drop for MidiOutputConnection {
             let data = [sb, mask7(note.key), mask7(0)];
             self.conn.send(&data).ok();
         }
+    }
+}
+
+impl Drop for MidiOutputConnection {
+    fn drop(&mut self) {
+        self.stop_all();
     }
 }
 
@@ -103,23 +116,29 @@ impl std::fmt::Display for MidiPortInfo {
     }
 }
 
-fn channel_to_u8(ch: &midi::Channel) -> u8 {
-    match ch {
-        midi::Channel::Ch1 => 0,
-        midi::Channel::Ch2 => 1,
-        midi::Channel::Ch3 => 2,
-        midi::Channel::Ch4 => 3,
-        midi::Channel::Ch5 => 4,
-        midi::Channel::Ch6 => 5,
-        midi::Channel::Ch7 => 6,
-        midi::Channel::Ch8 => 7,
-        midi::Channel::Ch9 => 8,
-        midi::Channel::Ch10 => 9,
-        midi::Channel::Ch11 => 10,
-        midi::Channel::Ch12 => 11,
-        midi::Channel::Ch13 => 12,
-        midi::Channel::Ch14 => 13,
-        midi::Channel::Ch15 => 14,
-        midi::Channel::Ch16 => 15,
+fn libmidi_to_midi_event(msg: &lib_midi::MidiEvent) -> midi::Message {
+    use lib_midi::midly;
+
+    let ch = midi::Channel::from_u8(msg.channel).unwrap();
+    match msg.message {
+        midly::MidiMessage::NoteOff { key, vel } => {
+            midi::Message::NoteOff(ch, key.as_int(), vel.as_int())
+        }
+        midly::MidiMessage::NoteOn { key, vel } => {
+            midi::Message::NoteOn(ch, key.as_int(), vel.as_int())
+        }
+        midly::MidiMessage::Aftertouch { key, vel } => {
+            midi::Message::PolyphonicPressure(ch, key.as_int(), vel.as_int())
+        }
+        midly::MidiMessage::Controller { controller, value } => {
+            midi::Message::ControlChange(ch, controller.as_int(), value.as_int())
+        }
+        midly::MidiMessage::ProgramChange { program } => {
+            midi::Message::ProgramChange(ch, program.as_int())
+        }
+        midly::MidiMessage::ChannelAftertouch { vel } => {
+            midi::Message::ChannelPressure(ch, vel.as_int())
+        }
+        midly::MidiMessage::PitchBend { bend } => midi::Message::PitchBend(ch, bend.0.as_int()),
     }
 }

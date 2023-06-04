@@ -3,24 +3,16 @@
 use futures::Future;
 pub use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
-pub mod config;
-pub mod render;
+use neothesia_core::{config, render};
 pub mod utils;
 
-#[cfg(feature = "app")]
 pub mod iced_utils;
-#[cfg(feature = "app")]
 pub mod input_manager;
-#[cfg(feature = "app")]
 pub mod midi_event;
-#[cfg(feature = "app")]
 pub mod output_manager;
-#[cfg(feature = "app")]
 pub mod scene;
-#[cfg(feature = "app")]
 pub mod target;
 
-#[cfg(feature = "app")]
 #[derive(Debug)]
 pub enum NeothesiaEvent {
     MainMenu(crate::scene::menu_scene::Event),

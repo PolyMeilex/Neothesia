@@ -4,6 +4,7 @@ members = [
     "wgpu-jumpstart",
     "neothesia",
     "neothesia-cli",
+    "neothesia-core",
     "neothesia-pipelines",
     "midi-file",
     "midi-io",
@@ -19,5 +20,6 @@ env_logger = "0.10"
 futures = "0.3"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia = { path = "./neothesia", default-features = false }
+neothesia-core = { path = "./neothesia-core" }
 midi-file = { path = "./midi-file" }
 piano-math = { path = "./piano-math" }

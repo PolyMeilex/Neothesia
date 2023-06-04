@@ -1,0 +1,20 @@
+[package]
+name = "neothesia-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = { workspace = true }
+ron = "0.8"
+serde = { version = "1.0", features = ["serde_derive"] }
+
+wgpu = { workspace = true }
+wgpu_glyph = "0.20.0"
+wgpu-jumpstart = { workspace = true }
+
+neothesia-pipelines = { path = "../neothesia-pipelines" }
+piano-math = { workspace = true }
+midi-file = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"

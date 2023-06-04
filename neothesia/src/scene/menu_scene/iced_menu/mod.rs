@@ -142,7 +142,13 @@ impl Program for AppUi {
                 self.data.is_loading = false;
             }
             Message::SelectOutput(output) => {
-                target.config.set_output(&output);
+                target
+                    .config
+                    .set_output(if let OutputDescriptor::DummyOutput = output {
+                        None
+                    } else {
+                        Some(output.to_string())
+                    });
                 self.data.selected_output = Some(output);
             }
             Message::SelectInput(input) => {

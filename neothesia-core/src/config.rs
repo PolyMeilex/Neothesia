@@ -2,9 +2,6 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "app")]
-use crate::output_manager::OutputDescriptor;
-
 #[derive(Serialize, Deserialize, Default)]
 pub struct ColorSchema {
     pub base: (u8, u8, u8),
@@ -72,13 +69,8 @@ impl Config {
         })
     }
 
-    #[cfg(feature = "app")]
-    pub fn set_output(&mut self, v: &OutputDescriptor) {
-        if let OutputDescriptor::DummyOutput = v {
-            self.output = None;
-        } else {
-            self.output = Some(v.to_string());
-        }
+    pub fn set_output(&mut self, output: Option<String>) {
+        self.output = output;
     }
 
     pub fn set_input<D: std::fmt::Display>(&mut self, v: Option<D>) {

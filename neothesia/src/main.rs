@@ -1,5 +1,3 @@
-#![cfg(feature = "app")]
-
 use neothesia::{
     midi_event::MidiEvent,
     scene::{menu_scene, playing_scene, scene_manager, SceneType},

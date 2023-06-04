@@ -1,11 +1,10 @@
 use std::{default::Default, time::Duration};
 
-use neothesia::{
+use neothesia_core::{
     config::Config,
     render::{KeyboardRenderer, TextRenderer, WaterfallRenderer},
-    Gpu, TransformUniform, Uniform,
 };
-use wgpu_jumpstart::wgpu;
+use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
 struct Recorder {
     gpu: Gpu,
@@ -46,7 +45,7 @@ impl Recorder {
             backends: wgpu_jumpstart::default_backends(),
             ..Default::default()
         });
-        let gpu = neothesia::block_on(Gpu::new(&instance, None)).unwrap();
+        let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap();
 
         let args: Vec<String> = std::env::args().collect();
 
@@ -237,7 +236,7 @@ fn main() {
 
         {
             let slice = output_buffer.slice(..);
-            neothesia::block_on(async {
+            futures::executor::block_on(async {
                 let (tx, rx) = futures::channel::oneshot::channel();
 
                 slice.map_async(wgpu::MapMode::Read, move |_| {

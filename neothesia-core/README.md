@@ -1,0 +1,1 @@
+This crate contains basic functionality needed to render the keyboard and notes waterfall, used both by cli renderer and app renderer.

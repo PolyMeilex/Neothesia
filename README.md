@@ -1,4 +1,5 @@
-![Neothesia Baner](https://i.imgur.com/QfdMwMI.png)
+![Neothesia Baner](https://github.com/PolyMeilex/Neothesia/assets/20758186/ca9aa8ae-2a69-48de-92d6-97d7ea9e678d)
+
 
 # Neothesia
 

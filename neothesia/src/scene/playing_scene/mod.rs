@@ -61,7 +61,7 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let player = MidiPlayer::new(target);
+        let player = MidiPlayer::new(target, keyboard_layout.range.clone());
         notes.update(&target.gpu.queue, player.time_without_lead_in());
 
         Self {

@@ -1,5 +1,10 @@
 use crate::{output_manager::OutputManager, target::Target};
-use std::{cell::RefCell, collections::HashSet, rc::Rc, time::Duration};
+use std::{
+    cell::RefCell,
+    collections::{HashSet, VecDeque},
+    rc::Rc,
+    time::{Duration, Instant},
+};
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, KeyboardInput, MouseButton},
@@ -44,6 +49,7 @@ impl MidiPlayer {
         delta: Duration,
     ) -> Option<Vec<midi_file::MidiEvent>> {
         rewind_controler::update(self, target);
+        self.play_along.update();
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
 
@@ -180,21 +186,61 @@ pub enum KeyPressSource {
     User,
 }
 
+#[derive(Debug)]
+struct UserPress {
+    timestamp: Instant,
+    note_id: u8,
+}
+
 #[derive(Debug, Default)]
 pub struct PlayAlong {
     required_notes: HashSet<u8>,
+
+    // List of user key press events that happened in last 500ms,
+    // used for play along leeway logic
+    user_pressed_recently: VecDeque<UserPress>,
 }
 
 impl PlayAlong {
+    fn update(&mut self) {
+        // Instead of calling .elapsed() per item let's fetch `now` once, and substract it ourselfs
+        let now = Instant::now();
+
+        while let Some(item) = self.user_pressed_recently.front_mut() {
+            let elapsed = now - item.timestamp;
+
+            // If older than 500ms
+            if elapsed.as_millis() > 500 {
+                self.user_pressed_recently.pop_front();
+            } else {
+                // All subsequent items will by younger than front item, so we can break
+                break;
+            }
+        }
+    }
+
     fn user_press_key(&mut self, note_id: u8, active: bool) {
+        let timestamp = Instant::now();
+
         if active {
+            self.user_pressed_recently
+                .push_back(UserPress { timestamp, note_id });
             self.required_notes.remove(&note_id);
         }
     }
 
     fn file_press_key(&mut self, note_id: u8, active: bool) {
         if active {
-            self.required_notes.insert(note_id);
+            if let Some((id, _)) = self
+                .user_pressed_recently
+                .iter()
+                .enumerate()
+                .find(|(_, item)| item.note_id == note_id)
+            {
+                self.user_pressed_recently.remove(id);
+            } else {
+                self.required_notes.insert(note_id);
+            }
         } else {
             self.required_notes.remove(&note_id);
         }

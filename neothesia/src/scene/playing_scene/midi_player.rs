@@ -22,7 +22,7 @@ pub struct MidiPlayer {
 }
 
 impl MidiPlayer {
-    pub fn new(target: &mut Target) -> Self {
+    pub fn new(target: &mut Target, user_keyboard_range: piano_math::KeyboardRange) -> Self {
         let midi_file = target.midi_file.as_ref().unwrap();
 
         let mut player = Self {
@@ -33,7 +33,7 @@ impl MidiPlayer {
             rewind_controller: RewindController::None,
             output_manager: target.output_manager.clone(),
             midi_file: midi_file.clone(),
-            play_along: PlayAlong::default(),
+            play_along: PlayAlong::new(user_keyboard_range),
         };
         player.update(target, Duration::ZERO);
 
@@ -57,6 +57,10 @@ impl MidiPlayer {
 
         events.iter().for_each(|event| {
             self.output_manager.borrow_mut().midi_event(event);
+
+            if event.channel == 9 {
+                return;
+            }
 
             use midi_file::midly::MidiMessage;
             match event.message {
@@ -192,8 +196,10 @@ struct UserPress {
     note_id: u8,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PlayAlong {
+    user_keyboard_range: piano_math::KeyboardRange,
+
     required_notes: HashSet<u8>,
 
     // List of user key press events that happened in last 500ms,
@@ -202,6 +208,14 @@ pub struct PlayAlong {
 }
 
 impl PlayAlong {
+    fn new(user_keyboard_range: piano_math::KeyboardRange) -> Self {
+        Self {
+            user_keyboard_range,
+            required_notes: Default::default(),
+            user_pressed_recently: Default::default(),
+        }
+    }
+
     fn update(&mut self) {
         // Instead of calling .elapsed() per item let's fetch `now` once, and substract it ourselfs
         let now = Instant::now();
@@ -247,6 +261,10 @@ impl PlayAlong {
     }
 
     pub fn press_key(&mut self, src: KeyPressSource, note_id: u8, active: bool) {
+        if !self.user_keyboard_range.contains(note_id) {
+            return;
+        }
+
         match src {
             KeyPressSource::User => self.user_press_key(note_id, active),
             KeyPressSource::File => self.file_press_key(note_id, active),

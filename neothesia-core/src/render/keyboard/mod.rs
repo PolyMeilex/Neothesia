@@ -47,7 +47,6 @@ impl KeyboardRenderer {
     pub fn reset_notes(&mut self) {
         for key in self.key_states.iter_mut() {
             key.pressed_by_file_off();
-            key.set_pressed_by_user(false);
         }
         self.queue_reupload();
     }

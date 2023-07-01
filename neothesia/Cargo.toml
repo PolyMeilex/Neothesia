@@ -43,14 +43,14 @@ oxisynth = { version = "0.0.3", optional = true }
 midi-file = { workspace = true }
 midi-io = { path = "../midi-io" }
 
-iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6" }
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6" }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6" }
-iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6" }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", features = [
+iced_style = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
+iced_graphics = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
+iced_core = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
+iced_runtime = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
+iced_wgpu = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd", features = [
     "image",
 ] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "b5f102c55835cf42427f9f8672634e81a5d724f6", features = [
+iced_widget = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd", features = [
     "image",
 ] }
 

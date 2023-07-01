@@ -1388,7 +1388,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "iced_core"
 version = "0.9.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "bitflags 1.3.2",
  "instant",
@@ -1401,7 +1401,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.6.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "futures",
  "iced_core",
@@ -1413,7 +1413,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.8.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
@@ -1430,7 +1430,7 @@ dependencies = [
 [[package]]
 name = "iced_renderer"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
@@ -1442,7 +1442,7 @@ dependencies = [
 [[package]]
 name = "iced_runtime"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -1452,7 +1452,7 @@ dependencies = [
 [[package]]
 name = "iced_style"
 version = "0.8.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "iced_core",
  "once_cell",
@@ -1462,7 +1462,7 @@ dependencies = [
 [[package]]
 name = "iced_tiny_skia"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -1479,7 +1479,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.10.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
@@ -1499,7 +1499,7 @@ dependencies = [
 [[package]]
 name = "iced_widget"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/iced.git?rev=b5f102c55835cf42427f9f8672634e81a5d724f6#b5f102c55835cf42427f9f8672634e81a5d724f6"
+source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
 dependencies = [
  "iced_renderer",
  "iced_runtime",

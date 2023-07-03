@@ -30,8 +30,6 @@ neothesia-core = { workspace = true }
 neothesia-pipelines = { path = "../neothesia-pipelines" }
 piano-math = { workspace = true }
 
-# App Deps
-
 winit = "0.28.2"
 rfd = "0.11.2"
 async-thread = "0.1"
@@ -43,14 +41,14 @@ oxisynth = { version = "0.0.3", optional = true }
 midi-file = { workspace = true }
 midi-io = { path = "../midi-io" }
 
-iced_style = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
-iced_graphics = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
-iced_core = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
-iced_runtime = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd" }
-iced_wgpu = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd", features = [
+iced_style = { git = "https://github.com/iced-rs/iced.git", rev = "a057f8811bfc47afc4271f05b92263a19122d888" }
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "a057f8811bfc47afc4271f05b92263a19122d888" }
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "a057f8811bfc47afc4271f05b92263a19122d888" }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "a057f8811bfc47afc4271f05b92263a19122d888" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "a057f8811bfc47afc4271f05b92263a19122d888", features = [
     "image",
 ] }
-iced_widget = { git = "https://github.com/PolyMeilex/iced.git", rev = "23af7ffc71693680455348fb350b2b66027adacd", features = [
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "a057f8811bfc47afc4271f05b92263a19122d888", features = [
     "image",
 ] }
 

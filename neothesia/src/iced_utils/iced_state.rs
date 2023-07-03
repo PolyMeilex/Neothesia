@@ -127,7 +127,7 @@ where
 
         let _ = user_interface.update(
             &self.queued_events,
-            cursor_position,
+            mouse::Cursor::Available(cursor_position),
             &mut target.iced_manager.renderer,
             clipboard,
             &mut messages,
@@ -143,7 +143,7 @@ where
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
                 },
-                cursor_position,
+                mouse::Cursor::Available(cursor_position),
             );
 
             self.cache = Some(user_interface.into_cache());
@@ -173,7 +173,7 @@ where
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
                 },
-                cursor_position,
+                mouse::Cursor::Available(cursor_position),
             );
 
             self.cache = Some(user_interface.into_cache());

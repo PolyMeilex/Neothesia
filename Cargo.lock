@@ -3,12 +3,6 @@
 version = 3
 
 [[package]]
-name = "Inflector"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -602,12 +596,12 @@ dependencies = [
 [[package]]
 name = "cosmic-text"
 version = "0.8.0"
-source = "git+https://github.com/hecrj/cosmic-text.git?rev=b85d6a4f2376f8a8a7dadc0f8bcb89d4db10a1c9#b85d6a4f2376f8a8a7dadc0f8bcb89d4db10a1c9"
+source = "git+https://github.com/hecrj/cosmic-text.git?rev=c3cd24dc972bb8fd55d016c81ac9fa637e0a4ada#c3cd24dc972bb8fd55d016c81ac9fa637e0a4ada"
 dependencies = [
+ "aliasable",
  "fontdb",
  "libm",
  "log",
- "ouroboros",
  "rangemap",
  "rustybuzz",
  "swash",
@@ -909,14 +903,15 @@ dependencies = [
 
 [[package]]
 name = "fontdb"
-version = "0.13.1"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "237ff9f0813bbfc9de836016472e0c9ae7802f174a51594607e5f4ff334cb2f5"
+checksum = "af8d8cbea8f21307d7e84bca254772981296f058a1d36b461bf4d83a7499fc9e"
 dependencies = [
  "log",
- "memmap2",
+ "memmap2 0.6.2",
  "slotmap",
- "ttf-parser 0.18.1",
+ "tinyvec",
+ "ttf-parser",
 ]
 
 [[package]]
@@ -1211,7 +1206,7 @@ dependencies = [
 [[package]]
 name = "glyphon"
 version = "0.2.0"
-source = "git+https://github.com/hecrj/glyphon.git?rev=cf7fe9df00499b868a6a94fa5fdb0a4ca368c9f9#cf7fe9df00499b868a6a94fa5fdb0a4ca368c9f9"
+source = "git+https://github.com/hecrj/glyphon.git?rev=8324f20158a62f8520bad4ed09f6aa5552f8f2a6#8324f20158a62f8520bad4ed09f6aa5552f8f2a6"
 dependencies = [
  "cosmic-text",
  "etagere",
@@ -1388,7 +1383,7 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 [[package]]
 name = "iced_core"
 version = "0.9.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "bitflags 1.3.2",
  "instant",
@@ -1401,7 +1396,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.6.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "futures",
  "iced_core",
@@ -1413,28 +1408,29 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.8.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
  "glam",
+ "half",
  "iced_core",
  "image",
  "kamadak-exif",
  "log",
  "raw-window-handle",
  "thiserror",
- "tiny-skia 0.9.1",
 ]
 
 [[package]]
 name = "iced_renderer"
 version = "0.1.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
  "iced_wgpu",
+ "log",
  "raw-window-handle",
  "thiserror",
 ]
@@ -1442,7 +1438,7 @@ dependencies = [
 [[package]]
 name = "iced_runtime"
 version = "0.1.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -1452,7 +1448,7 @@ dependencies = [
 [[package]]
 name = "iced_style"
 version = "0.8.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "iced_core",
  "once_cell",
@@ -1462,7 +1458,7 @@ dependencies = [
 [[package]]
 name = "iced_tiny_skia"
 version = "0.1.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -1479,7 +1475,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.10.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
@@ -1499,7 +1495,7 @@ dependencies = [
 [[package]]
 name = "iced_widget"
 version = "0.1.0"
-source = "git+https://github.com/PolyMeilex/iced.git?rev=23af7ffc71693680455348fb350b2b66027adacd#23af7ffc71693680455348fb350b2b66027adacd"
+source = "git+https://github.com/iced-rs/iced.git?rev=a057f8811bfc47afc4271f05b92263a19122d888#a057f8811bfc47afc4271f05b92263a19122d888"
 dependencies = [
  "iced_renderer",
  "iced_runtime",
@@ -1779,6 +1775,15 @@ name = "memmap2"
 version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83faa42c0a078c393f6b29d5db232d8be22776a891f8f56e5284faee4a20b327"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "memmap2"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d28bba84adfe6646737845bc5ebbfa2c08424eb1c37e94a1fd2a82adb56a872"
 dependencies = [
  "libc",
 ]
@@ -2341,35 +2346,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "ouroboros"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1358bd1558bd2a083fed428ffeda486fbfb323e698cdda7794259d592ca72db"
-dependencies = [
- "aliasable",
- "ouroboros_macro",
-]
-
-[[package]]
-name = "ouroboros_macro"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f7d21ccd03305a674437ee1248f3ab5d4b1db095cf1caf49f1713ddf61956b7"
-dependencies = [
- "Inflector",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "owned_ttf_parser"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "706de7e2214113d63a8238d1910463cfce781129a6f263d13fdb09ff64355ba4"
 dependencies = [
- "ttf-parser 0.19.0",
+ "ttf-parser",
 ]
 
 [[package]]
@@ -2621,30 +2603,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2",
- "quote",
- "version_check",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2867,15 +2825,15 @@ dependencies = [
 
 [[package]]
 name = "rustybuzz"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "162bdf42e261bee271b3957691018634488084ef577dddeb6420a9684cab2a6a"
+checksum = "82eea22c8f56965eeaf3a209b3d24508256c7b920fb3b6211b8ba0f7c0583250"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
  "libm",
  "smallvec",
- "ttf-parser 0.18.1",
+ "ttf-parser",
  "unicode-bidi-mirroring",
  "unicode-ccc",
  "unicode-general-category",
@@ -2911,7 +2869,7 @@ checksum = "cda4e97be1fd174ccc2aae81c8b694e803fa99b34e8fd0f057a9d70698e3ed09"
 dependencies = [
  "ab_glyph",
  "log",
- "memmap2",
+ "memmap2 0.5.10",
  "smithay-client-toolkit",
  "tiny-skia 0.8.4",
 ]
@@ -2998,7 +2956,7 @@ dependencies = [
  "dlib",
  "lazy_static",
  "log",
- "memmap2",
+ "memmap2 0.5.10",
  "nix 0.24.3",
  "pkg-config",
  "wayland-client 0.29.5",
@@ -3243,6 +3201,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87cc5ceb3875bb20c2890005a4e226a4651264a5c75edb2421b52861a0a0cb50"
+dependencies = [
+ "tinyvec_macros",
+]
+
+[[package]]
+name = "tinyvec_macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
 name = "toml"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3275,12 +3248,6 @@ dependencies = [
  "toml_datetime",
  "winnow",
 ]
-
-[[package]]
-name = "ttf-parser"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0609f771ad9c6155384897e1df4d948e692667cc0588548b68eb44d052b27633"
 
 [[package]]
 name = "ttf-parser"

@@ -130,11 +130,14 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let is_mouse_over = layout.bounds().contains(cursor_position);
+        let is_mouse_over = cursor
+            .position()
+            .map(|point| layout.bounds().contains(point))
+            .unwrap_or(false);
 
         if is_mouse_over && !self.disabled {
             mouse::Interaction::Pointer
@@ -148,7 +151,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -160,19 +163,24 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if self.on_press.is_some() {
-                    let bounds = layout.bounds();
+                    let is_mouse_over = cursor
+                        .position()
+                        .map(|point| layout.bounds().contains(point))
+                        .unwrap_or(false);
 
-                    tree.state.downcast_mut::<State>().is_pressed =
-                        bounds.contains(cursor_position);
+                    tree.state.downcast_mut::<State>().is_pressed = is_mouse_over;
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let Some(on_press) = self.on_press.clone() {
-                    let bounds = layout.bounds();
-
                     let is_pressed = &mut tree.state.downcast_mut::<State>().is_pressed;
 
-                    let is_clicked = *is_pressed && bounds.contains(cursor_position);
+                    let is_mouse_over = cursor
+                        .position()
+                        .map(|point| layout.bounds().contains(point))
+                        .unwrap_or(false);
+
+                    let is_clicked = *is_pressed && is_mouse_over;
 
                     *is_pressed = false;
 
@@ -194,11 +202,15 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         theme: &iced_style::Theme,
         _style: &Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
+
+        let is_mouse_over = cursor
+            .position()
+            .map(|point| bounds.contains(point))
+            .unwrap_or(false);
 
         let colors = if is_mouse_over {
             (
@@ -261,7 +273,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
                 },
             },
             layout,
-            cursor_position,
+            cursor,
             viewport,
         );
     }

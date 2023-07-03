@@ -1,6 +1,6 @@
 use neothesia::{
     midi_event::MidiEvent,
-    scene::{menu_scene, playing_scene, scene_manager, SceneType},
+    scene::{menu_scene, playing_scene, Scene, SceneType},
     target::Target,
     utils::window::WindowState,
     Gpu, NeothesiaEvent,
@@ -18,13 +18,12 @@ pub struct Neothesia {
 
     last_time: std::time::Instant,
     pub fps_timer: fps_ticker::Fps,
-    pub game_scene: scene_manager::SceneManager,
+    pub game_scene: Box<dyn Scene>,
 }
 
 impl Neothesia {
     pub fn new(mut target: Target, surface: Surface) -> Self {
-        let game_scene = menu_scene::MenuScene::new(&mut target);
-        let mut game_scene = scene_manager::SceneManager::new(game_scene);
+        let mut game_scene = menu_scene::MenuScene::new(&mut target);
 
         target.resize();
         game_scene.resize(&mut target);
@@ -35,7 +34,7 @@ impl Neothesia {
             surface,
             last_time: std::time::Instant::now(),
             fps_timer: Default::default(),
-            game_scene,
+            game_scene: Box::new(game_scene),
         }
     }
 
@@ -98,7 +97,7 @@ impl Neothesia {
             NeothesiaEvent::MainMenu(event) => match event {
                 menu_scene::Event::Play => {
                     let to = playing_scene::PlayingScene::new(&mut self.target);
-                    self.game_scene.transition_to(&mut self.target, to);
+                    self.game_scene = Box::new(to);
                 }
             },
             NeothesiaEvent::GoBack => match self.game_scene.scene_type() {
@@ -107,7 +106,7 @@ impl Neothesia {
                 }
                 SceneType::Playing => {
                     let to = menu_scene::MenuScene::new(&mut self.target);
-                    self.game_scene.transition_to(&mut self.target, to);
+                    self.game_scene = Box::new(to);
                 }
             },
             NeothesiaEvent::MidiInput(event) => self.midi_event(event),

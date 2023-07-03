@@ -1,6 +1,5 @@
 pub mod menu_scene;
 pub mod playing_scene;
-pub mod scene_manager;
 
 use crate::{midi_event::MidiEvent, target::Target};
 use std::time::Duration;
@@ -8,9 +7,6 @@ use winit::event::WindowEvent;
 
 pub trait Scene {
     fn scene_type(&self) -> SceneType;
-
-    fn start(&mut self) {}
-    fn done(self: Box<Self>, _target: &mut Target) {}
 
     fn resize(&mut self, _target: &mut Target) {}
     fn update(&mut self, target: &mut Target, delta: Duration);

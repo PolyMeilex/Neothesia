@@ -65,8 +65,10 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let player = MidiPlayer::new(target, keyboard_layout.range.clone());
+        let mut player = MidiPlayer::new(target, keyboard_layout.range.clone());
         notes.update(&target.gpu.queue, player.time_without_lead_in());
+
+        player.start();
 
         Self {
             keyboard_layout,
@@ -98,10 +100,6 @@ impl PlayingScene {
 impl Scene for PlayingScene {
     fn scene_type(&self) -> SceneType {
         SceneType::Playing
-    }
-
-    fn start(&mut self) {
-        self.player.start();
     }
 
     fn resize(&mut self, target: &mut Target) {

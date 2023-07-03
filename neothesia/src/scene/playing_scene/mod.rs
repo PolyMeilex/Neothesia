@@ -16,6 +16,9 @@ mod keyboard_events;
 mod midi_player;
 use midi_player::MidiPlayer;
 
+mod rewind_controller;
+use rewind_controller::RewindController;
+
 mod toast_manager;
 use toast_manager::ToastManager;
 
@@ -26,6 +29,7 @@ pub struct PlayingScene {
     notes: WaterfallRenderer,
 
     player: MidiPlayer,
+    rewind_controler: RewindController,
     quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
 }
@@ -70,6 +74,7 @@ impl PlayingScene {
             piano_keyboard,
             notes,
             player,
+            rewind_controler: RewindController::new(),
             quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
 
             toast_manager: ToastManager::default(),
@@ -119,6 +124,7 @@ impl Scene for PlayingScene {
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
         if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
+            self.rewind_controler.update(&mut self.player, target);
             if let Some(midi_events) = self.player.update(target, delta) {
                 keyboard_events::file_midi_events(
                     &mut self.piano_keyboard,
@@ -175,7 +181,8 @@ impl Scene for PlayingScene {
 
         match &event {
             KeyboardInput { input, .. } => {
-                self.player.keyboard_input(input);
+                self.rewind_controler
+                    .handle_keyboard_input(&mut self.player, input);
 
                 settings_keyboard_input(target, &mut self.toast_manager, input);
 
@@ -192,10 +199,12 @@ impl Scene for PlayingScene {
                 }
             }
             MouseInput { state, button, .. } => {
-                self.player.mouse_input(target, state, button);
+                self.rewind_controler
+                    .handle_mouse_input(&mut self.player, target, state, button);
             }
             CursorMoved { position, .. } => {
-                self.player.handle_cursor_moved(target, position);
+                self.rewind_controler
+                    .handle_cursor_moved(&mut self.player, target, position);
             }
             _ => {}
         }

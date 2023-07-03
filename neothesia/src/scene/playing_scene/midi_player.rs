@@ -5,17 +5,9 @@ use std::{
     rc::Rc,
     time::{Duration, Instant},
 };
-use winit::{
-    dpi::PhysicalPosition,
-    event::{ElementState, KeyboardInput, MouseButton},
-};
-
-mod rewind_controler;
-use rewind_controler::RewindController;
 
 pub struct MidiPlayer {
     playback: midi_file::PlaybackState,
-    rewind_controller: RewindController,
     output_manager: Rc<RefCell<OutputManager>>,
     midi_file: Rc<midi_file::Midi>,
     play_along: PlayAlong,
@@ -30,7 +22,6 @@ impl MidiPlayer {
                 Duration::from_secs(3),
                 &midi_file.merged_track,
             ),
-            rewind_controller: RewindController::None,
             output_manager: target.output_manager.clone(),
             midi_file: midi_file.clone(),
             play_along: PlayAlong::new(user_keyboard_range),
@@ -48,7 +39,6 @@ impl MidiPlayer {
         target: &mut Target,
         delta: Duration,
     ) -> Option<Vec<midi_file::MidiEvent>> {
-        rewind_controler::update(self, target);
         self.play_along.update();
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
@@ -158,20 +148,6 @@ impl MidiPlayer {
 
     pub fn is_paused(&self) -> bool {
         self.playback.is_paused()
-    }
-}
-
-impl MidiPlayer {
-    pub fn keyboard_input(&mut self, input: &KeyboardInput) {
-        rewind_controler::handle_keyboard_input(self, input)
-    }
-
-    pub fn mouse_input(&mut self, target: &mut Target, state: &ElementState, button: &MouseButton) {
-        rewind_controler::handle_mouse_input(self, target, state, button)
-    }
-
-    pub fn handle_cursor_moved(&mut self, target: &mut Target, position: &PhysicalPosition<f64>) {
-        rewind_controler::handle_cursor_moved(self, target, position)
     }
 }
 

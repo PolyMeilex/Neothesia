@@ -32,12 +32,14 @@ impl WaterfallRenderer {
         config: &Config,
         layout: piano_math::KeyboardLayout,
     ) {
+        let range_start = layout.range.start() as usize;
+
         let mut instances = Vec::new();
 
-        let mut longer_than_88 = false;
+        let mut longer_than_range = false;
         for note in midi.merged_track.notes.iter() {
             if layout.range.contains(note.note) && note.channel != 9 {
-                let key = &layout.keys[note.note as usize - 21];
+                let key = &layout.keys[note.note as usize - range_start];
 
                 let color_schema = &config.color_schema;
 
@@ -62,12 +64,15 @@ impl WaterfallRenderer {
                     radius: key.width() * 0.2,
                 });
             } else {
-                longer_than_88 = true;
+                longer_than_range = true;
             }
         }
 
-        if longer_than_88 {
-            log::warn!("Midi Wider Than 88 Keys!");
+        if longer_than_range {
+            log::warn!(
+                "Midi wider than giver range: {range_start}-{}",
+                layout.range.end()
+            );
         }
 
         self.notes_pipeline.update_instance_buffer(queue, instances);

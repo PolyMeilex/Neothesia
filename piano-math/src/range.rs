@@ -76,6 +76,14 @@ impl KeyboardRange {
     pub fn standard_88_keys() -> Self {
         Self::new(21..=108)
     }
+
+    pub fn start(&self) -> u8 {
+        self.range.start
+    }
+
+    pub fn end(&self) -> u8 {
+        self.range.end
+    }
 }
 
 impl KeyboardRange {

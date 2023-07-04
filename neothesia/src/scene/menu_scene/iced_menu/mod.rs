@@ -341,51 +341,55 @@ impl<'a> Step {
     }
 
     fn settings(data: &'a Data) -> Element<'a, Message> {
-        let outputs = &data.outputs;
-        let selected_output = data.selected_output.clone();
+        let output_list = {
+            let outputs = &data.outputs;
+            let selected_output = data.selected_output.clone();
 
-        let is_synth = matches!(selected_output, Some(OutputDescriptor::Synth(_)));
+            let is_synth = matches!(selected_output, Some(OutputDescriptor::Synth(_)));
 
-        let output_list = pick_list(outputs, selected_output, Message::SelectOutput)
-            .width(Length::Fill)
-            .style(theme::pick_list());
+            let output_list = pick_list(outputs, selected_output, Message::SelectOutput)
+                .width(Length::Fill)
+                .style(theme::pick_list());
 
-        let output_title = text("Output:")
-            .vertical_alignment(Vertical::Center)
-            .height(Length::Fixed(30.0));
+            let output_title = text("Output:")
+                .vertical_alignment(Vertical::Center)
+                .height(Length::Fixed(30.0));
 
-        let output_list = if is_synth {
-            let btn = button(centered_text("SoundFont"))
-                .width(Length::Fixed(50.0))
-                .on_press(Message::OpenSoundFontPicker)
-                .style(theme::button());
+            if is_synth {
+                let btn = button(centered_text("SoundFont"))
+                    .width(Length::Fixed(50.0))
+                    .on_press(Message::OpenSoundFontPicker)
+                    .style(theme::button());
+
+                row![
+                    output_title.width(Length::Fixed(60.0)),
+                    output_list.width(Length::FillPortion(3)),
+                    btn.width(Length::FillPortion(1))
+                ]
+            } else {
+                row![output_title, output_list]
+            }
+            .spacing(10)
+        };
+
+        let input_list = {
+            let inputs = &data.inputs;
+            let selected_input = data.selected_input.clone();
+
+            let input_list = pick_list(inputs, selected_input, Message::SelectInput)
+                .width(Length::Fill)
+                .style(theme::pick_list());
+
+            let input_title = text("Input:")
+                .vertical_alignment(Vertical::Center)
+                .height(Length::Fixed(30.0));
 
             row![
-                output_title.width(Length::Fixed(60.0)),
-                output_list.width(Length::FillPortion(3)),
-                btn.width(Length::FillPortion(1))
+                input_title.width(Length::Fixed(60.0)),
+                input_list.width(Length::FillPortion(3)),
             ]
-        } else {
-            row![output_title, output_list]
-        }
-        .spacing(10);
-
-        let inputs = &data.inputs;
-        let selected_input = data.selected_input.clone();
-
-        let input_list = pick_list(inputs, selected_input, Message::SelectInput)
-            .width(Length::Fill)
-            .style(theme::pick_list());
-
-        let input_title = text("Input:")
-            .vertical_alignment(Vertical::Center)
-            .height(Length::Fixed(30.0));
-
-        let input_list = row![
-            input_title.width(Length::Fixed(60.0)),
-            input_list.width(Length::FillPortion(3)),
-        ]
-        .spacing(10);
+            .spacing(10)
+        };
 
         let buttons = row![neo_button("Back")
             .on_press(Message::GoToPage(Step::Main))

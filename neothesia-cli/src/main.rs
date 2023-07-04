@@ -23,11 +23,12 @@ struct Recorder {
 }
 
 fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
-    let white_count = piano_math::KeyboardRange::standard_88_keys().white_count();
+    let range = piano_math::KeyboardRange::standard_88_keys();
+    let white_count = range.white_count();
     let neutral_width = width / white_count as f32;
     let neutral_height = height * 0.2;
 
-    piano_math::standard_88_keys(neutral_width, neutral_height)
+    piano_math::KeyboardLayout::from_range(neutral_width, neutral_height, range)
 }
 
 fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {

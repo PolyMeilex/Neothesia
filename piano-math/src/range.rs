@@ -87,6 +87,10 @@ impl KeyboardRange {
 }
 
 impl KeyboardRange {
+    pub fn range(&self) -> &std::ops::Range<u8> {
+        &self.range
+    }
+
     pub fn contains(&self, item: u8) -> bool {
         self.range.contains(&item)
     }

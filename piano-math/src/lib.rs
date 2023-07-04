@@ -17,6 +17,69 @@ pub struct KeyboardLayout {
     pub range: KeyboardRange,
 }
 
+impl KeyboardLayout {
+    pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> Self {
+        Self::from_range(
+            neutral_width,
+            neutral_height,
+            KeyboardRange::standard_88_keys(),
+        )
+    }
+
+    pub fn from_range(neutral_width: f32, neutral_height: f32, range: KeyboardRange) -> Self {
+        let sharp_width = neutral_width * 0.625; // 62.5%
+        let sharp_height = neutral_height * 0.635;
+
+        let sizing = Sizing::new(neutral_width, neutral_height);
+
+        let octaves = range_to_octaves(&sizing, range.range());
+
+        let mut keys = Vec::with_capacity(range.count());
+
+        let mut offset = 0.0;
+        let mut id = 0;
+
+        for octave in octaves {
+            for mut key in octave.keys {
+                key.id = id;
+                id += 1;
+
+                match key.kind {
+                    KeyKind::Neutral => {
+                        key.x += offset;
+                    }
+                    KeyKind::Sharp => {
+                        key.x += offset;
+                    }
+                }
+
+                keys.push(key);
+            }
+
+            offset += octave.width;
+        }
+
+        // Board size
+        let width = neutral_width * range.white_count() as f32;
+        let height = neutral_height;
+
+        KeyboardLayout {
+            keys,
+
+            width,
+            height,
+
+            neutral_width,
+            sharp_width,
+
+            neutral_height,
+            sharp_height,
+
+            range,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum KeyKind {
     Neutral,
@@ -86,76 +149,42 @@ struct Sizing {
     sharp_height: f32,
 }
 
-pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> KeyboardLayout {
-    let sharp_width = neutral_width * 0.625; // 62.5%
-    let sharp_height = neutral_height * 0.635;
+impl Sizing {
+    fn new(neutral_width: f32, neutral_height: f32) -> Self {
+        let sharp_width = neutral_width * 0.625; // 62.5%
+        let sharp_height = neutral_height * 0.635;
 
-    let sizing = Sizing {
-        neutral_width,
-        neutral_height,
-        sharp_width,
-        sharp_height,
-    };
-
-    let octaves = [
-        partial_octave(&sizing, 9..12),
-        octave(&sizing),
-        octave(&sizing),
-        octave(&sizing),
-        octave(&sizing),
-        octave(&sizing),
-        octave(&sizing),
-        octave(&sizing),
-        partial_octave(&sizing, 0..1),
-    ];
-
-    let mut keys = Vec::with_capacity(88);
-
-    let mut offset = 0.0;
-    let mut id = 0;
-
-    for octave in octaves {
-        for mut key in octave.keys {
-            key.id = id;
-            id += 1;
-
-            match key.kind {
-                KeyKind::Neutral => {
-                    key.x += offset;
-                }
-                KeyKind::Sharp => {
-                    key.x += offset;
-                }
-            }
-
-            keys.push(key);
+        Self {
+            neutral_width,
+            neutral_height,
+            sharp_width,
+            sharp_height,
         }
-
-        offset += octave.width;
-    }
-
-    // Board size
-    let width = neutral_width * 52.0; // Neutral keys count
-    let height = neutral_height;
-
-    KeyboardLayout {
-        keys,
-
-        width,
-        height,
-
-        neutral_width,
-        sharp_width,
-
-        neutral_height,
-        sharp_height,
-
-        range: KeyboardRange::standard_88_keys(),
     }
 }
 
-fn octave(sizing: &Sizing) -> Octave {
-    partial_octave(sizing, 0..12)
+fn range_to_octaves(sizing: &Sizing, range: &std::ops::Range<u8>) -> Vec<Octave> {
+    let start = range.start as usize;
+    let end = range.end as usize;
+
+    let mut octaves = Vec::with_capacity(10);
+
+    let mut id = start;
+    while id < end {
+        let start_id = id % 12;
+        let end_id = if id + 12 > end { end - id } else { 12 };
+
+        let start_id = start_id as u8;
+        let end_id = end_id as u8;
+
+        let range = start_id..end_id;
+
+        id += range.len();
+
+        octaves.push(partial_octave(sizing, range));
+    }
+
+    octaves
 }
 
 fn partial_octave(sizing: &Sizing, range: std::ops::Range<u8>) -> Octave {

@@ -155,6 +155,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> iced_core::event::Status {
         if self.disabled {
             return iced_core::event::Status::Ignored;

@@ -100,5 +100,5 @@ jobs:
           args: --release -p neothesia-cli
       - uses: actions/upload-artifact@v2
         with:
-          name: windows-artifact
+          name: windows-recorder-artifact
           path: target/release/neothesia-cli.exe

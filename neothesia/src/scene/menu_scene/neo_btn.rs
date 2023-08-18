@@ -1,3 +1,4 @@
+use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     layout, mouse,
@@ -7,10 +8,7 @@ use iced_core::{
     Widget,
 };
 use iced_graphics::Primitive;
-use iced_style::Theme;
 use iced_widget::text;
-
-type Renderer = iced_wgpu::Renderer<Theme>;
 
 /// Creates a new [`Button`] with the provided content.
 pub fn neo_button<'a, Message: Clone>(label: &str) -> NeoBtn<'a, Message> {

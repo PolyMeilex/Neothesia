@@ -1,15 +1,16 @@
 use std::{path::PathBuf, rc::Rc};
 
+use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
     Alignment, Length, Padding,
 };
 use iced_runtime::Command;
-use iced_style::Theme;
 use iced_widget::{
     button, checkbox, column as col, container, image, pick_list, row, text, vertical_space,
 };
+use neothesia_core::config;
 
 use crate::{
     iced_utils::iced_state::{Element, Program},
@@ -18,6 +19,8 @@ use crate::{
     target::Target,
     NeothesiaEvent,
 };
+
+use super::{segment_button, track_card};
 
 mod theme;
 
@@ -57,6 +60,7 @@ struct Data {
     is_loading: bool,
 
     logo_handle: ImageHandle,
+    color_schema: Vec<config::ColorSchema>,
 }
 
 pub struct AppUi {
@@ -81,6 +85,7 @@ impl AppUi {
                 is_loading: false,
 
                 logo_handle: ImageHandle::from_memory(include_bytes!("../img/banner.png").to_vec()),
+                color_schema: target.config.color_schema.clone(),
             },
         }
     }
@@ -220,10 +225,16 @@ impl Program for AppUi {
                     Step::Main => Some(Message::Play),
                     _ => None,
                 },
+                // Let's hide track screen behind a magic key, as it's not ready for prime time
+                KeyCode::T => match self.current {
+                    Step::Main => Some(Message::GoToPage(Step::TrackSelection)),
+                    _ => None,
+                },
                 KeyCode::Escape => Some(match self.current {
                     Step::Exit => Message::GoToPage(Step::Main),
                     Step::Main => Message::GoToPage(Step::Exit),
                     Step::Settings => Message::GoToPage(Step::Main),
+                    Step::TrackSelection => Message::GoToPage(Step::Main),
                 }),
                 _ => None,
             }
@@ -242,6 +253,7 @@ pub enum Step {
     Exit,
     Main,
     Settings,
+    TrackSelection,
 }
 
 impl<'a> Step {
@@ -254,6 +266,7 @@ impl<'a> Step {
             Self::Exit => Self::exit(),
             Self::Main => Self::main(data),
             Self::Settings => Self::settings(data),
+            Self::TrackSelection => Self::track_selection(data),
         }
     }
 
@@ -400,16 +413,53 @@ impl<'a> Step {
         let column = col![
             image(data.logo_handle.clone()),
             col![output_list, input_list].spacing(10),
-            buttons
+            buttons,
         ]
         .spacing(40)
         .align_items(Alignment::Center);
 
         center_x(top_padded(column)).into()
     }
+
+    fn track_selection(data: &'a Data) -> Element<'a, Message> {
+        let mut tracks = Vec::new();
+        if let Some(midi) = data.midi_file.as_ref() {
+            for track in midi.tracks.iter().filter(|t| !t.notes.is_empty()) {
+                let color = &data.color_schema[track.track_color_id % data.color_schema.len()].base;
+                let color = iced_core::Color::from_rgb8(color.0, color.1, color.2);
+
+                let body = segment_button::segment_button()
+                    .button("Mute", Message::Tick)
+                    .button("Auto", Message::Tick)
+                    .button("Human", Message::Tick)
+                    .active(1)
+                    .active_color(color)
+                    .build();
+                let card = track_card::track_card()
+                    .title("Grand Piano")
+                    .subtitle(format!("{} Notes", track.notes.len()))
+                    .track_color(color)
+                    .body(body)
+                    .build();
+                tracks.push(card.into());
+            }
+        }
+
+        let column = super::wrap::Wrap::with_elements(tracks)
+            .spacing(14.0)
+            .line_spacing(14.0)
+            .padding(20.0)
+            .align_items(Alignment::Center);
+
+        let column = col![vertical_space(Length::Fixed(30.0)), column]
+            .align_items(Alignment::Center)
+            .width(Length::Fill);
+
+        iced_widget::scrollable(column).into()
+    }
 }
 
-fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, iced_wgpu::Renderer<Theme>> {
+fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Renderer> {
     text(label)
         .horizontal_alignment(Horizontal::Center)
         .vertical_alignment(Vertical::Center)
@@ -417,7 +467,7 @@ fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, iced_wgpu::R
 
 fn top_padded<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
-) -> iced_widget::Column<'a, MSG, iced_wgpu::Renderer<Theme>> {
+) -> iced_widget::Column<'a, MSG, Renderer> {
     let spacer = vertical_space(Length::FillPortion(1));
     let content = container(content)
         .height(Length::FillPortion(4))
@@ -432,7 +482,7 @@ fn top_padded<'a, MSG: 'a>(
 
 fn center_x<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
-) -> iced_widget::Container<'a, MSG, iced_wgpu::Renderer<Theme>> {
+) -> iced_widget::Container<'a, MSG, Renderer> {
     container(content)
         .width(Length::Fill)
         .height(Length::Fill)

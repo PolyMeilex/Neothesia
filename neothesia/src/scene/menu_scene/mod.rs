@@ -1,14 +1,17 @@
 mod iced_menu;
 
 mod neo_btn;
+mod segment_button;
+mod track_card;
+mod wrap;
 
 use std::time::Duration;
 
-use iced_core::mouse::Interaction;
 use iced_menu::AppUi;
+use iced_style::Theme;
 use neothesia_pipelines::background_animation::BgPipeline;
 
-use winit::event::{MouseButton, WindowEvent};
+use winit::event::WindowEvent;
 
 use crate::{
     iced_utils::{
@@ -18,6 +21,8 @@ use crate::{
     scene::{Scene, SceneType},
     target::Target,
 };
+
+type Renderer = iced_wgpu::Renderer<Theme>;
 
 #[derive(Debug)]
 pub enum Event {
@@ -102,7 +107,7 @@ impl Scene for MenuScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        use winit::event::{ElementState, ModifiersState};
+        use winit::event::ModifiersState;
 
         let modifiers = ModifiersState::default();
 
@@ -120,19 +125,21 @@ impl Scene for MenuScene {
             }
         }
 
-        match &event {
-            WindowEvent::MouseInput {
-                state: ElementState::Pressed,
-                button: MouseButton::Left,
-                ..
-            } => {
-                if self.iced_state.mouse_interaction() == Interaction::Idle {
-                    target.window.drag_window().ok();
-                }
-            }
+        // Well this feature was fun, but there is no way to detect user interaction with a
+        // scrollbar so this has to go for now
 
-            _ => {}
-        }
+        // match &event {
+        //     WindowEvent::MouseInput {
+        //         state: ElementState::Pressed,
+        //         button: MouseButton::Left,
+        //         ..
+        //     } => {
+        //         if self.iced_state.mouse_interaction() == Interaction::Idle {
+        //             target.window.drag_window().ok();
+        //         }
+        //     }
+        //     _ => {}
+        // }
     }
 
     fn main_events_cleared(&mut self, target: &mut Target) {

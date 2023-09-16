@@ -31,6 +31,7 @@ pub struct Config {
     pub input: Option<String>,
 
     pub soundfont_path: Option<PathBuf>,
+    pub last_opened_song: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -66,6 +67,7 @@ impl Config {
             output: default_output(),
             input: None,
             soundfont_path: None,
+            last_opened_song: None,
         })
     }
 

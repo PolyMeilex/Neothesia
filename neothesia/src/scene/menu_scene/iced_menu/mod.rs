@@ -34,7 +34,7 @@ pub enum Message {
     SelectInput(InputDescriptor),
 
     OpenMidiFilePicker,
-    MidiFileLoaded(Option<midi_file::Midi>),
+    MidiFileLoaded(Option<(midi_file::Midi, PathBuf)>),
 
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
@@ -130,7 +130,8 @@ impl Program for AppUi {
                 return open_midi_file_picker(Message::MidiFileLoaded);
             }
             Message::MidiFileLoaded(midi) => {
-                if let Some(midi) = midi {
+                if let Some((midi, path)) = midi {
+                    target.config.last_opened_song = Some(path);
                     self.data.midi_file = Some(Rc::new(midi));
                 }
                 self.data.is_loading = false;
@@ -490,7 +491,7 @@ fn center_x<'a, MSG: 'a>(
 }
 
 fn open_midi_file_picker(
-    f: impl FnOnce(Option<midi_file::Midi>) -> Message + 'static + Send,
+    f: impl FnOnce(Option<(midi_file::Midi, PathBuf)>) -> Message + 'static + Send,
 ) -> Command<Message> where
 {
     Command::perform(
@@ -512,7 +513,7 @@ fn open_midi_file_picker(
                             log::error!("{}", e);
                         }
 
-                        midi.ok()
+                        midi.map(|midi| (midi, file.path().to_path_buf())).ok()
                     });
 
                 if let Ok(thread) = thread {

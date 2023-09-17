@@ -2,18 +2,21 @@ use crate::TempoEvent;
 use midly::{MetaMessage, TrackEvent, TrackEventKind};
 use std::{collections::HashMap, time::Duration};
 
-pub struct TempoTrack(Vec<TempoEvent>);
+pub struct TempoTrack {
+    pulses_per_quarter_note: u16,
+    events: Vec<TempoEvent>,
+}
 
 impl std::ops::Deref for TempoTrack {
     type Target = Vec<TempoEvent>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.events
     }
 }
 
 impl TempoTrack {
-    pub fn build(track_events: &[Vec<TrackEvent>]) -> TempoTrack {
+    pub fn build(track_events: &[Vec<TrackEvent>], pulses_per_quarter_note: u16) -> TempoTrack {
         // This map will help us get rid of duplicate events if
         // the tempo is specified in every track (as is common).
         let mut tempo_events: HashMap<u64, TempoEvent> = HashMap::new();
@@ -54,10 +57,13 @@ impl TempoTrack {
             })
             .collect();
 
-        TempoTrack(tempo_events)
+        TempoTrack {
+            pulses_per_quarter_note,
+            events: tempo_events,
+        }
     }
 
-    pub fn pulses_to_duration(&self, event_pulses: u64, pulses_per_quarter_note: u16) -> Duration {
+    pub fn pulses_to_duration(&self, event_pulses: u64) -> Duration {
         let mut res = Duration::ZERO;
 
         let mut hit = false;
@@ -66,7 +72,7 @@ impl TempoTrack {
 
         let event_pulses = event_pulses;
 
-        for tempo_event in self.0.iter() {
+        for tempo_event in self.events.iter() {
             let tempo_event_pulses = tempo_event.absolute_pulses;
 
             // If the time we're asking to convert is still beyond
@@ -79,7 +85,7 @@ impl TempoTrack {
                 event_pulses - last_tempo_event_pulses
             };
 
-            res += pulse_to_duration(delta_pulses, running_tempo, pulses_per_quarter_note);
+            res += pulse_to_duration(delta_pulses, running_tempo, self.pulses_per_quarter_note);
 
             // If the time we're calculating is before the tempo event we're
             // looking at, we're done.
@@ -93,7 +99,11 @@ impl TempoTrack {
 
         if !hit {
             let remaining_pulses = event_pulses - last_tempo_event_pulses;
-            res += pulse_to_duration(remaining_pulses, running_tempo, pulses_per_quarter_note);
+            res += pulse_to_duration(
+                remaining_pulses,
+                running_tempo,
+                self.pulses_per_quarter_note,
+            );
         }
 
         res

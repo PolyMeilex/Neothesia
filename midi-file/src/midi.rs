@@ -33,7 +33,7 @@ impl Midi {
             return Err(String::from("Midi File Has No Tracks"));
         }
 
-        let tempo_track = TempoTrack::build(&smf.tracks);
+        let tempo_track = TempoTrack::build(&smf.tracks, u_per_quarter_note);
 
         let mut track_color_id = 0;
         let tracks: Vec<MidiTrack> = smf
@@ -41,8 +41,7 @@ impl Midi {
             .iter()
             .enumerate()
             .map(|(id, events)| {
-                let track =
-                    MidiTrack::new(id, track_color_id, &tempo_track, events, u_per_quarter_note);
+                let track = MidiTrack::new(id, track_color_id, &tempo_track, events);
 
                 if !track.notes.is_empty() {
                     track_color_id += 1;

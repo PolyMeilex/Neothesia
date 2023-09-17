@@ -66,28 +66,13 @@ impl MidiTrack {
         track_color_id: usize,
         tempo_track: &TempoTrack,
         track_events: &[TrackEvent],
-        pulses_per_quarter_note: u16,
     ) -> Self {
         std::thread::scope(|tb| {
-            let notes = tb.spawn(|| {
-                build_notes(
-                    track_id,
-                    track_color_id,
-                    tempo_track,
-                    track_events,
-                    pulses_per_quarter_note,
-                )
-            });
+            let notes =
+                tb.spawn(|| build_notes(track_id, track_color_id, tempo_track, track_events));
 
-            let events = tb.spawn(|| {
-                build_events(
-                    track_id,
-                    track_color_id,
-                    tempo_track,
-                    track_events,
-                    pulses_per_quarter_note,
-                )
-            });
+            let events =
+                tb.spawn(|| build_events(track_id, track_color_id, tempo_track, track_events));
 
             let notes = notes.join().unwrap();
             let (events, programs, has_drums, has_other_than_drums) = events.join().unwrap();
@@ -111,7 +96,6 @@ fn build_notes(
     track_color_id: usize,
     tempo_track: &TempoTrack,
     track_events: &[TrackEvent],
-    pulses_per_quarter_note: u16,
 ) -> Vec<MidiNote> {
     struct NoteInfo {
         velocity: u8,
@@ -139,8 +123,8 @@ fn build_notes(
                 let start = active.pulses;
                 let end = pulses;
 
-                let start = tempo_track.pulses_to_duration(start, pulses_per_quarter_note);
-                let end = tempo_track.pulses_to_duration(end, pulses_per_quarter_note);
+                let start = tempo_track.pulses_to_duration(start);
+                let end = tempo_track.pulses_to_duration(end);
                 let duration = end - start;
 
                 let note = MidiNote {
@@ -179,7 +163,6 @@ fn build_events(
     track_color_id: usize,
     tempo_track: &TempoTrack,
     track_events: &[TrackEvent],
-    pulses_per_quarter_note: u16,
 ) -> (Vec<MidiEvent>, Vec<ProgramEvent>, bool, bool) {
     let mut programs = Vec::new();
     let mut has_drums = false;
@@ -192,7 +175,7 @@ fn build_events(
             pulses += event.delta.as_int() as u64;
             match event.kind {
                 TrackEventKind::Midi { channel, message } => {
-                    let timestamp = tempo_track.pulses_to_duration(pulses, pulses_per_quarter_note);
+                    let timestamp = tempo_track.pulses_to_duration(pulses);
 
                     let message = match message {
                         midly::MidiMessage::NoteOn { key, vel } => {

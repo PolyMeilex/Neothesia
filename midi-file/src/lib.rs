@@ -1,11 +1,11 @@
 mod midi;
 pub mod playback;
 pub mod program_map;
+mod tempo_track;
 mod track;
-mod utils;
 
 pub use midly;
-pub use {midi::*, playback::*, track::*, utils::*};
+pub use {midi::*, playback::*, track::*};
 
 pub static INSTRUMENT_NAMES: [&str; 128] = [
     "Acoustic Grand Piano",

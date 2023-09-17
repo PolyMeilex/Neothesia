@@ -1,4 +1,4 @@
-use crate::{program_map::ProgramMap, utils, MidiTrack};
+use crate::{program_map::ProgramMap, tempo_track::TempoTrack, MidiTrack};
 use midly::{Format, Smf, Timing};
 use std::{fs, path::Path};
 
@@ -33,7 +33,7 @@ impl Midi {
             return Err(String::from("Midi File Has No Tracks"));
         }
 
-        let tempo_track = utils::TempoTrack::build(&smf.tracks);
+        let tempo_track = TempoTrack::build(&smf.tracks);
 
         let mut track_color_id = 0;
         let tracks: Vec<MidiTrack> = smf

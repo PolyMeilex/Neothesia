@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{pulses_to_duration, TempoTrack};
+use crate::tempo_track::TempoTrack;
 
 use {
     midly::{MidiMessage, TrackEvent, TrackEventKind},
@@ -64,14 +64,14 @@ impl MidiTrack {
     pub fn new(
         track_id: usize,
         track_color_id: usize,
-        tempo_events: &TempoTrack,
+        tempo_track: &TempoTrack,
         track_events: &[TrackEvent],
         pulses_per_quarter_note: u16,
     ) -> Self {
         let notes = build_notes(
             track_id,
             track_color_id,
-            tempo_events,
+            tempo_track,
             track_events,
             pulses_per_quarter_note,
         );
@@ -88,7 +88,7 @@ impl MidiTrack {
                 match event.kind {
                     TrackEventKind::Midi { channel, message } => {
                         let timestamp =
-                            pulses_to_duration(tempo_events, pulses, pulses_per_quarter_note);
+                            tempo_track.pulses_to_duration(pulses, pulses_per_quarter_note);
 
                         let message = match message {
                             midly::MidiMessage::NoteOn { key, vel } => {
@@ -145,7 +145,7 @@ impl MidiTrack {
 fn build_notes(
     track_id: usize,
     track_color_id: usize,
-    tempo_events: &TempoTrack,
+    tempo_track: &TempoTrack,
     track_events: &[TrackEvent],
     pulses_per_quarter_note: u16,
 ) -> Vec<MidiNote> {
@@ -175,8 +175,8 @@ fn build_notes(
                 let start = active.pulses;
                 let end = pulses;
 
-                let start = pulses_to_duration(tempo_events, start, pulses_per_quarter_note);
-                let end = pulses_to_duration(tempo_events, end, pulses_per_quarter_note);
+                let start = tempo_track.pulses_to_duration(start, pulses_per_quarter_note);
+                let end = tempo_track.pulses_to_duration(end, pulses_per_quarter_note);
                 let duration = end - start;
 
                 let note = MidiNote {

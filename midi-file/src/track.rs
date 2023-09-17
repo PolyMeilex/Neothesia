@@ -68,77 +68,41 @@ impl MidiTrack {
         track_events: &[TrackEvent],
         pulses_per_quarter_note: u16,
     ) -> Self {
-        let notes = build_notes(
-            track_id,
-            track_color_id,
-            tempo_track,
-            track_events,
-            pulses_per_quarter_note,
-        );
+        std::thread::scope(|tb| {
+            let notes = tb.spawn(|| {
+                build_notes(
+                    track_id,
+                    track_color_id,
+                    tempo_track,
+                    track_events,
+                    pulses_per_quarter_note,
+                )
+            });
 
-        let mut programs = Vec::new();
-        let mut has_drums = false;
-        let mut has_other_than_drums = false;
+            let events = tb.spawn(|| {
+                build_events(
+                    track_id,
+                    track_color_id,
+                    tempo_track,
+                    track_events,
+                    pulses_per_quarter_note,
+                )
+            });
 
-        let mut pulses: u64 = 0;
-        let events = track_events
-            .iter()
-            .filter_map(|event| {
-                pulses += event.delta.as_int() as u64;
-                match event.kind {
-                    TrackEventKind::Midi { channel, message } => {
-                        let timestamp =
-                            tempo_track.pulses_to_duration(pulses, pulses_per_quarter_note);
+            let notes = notes.join().unwrap();
+            let (events, programs, has_drums, has_other_than_drums) = events.join().unwrap();
 
-                        let message = match message {
-                            midly::MidiMessage::NoteOn { key, vel } => {
-                                if channel == 9 || channel == 15 {
-                                    has_drums = true;
-                                } else {
-                                    has_other_than_drums = true;
-                                }
+            Self {
+                track_id,
+                track_color_id,
+                notes,
+                events,
 
-                                if vel.as_int() > 0 {
-                                    message
-                                } else {
-                                    midly::MidiMessage::NoteOff { key, vel }
-                                }
-                            }
-                            midly::MidiMessage::ProgramChange { program } => {
-                                programs.push(ProgramEvent {
-                                    timestamp,
-                                    channel: channel.as_int(),
-                                    program: program.as_int(),
-                                });
-                                message
-                            }
-                            message => message,
-                        };
-
-                        Some(MidiEvent {
-                            channel: channel.as_int(),
-                            delta: event.delta.as_int(),
-                            timestamp,
-                            message,
-                            track_id,
-                            track_color_id,
-                        })
-                    }
-                    _ => None,
-                }
-            })
-            .collect();
-
-        Self {
-            track_id,
-            track_color_id,
-            notes,
-            events,
-
-            programs,
-            has_drums,
-            has_other_than_drums,
-        }
+                programs,
+                has_drums,
+                has_other_than_drums,
+            }
+        })
     }
 }
 
@@ -208,4 +172,66 @@ fn build_notes(
     }
 
     notes
+}
+
+fn build_events(
+    track_id: usize,
+    track_color_id: usize,
+    tempo_track: &TempoTrack,
+    track_events: &[TrackEvent],
+    pulses_per_quarter_note: u16,
+) -> (Vec<MidiEvent>, Vec<ProgramEvent>, bool, bool) {
+    let mut programs = Vec::new();
+    let mut has_drums = false;
+    let mut has_other_than_drums = false;
+
+    let mut pulses: u64 = 0;
+    let events = track_events
+        .iter()
+        .filter_map(|event| {
+            pulses += event.delta.as_int() as u64;
+            match event.kind {
+                TrackEventKind::Midi { channel, message } => {
+                    let timestamp = tempo_track.pulses_to_duration(pulses, pulses_per_quarter_note);
+
+                    let message = match message {
+                        midly::MidiMessage::NoteOn { key, vel } => {
+                            if channel == 9 || channel == 15 {
+                                has_drums = true;
+                            } else {
+                                has_other_than_drums = true;
+                            }
+
+                            if vel.as_int() > 0 {
+                                message
+                            } else {
+                                midly::MidiMessage::NoteOff { key, vel }
+                            }
+                        }
+                        midly::MidiMessage::ProgramChange { program } => {
+                            programs.push(ProgramEvent {
+                                timestamp,
+                                channel: channel.as_int(),
+                                program: program.as_int(),
+                            });
+                            message
+                        }
+                        message => message,
+                    };
+
+                    Some(MidiEvent {
+                        channel: channel.as_int(),
+                        delta: event.delta.as_int(),
+                        timestamp,
+                        message,
+                        track_id,
+                        track_color_id,
+                    })
+                }
+                _ => None,
+            }
+        })
+        .collect();
+
+    (events, programs, has_drums, has_other_than_drums)
 }

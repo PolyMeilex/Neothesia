@@ -57,10 +57,17 @@ impl Target {
             window_state.scale_factor,
         );
 
+        let config = Config::new();
         let args: Vec<String> = std::env::args().collect();
 
         let midi_file = if args.len() > 1 {
             if let Ok(midi) = midi_file::Midi::new(&args[1]) {
+                Some(Rc::new(midi))
+            } else {
+                None
+            }
+        } else if let Some(last) = config.last_opened_song.as_ref() {
+            if let Ok(midi) = midi_file::Midi::new(last) {
                 Some(Rc::new(midi))
             } else {
                 None
@@ -82,7 +89,7 @@ impl Target {
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),
             midi_file,
-            config: Config::new(),
+            config,
             proxy,
         }
     }

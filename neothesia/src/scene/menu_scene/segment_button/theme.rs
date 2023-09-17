@@ -53,7 +53,6 @@ impl iced_style::button::StyleSheet for SegmentButtonStyle {
             background.r += 0.05;
             background.g += 0.05;
             background.b += 0.05;
-        } else {
         }
 
         active

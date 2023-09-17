@@ -26,6 +26,13 @@ pub struct TempoEvent {
 }
 
 #[derive(Debug, Clone)]
+pub struct ProgramEvent {
+    pub channel: u8,
+    pub timestamp: Duration,
+    pub program: u8,
+}
+
+#[derive(Debug, Clone)]
 pub struct MidiNote {
     pub start: Duration,
     pub end: Duration,
@@ -47,6 +54,10 @@ pub struct MidiTrack {
 
     pub track_id: usize,
     pub track_color_id: usize,
+
+    pub programs: Vec<ProgramEvent>,
+    pub has_drums: bool,
+    pub has_other_than_drums: bool,
 }
 
 impl MidiTrack {
@@ -65,6 +76,10 @@ impl MidiTrack {
             pulses_per_quarter_note,
         );
 
+        let mut programs = Vec::new();
+        let mut has_drums = false;
+        let mut has_other_than_drums = false;
+
         let mut pulses: u64 = 0;
         let events = track_events
             .iter()
@@ -72,13 +87,30 @@ impl MidiTrack {
                 pulses += event.delta.as_int() as u64;
                 match event.kind {
                     TrackEventKind::Midi { channel, message } => {
+                        let timestamp =
+                            pulses_to_duration(tempo_events, pulses, pulses_per_quarter_note);
+
                         let message = match message {
                             midly::MidiMessage::NoteOn { key, vel } => {
+                                if channel == 9 || channel == 15 {
+                                    has_drums = true;
+                                } else {
+                                    has_other_than_drums = true;
+                                }
+
                                 if vel.as_int() > 0 {
                                     message
                                 } else {
                                     midly::MidiMessage::NoteOff { key, vel }
                                 }
+                            }
+                            midly::MidiMessage::ProgramChange { program } => {
+                                programs.push(ProgramEvent {
+                                    timestamp,
+                                    channel: channel.as_int(),
+                                    program: program.as_int(),
+                                });
+                                message
                             }
                             message => message,
                         };
@@ -86,11 +118,7 @@ impl MidiTrack {
                         Some(MidiEvent {
                             channel: channel.as_int(),
                             delta: event.delta.as_int(),
-                            timestamp: pulses_to_duration(
-                                tempo_events,
-                                pulses,
-                                pulses_per_quarter_note,
-                            ),
+                            timestamp,
                             message,
                             track_id,
                             track_color_id,
@@ -106,6 +134,10 @@ impl MidiTrack {
             track_color_id,
             notes,
             events,
+
+            programs,
+            has_drums,
+            has_other_than_drums,
         }
     }
 }

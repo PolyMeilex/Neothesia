@@ -426,8 +426,20 @@ impl<'a> Step {
         let mut tracks = Vec::new();
         if let Some(midi) = data.midi_file.as_ref() {
             for track in midi.tracks.iter().filter(|t| !t.notes.is_empty()) {
-                let color = &data.color_schema[track.track_color_id % data.color_schema.len()].base;
-                let color = iced_core::Color::from_rgb8(color.0, color.1, color.2);
+                let (color, name) = if track.has_drums && !track.has_other_than_drums {
+                    (iced_core::Color::from_rgb8(102, 102, 102), "Percussion")
+                } else {
+                    let color_id = track.track_color_id % data.color_schema.len();
+                    let color = &data.color_schema[color_id].base;
+                    let color = iced_core::Color::from_rgb8(color.0, color.1, color.2);
+
+                    let instrument_id = track
+                        .programs
+                        .last()
+                        .map(|p| p.program as usize)
+                        .unwrap_or(0);
+                    (color, midi_file::INSTRUMENT_NAMES[instrument_id])
+                };
 
                 let body = segment_button::segment_button()
                     .button("Mute", Message::Tick)
@@ -437,7 +449,7 @@ impl<'a> Step {
                     .active_color(color)
                     .build();
                 let card = track_card::track_card()
-                    .title("Grand Piano")
+                    .title(name)
                     .subtitle(format!("{} Notes", track.notes.len()))
                     .track_color(color)
                     .body(body)

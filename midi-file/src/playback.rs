@@ -1,6 +1,4 @@
-use std::{collections::HashSet, time::Duration};
-
-use midly::MidiMessage;
+use std::time::Duration;
 
 use crate::{MidiEvent, MidiTrack};
 
@@ -19,8 +17,6 @@ pub struct PlaybackState {
 
     first_note_start: Duration,
     last_note_end: Duration,
-
-    active_notes: HashSet<ActiveNote>,
 }
 
 impl PlaybackState {
@@ -44,42 +40,21 @@ impl PlaybackState {
 
             first_note_start,
             last_note_end,
-
-            active_notes: Default::default(),
         }
     }
 
-    pub fn update(&mut self, track: &MidiTrack, delta: Duration) -> Vec<MidiEvent> {
+    pub fn update<'a>(&mut self, track: &'a MidiTrack, delta: Duration) -> Vec<&'a MidiEvent> {
         if !self.is_paused {
             self.running += delta;
         }
 
-        track
-            .events
+        let events: Vec<_> = track.events[self.seen_events..]
             .iter()
-            .skip(self.seen_events)
-            .filter(|event| event.timestamp + self.leed_in <= self.running)
-            .map(|event| {
-                let event = event.clone();
-                self.seen_events += 1;
-                event
-            })
-            .inspect(|event| match event.message {
-                MidiMessage::NoteOn { key, .. } => {
-                    self.active_notes.insert(ActiveNote {
-                        key: key.as_int(),
-                        channel: event.channel,
-                    });
-                }
-                MidiMessage::NoteOff { key, .. } => {
-                    self.active_notes.remove(&ActiveNote {
-                        key: key.as_int(),
-                        channel: event.channel,
-                    });
-                }
-                _ => {}
-            })
-            .collect()
+            .take_while(|event| event.timestamp + self.leed_in <= self.running)
+            .collect();
+
+        self.seen_events += events.len();
+        events
     }
 
     pub fn is_paused(&self) -> bool {
@@ -107,10 +82,6 @@ impl PlaybackState {
         self.running.as_secs_f32() / self.lenght().as_secs_f32()
     }
 
-    pub fn active_notes(&self) -> &HashSet<ActiveNote> {
-        &self.active_notes
-    }
-
     pub fn leed_in(&self) -> &Duration {
         &self.leed_in
     }
@@ -130,6 +101,5 @@ impl PlaybackState {
     pub fn reset(&mut self) {
         self.running = Duration::ZERO;
         self.seen_events = 0;
-        self.active_notes.clear();
     }
 }

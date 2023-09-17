@@ -42,7 +42,7 @@ impl MidiPlayer {
         &mut self,
         target: &mut Target,
         delta: Duration,
-    ) -> Option<Vec<midi_file::MidiEvent>> {
+    ) -> Option<Vec<&midi_file::MidiEvent>> {
         self.play_along.update();
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;

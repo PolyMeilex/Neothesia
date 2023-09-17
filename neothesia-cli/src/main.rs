@@ -269,7 +269,7 @@ fn main() {
 fn file_midi_events(
     keyboard: &mut KeyboardRenderer,
     config: &Config,
-    events: &[midi_file::MidiEvent],
+    events: &[&midi_file::MidiEvent],
 ) {
     use midi_file::midly::MidiMessage;
 

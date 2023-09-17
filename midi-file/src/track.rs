@@ -21,6 +21,7 @@ pub struct MidiEvent {
 pub struct TempoEvent {
     pub absolute_pulses: u64,
     pub relative_pulses: u64,
+    pub timestamp: Duration,
     /// Tempo in microseconds per quarter note.
     pub tempo: u32,
 }

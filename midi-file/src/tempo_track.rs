@@ -32,6 +32,7 @@ impl TempoTrack {
                         TempoEvent {
                             absolute_pulses: pulses,
                             relative_pulses: 0,
+                            timestamp: Duration::ZERO,
                             tempo: t.as_int(),
                         },
                     );
@@ -43,19 +44,25 @@ impl TempoTrack {
         tempo_events.sort_by_key(|e| e.absolute_pulses);
 
         let mut previous_absolute_pulses = 0u64;
-        let tempo_events: Vec<_> = tempo_events
-            .into_iter()
-            .map(|mut e| {
-                let absolute_pulses = e.absolute_pulses;
+        let mut running_tempo = 500_000;
+        let mut res = Duration::ZERO;
 
-                let relative = absolute_pulses - previous_absolute_pulses;
-                previous_absolute_pulses = absolute_pulses;
+        for tempo_event in tempo_events.iter_mut() {
+            let tempo_event_pulses = tempo_event.absolute_pulses;
 
-                e.relative_pulses = relative;
+            tempo_event.relative_pulses = tempo_event_pulses - previous_absolute_pulses;
 
-                e
-            })
-            .collect();
+            res += pulse_to_duration(
+                tempo_event.relative_pulses,
+                running_tempo,
+                pulses_per_quarter_note,
+            );
+
+            tempo_event.timestamp = res;
+
+            running_tempo = tempo_event.tempo;
+            previous_absolute_pulses = tempo_event_pulses;
+        }
 
         TempoTrack {
             pulses_per_quarter_note,
@@ -67,7 +74,7 @@ impl TempoTrack {
         let mut res = Duration::ZERO;
 
         let mut hit = false;
-        let mut last_tempo_event_pulses = 0u64;
+        let mut previous_absolute_pulses = 0u64;
         let mut running_tempo = 500_000;
 
         let event_pulses = event_pulses;
@@ -78,27 +85,24 @@ impl TempoTrack {
             // If the time we're asking to convert is still beyond
             // this tempo event, just add the last time slice (at
             // the previous tempo) to the running wall-clock time.
-            let delta_pulses = if event_pulses > tempo_event_pulses {
-                tempo_event_pulses - last_tempo_event_pulses
+            if event_pulses > tempo_event_pulses {
+                res = tempo_event.timestamp;
+
+                running_tempo = tempo_event.tempo;
+                previous_absolute_pulses = tempo_event_pulses;
             } else {
                 hit = true;
-                event_pulses - last_tempo_event_pulses
-            };
+                let delta_pulses = event_pulses - previous_absolute_pulses;
+                res += pulse_to_duration(delta_pulses, running_tempo, self.pulses_per_quarter_note);
 
-            res += pulse_to_duration(delta_pulses, running_tempo, self.pulses_per_quarter_note);
-
-            // If the time we're calculating is before the tempo event we're
-            // looking at, we're done.
-            if hit {
+                // If the time we're calculating is before the tempo event we're
+                // looking at, we're done.
                 break;
             }
-
-            running_tempo = tempo_event.tempo;
-            last_tempo_event_pulses = tempo_event_pulses;
         }
 
         if !hit {
-            let remaining_pulses = event_pulses - last_tempo_event_pulses;
+            let remaining_pulses = event_pulses - previous_absolute_pulses;
             res += pulse_to_duration(
                 remaining_pulses,
                 running_tempo,

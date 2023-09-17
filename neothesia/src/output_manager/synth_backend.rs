@@ -187,7 +187,14 @@ impl OutputConnection for SynthOutputConnection {
     }
 
     fn stop_all(&mut self) {
-        self.tx.send(oxisynth::MidiEvent::SystemReset).ok();
+        for channel in 0..16 {
+            self.tx
+                .send(oxisynth::MidiEvent::AllNotesOff { channel })
+                .ok();
+            self.tx
+                .send(oxisynth::MidiEvent::AllSoundOff { channel })
+                .ok();
+        }
     }
 }
 

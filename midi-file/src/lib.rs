@@ -1,5 +1,6 @@
 mod midi;
 pub mod playback;
+pub mod program_map;
 mod track;
 mod utils;
 

@@ -26,6 +26,10 @@ impl MidiPlayer {
             midi_file: midi_file.clone(),
             play_along: PlayAlong::new(user_keyboard_range),
         };
+        // Let's reset programs,
+        // for timestamp 0 most likely all programs will be 0, so this should clean any leftovers
+        // from previous songs
+        player.send_midi_programs_for_timestamp(&player.playback.time());
         player.update(target, Duration::ZERO);
 
         player
@@ -106,6 +110,23 @@ impl MidiPlayer {
         self.playback.resume();
     }
 
+    fn send_midi_programs_for_timestamp(&self, time: &Duration) {
+        for (&channel, &p) in self.midi_file.program_map.program_for_timestamp(time) {
+            self.output_manager
+                .borrow_mut()
+                .midi_event(&midi_file::MidiEvent {
+                    channel,
+                    delta: 0,
+                    timestamp: Duration::ZERO,
+                    message: midi_file::midly::MidiMessage::ProgramChange {
+                        program: midi_file::midly::num::u7::new(p),
+                    },
+                    track_id: 0,
+                    track_color_id: 0,
+                });
+        }
+    }
+
     fn set_time(&mut self, time: Duration) {
         self.playback.set_time(time);
 
@@ -116,6 +137,7 @@ impl MidiPlayer {
         std::mem::drop(events);
 
         self.clear();
+        self.send_midi_programs_for_timestamp(&time);
     }
 
     pub fn rewind(&mut self, delta: i64) {

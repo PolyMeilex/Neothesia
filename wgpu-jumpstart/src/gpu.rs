@@ -51,6 +51,10 @@ impl Gpu {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     features: wgpu::Features::empty(),
+                    #[cfg(target_family = "wasm")]
+                    limits: wgpu::Limits::downlevel_webgl2_defaults()
+                        .using_resolution(adapter.limits()),
+                    #[cfg(not(target_family = "wasm"))]
                     limits: wgpu::Limits {
                         max_compute_workgroup_storage_size: 0,
                         max_compute_invocations_per_workgroup: 0,

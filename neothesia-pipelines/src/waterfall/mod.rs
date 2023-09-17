@@ -26,7 +26,7 @@ impl<'a> WaterfallPipeline {
         let shader = gpu
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("RectanglePipeline::shader"),
+                label: Some("waterfall::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
                     "./shader.wgsl"
                 ))),
@@ -41,7 +41,7 @@ impl<'a> WaterfallPipeline {
         let render_pipeline_layout =
             &gpu.device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: None,
+                    label: Some("waterfall::pipeline"),
                     bind_group_layouts: &[
                         &transform_uniform.bind_group_layout,
                         &time_uniform.bind_group_layout,
@@ -106,10 +106,18 @@ impl<'a> WaterfallPipeline {
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct TimeUniform {
     time: f32,
+    _pad1: f32,
+    _pad2: f32,
+    _pad3: f32,
 }
 
 impl Default for TimeUniform {
     fn default() -> Self {
-        Self { time: 0.0 }
+        Self {
+            time: 0.0,
+            _pad1: 0.0,
+            _pad2: 0.0,
+            _pad3: 0.0,
+        }
     }
 }

@@ -17,7 +17,11 @@ impl Midi {
             Err(_) => return Err(String::from("Could Not Open File")),
         };
 
-        let smf = match Smf::parse(&data) {
+        Self::new_from_bytes(&data)
+    }
+
+    pub fn new_from_bytes(data: &[u8]) -> Result<Self, String> {
+        let smf = match Smf::parse(data) {
             Ok(smf) => smf,
             Err(_) => return Err(String::from("Midi Parsing Error (midly lib)")),
         };

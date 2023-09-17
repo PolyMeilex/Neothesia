@@ -48,6 +48,9 @@ pub fn default_sf2() -> Option<PathBuf> {
 
     #[cfg(target_os = "macos")]
     return bundled_resource_path("default", "sf2").map(PathBuf::from);
+
+    #[cfg(target_family = "wasm")]
+    return None;
 }
 
 pub fn settings_ron() -> Option<PathBuf> {
@@ -59,6 +62,9 @@ pub fn settings_ron() -> Option<PathBuf> {
 
     #[cfg(target_os = "macos")]
     return bundled_resource_path("settings", "ron").map(PathBuf::from);
+
+    #[cfg(target_family = "wasm")]
+    return None;
 }
 
 #[cfg(target_os = "macos")]

@@ -1,0 +1,25 @@
+[package]
+name = "neothesia-web"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+neothesia-core = { workspace = true }
+wgpu = { workspace = true, features = ["webgl"] }
+wgpu-jumpstart = { workspace = true }
+
+winit = { version = "0.28.2" }
+env_logger = { workspace = true }
+pollster = "0.3.0"
+console_log = "1.0.0"
+web-sys = "0.3.61"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4.34"
+console_error_panic_hook = "0.1.7"
+
+midi-file = { workspace = true }
+piano-math = { workspace = true }
+log = { workspace = true }
+instant = "0.1.12"
+
+getrandom = { version = "0.2", features = ["js"] }

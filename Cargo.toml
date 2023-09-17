@@ -11,6 +11,7 @@ members = [
 ]
 
 default-members = ["neothesia"]
+resolver = "2"
 
 [workspace.dependencies]
 wgpu = "0.16.1"

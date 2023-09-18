@@ -39,6 +39,10 @@ impl ToastManager {
         self.toast(format!("Speed: {}", (speed * 100.0).round() / 100.0));
     }
 
+    pub fn animation_speed_toast(&mut self, speed: f32) {
+        self.toast(format!("Animation Speed: {}", speed));
+    }
+
     pub fn offset_toast(&mut self, offset: f32) {
         self.toast(format!("Offset: {}", (offset * 100.0).round() / 100.0));
     }

@@ -21,8 +21,15 @@ impl WaterfallRenderer {
         let notes_pipeline =
             WaterfallPipeline::new(gpu, transform_uniform, midi.merged_track.notes.len());
         let mut notes = Self { notes_pipeline };
+        notes
+            .notes_pipeline
+            .set_speed(&gpu.queue, config.animation_speed);
         notes.resize(&gpu.queue, midi, config, layout);
         notes
+    }
+
+    pub fn pipeline(&mut self) -> &mut WaterfallPipeline {
+        &mut self.notes_pipeline
     }
 
     pub fn resize(

@@ -79,7 +79,15 @@ impl TempoTrack {
 
         let event_pulses = event_pulses;
 
-        for tempo_event in self.events.iter() {
+        let id = match self
+            .events
+            .binary_search_by_key(&event_pulses, |e| e.absolute_pulses)
+        {
+            Ok(id) => id.saturating_sub(1),
+            Err(id) => id.saturating_sub(1),
+        };
+
+        for tempo_event in self.events.iter().skip(id) {
             let tempo_event_pulses = tempo_event.absolute_pulses;
 
             // If the time we're asking to convert is still beyond

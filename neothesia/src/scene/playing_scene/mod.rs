@@ -183,7 +183,7 @@ impl Scene for PlayingScene {
                 self.rewind_controler
                     .handle_keyboard_input(&mut self.player, input);
 
-                settings_keyboard_input(target, &mut self.toast_manager, input);
+                settings_keyboard_input(target, &mut self.toast_manager, input, &mut self.notes);
 
                 if input.state == ElementState::Released {
                     match input.virtual_keycode {
@@ -231,6 +231,7 @@ fn settings_keyboard_input(
     target: &mut Target,
     toast_manager: &mut ToastManager,
     input: &KeyboardInput,
+    waterfall: &mut WaterfallRenderer,
 ) {
     use winit::event::{ElementState, VirtualKeyCode};
 
@@ -260,6 +261,26 @@ fn settings_keyboard_input(
             }
 
             toast_manager.speed_toast(target.config.speed_multiplier);
+        }
+
+        VirtualKeyCode::PageUp | VirtualKeyCode::PageDown => {
+            let amount = if target.window_state.modifers_state.shift() {
+                500.0
+            } else {
+                100.0
+            };
+
+            if virtual_keycode == VirtualKeyCode::PageUp {
+                target.config.animation_speed += amount;
+            } else {
+                target.config.animation_speed -= amount;
+                target.config.animation_speed = target.config.animation_speed.max(100.0);
+            }
+
+            waterfall
+                .pipeline()
+                .set_speed(&target.gpu.queue, target.config.animation_speed);
+            toast_manager.animation_speed_toast(target.config.animation_speed);
         }
 
         VirtualKeyCode::Minus | VirtualKeyCode::Plus | VirtualKeyCode::Equals => {

@@ -96,6 +96,15 @@ impl<'a> WaterfallPipeline {
         self.instances.update(queue);
     }
 
+    pub fn speed(&self) -> f32 {
+        self.time_uniform.data.speed
+    }
+
+    pub fn set_speed(&mut self, queue: &wgpu::Queue, speed: f32) {
+        self.time_uniform.data.speed = speed;
+        self.time_uniform.update(queue);
+    }
+
     pub fn update_time(&mut self, queue: &wgpu::Queue, time: f32) {
         self.time_uniform.data.time = time;
         self.time_uniform.update(queue);
@@ -106,10 +115,14 @@ impl<'a> WaterfallPipeline {
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct TimeUniform {
     time: f32,
+    speed: f32,
 }
 
 impl Default for TimeUniform {
     fn default() -> Self {
-        Self { time: 0.0 }
+        Self {
+            time: 0.0,
+            speed: 400.0,
+        }
     }
 }

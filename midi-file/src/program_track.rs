@@ -14,11 +14,11 @@ struct Bucket {
 }
 
 #[derive(Debug, Clone)]
-pub struct ProgramMap {
+pub struct ProgramTrack {
     timestamps: Vec<Bucket>,
 }
 
-impl ProgramMap {
+impl ProgramTrack {
     pub fn new(events: &[MidiEvent]) -> Self {
         let mut map = default_programs().clone();
 

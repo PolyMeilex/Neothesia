@@ -1,4 +1,4 @@
-use crate::{program_map::ProgramMap, tempo_track::TempoTrack, MidiTrack};
+use crate::{program_track::ProgramTrack, tempo_track::TempoTrack, MidiTrack};
 use midly::{Format, Smf, Timing};
 use std::{fs, path::Path};
 
@@ -7,7 +7,7 @@ pub struct Midi {
     pub format: Format,
     pub tracks: Vec<MidiTrack>,
     pub merged_track: MidiTrack,
-    pub program_map: ProgramMap,
+    pub program_map: ProgramTrack,
 }
 
 impl Midi {
@@ -70,7 +70,7 @@ impl Midi {
             note.id = i;
         }
 
-        let program_map = ProgramMap::new(&merged_track.events);
+        let program_map = ProgramTrack::new(&merged_track.events);
 
         Ok(Self {
             format: smf.header.format,

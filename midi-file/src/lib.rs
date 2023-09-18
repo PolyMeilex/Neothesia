@@ -1,6 +1,6 @@
 mod midi;
 pub mod playback;
-pub mod program_map;
+pub mod program_track;
 mod tempo_track;
 mod track;
 

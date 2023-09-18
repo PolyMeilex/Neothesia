@@ -70,55 +70,32 @@ impl TempoTrack {
         }
     }
 
-    pub fn pulses_to_duration(&self, event_pulses: u64) -> Duration {
-        let mut res = Duration::ZERO;
-
-        let mut hit = false;
-        let mut previous_absolute_pulses = 0u64;
-        let mut running_tempo = 500_000;
-
-        let event_pulses = event_pulses;
-
-        let id = match self
+    pub fn tempo_event_for_pulses(&self, pulses: u64) -> Option<&TempoEvent> {
+        let res = self
             .events
-            .binary_search_by_key(&event_pulses, |e| e.absolute_pulses)
-        {
-            Ok(id) => id.saturating_sub(1),
-            Err(id) => id.saturating_sub(1),
+            .binary_search_by_key(&pulses, |e| e.absolute_pulses);
+
+        let id = match res {
+            Ok(id) => Some(id),
+            Err(id) => id.checked_sub(1),
         };
 
-        for tempo_event in self.events.iter().skip(id) {
-            let tempo_event_pulses = tempo_event.absolute_pulses;
+        id.and_then(|id| self.events.get(id))
+    }
 
-            // If the time we're asking to convert is still beyond
-            // this tempo event, just add the last time slice (at
-            // the previous tempo) to the running wall-clock time.
-            if event_pulses > tempo_event_pulses {
-                res = tempo_event.timestamp;
+    pub fn pulses_to_duration(&self, event_pulses: u64) -> Duration {
+        let tempo_event = self.tempo_event_for_pulses(event_pulses);
 
-                running_tempo = tempo_event.tempo;
-                previous_absolute_pulses = tempo_event_pulses;
-            } else {
-                hit = true;
-                let delta_pulses = event_pulses - previous_absolute_pulses;
-                res += pulse_to_duration(delta_pulses, running_tempo, self.pulses_per_quarter_note);
+        let (res, previous_absolute_pulses, tempo) = if let Some(event) = tempo_event {
+            (event.timestamp, event.absolute_pulses, event.tempo)
+        } else {
+            // 120 BPM
+            let default_tempo = 500_000;
+            (Duration::ZERO, 0, default_tempo)
+        };
 
-                // If the time we're calculating is before the tempo event we're
-                // looking at, we're done.
-                break;
-            }
-        }
-
-        if !hit {
-            let remaining_pulses = event_pulses - previous_absolute_pulses;
-            res += pulse_to_duration(
-                remaining_pulses,
-                running_tempo,
-                self.pulses_per_quarter_note,
-            );
-        }
-
-        res
+        let delta_pulses = event_pulses - previous_absolute_pulses;
+        res + pulse_to_duration(delta_pulses, tempo, self.pulses_per_quarter_note)
     }
 }
 

@@ -1,17 +1,18 @@
+use midi_file::midly::MidiMessage;
+
 use crate::{config::Config, render::KeyboardRenderer};
 
-pub fn user_midi_event(keyboard: &mut KeyboardRenderer, event: &crate::midi_event::MidiEvent) {
-    use crate::midi_event::MidiEvent;
-
+pub fn user_midi_event(keyboard: &mut KeyboardRenderer, message: &MidiMessage) {
     let range_start = keyboard.range().start() as usize;
 
-    let (is_on, key) = match event {
-        MidiEvent::NoteOn { key, .. } => (true, key),
-        MidiEvent::NoteOff { key, .. } => (false, key),
+    let (is_on, key) = match message {
+        MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
+        MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+        _ => return,
     };
 
-    if keyboard.range().contains(*key) {
-        let id = *key as usize - range_start;
+    if keyboard.range().contains(key) {
+        let id = key as usize - range_start;
         let key = &mut keyboard.key_states_mut()[id];
 
         key.set_pressed_by_user(is_on);
@@ -24,8 +25,6 @@ pub fn file_midi_events(
     config: &Config,
     events: &[&midi_file::MidiEvent],
 ) {
-    use midi_file::midly::MidiMessage;
-
     let range_start = keyboard.range().start() as usize;
 
     for e in events {

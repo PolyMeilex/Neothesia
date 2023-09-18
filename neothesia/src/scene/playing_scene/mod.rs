@@ -1,3 +1,4 @@
+use midi_file::midly::MidiMessage;
 use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::Color;
@@ -5,7 +6,6 @@ use winit::event::{KeyboardInput, WindowEvent};
 
 use super::{Scene, SceneType};
 use crate::{
-    midi_event::MidiEvent,
     render::{KeyboardRenderer, WaterfallRenderer},
     target::Target,
     NeothesiaEvent,
@@ -209,21 +209,22 @@ impl Scene for PlayingScene {
         }
     }
 
-    fn midi_event(&mut self, _target: &mut Target, event: &MidiEvent) {
-        match event {
-            MidiEvent::NoteOn { key, .. } => self.player.play_along_mut().press_key(
+    fn midi_event(&mut self, _target: &mut Target, _channel: u8, message: &MidiMessage) {
+        match message {
+            MidiMessage::NoteOn { key, .. } => self.player.play_along_mut().press_key(
                 midi_player::KeyPressSource::User,
-                *key,
+                key.as_int(),
                 true,
             ),
-            MidiEvent::NoteOff { key, .. } => self.player.play_along_mut().press_key(
+            MidiMessage::NoteOff { key, .. } => self.player.play_along_mut().press_key(
                 midi_player::KeyPressSource::User,
-                *key,
+                key.as_int(),
                 false,
             ),
+            _ => {}
         }
 
-        keyboard_events::user_midi_event(&mut self.piano_keyboard, event);
+        keyboard_events::user_midi_event(&mut self.piano_keyboard, message);
     }
 }
 

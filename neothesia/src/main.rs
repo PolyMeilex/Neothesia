@@ -1,5 +1,5 @@
+use midi_file::midly::MidiMessage;
 use neothesia::{
-    midi_event::MidiEvent,
     scene::{menu_scene, playing_scene, Scene, SceneType},
     target::Target,
     utils::window::WindowState,
@@ -88,8 +88,9 @@ impl Neothesia {
         self.game_scene.window_event(&mut self.target, event);
     }
 
-    pub fn midi_event(&mut self, event: &MidiEvent) {
-        self.game_scene.midi_event(&mut self.target, event);
+    pub fn midi_event(&mut self, channel: u8, message: &MidiMessage) {
+        self.game_scene
+            .midi_event(&mut self.target, channel, message);
     }
 
     pub fn neothesia_event(&mut self, event: &NeothesiaEvent, control_flow: &mut ControlFlow) {
@@ -109,7 +110,7 @@ impl Neothesia {
                     self.game_scene = Box::new(to);
                 }
             },
-            NeothesiaEvent::MidiInput(event) => self.midi_event(event),
+            NeothesiaEvent::MidiInput { channel, message } => self.midi_event(*channel, message),
         }
     }
 

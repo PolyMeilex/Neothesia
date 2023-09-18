@@ -1861,15 +1861,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "midi"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "691e490e75c3fb13911f6a6458ae0e1f97d20e3c5674b454e1f30d2683f7ca74"
-dependencies = [
- "num",
-]
-
-[[package]]
 name = "midi-file"
 version = "0.1.0"
 dependencies = [
@@ -2025,7 +2016,6 @@ dependencies = [
  "iced_wgpu",
  "iced_widget",
  "log",
- "midi",
  "midi-file",
  "midi-io",
  "neothesia-core",

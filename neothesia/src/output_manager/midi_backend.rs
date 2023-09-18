@@ -2,13 +2,19 @@ use std::collections::HashSet;
 
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
-use midi::ToRawMessages;
-use midi_file::ActiveNote;
-use num::FromPrimitive;
+use midi_file::{
+    midly::{
+        self,
+        live::LiveEvent,
+        num::{u4, u7},
+    },
+    ActiveNote,
+};
 
 pub struct MidiOutputConnection {
     conn: midi_io::MidiOutputConnection,
     active_notes: HashSet<ActiveNote>,
+    buf: Vec<u8>,
 }
 
 impl From<midi_io::MidiOutputConnection> for MidiOutputConnection {
@@ -16,6 +22,7 @@ impl From<midi_io::MidiOutputConnection> for MidiOutputConnection {
         Self {
             conn,
             active_notes: Default::default(),
+            buf: Vec::with_capacity(8),
         }
     }
 }
@@ -64,30 +71,26 @@ impl OutputConnection for MidiOutputConnection {
             _ => {}
         }
 
-        let msg = libmidi_to_midi_event(msg);
-        if let Some(msg) = msg.to_raw_messages().first() {
-            match *msg {
-                midi::RawMessage::StatusData(a, b) => {
-                    self.conn.send(&[a, b]).ok();
-                }
-                midi::RawMessage::StatusDataData(a, b, c) => {
-                    self.conn.send(&[a, b, c]).ok();
-                }
-                _ => {}
-            }
-        }
+        let msg = to_live_midi_event(msg);
+        self.buf.clear();
+        msg.write(&mut self.buf).unwrap();
+
+        self.conn.send(&self.buf).ok();
     }
 
     fn stop_all(&mut self) {
         for note in std::mem::take(&mut self.active_notes).iter() {
-            use midi::utils::{mask7, status_byte};
+            let msg = LiveEvent::Midi {
+                channel: u4::new(note.channel),
+                message: midly::MidiMessage::NoteOff {
+                    key: u7::new(note.key),
+                    vel: u7::new(0),
+                },
+            };
+            self.buf.clear();
+            msg.write(&mut self.buf).unwrap();
 
-            let sb = status_byte(
-                midi::constants::NOTE_OFF,
-                midi::Channel::from_u8(note.channel).unwrap(),
-            );
-            let data = [sb, mask7(note.key), mask7(0)];
-            self.conn.send(&data).ok();
+            self.conn.send(&self.buf).ok();
         }
     }
 }
@@ -116,29 +119,9 @@ impl std::fmt::Display for MidiPortInfo {
     }
 }
 
-fn libmidi_to_midi_event(msg: &midi_file::MidiEvent) -> midi::Message {
-    use midi_file::midly;
-
-    let ch = midi::Channel::from_u8(msg.channel).unwrap();
-    match msg.message {
-        midly::MidiMessage::NoteOff { key, vel } => {
-            midi::Message::NoteOff(ch, key.as_int(), vel.as_int())
-        }
-        midly::MidiMessage::NoteOn { key, vel } => {
-            midi::Message::NoteOn(ch, key.as_int(), vel.as_int())
-        }
-        midly::MidiMessage::Aftertouch { key, vel } => {
-            midi::Message::PolyphonicPressure(ch, key.as_int(), vel.as_int())
-        }
-        midly::MidiMessage::Controller { controller, value } => {
-            midi::Message::ControlChange(ch, controller.as_int(), value.as_int())
-        }
-        midly::MidiMessage::ProgramChange { program } => {
-            midi::Message::ProgramChange(ch, program.as_int())
-        }
-        midly::MidiMessage::ChannelAftertouch { vel } => {
-            midi::Message::ChannelPressure(ch, vel.as_int())
-        }
-        midly::MidiMessage::PitchBend { bend } => midi::Message::PitchBend(ch, bend.0.as_int()),
+fn to_live_midi_event(msg: &midi_file::MidiEvent) -> midly::live::LiveEvent {
+    midly::live::LiveEvent::Midi {
+        channel: u4::new(msg.channel),
+        message: msg.message,
     }
 }

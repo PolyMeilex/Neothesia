@@ -1,3 +1,4 @@
+use midi_file::midly::{self, live::LiveEvent};
 use winit::event_loop::EventLoopProxy;
 
 use crate::{midi_event::MidiEvent, NeothesiaEvent};
@@ -25,39 +26,35 @@ impl InputManager {
     pub fn connect_input(&mut self, port: midi_io::MidiInputPort) {
         let tx = self.tx.clone();
         self.current_connection = midi_io::MidiInputManager::connect_input(port, move |message| {
-            if message.len() == 3 {
-                if message[0] >= 0x90 && message[0] <= 0x9F {
-                    let (s, ch) = midi::utils::from_status_byte(message[0]);
-                    assert_eq!(s, 9);
+            let event = LiveEvent::parse(message).unwrap();
 
-                    let key = message[1];
-                    let vel = message[2];
-
+            if let LiveEvent::Midi { channel, message } = event {
+                match message {
                     // Some keyboards send NoteOn event with vel 0 instead of NoteOff
-                    if vel == 0 {
+                    midly::MidiMessage::NoteOn { key, vel } if vel == 0 => {
                         tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOff {
-                            channel: ch as u8,
-                            key,
-                        }))
-                        .ok();
-                    } else {
-                        tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOn {
-                            channel: ch as u8,
-                            track_id: 0,
-                            key,
-                            vel,
+                            channel: channel.as_int(),
+                            key: key.as_int(),
                         }))
                         .ok();
                     }
-                } else if message[0] >= 0x80 && message[0] <= 0x8F {
-                    let (s, ch) = midi::utils::from_status_byte(message[0]);
-                    assert_eq!(s, 8);
-
-                    tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOff {
-                        channel: ch as u8,
-                        key: message[1],
-                    }))
-                    .ok();
+                    midly::MidiMessage::NoteOn { key, vel } => {
+                        tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOn {
+                            channel: channel.as_int(),
+                            track_id: 0,
+                            key: key.as_int(),
+                            vel: vel.as_int(),
+                        }))
+                        .ok();
+                    }
+                    midly::MidiMessage::NoteOff { key, .. } => {
+                        tx.send_event(NeothesiaEvent::MidiInput(MidiEvent::NoteOff {
+                            channel: channel.as_int(),
+                            key: key.as_int(),
+                        }))
+                        .ok();
+                    }
+                    _ => {}
                 }
             }
         });

@@ -124,15 +124,12 @@ impl Scene for PlayingScene {
     fn update(&mut self, target: &mut Target, delta: Duration) {
         if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
             self.rewind_controler.update(&mut self.player, target);
-            if let Some(midi_events) = self.player.update(target, delta) {
-                keyboard_events::file_midi_events(
-                    &mut self.piano_keyboard,
-                    &target.config,
-                    &midi_events,
-                );
-            } else {
-                self.piano_keyboard.reset_notes();
-            }
+            let midi_events = self.player.update(target, delta);
+            keyboard_events::file_midi_events(
+                &mut self.piano_keyboard,
+                &target.config,
+                &midi_events,
+            );
         }
 
         self.update_progresbar(target);
@@ -183,6 +180,10 @@ impl Scene for PlayingScene {
                 self.rewind_controler
                     .handle_keyboard_input(&mut self.player, input);
 
+                if self.rewind_controler.is_rewinding() {
+                    self.piano_keyboard.reset_notes();
+                }
+
                 settings_keyboard_input(target, &mut self.toast_manager, input, &mut self.notes);
 
                 if input.state == ElementState::Released {
@@ -200,6 +201,10 @@ impl Scene for PlayingScene {
             MouseInput { state, button, .. } => {
                 self.rewind_controler
                     .handle_mouse_input(&mut self.player, target, state, button);
+
+                if self.rewind_controler.is_rewinding() {
+                    self.piano_keyboard.reset_notes();
+                }
             }
             CursorMoved { position, .. } => {
                 self.rewind_controler

@@ -38,11 +38,7 @@ impl MidiPlayer {
     /// When playing: returns midi events
     ///
     /// When paused: returns None
-    pub fn update(
-        &mut self,
-        target: &mut Target,
-        delta: Duration,
-    ) -> Option<Vec<&midi_file::MidiEvent>> {
+    pub fn update(&mut self, target: &mut Target, delta: Duration) -> Vec<&midi_file::MidiEvent> {
         self.play_along.update();
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
@@ -70,11 +66,7 @@ impl MidiPlayer {
             }
         });
 
-        if self.playback.is_paused() {
-            None
-        } else {
-            Some(events)
-        }
+        events
     }
 
     fn clear(&mut self) {

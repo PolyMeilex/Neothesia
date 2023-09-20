@@ -17,7 +17,7 @@ impl RewindController {
         Self::None
     }
 
-    fn is_rewinding(&self) -> bool {
+    pub fn is_rewinding(&self) -> bool {
         !matches!(self, RewindController::None)
     }
 

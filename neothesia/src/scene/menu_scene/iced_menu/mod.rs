@@ -10,7 +10,6 @@ use iced_runtime::Command;
 use iced_widget::{
     button, checkbox, column as col, container, image, pick_list, row, text, vertical_space,
 };
-use neothesia_core::config;
 
 use crate::{
     iced_utils::iced_state::{Element, Program},
@@ -58,7 +57,6 @@ struct Data {
     is_loading: bool,
 
     logo_handle: ImageHandle,
-    color_schema: Vec<config::ColorSchema>,
 }
 
 pub struct AppUi {
@@ -81,7 +79,6 @@ impl AppUi {
                 is_loading: false,
 
                 logo_handle: ImageHandle::from_memory(include_bytes!("../img/banner.png").to_vec()),
-                color_schema: target.config.color_schema.clone(),
             },
         }
     }
@@ -425,15 +422,15 @@ impl<'a> Step {
         center_x(top_padded(column)).into()
     }
 
-    fn track_selection(data: &'a Data, target: &Target) -> Element<'a, Message> {
+    fn track_selection(_data: &'a Data, target: &Target) -> Element<'a, Message> {
         let mut tracks = Vec::new();
         if let Some(midi) = target.midi_file.as_ref() {
             for track in midi.tracks.iter().filter(|t| !t.notes.is_empty()) {
                 let (color, name) = if track.has_drums && !track.has_other_than_drums {
                     (iced_core::Color::from_rgb8(102, 102, 102), "Percussion")
                 } else {
-                    let color_id = track.track_color_id % data.color_schema.len();
-                    let color = &data.color_schema[color_id].base;
+                    let color_id = track.track_color_id % target.config.color_schema.len();
+                    let color = &target.config.color_schema[color_id].base;
                     let color = iced_core::Color::from_rgb8(color.0, color.1, color.2);
 
                     let instrument_id = track

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc};
+use std::path::PathBuf;
 
 use super::Renderer;
 use iced_core::{
@@ -98,7 +98,7 @@ impl Program for AppUi {
                 self.current = page;
             }
             Message::Play => {
-                if target.midi_file.is_some() {
+                if let Some(midi_file) = target.midi_file.as_ref() {
                     if let Some(out) = self.data.selected_output.clone() {
                         let out = match out {
                             #[cfg(feature = "synth")]
@@ -117,7 +117,9 @@ impl Program for AppUi {
 
                     target
                         .proxy
-                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
+                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play(
+                            midi_file.clone(),
+                        )))
                         .ok();
                 }
             }
@@ -128,7 +130,7 @@ impl Program for AppUi {
             Message::MidiFileLoaded(midi) => {
                 if let Some((midi, path)) = midi {
                     target.config.last_opened_song = Some(path);
-                    target.midi_file = Some(Rc::new(midi));
+                    target.midi_file = Some(midi);
                 }
                 self.data.is_loading = false;
             }

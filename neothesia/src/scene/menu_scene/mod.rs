@@ -26,7 +26,7 @@ type Renderer = iced_wgpu::Renderer<Theme>;
 
 #[derive(Debug)]
 pub enum Event {
-    Play,
+    Play(midi_file::Midi),
 }
 
 pub struct MenuScene {

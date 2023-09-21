@@ -2,9 +2,11 @@ use crate::config::Config;
 use crate::TransformUniform;
 use crate::Uniform;
 use midi_file::Midi;
-use neothesia_pipelines::waterfall::{NoteInstance, WaterfallPipeline};
 use wgpu_jumpstart::Color;
 use wgpu_jumpstart::Gpu;
+
+mod pipeline;
+use pipeline::{NoteInstance, WaterfallPipeline};
 
 pub struct WaterfallRenderer {
     notes_pipeline: WaterfallPipeline,

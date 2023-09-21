@@ -26,7 +26,6 @@ wgpu_glyph = "0.20.0"
 wgpu-jumpstart = { workspace = true }
 
 neothesia-core = { workspace = true }
-neothesia-pipelines = { path = "../neothesia-pipelines" }
 piano-math = { workspace = true }
 
 winit = "0.28.2"

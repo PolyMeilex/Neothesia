@@ -1,6 +1,9 @@
-use crate::{utils::Point, TransformUniform, Uniform};
+use crate::{
+    render::{QuadInstance, QuadPipeline},
+    utils::Point,
+    TransformUniform, Uniform,
+};
 
-use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
 use piano_math::range::KeyboardRange;
 use wgpu_glyph::{GlyphBrush, Section};
 

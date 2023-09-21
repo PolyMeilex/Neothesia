@@ -1,8 +1,8 @@
 use crate::{
     config::ColorSchema,
+    render::QuadInstance,
     utils::{Point, Size},
 };
-use neothesia_pipelines::quad::QuadInstance;
 use wgpu_jumpstart::Color;
 
 #[derive(Debug, Clone)]

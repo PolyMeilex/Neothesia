@@ -1,5 +1,5 @@
 use midi_file::midly::MidiMessage;
-use neothesia_pipelines::quad::{QuadInstance, QuadPipeline};
+use neothesia_core::render::{QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::Color;
 use winit::event::{KeyboardInput, WindowEvent};

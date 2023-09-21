@@ -1,8 +1,0 @@
-[package]
-name = "neothesia-pipelines"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-wgpu-jumpstart = { workspace = true }
-bytemuck = { workspace = true }

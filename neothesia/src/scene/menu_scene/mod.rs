@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use iced_menu::AppUi;
 use iced_style::Theme;
-use neothesia_pipelines::background_animation::BgPipeline;
+use neothesia_core::render::BgPipeline;
 
 use winit::event::WindowEvent;
 

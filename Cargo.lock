@@ -2019,7 +2019,6 @@ dependencies = [
  "midi-file",
  "midi-io",
  "neothesia-core",
- "neothesia-pipelines",
  "num",
  "oxisynth",
  "piano-math",
@@ -2049,9 +2048,9 @@ dependencies = [
 name = "neothesia-core"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "log",
  "midi-file",
- "neothesia-pipelines",
  "objc",
  "piano-math",
  "ron",
@@ -2059,14 +2058,6 @@ dependencies = [
  "wgpu",
  "wgpu-jumpstart",
  "wgpu_glyph",
-]
-
-[[package]]
-name = "neothesia-pipelines"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "wgpu-jumpstart",
 ]
 
 [[package]]

@@ -9,21 +9,23 @@ use std::{
 pub struct MidiPlayer {
     playback: midi_file::PlaybackState,
     output_manager: Rc<RefCell<OutputManager>>,
-    midi_file: Rc<midi_file::Midi>,
+    midi_file: midi_file::Midi,
     play_along: PlayAlong,
 }
 
 impl MidiPlayer {
-    pub fn new(target: &mut Target, user_keyboard_range: piano_math::KeyboardRange) -> Self {
-        let midi_file = target.midi_file.as_ref().unwrap();
-
+    pub fn new(
+        target: &Target,
+        midi_file: midi_file::Midi,
+        user_keyboard_range: piano_math::KeyboardRange,
+    ) -> Self {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
                 Duration::from_secs(3),
                 &midi_file.merged_track,
             ),
             output_manager: target.output_manager.clone(),
-            midi_file: midi_file.clone(),
+            midi_file,
             play_along: PlayAlong::new(user_keyboard_range),
         };
         // Let's reset programs,
@@ -38,7 +40,7 @@ impl MidiPlayer {
     /// When playing: returns midi events
     ///
     /// When paused: returns None
-    pub fn update(&mut self, target: &mut Target, delta: Duration) -> Vec<&midi_file::MidiEvent> {
+    pub fn update(&mut self, target: &Target, delta: Duration) -> Vec<&midi_file::MidiEvent> {
         self.play_along.update();
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;

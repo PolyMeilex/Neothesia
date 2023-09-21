@@ -26,7 +26,7 @@ type Renderer = iced_wgpu::Renderer<Theme>;
 
 #[derive(Debug)]
 pub enum Event {
-    Play,
+    Play(midi_file::Midi),
 }
 
 pub struct MenuScene {
@@ -40,11 +40,8 @@ pub struct MenuScene {
 impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
         let menu = AppUi::new(target);
-        let iced_state = iced_state::State::new(
-            menu,
-            target.iced_manager.viewport.logical_size(),
-            &mut target.iced_manager.renderer,
-        );
+        let iced_state =
+            iced_state::State::new(menu, target.iced_manager.viewport.logical_size(), target);
 
         let mut scene = Self {
             bg_pipeline: BgPipeline::new(&target.gpu),
@@ -119,7 +116,7 @@ impl Scene for MenuScene {
             self.iced_state.queue_event(event.clone());
 
             if let iced_core::event::Event::Keyboard(event) = &event {
-                if let Some(msg) = self.iced_state.program().keyboard_input(event) {
+                if let Some(msg) = self.iced_state.program().keyboard_input(event, target) {
                     self.iced_state.queue_message(msg);
                 }
             }

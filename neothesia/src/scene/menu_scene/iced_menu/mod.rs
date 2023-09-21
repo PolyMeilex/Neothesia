@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc};
+use std::path::PathBuf;
 
 use super::Renderer;
 use iced_core::{
@@ -10,7 +10,6 @@ use iced_runtime::Command;
 use iced_widget::{
     button, checkbox, column as col, container, image, pick_list, row, text, vertical_space,
 };
-use neothesia_core::config;
 
 use crate::{
     iced_utils::iced_state::{Element, Program},
@@ -50,17 +49,13 @@ pub enum Message {
 struct Data {
     outputs: Vec<OutputDescriptor>,
     selected_output: Option<OutputDescriptor>,
-    font_path: Option<PathBuf>,
-    midi_file: Option<Rc<midi_file::Midi>>,
 
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
 
-    play_along: bool,
     is_loading: bool,
 
     logo_handle: ImageHandle,
-    color_schema: Vec<config::ColorSchema>,
 }
 
 pub struct AppUi {
@@ -69,23 +64,19 @@ pub struct AppUi {
 }
 
 impl AppUi {
-    pub fn new(target: &mut Target) -> Self {
+    pub fn new(_target: &Target) -> Self {
         Self {
             current: Step::Main,
             data: Data {
                 outputs: Vec::new(),
                 selected_output: None,
-                font_path: target.config.soundfont_path.clone(),
-                midi_file: target.midi_file.clone(),
 
                 inputs: Vec::new(),
                 selected_input: None,
 
-                play_along: target.config.play_along,
                 is_loading: false,
 
                 logo_handle: ImageHandle::from_memory(include_bytes!("../img/banner.png").to_vec()),
-                color_schema: target.config.color_schema.clone(),
             },
         }
     }
@@ -100,14 +91,12 @@ impl Program for AppUi {
                 self.current = page;
             }
             Message::Play => {
-                if self.data.midi_file.is_some() {
-                    target.midi_file = self.data.midi_file.take();
-
+                if let Some(midi_file) = target.midi_file.as_ref() {
                     if let Some(out) = self.data.selected_output.clone() {
                         let out = match out {
                             #[cfg(feature = "synth")]
                             OutputDescriptor::Synth(_) => {
-                                OutputDescriptor::Synth(self.data.font_path.clone())
+                                OutputDescriptor::Synth(target.config.soundfont_path.clone())
                             }
                             o => o,
                         };
@@ -121,7 +110,9 @@ impl Program for AppUi {
 
                     target
                         .proxy
-                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play))
+                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play(
+                            midi_file.clone(),
+                        )))
                         .ok();
                 }
             }
@@ -132,7 +123,7 @@ impl Program for AppUi {
             Message::MidiFileLoaded(midi) => {
                 if let Some((midi, path)) = midi {
                     target.config.last_opened_song = Some(path);
-                    self.data.midi_file = Some(Rc::new(midi));
+                    target.midi_file = Some(midi);
                 }
                 self.data.is_loading = false;
             }
@@ -143,7 +134,6 @@ impl Program for AppUi {
             Message::SoundFontFileLoaded(font) => {
                 if let Some(font) = font {
                     target.config.soundfont_path = Some(font.clone());
-                    self.data.font_path = Some(font);
                 }
                 self.data.is_loading = false;
             }
@@ -163,7 +153,6 @@ impl Program for AppUi {
             }
             Message::PlayAlongCheckbox(v) => {
                 target.config.play_along = v;
-                self.data.play_along = v;
             }
             Message::Tick => {
                 self.data.outputs = target.output_manager.borrow().outputs();
@@ -203,7 +192,11 @@ impl Program for AppUi {
         Command::none()
     }
 
-    fn keyboard_input(&self, event: &iced_runtime::keyboard::Event) -> Option<Message> {
+    fn keyboard_input(
+        &self,
+        event: &iced_runtime::keyboard::Event,
+        target: &Target,
+    ) -> Option<Message> {
         use iced_runtime::keyboard::{Event, KeyCode};
 
         if let Event::KeyPressed { key_code, .. } = event {
@@ -218,7 +211,7 @@ impl Program for AppUi {
                     _ => None,
                 },
                 KeyCode::A => match self.current {
-                    Step::Main => Some(Message::PlayAlongCheckbox(!self.data.play_along)),
+                    Step::Main => Some(Message::PlayAlongCheckbox(!target.config.play_along)),
                     _ => None,
                 },
                 KeyCode::Enter => match self.current {
@@ -244,8 +237,8 @@ impl Program for AppUi {
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        self.current.view(&self.data)
+    fn view(&self, target: &Target) -> Element<Message> {
+        self.current.view(&self.data, target)
     }
 }
 
@@ -258,16 +251,16 @@ pub enum Step {
 }
 
 impl<'a> Step {
-    fn view(&'a self, data: &'a Data) -> Element<Message> {
+    fn view(&'a self, data: &'a Data, target: &Target) -> Element<Message> {
         if data.is_loading {
             return Self::loading(data);
         }
 
         match self {
             Self::Exit => Self::exit(),
-            Self::Main => Self::main(data),
+            Self::Main => Self::main(data, target),
             Self::Settings => Self::settings(data),
-            Self::TrackSelection => Self::track_selection(data),
+            Self::TrackSelection => Self::track_selection(data, target),
         }
     }
 
@@ -301,7 +294,7 @@ impl<'a> Step {
         center_x(controls).center_y().into()
     }
 
-    fn main(data: &'a Data) -> Element<'a, Message> {
+    fn main(data: &'a Data, target: &Target) -> Element<'a, Message> {
         let buttons = col![
             neo_button("Select File")
                 .on_press(Message::OpenMidiFilePicker)
@@ -325,9 +318,13 @@ impl<'a> Step {
 
         let mut content = top_padded(column);
 
-        if data.midi_file.is_some() {
-            let play_along = checkbox("PlayAlong", data.play_along, Message::PlayAlongCheckbox)
-                .style(theme::checkbox());
+        if target.midi_file.is_some() {
+            let play_along = checkbox(
+                "PlayAlong",
+                target.config.play_along,
+                Message::PlayAlongCheckbox,
+            )
+            .style(theme::checkbox());
 
             let play = neo_button("Play")
                 .height(Length::Fixed(60.0))
@@ -422,15 +419,15 @@ impl<'a> Step {
         center_x(top_padded(column)).into()
     }
 
-    fn track_selection(data: &'a Data) -> Element<'a, Message> {
+    fn track_selection(_data: &'a Data, target: &Target) -> Element<'a, Message> {
         let mut tracks = Vec::new();
-        if let Some(midi) = data.midi_file.as_ref() {
+        if let Some(midi) = target.midi_file.as_ref() {
             for track in midi.tracks.iter().filter(|t| !t.notes.is_empty()) {
                 let (color, name) = if track.has_drums && !track.has_other_than_drums {
                     (iced_core::Color::from_rgb8(102, 102, 102), "Percussion")
                 } else {
-                    let color_id = track.track_color_id % data.color_schema.len();
-                    let color = &data.color_schema[color_id].base;
+                    let color_id = track.track_color_id % target.config.color_schema.len();
+                    let color = &target.config.color_schema[color_id].base;
                     let color = iced_core::Color::from_rgb8(color.0, color.1, color.2);
 
                     let instrument_id = track

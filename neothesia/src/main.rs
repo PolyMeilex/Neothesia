@@ -93,11 +93,11 @@ impl Neothesia {
             .midi_event(&mut self.target, channel, message);
     }
 
-    pub fn neothesia_event(&mut self, event: &NeothesiaEvent, control_flow: &mut ControlFlow) {
+    pub fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
             NeothesiaEvent::MainMenu(event) => match event {
-                menu_scene::Event::Play => {
-                    let to = playing_scene::PlayingScene::new(&mut self.target);
+                menu_scene::Event::Play(midi_file) => {
+                    let to = playing_scene::PlayingScene::new(&self.target, midi_file);
                     self.game_scene = Box::new(to);
                 }
             },
@@ -110,7 +110,7 @@ impl Neothesia {
                     self.game_scene = Box::new(to);
                 }
             },
-            NeothesiaEvent::MidiInput { channel, message } => self.midi_event(*channel, message),
+            NeothesiaEvent::MidiInput { channel, message } => self.midi_event(channel, &message),
         }
     }
 
@@ -174,7 +174,7 @@ fn main() {
 
     event_loop.run(move |event, _, control_flow| {
         use winit::event::Event;
-        match &event {
+        match event {
             Event::UserEvent(event) => {
                 app.neothesia_event(event, control_flow);
             }
@@ -185,7 +185,7 @@ fn main() {
                 app.target.window.request_redraw();
             }
             Event::WindowEvent { event, .. } => {
-                app.window_event(event, control_flow);
+                app.window_event(&event, control_flow);
             }
             Event::RedrawRequested(_) => {
                 app.render();

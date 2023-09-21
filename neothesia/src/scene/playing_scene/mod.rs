@@ -44,7 +44,7 @@ fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
 }
 
 impl PlayingScene {
-    pub fn new(target: &mut Target) -> Self {
+    pub fn new(target: &Target, midi_file: midi_file::Midi) -> Self {
         let keyboard_layout = get_layout(
             target.window_state.logical_size.width,
             target.window_state.logical_size.height,
@@ -60,13 +60,13 @@ impl PlayingScene {
 
         let mut notes = WaterfallRenderer::new(
             &target.gpu,
-            target.midi_file.as_ref().unwrap(),
+            &midi_file,
             &target.config,
             &target.transform_uniform,
             keyboard_layout.clone(),
         );
 
-        let mut player = MidiPlayer::new(target, keyboard_layout.range.clone());
+        let mut player = MidiPlayer::new(target, midi_file, keyboard_layout.range.clone());
         notes.update(&target.gpu.queue, player.time_without_lead_in());
 
         player.start();

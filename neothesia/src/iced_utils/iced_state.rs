@@ -28,9 +28,13 @@ pub trait Program: Sized {
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message>;
+    fn view(&self, target: &Target) -> Element<'_, Self::Message>;
 
-    fn keyboard_input(&self, _event: &iced_core::keyboard::Event) -> Option<Self::Message> {
+    fn keyboard_input(
+        &self,
+        _event: &iced_core::keyboard::Event,
+        _target: &Target,
+    ) -> Option<Self::Message> {
         None
     }
 }
@@ -54,12 +58,12 @@ where
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
-    pub fn new(mut program: P, bounds: Size, renderer: &mut iced_wgpu::Renderer<Theme>) -> Self {
+    pub fn new(mut program: P, bounds: Size, target: &mut Target) -> Self {
         let user_interface = build_user_interface(
             &mut program,
             user_interface::Cache::default(),
-            renderer,
             bounds,
+            target,
         );
 
         let cache = Some(user_interface.into_cache());
@@ -119,8 +123,8 @@ where
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
-            &mut target.iced_manager.renderer,
             bounds,
+            target,
         );
 
         let mut messages = Vec::new();
@@ -160,12 +164,8 @@ where
 
             let commands = Command::batch(commands);
 
-            let mut user_interface = build_user_interface(
-                &mut self.program,
-                temp_cache,
-                &mut target.iced_manager.renderer,
-                bounds,
-            );
+            let mut user_interface =
+                build_user_interface(&mut self.program, temp_cache, bounds, target);
 
             self.mouse_interaction = user_interface.draw(
                 &mut target.iced_manager.renderer,
@@ -186,9 +186,9 @@ where
 fn build_user_interface<'a, P: Program>(
     program: &'a mut P,
     cache: user_interface::Cache,
-    renderer: &mut iced_wgpu::Renderer<Theme>,
     size: Size,
+    target: &mut Target,
 ) -> UserInterface<'a, P::Message, iced_wgpu::Renderer<Theme>> {
-    let view = program.view();
-    UserInterface::build(view, size, cache, renderer)
+    let view = program.view(target);
+    UserInterface::build(view, size, cache, &mut target.iced_manager.renderer)
 }

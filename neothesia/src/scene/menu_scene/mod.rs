@@ -116,7 +116,7 @@ impl Scene for MenuScene {
             self.iced_state.queue_event(event.clone());
 
             if let iced_core::event::Event::Keyboard(event) = &event {
-                if let Some(msg) = self.iced_state.program().keyboard_input(event) {
+                if let Some(msg) = self.iced_state.program().keyboard_input(event, target) {
                     self.iced_state.queue_message(msg);
                 }
             }

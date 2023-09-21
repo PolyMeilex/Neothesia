@@ -55,7 +55,6 @@ struct Data {
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
 
-    play_along: bool,
     is_loading: bool,
 
     logo_handle: ImageHandle,
@@ -79,7 +78,6 @@ impl AppUi {
                 inputs: Vec::new(),
                 selected_input: None,
 
-                play_along: target.config.play_along,
                 is_loading: false,
 
                 logo_handle: ImageHandle::from_memory(include_bytes!("../img/banner.png").to_vec()),
@@ -161,7 +159,6 @@ impl Program for AppUi {
             }
             Message::PlayAlongCheckbox(v) => {
                 target.config.play_along = v;
-                self.data.play_along = v;
             }
             Message::Tick => {
                 self.data.outputs = target.output_manager.borrow().outputs();
@@ -201,7 +198,11 @@ impl Program for AppUi {
         Command::none()
     }
 
-    fn keyboard_input(&self, event: &iced_runtime::keyboard::Event) -> Option<Message> {
+    fn keyboard_input(
+        &self,
+        event: &iced_runtime::keyboard::Event,
+        target: &Target,
+    ) -> Option<Message> {
         use iced_runtime::keyboard::{Event, KeyCode};
 
         if let Event::KeyPressed { key_code, .. } = event {
@@ -216,7 +217,7 @@ impl Program for AppUi {
                     _ => None,
                 },
                 KeyCode::A => match self.current {
-                    Step::Main => Some(Message::PlayAlongCheckbox(!self.data.play_along)),
+                    Step::Main => Some(Message::PlayAlongCheckbox(!target.config.play_along)),
                     _ => None,
                 },
                 KeyCode::Enter => match self.current {
@@ -324,8 +325,12 @@ impl<'a> Step {
         let mut content = top_padded(column);
 
         if target.midi_file.is_some() {
-            let play_along = checkbox("PlayAlong", data.play_along, Message::PlayAlongCheckbox)
-                .style(theme::checkbox());
+            let play_along = checkbox(
+                "PlayAlong",
+                target.config.play_along,
+                Message::PlayAlongCheckbox,
+            )
+            .style(theme::checkbox());
 
             let play = neo_button("Play")
                 .height(Length::Fixed(60.0))

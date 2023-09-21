@@ -30,7 +30,11 @@ pub trait Program: Sized {
     /// These widgets can produce __messages__ based on user interaction.
     fn view(&self, target: &Target) -> Element<'_, Self::Message>;
 
-    fn keyboard_input(&self, _event: &iced_core::keyboard::Event) -> Option<Self::Message> {
+    fn keyboard_input(
+        &self,
+        _event: &iced_core::keyboard::Event,
+        _target: &Target,
+    ) -> Option<Self::Message> {
         None
     }
 }

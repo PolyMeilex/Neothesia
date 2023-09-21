@@ -51,7 +51,6 @@ struct Data {
     outputs: Vec<OutputDescriptor>,
     selected_output: Option<OutputDescriptor>,
     font_path: Option<PathBuf>,
-    midi_file: Option<Rc<midi_file::Midi>>,
 
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
@@ -76,7 +75,6 @@ impl AppUi {
                 outputs: Vec::new(),
                 selected_output: None,
                 font_path: target.config.soundfont_path.clone(),
-                midi_file: target.midi_file.clone(),
 
                 inputs: Vec::new(),
                 selected_input: None,
@@ -100,9 +98,7 @@ impl Program for AppUi {
                 self.current = page;
             }
             Message::Play => {
-                if self.data.midi_file.is_some() {
-                    target.midi_file = self.data.midi_file.take();
-
+                if target.midi_file.is_some() {
                     if let Some(out) = self.data.selected_output.clone() {
                         let out = match out {
                             #[cfg(feature = "synth")]
@@ -132,7 +128,7 @@ impl Program for AppUi {
             Message::MidiFileLoaded(midi) => {
                 if let Some((midi, path)) = midi {
                     target.config.last_opened_song = Some(path);
-                    self.data.midi_file = Some(Rc::new(midi));
+                    target.midi_file = Some(Rc::new(midi));
                 }
                 self.data.is_loading = false;
             }
@@ -244,8 +240,8 @@ impl Program for AppUi {
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        self.current.view(&self.data)
+    fn view(&self, target: &Target) -> Element<Message> {
+        self.current.view(&self.data, target)
     }
 }
 
@@ -258,16 +254,16 @@ pub enum Step {
 }
 
 impl<'a> Step {
-    fn view(&'a self, data: &'a Data) -> Element<Message> {
+    fn view(&'a self, data: &'a Data, target: &Target) -> Element<Message> {
         if data.is_loading {
             return Self::loading(data);
         }
 
         match self {
             Self::Exit => Self::exit(),
-            Self::Main => Self::main(data),
+            Self::Main => Self::main(data, target),
             Self::Settings => Self::settings(data),
-            Self::TrackSelection => Self::track_selection(data),
+            Self::TrackSelection => Self::track_selection(data, target),
         }
     }
 
@@ -301,7 +297,7 @@ impl<'a> Step {
         center_x(controls).center_y().into()
     }
 
-    fn main(data: &'a Data) -> Element<'a, Message> {
+    fn main(data: &'a Data, target: &Target) -> Element<'a, Message> {
         let buttons = col![
             neo_button("Select File")
                 .on_press(Message::OpenMidiFilePicker)
@@ -325,7 +321,7 @@ impl<'a> Step {
 
         let mut content = top_padded(column);
 
-        if data.midi_file.is_some() {
+        if target.midi_file.is_some() {
             let play_along = checkbox("PlayAlong", data.play_along, Message::PlayAlongCheckbox)
                 .style(theme::checkbox());
 
@@ -422,9 +418,9 @@ impl<'a> Step {
         center_x(top_padded(column)).into()
     }
 
-    fn track_selection(data: &'a Data) -> Element<'a, Message> {
+    fn track_selection(data: &'a Data, target: &Target) -> Element<'a, Message> {
         let mut tracks = Vec::new();
-        if let Some(midi) = data.midi_file.as_ref() {
+        if let Some(midi) = target.midi_file.as_ref() {
             for track in midi.tracks.iter().filter(|t| !t.notes.is_empty()) {
                 let (color, name) = if track.has_drums && !track.has_other_than_drums {
                     (iced_core::Color::from_rgb8(102, 102, 102), "Percussion")

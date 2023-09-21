@@ -40,11 +40,8 @@ pub struct MenuScene {
 impl MenuScene {
     pub fn new(target: &mut Target) -> Self {
         let menu = AppUi::new(target);
-        let iced_state = iced_state::State::new(
-            menu,
-            target.iced_manager.viewport.logical_size(),
-            &mut target.iced_manager.renderer,
-        );
+        let iced_state =
+            iced_state::State::new(menu, target.iced_manager.viewport.logical_size(), target);
 
         let mut scene = Self {
             bg_pipeline: BgPipeline::new(&target.gpu),

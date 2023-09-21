@@ -49,7 +49,6 @@ pub enum Message {
 struct Data {
     outputs: Vec<OutputDescriptor>,
     selected_output: Option<OutputDescriptor>,
-    font_path: Option<PathBuf>,
 
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
@@ -65,13 +64,12 @@ pub struct AppUi {
 }
 
 impl AppUi {
-    pub fn new(target: &mut Target) -> Self {
+    pub fn new(_target: &Target) -> Self {
         Self {
             current: Step::Main,
             data: Data {
                 outputs: Vec::new(),
                 selected_output: None,
-                font_path: target.config.soundfont_path.clone(),
 
                 inputs: Vec::new(),
                 selected_input: None,
@@ -98,7 +96,7 @@ impl Program for AppUi {
                         let out = match out {
                             #[cfg(feature = "synth")]
                             OutputDescriptor::Synth(_) => {
-                                OutputDescriptor::Synth(self.data.font_path.clone())
+                                OutputDescriptor::Synth(target.config.soundfont_path.clone())
                             }
                             o => o,
                         };
@@ -136,7 +134,6 @@ impl Program for AppUi {
             Message::SoundFontFileLoaded(font) => {
                 if let Some(font) = font {
                     target.config.soundfont_path = Some(font.clone());
-                    self.data.font_path = Some(font);
                 }
                 self.data.is_loading = false;
             }

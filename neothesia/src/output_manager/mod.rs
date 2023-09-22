@@ -12,6 +12,8 @@ use std::{
     path::PathBuf,
 };
 
+use midi_file::midly::{num::u4, MidiMessage};
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum OutputDescriptor {
     #[cfg(feature = "synth")]
@@ -32,12 +34,15 @@ impl Display for OutputDescriptor {
 }
 
 pub trait OutputConnection {
-    fn midi_event(&mut self, _msg: &midi_file::MidiEvent) {}
-    fn stop_all(&mut self) {}
+    fn midi_event(&mut self, channel: u4, msg: MidiMessage);
+    fn stop_all(&mut self);
 }
 
 struct DummyOutput {}
-impl OutputConnection for DummyOutput {}
+impl OutputConnection for DummyOutput {
+    fn midi_event(&mut self, _channel: u4, _msg: MidiMessage) {}
+    fn stop_all(&mut self) {}
+}
 
 pub struct OutputManager {
     #[cfg(feature = "synth")]
@@ -137,8 +142,8 @@ impl OutputManager {
         }
     }
 
-    pub fn midi_event(&mut self, msg: &midi_file::MidiEvent) {
-        self.output_connection.1.midi_event(msg);
+    pub fn midi_event(&mut self, channel: u4, msg: MidiMessage) {
+        self.output_connection.1.midi_event(channel, msg);
     }
 
     pub fn stop_all(&mut self) {

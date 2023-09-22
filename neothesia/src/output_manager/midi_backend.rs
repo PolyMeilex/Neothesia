@@ -2,14 +2,17 @@ use std::collections::HashSet;
 
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
-use midi_file::{
-    midly::{
-        self,
-        live::LiveEvent,
-        num::{u4, u7},
-    },
-    ActiveNote,
+use midi_file::midly::{
+    self,
+    live::LiveEvent,
+    num::{u4, u7},
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct ActiveNote {
+    key: u7,
+    channel: u4,
+}
 
 pub struct MidiOutputConnection {
     conn: midi_io::MidiOutputConnection,
@@ -53,26 +56,19 @@ impl MidiBackend {
 }
 
 impl OutputConnection for MidiOutputConnection {
-    fn midi_event(&mut self, msg: &midi_file::MidiEvent) {
-        use midi_file::midly::MidiMessage;
-        match &msg.message {
-            MidiMessage::NoteOff { key, .. } => {
-                self.active_notes.remove(&ActiveNote {
-                    key: key.as_int(),
-                    channel: msg.channel,
-                });
+    fn midi_event(&mut self, channel: u4, message: midly::MidiMessage) {
+        match message {
+            midly::MidiMessage::NoteOff { key, .. } => {
+                self.active_notes.remove(&ActiveNote { key, channel });
             }
-            MidiMessage::NoteOn { key, .. } => {
-                self.active_notes.insert(ActiveNote {
-                    key: key.as_int(),
-                    channel: msg.channel,
-                });
+            midly::MidiMessage::NoteOn { key, .. } => {
+                self.active_notes.insert(ActiveNote { key, channel });
             }
             _ => {}
         }
 
-        let msg = to_live_midi_event(msg);
         self.buf.clear();
+        let msg = midly::live::LiveEvent::Midi { channel, message };
         msg.write(&mut self.buf).unwrap();
 
         self.conn.send(&self.buf).ok();
@@ -80,14 +76,14 @@ impl OutputConnection for MidiOutputConnection {
 
     fn stop_all(&mut self) {
         for note in std::mem::take(&mut self.active_notes).iter() {
+            self.buf.clear();
             let msg = LiveEvent::Midi {
-                channel: u4::new(note.channel),
+                channel: note.channel,
                 message: midly::MidiMessage::NoteOff {
-                    key: u7::new(note.key),
+                    key: note.key,
                     vel: u7::new(0),
                 },
             };
-            self.buf.clear();
             msg.write(&mut self.buf).unwrap();
 
             self.conn.send(&self.buf).ok();
@@ -116,12 +112,5 @@ impl PartialEq for MidiPortInfo {
 impl std::fmt::Display for MidiPortInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.port)
-    }
-}
-
-fn to_live_midi_event(msg: &midi_file::MidiEvent) -> midly::live::LiveEvent {
-    midly::live::LiveEvent::Midi {
-        channel: u4::new(msg.channel),
-        message: msg.message,
     }
 }

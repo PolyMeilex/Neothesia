@@ -110,9 +110,7 @@ impl Program for AppUi {
 
                     target
                         .proxy
-                        .send_event(NeothesiaEvent::MainMenu(super::Event::Play(
-                            midi_file.clone(),
-                        )))
+                        .send_event(NeothesiaEvent::Play(midi_file.clone()))
                         .ok();
                 }
             }
@@ -185,7 +183,7 @@ impl Program for AppUi {
                 }
             }
             Message::ExitApp => {
-                target.proxy.send_event(NeothesiaEvent::GoBack).ok();
+                target.proxy.send_event(NeothesiaEvent::Exit).ok();
             }
         }
 

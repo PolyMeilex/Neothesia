@@ -4,7 +4,7 @@ use std::time::Duration;
 use wgpu_jumpstart::Color;
 use winit::event::{KeyboardInput, WindowEvent};
 
-use super::{Scene, SceneType};
+use super::Scene;
 use crate::{
     render::{KeyboardRenderer, WaterfallRenderer},
     target::Target,
@@ -99,10 +99,6 @@ impl PlayingScene {
 }
 
 impl Scene for PlayingScene {
-    fn scene_type(&self) -> SceneType {
-        SceneType::Playing
-    }
-
     fn resize(&mut self, target: &mut Target) {
         self.keyboard_layout = get_layout(
             target.window_state.logical_size.width,
@@ -189,7 +185,7 @@ impl Scene for PlayingScene {
                 if input.state == ElementState::Released {
                     match input.virtual_keycode {
                         Some(VirtualKeyCode::Escape) => {
-                            target.proxy.send_event(NeothesiaEvent::GoBack).ok();
+                            target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
                         }
                         Some(VirtualKeyCode::Space) => {
                             self.player.pause_resume();

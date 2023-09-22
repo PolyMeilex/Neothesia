@@ -18,16 +18,11 @@ use crate::{
         iced_conversion,
         iced_state::{self, Program},
     },
-    scene::{Scene, SceneType},
+    scene::Scene,
     target::Target,
 };
 
 type Renderer = iced_wgpu::Renderer<Theme>;
-
-#[derive(Debug)]
-pub enum Event {
-    Play(midi_file::Midi),
-}
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
@@ -57,10 +52,6 @@ impl MenuScene {
 }
 
 impl Scene for MenuScene {
-    fn scene_type(&self) -> SceneType {
-        SceneType::MainMenu
-    }
-
     fn update(&mut self, target: &mut Target, delta: Duration) {
         self.bg_pipeline.update_time(&mut target.gpu, delta);
         self.iced_state.queue_message(iced_menu::Message::Tick);

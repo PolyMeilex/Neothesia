@@ -1,6 +1,5 @@
-use midi_file::midly::MidiMessage;
 use neothesia::{
-    scene::{menu_scene, playing_scene, Scene, SceneType},
+    scene::{menu_scene, playing_scene, Scene},
     target::Target,
     utils::window::WindowState,
     Gpu, NeothesiaEvent,
@@ -88,29 +87,23 @@ impl Neothesia {
         self.game_scene.window_event(&mut self.target, event);
     }
 
-    pub fn midi_event(&mut self, channel: u8, message: &MidiMessage) {
-        self.game_scene
-            .midi_event(&mut self.target, channel, message);
-    }
-
     pub fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
-            NeothesiaEvent::MainMenu(event) => match event {
-                menu_scene::Event::Play(midi_file) => {
-                    let to = playing_scene::PlayingScene::new(&self.target, midi_file);
-                    self.game_scene = Box::new(to);
-                }
-            },
-            NeothesiaEvent::GoBack => match self.game_scene.scene_type() {
-                SceneType::MainMenu => {
-                    *control_flow = ControlFlow::Exit;
-                }
-                SceneType::Playing => {
-                    let to = menu_scene::MenuScene::new(&mut self.target);
-                    self.game_scene = Box::new(to);
-                }
-            },
-            NeothesiaEvent::MidiInput { channel, message } => self.midi_event(channel, &message),
+            NeothesiaEvent::Play(midi_file) => {
+                let to = playing_scene::PlayingScene::new(&self.target, midi_file);
+                self.game_scene = Box::new(to);
+            }
+            NeothesiaEvent::MainMenu => {
+                let to = menu_scene::MenuScene::new(&mut self.target);
+                self.game_scene = Box::new(to);
+            }
+            NeothesiaEvent::MidiInput { channel, message } => {
+                self.game_scene
+                    .midi_event(&mut self.target, channel, &message);
+            }
+            NeothesiaEvent::Exit => {
+                *control_flow = ControlFlow::Exit;
+            }
         }
     }
 

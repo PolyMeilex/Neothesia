@@ -15,14 +15,17 @@ pub mod target;
 
 #[derive(Debug)]
 pub enum NeothesiaEvent {
-    MainMenu(crate::scene::menu_scene::Event),
+    /// Go to playing scene
+    Play(midi_file::Midi),
+    /// Go to main menu scene
+    MainMenu,
     MidiInput {
         /// The MIDI channel that this message is associated with.
         channel: u8,
         /// The MIDI message type and associated data.
         message: MidiMessage,
     },
-    GoBack,
+    Exit,
 }
 
 pub fn block_on<F>(f: F) -> <F as Future>::Output

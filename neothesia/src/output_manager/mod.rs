@@ -91,10 +91,6 @@ impl OutputManager {
         }
     }
 
-    pub fn current_output(&self) -> &OutputDescriptor {
-        &self.output_connection.0
-    }
-
     pub fn outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
 

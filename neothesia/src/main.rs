@@ -1,27 +1,51 @@
-use neothesia::{
-    scene::{menu_scene, playing_scene, Scene},
-    target::Target,
-    utils::window::WindowState,
-    Gpu, NeothesiaEvent,
-};
+#![allow(clippy::collapsible_match, clippy::single_match)]
 
+mod iced_utils;
+mod input_manager;
+mod output_manager;
+mod scene;
+mod target;
+mod utils;
+
+use scene::{menu_scene, playing_scene, Scene};
+use target::Target;
+use utils::window::WindowState;
+
+use midi_file::midly::MidiMessage;
+use neothesia_core::{config, render};
 use wgpu_jumpstart::Surface;
+use wgpu_jumpstart::{Gpu, TransformUniform};
 use winit::{
     event::WindowEvent,
     event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
 };
 
-pub struct Neothesia {
-    pub target: Target,
+#[derive(Debug)]
+pub enum NeothesiaEvent {
+    /// Go to playing scene
+    Play(midi_file::Midi),
+    /// Go to main menu scene
+    MainMenu,
+    MidiInput {
+        /// The MIDI channel that this message is associated with.
+        channel: u8,
+        /// The MIDI message type and associated data.
+        message: MidiMessage,
+    },
+    Exit,
+}
+
+struct Neothesia {
+    target: Target,
     surface: Surface,
 
     last_time: std::time::Instant,
-    pub fps_timer: fps_ticker::Fps,
-    pub game_scene: Box<dyn Scene>,
+    fps_timer: fps_ticker::Fps,
+    game_scene: Box<dyn Scene>,
 }
 
 impl Neothesia {
-    pub fn new(mut target: Target, surface: Surface) -> Self {
+    fn new(mut target: Target, surface: Surface) -> Self {
         let mut game_scene = menu_scene::MenuScene::new(&mut target);
 
         target.resize();
@@ -37,7 +61,7 @@ impl Neothesia {
         }
     }
 
-    pub fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
+    fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
         self.target.window_state.window_event(event);
 
         match &event {
@@ -87,7 +111,7 @@ impl Neothesia {
         self.game_scene.window_event(&mut self.target, event);
     }
 
-    pub fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
+    fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
             NeothesiaEvent::Play(midi_file) => {
                 let to = playing_scene::PlayingScene::new(&self.target, midi_file);
@@ -107,7 +131,7 @@ impl Neothesia {
         }
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         self.fps_timer.tick();
 
         let delta = self.last_time.elapsed();
@@ -119,7 +143,7 @@ impl Neothesia {
         self.target.text_renderer.queue_fps(self.fps_timer.avg());
     }
 
-    pub fn render(&mut self) {
+    fn render(&mut self) {
         let frame = loop {
             let swap_chain_output = self.surface.get_current_texture();
             match swap_chain_output {
@@ -188,7 +212,7 @@ fn main() {
     });
 }
 
-pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Target, Surface) {
+fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Target, Surface) {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
         .init();
 
@@ -215,7 +239,8 @@ pub fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>
 
     let size = window.inner_size();
     let (gpu, surface) =
-        neothesia::block_on(Gpu::for_window(&instance, &window, size.width, size.height)).unwrap();
+        futures::executor::block_on(Gpu::for_window(&instance, &window, size.width, size.height))
+            .unwrap();
 
     let target = Target::new(window, window_state, proxy, gpu);
 

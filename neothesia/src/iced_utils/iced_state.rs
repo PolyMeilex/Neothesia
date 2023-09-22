@@ -102,6 +102,7 @@ where
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`State`].
+    #[allow(dead_code)]
     pub fn mouse_interaction(&self) -> mouse::Interaction {
         self.mouse_interaction
     }

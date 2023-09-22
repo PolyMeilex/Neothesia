@@ -3,6 +3,7 @@ use std::{error::Error, path::Path, sync::mpsc::Receiver};
 use crate::output_manager::{OutputConnection, OutputDescriptor};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use midi_file::midly::{self, num::u4};
 
 #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 const SAMPLES_SIZE: usize = 1410;
@@ -181,8 +182,8 @@ pub struct SynthOutputConnection {
 }
 
 impl OutputConnection for SynthOutputConnection {
-    fn midi_event(&mut self, msg: &midi_file::MidiEvent) {
-        let event = libmidi_to_oxisynth_event(msg);
+    fn midi_event(&mut self, channel: u4, msg: midly::MidiMessage) {
+        let event = libmidi_to_oxisynth_event(channel, msg);
         self.tx.send(event).ok();
     }
 
@@ -198,11 +199,9 @@ impl OutputConnection for SynthOutputConnection {
     }
 }
 
-fn libmidi_to_oxisynth_event(msg: &midi_file::MidiEvent) -> oxisynth::MidiEvent {
-    use midi_file::midly;
-
-    let channel = msg.channel;
-    match msg.message {
+fn libmidi_to_oxisynth_event(channel: u4, message: midly::MidiMessage) -> oxisynth::MidiEvent {
+    let channel = channel.as_int();
+    match message {
         midly::MidiMessage::NoteOff { key, .. } => oxisynth::MidiEvent::NoteOff {
             channel,
             key: key.as_int(),

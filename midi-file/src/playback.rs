@@ -2,12 +2,6 @@ use std::time::Duration;
 
 use crate::{MidiEvent, MidiTrack};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ActiveNote {
-    pub key: u8,
-    pub channel: u8,
-}
-
 #[derive(Debug, Clone)]
 pub struct PlaybackState {
     is_paused: bool,

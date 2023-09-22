@@ -1,3 +1,5 @@
+use midi_file::midly::num::u4;
+
 use crate::{output_manager::OutputManager, target::Target};
 use std::{
     cell::RefCell,
@@ -48,7 +50,9 @@ impl MidiPlayer {
         let events = self.playback.update(&self.midi_file.merged_track, elapsed);
 
         events.iter().for_each(|event| {
-            self.output_manager.borrow_mut().midi_event(event);
+            self.output_manager
+                .borrow_mut()
+                .midi_event(u4::new(event.channel), event.message);
 
             if event.channel == 9 {
                 return;
@@ -106,18 +110,12 @@ impl MidiPlayer {
 
     fn send_midi_programs_for_timestamp(&self, time: &Duration) {
         for (&channel, &p) in self.midi_file.program_map.program_for_timestamp(time) {
-            self.output_manager
-                .borrow_mut()
-                .midi_event(&midi_file::MidiEvent {
-                    channel,
-                    delta: 0,
-                    timestamp: Duration::ZERO,
-                    message: midi_file::midly::MidiMessage::ProgramChange {
-                        program: midi_file::midly::num::u7::new(p),
-                    },
-                    track_id: 0,
-                    track_color_id: 0,
-                });
+            self.output_manager.borrow_mut().midi_event(
+                u4::new(channel),
+                midi_file::midly::MidiMessage::ProgramChange {
+                    program: midi_file::midly::num::u7::new(p),
+                },
+            );
         }
     }
 

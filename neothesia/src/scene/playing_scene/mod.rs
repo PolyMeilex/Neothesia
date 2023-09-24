@@ -157,16 +157,23 @@ impl Scene for PlayingScene {
                 }
             }
             MouseInput { state, button, .. } => {
-                self.rewind_controler
-                    .handle_mouse_input(&mut self.player, target, state, button);
+                self.rewind_controler.handle_mouse_input(
+                    &mut self.player,
+                    &target.window_state,
+                    state,
+                    button,
+                );
 
                 if self.rewind_controler.is_rewinding() {
                     self.keyboard.reset_notes();
                 }
             }
             CursorMoved { position, .. } => {
-                self.rewind_controler
-                    .handle_cursor_moved(&mut self.player, target, position);
+                self.rewind_controler.handle_cursor_moved(
+                    &mut self.player,
+                    &target.window_state,
+                    position,
+                );
             }
             _ => {}
         }

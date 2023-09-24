@@ -27,7 +27,7 @@ impl MidiPlayer {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
                 Duration::from_secs(3),
-                midi_file.merged_tracks.clone(),
+                midi_file.tracks.clone(),
             ),
             output_manager: target.output_manager.clone(),
             midi_file,
@@ -98,7 +98,7 @@ impl MidiPlayer {
     }
 
     fn send_midi_programs_for_timestamp(&self, time: &Duration) {
-        for (&channel, &p) in self.midi_file.program_map.program_for_timestamp(time) {
+        for (&channel, &p) in self.midi_file.program_track.program_for_timestamp(time) {
             self.output_manager.borrow_mut().midi_event(
                 u4::new(channel),
                 midi_file::midly::MidiMessage::ProgramChange {

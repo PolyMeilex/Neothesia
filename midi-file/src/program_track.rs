@@ -1,4 +1,4 @@
-use crate::MidiEvent;
+use crate::MidiTrack;
 use std::{
     collections::HashMap,
     sync::{Arc, OnceLock},
@@ -19,35 +19,44 @@ struct Bucket {
 
 #[derive(Debug, Clone)]
 pub struct ProgramTrack {
-    timestamps: Arc<[Bucket]>,
+    events: Arc<[Bucket]>,
 }
 
 impl ProgramTrack {
-    pub fn new(events: &[MidiEvent]) -> Self {
+    pub fn new(tracks: &[MidiTrack]) -> Self {
         let mut map = default_programs().clone();
 
-        let mut timestamps = Vec::new();
+        // This map will help us get rid of duplicate events
+        let mut program_events: HashMap<Duration, Bucket> = HashMap::new();
 
-        for event in events {
-            if let midly::MidiMessage::ProgramChange { program } = event.message {
-                *map.entry(event.channel).or_default() = program.as_int();
+        for track in tracks {
+            for event in track.events.iter() {
+                if let midly::MidiMessage::ProgramChange { program } = event.message {
+                    *map.entry(event.channel).or_default() = program.as_int();
 
-                timestamps.push(Bucket {
-                    timestamp: event.timestamp,
-                    map: map.clone(),
-                });
+                    program_events.insert(
+                        event.timestamp,
+                        Bucket {
+                            timestamp: event.timestamp,
+                            map: map.clone(),
+                        },
+                    );
+                }
             }
         }
 
+        let mut program_events: Vec<_> = program_events.into_values().collect();
+        program_events.sort_by_key(|e| e.timestamp);
+
         Self {
-            timestamps: timestamps.into(),
+            events: program_events.into(),
         }
     }
 
     /// Search for program at certain timestamp
     pub fn program_for_timestamp(&self, timestamp: &Duration) -> &HashMap<u8, u8> {
         let res = self
-            .timestamps
+            .events
             .binary_search_by_key(timestamp, |bucket| bucket.timestamp);
 
         let id = match res {
@@ -55,7 +64,7 @@ impl ProgramTrack {
             Err(id) => id.checked_sub(1),
         };
 
-        id.map(|id| &self.timestamps[id].map)
+        id.map(|id| &self.events[id].map)
             .unwrap_or_else(|| default_programs())
     }
 }

@@ -1,38 +1,47 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use crate::{MergedTracks, MidiEvent};
+use crate::{MidiEvent, MidiTrack};
+
+#[derive(Debug, Default, Clone)]
+struct TrackState {
+    seen_events: usize,
+}
 
 #[derive(Debug, Clone)]
 pub struct PlaybackState {
-    tracks: MergedTracks,
+    tracks: Arc<[MidiTrack]>,
+    track_states: Box<[TrackState]>,
     is_paused: bool,
     running: Duration,
     leed_in: Duration,
-    seen_events: usize,
 
     first_note_start: Duration,
     last_note_end: Duration,
 }
 
 impl PlaybackState {
-    pub fn new(leed_in: Duration, tracks: MergedTracks) -> Self {
-        let first_note_start = if let Some(note) = tracks.notes.first() {
-            note.start
-        } else {
-            Duration::ZERO
-        };
-        let last_note_end = if let Some(note) = tracks.notes.last() {
-            note.start + note.duration
-        } else {
-            Duration::ZERO
-        };
+    pub fn new(leed_in: Duration, tracks: Arc<[MidiTrack]>) -> Self {
+        let mut first_note_start = Duration::ZERO;
+        let mut last_note_end = Duration::ZERO;
+
+        for track in tracks.iter() {
+            if let Some(note) = track.notes.first() {
+                first_note_start = first_note_start.min(note.start);
+            }
+
+            if let Some(note) = track.notes.last() {
+                last_note_end = last_note_end.max(note.start + note.duration);
+            }
+        }
+
+        let track_states = vec![TrackState::default(); tracks.len()];
 
         Self {
             tracks,
+            track_states: track_states.into(),
             is_paused: false,
             running: Duration::ZERO,
             leed_in,
-            seen_events: 0,
 
             first_note_start,
             last_note_end,
@@ -44,12 +53,18 @@ impl PlaybackState {
             self.running += delta;
         }
 
-        let events: Vec<_> = self.tracks.events[self.seen_events..]
+        let events: Vec<_> = self
+            .tracks
             .iter()
-            .take_while(|event| event.timestamp + self.leed_in <= self.running)
+            .zip(self.track_states.iter_mut())
+            .flat_map(|(track, state)| {
+                track.events[state.seen_events..]
+                    .iter()
+                    .take_while(|event| event.timestamp + self.leed_in <= self.running)
+                    .inspect(|_| state.seen_events += 1)
+            })
             .collect();
 
-        self.seen_events += events.len();
         events
     }
 
@@ -96,6 +111,9 @@ impl PlaybackState {
 
     pub fn reset(&mut self) {
         self.running = Duration::ZERO;
-        self.seen_events = 0;
+
+        for state in self.track_states.iter_mut() {
+            state.seen_events = 0;
+        }
     }
 }

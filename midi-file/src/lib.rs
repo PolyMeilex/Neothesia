@@ -1,11 +1,11 @@
-mod midi;
+mod file;
 pub mod playback;
 pub mod program_track;
-mod tempo_track;
+pub mod tempo_track;
 mod track;
 
 pub use midly;
-pub use {midi::*, playback::*, track::*};
+pub use {file::*, playback::*, track::*};
 
 pub static INSTRUMENT_NAMES: [&str; 128] = [
     "Acoustic Grand Piano",
@@ -144,10 +144,6 @@ mod tests {
 
     #[test]
     fn load() {
-        let midi = MidiFile::new("../test.mid").unwrap();
-
-        for (_id, _note) in midi.merged_tracks.notes.iter().enumerate() {
-            // println!("{id}: {}", note.start.as_micros(),);
-        }
+        let _midi = MidiFile::new("../test.mid").unwrap();
     }
 }

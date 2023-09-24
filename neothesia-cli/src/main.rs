@@ -11,7 +11,7 @@ struct Recorder {
     transform_uniform: Uniform<TransformUniform>,
 
     playback: midi_file::PlaybackState,
-    midi: midi_file::Midi,
+    midi: midi_file::MidiFile,
 
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
@@ -51,7 +51,7 @@ impl Recorder {
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {
-            midi_file::Midi::new(&args[1]).ok()
+            midi_file::MidiFile::new(&args[1]).ok()
         } else {
             None
         }

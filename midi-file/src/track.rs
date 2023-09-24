@@ -1,29 +1,15 @@
-use std::time::Duration;
+use midly::{MidiMessage, TrackEvent, TrackEventKind};
+use std::{collections::HashMap, time::Duration};
 
 use crate::tempo_track::TempoTrack;
-
-use {
-    midly::{MidiMessage, TrackEvent, TrackEventKind},
-    std::collections::HashMap,
-};
 
 #[derive(Debug, Clone)]
 pub struct MidiEvent {
     pub channel: u8,
-    pub delta: u32,
     pub timestamp: Duration,
     pub message: MidiMessage,
     pub track_id: usize,
     pub track_color_id: usize,
-}
-
-#[derive(Debug, Clone)]
-pub struct TempoEvent {
-    pub absolute_pulses: u64,
-    pub relative_pulses: u64,
-    pub timestamp: Duration,
-    /// Tempo in microseconds per quarter note.
-    pub tempo: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -43,7 +29,6 @@ pub struct MidiNote {
     pub channel: u8,
     pub track_id: usize,
     pub track_color_id: usize,
-    pub id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -137,7 +122,6 @@ fn build_notes(
                     channel: active.channel,
                     track_id,
                     track_color_id,
-                    id: notes.len(),
                 };
 
                 notes.push(note);
@@ -205,7 +189,6 @@ fn build_events(
 
                     Some(MidiEvent {
                         channel: channel.as_int(),
-                        delta: event.delta.as_int(),
                         timestamp,
                         message,
                         track_id,

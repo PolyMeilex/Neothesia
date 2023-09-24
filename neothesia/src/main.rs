@@ -23,7 +23,7 @@ use winit::{
 #[derive(Debug)]
 pub enum NeothesiaEvent {
     /// Go to playing scene
-    Play(midi_file::Midi),
+    Play(midi_file::MidiFile),
     /// Go to main menu scene
     MainMenu,
     MidiInput {

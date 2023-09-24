@@ -1,6 +1,13 @@
-use crate::TempoEvent;
 use midly::{MetaMessage, TrackEvent, TrackEventKind};
 use std::{collections::HashMap, time::Duration};
+
+#[derive(Debug, Clone)]
+pub struct TempoEvent {
+    pub absolute_pulses: u64,
+    pub timestamp: Duration,
+    /// Tempo in microseconds per quarter note.
+    pub tempo: u32,
+}
 
 pub struct TempoTrack {
     pulses_per_quarter_note: u16,
@@ -31,7 +38,6 @@ impl TempoTrack {
                         pulses,
                         TempoEvent {
                             absolute_pulses: pulses,
-                            relative_pulses: 0,
                             timestamp: Duration::ZERO,
                             tempo: t.as_int(),
                         },
@@ -50,13 +56,9 @@ impl TempoTrack {
         for tempo_event in tempo_events.iter_mut() {
             let tempo_event_pulses = tempo_event.absolute_pulses;
 
-            tempo_event.relative_pulses = tempo_event_pulses - previous_absolute_pulses;
+            let relative_pulses = tempo_event_pulses - previous_absolute_pulses;
 
-            res += pulse_to_duration(
-                tempo_event.relative_pulses,
-                running_tempo,
-                pulses_per_quarter_note,
-            );
+            res += pulse_to_duration(relative_pulses, running_tempo, pulses_per_quarter_note);
 
             tempo_event.timestamp = res;
 

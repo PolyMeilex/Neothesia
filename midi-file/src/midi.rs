@@ -3,14 +3,14 @@ use midly::{Format, Smf, Timing};
 use std::{fs, path::Path};
 
 #[derive(Debug, Clone)]
-pub struct Midi {
+pub struct MidiFile {
     pub format: Format,
     pub tracks: Vec<MidiTrack>,
     pub merged_track: MidiTrack,
     pub program_map: ProgramTrack,
 }
 
-impl Midi {
+impl MidiFile {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, String> {
         let data = match fs::read(path) {
             Ok(buff) => buff,
@@ -64,11 +64,6 @@ impl Midi {
 
         merged_track.notes.sort_by_key(|n| n.start);
         merged_track.events.sort_by_key(|n| n.timestamp);
-
-        // Assign Unique Id
-        for (i, note) in merged_track.notes.iter_mut().enumerate() {
-            note.id = i;
-        }
 
         let program_map = ProgramTrack::new(&merged_track.events);
 

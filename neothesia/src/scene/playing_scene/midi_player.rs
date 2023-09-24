@@ -1,4 +1,4 @@
-use midi_file::midly::num::u4;
+use midi_file::midly::{num::u4, MidiMessage};
 
 use crate::{output_manager::OutputManager, target::Target};
 use std::{
@@ -58,18 +58,8 @@ impl MidiPlayer {
                 return;
             }
 
-            use midi_file::midly::MidiMessage;
-            match event.message {
-                MidiMessage::NoteOn { key, .. } => {
-                    self.play_along
-                        .press_key(KeyPressSource::File, key.as_int(), true);
-                }
-                MidiMessage::NoteOff { key, .. } => {
-                    self.play_along
-                        .press_key(KeyPressSource::File, key.as_int(), false);
-                }
-                _ => {}
-            }
+            self.play_along
+                .midi_event(MidiEventSource::File, &event.message);
         });
 
         events
@@ -87,10 +77,6 @@ impl Drop for MidiPlayer {
 }
 
 impl MidiPlayer {
-    pub fn start(&mut self) {
-        self.resume();
-    }
-
     pub fn pause_resume(&mut self) {
         if self.playback.is_paused() {
             self.resume();
@@ -175,7 +161,7 @@ impl MidiPlayer {
     }
 }
 
-pub enum KeyPressSource {
+pub enum MidiEventSource {
     File,
     User,
 }
@@ -250,14 +236,22 @@ impl PlayAlong {
         }
     }
 
-    pub fn press_key(&mut self, src: KeyPressSource, note_id: u8, active: bool) {
+    fn press_key(&mut self, src: MidiEventSource, note_id: u8, active: bool) {
         if !self.user_keyboard_range.contains(note_id) {
             return;
         }
 
         match src {
-            KeyPressSource::User => self.user_press_key(note_id, active),
-            KeyPressSource::File => self.file_press_key(note_id, active),
+            MidiEventSource::User => self.user_press_key(note_id, active),
+            MidiEventSource::File => self.file_press_key(note_id, active),
+        }
+    }
+
+    pub fn midi_event(&mut self, source: MidiEventSource, message: &MidiMessage) {
+        match message {
+            MidiMessage::NoteOn { key, .. } => self.press_key(source, key.as_int(), true),
+            MidiMessage::NoteOff { key, .. } => self.press_key(source, key.as_int(), false),
+            _ => {}
         }
     }
 

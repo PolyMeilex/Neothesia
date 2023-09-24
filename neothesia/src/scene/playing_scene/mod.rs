@@ -43,10 +43,8 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let mut player = MidiPlayer::new(target, midi_file, keyboard_layout.range.clone());
+        let player = MidiPlayer::new(target, midi_file, keyboard_layout.range.clone());
         notes.update(&target.gpu.queue, player.time_without_lead_in());
-
-        player.start();
 
         Self {
             keyboard,
@@ -175,20 +173,9 @@ impl Scene for PlayingScene {
     }
 
     fn midi_event(&mut self, _target: &mut Target, _channel: u8, message: &MidiMessage) {
-        match message {
-            MidiMessage::NoteOn { key, .. } => self.player.play_along_mut().press_key(
-                midi_player::KeyPressSource::User,
-                key.as_int(),
-                true,
-            ),
-            MidiMessage::NoteOff { key, .. } => self.player.play_along_mut().press_key(
-                midi_player::KeyPressSource::User,
-                key.as_int(),
-                false,
-            ),
-            _ => {}
-        }
-
+        self.player
+            .play_along_mut()
+            .midi_event(midi_player::MidiEventSource::User, message);
         self.keyboard.user_midi_event(message);
     }
 }

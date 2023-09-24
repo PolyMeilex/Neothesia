@@ -37,7 +37,7 @@ impl PlayingScene {
 
         let mut notes = WaterfallRenderer::new(
             &target.gpu,
-            midi_file.tracks.clone(),
+            &midi_file.tracks,
             &target.config,
             &target.transform_uniform,
             keyboard_layout.clone(),

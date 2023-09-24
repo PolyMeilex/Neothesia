@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::TransformUniform;
 use crate::Uniform;
-use midi_file::MidiFile;
+use midi_file::MergedTracks;
 use wgpu_jumpstart::Color;
 use wgpu_jumpstart::Gpu;
 
@@ -10,23 +10,27 @@ use pipeline::{NoteInstance, WaterfallPipeline};
 
 pub struct WaterfallRenderer {
     notes_pipeline: WaterfallPipeline,
+    merged_tracks: MergedTracks,
 }
 
 impl WaterfallRenderer {
     pub fn new(
         gpu: &Gpu,
-        midi: &MidiFile,
+        merged_tracks: MergedTracks,
         config: &Config,
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_math::KeyboardLayout,
     ) -> Self {
         let notes_pipeline =
-            WaterfallPipeline::new(gpu, transform_uniform, midi.merged_track.notes.len());
-        let mut notes = Self { notes_pipeline };
+            WaterfallPipeline::new(gpu, transform_uniform, merged_tracks.notes.len());
+        let mut notes = Self {
+            notes_pipeline,
+            merged_tracks,
+        };
         notes
             .notes_pipeline
             .set_speed(&gpu.queue, config.animation_speed);
-        notes.resize(&gpu.queue, midi, config, layout);
+        notes.resize(&gpu.queue, config, layout);
         notes
     }
 
@@ -37,7 +41,6 @@ impl WaterfallRenderer {
     pub fn resize(
         &mut self,
         queue: &wgpu::Queue,
-        midi: &MidiFile,
         config: &Config,
         layout: piano_math::KeyboardLayout,
     ) {
@@ -46,7 +49,7 @@ impl WaterfallRenderer {
         let mut instances = Vec::new();
 
         let mut longer_than_range = false;
-        for note in midi.merged_track.notes.iter() {
+        for note in self.merged_tracks.notes.iter() {
             if layout.range.contains(note.note) && note.channel != 9 {
                 let key = &layout.keys[note.note as usize - range_start];
 

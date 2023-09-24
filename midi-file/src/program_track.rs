@@ -1,5 +1,9 @@
 use crate::MidiEvent;
-use std::{collections::HashMap, sync::OnceLock, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
 
 /// HashMap<Channel, Program>
 fn default_programs() -> &'static HashMap<u8, u8> {
@@ -15,7 +19,7 @@ struct Bucket {
 
 #[derive(Debug, Clone)]
 pub struct ProgramTrack {
-    timestamps: Vec<Bucket>,
+    timestamps: Arc<[Bucket]>,
 }
 
 impl ProgramTrack {
@@ -35,7 +39,9 @@ impl ProgramTrack {
             }
         }
 
-        Self { timestamps }
+        Self {
+            timestamps: timestamps.into(),
+        }
     }
 
     /// Search for program at certain timestamp

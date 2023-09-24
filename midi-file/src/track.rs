@@ -1,5 +1,5 @@
 use midly::{MidiMessage, TrackEvent, TrackEventKind};
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::tempo_track::TempoTrack;
 
@@ -34,14 +34,14 @@ pub struct MidiNote {
 #[derive(Debug, Clone)]
 pub struct MidiTrack {
     // Translated notes with calculated timings
-    pub notes: Vec<MidiNote>,
+    pub notes: Arc<[MidiNote]>,
 
-    pub events: Vec<MidiEvent>,
+    pub events: Arc<[MidiEvent]>,
 
     pub track_id: usize,
     pub track_color_id: usize,
 
-    pub programs: Vec<ProgramEvent>,
+    pub programs: Arc<[ProgramEvent]>,
     pub has_drums: bool,
     pub has_other_than_drums: bool,
 }
@@ -66,10 +66,9 @@ impl MidiTrack {
             Self {
                 track_id,
                 track_color_id,
-                notes,
-                events,
-
-                programs,
+                notes: notes.into(),
+                events: events.into(),
+                programs: programs.into(),
                 has_drums,
                 has_other_than_drums,
             }

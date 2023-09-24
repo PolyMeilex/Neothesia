@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use crate::{MidiEvent, MidiTrack};
+use crate::{MergedTracks, MidiEvent};
 
 #[derive(Debug, Clone)]
 pub struct PlaybackState {
+    tracks: MergedTracks,
     is_paused: bool,
     running: Duration,
     leed_in: Duration,
@@ -14,19 +15,20 @@ pub struct PlaybackState {
 }
 
 impl PlaybackState {
-    pub fn new(leed_in: Duration, track: &MidiTrack) -> Self {
-        let first_note_start = if let Some(note) = track.notes.first() {
+    pub fn new(leed_in: Duration, tracks: MergedTracks) -> Self {
+        let first_note_start = if let Some(note) = tracks.notes.first() {
             note.start
         } else {
             Duration::ZERO
         };
-        let last_note_end = if let Some(note) = track.notes.last() {
+        let last_note_end = if let Some(note) = tracks.notes.last() {
             note.start + note.duration
         } else {
             Duration::ZERO
         };
 
         Self {
+            tracks,
             is_paused: false,
             running: Duration::ZERO,
             leed_in,
@@ -37,12 +39,12 @@ impl PlaybackState {
         }
     }
 
-    pub fn update<'a>(&mut self, track: &'a MidiTrack, delta: Duration) -> Vec<&'a MidiEvent> {
+    pub fn update(&mut self, delta: Duration) -> Vec<&MidiEvent> {
         if !self.is_paused {
             self.running += delta;
         }
 
-        let events: Vec<_> = track.events[self.seen_events..]
+        let events: Vec<_> = self.tracks.events[self.seen_events..]
             .iter()
             .take_while(|event| event.timestamp + self.leed_in <= self.running)
             .collect();

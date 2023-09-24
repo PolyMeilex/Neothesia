@@ -146,7 +146,7 @@ mod tests {
     fn load() {
         let midi = MidiFile::new("../test.mid").unwrap();
 
-        for (_id, _note) in midi.merged_track.notes.iter().enumerate() {
+        for (_id, _note) in midi.merged_tracks.notes.iter().enumerate() {
             // println!("{id}: {}", note.start.as_micros(),);
         }
     }

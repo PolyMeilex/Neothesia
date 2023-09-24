@@ -11,7 +11,6 @@ struct Recorder {
     transform_uniform: Uniform<TransformUniform>,
 
     playback: midi_file::PlaybackState,
-    midi: midi_file::MidiFile,
 
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
@@ -77,10 +76,16 @@ impl Recorder {
 
         keyboard.position_on_bottom_of_parent(height as f32);
 
-        let mut waterfall =
-            WaterfallRenderer::new(&gpu, &midi, &config, &transform_uniform, keyboard_layout);
+        let mut waterfall = WaterfallRenderer::new(
+            &gpu,
+            midi.merged_tracks.clone(),
+            &config,
+            &transform_uniform,
+            keyboard_layout,
+        );
 
-        let playback = midi_file::PlaybackState::new(Duration::from_secs(3), &midi.merged_track);
+        let playback =
+            midi_file::PlaybackState::new(Duration::from_secs(3), midi.merged_tracks.clone());
 
         waterfall.update(&gpu.queue, time_without_lead_in(&playback));
 
@@ -91,7 +96,6 @@ impl Recorder {
             transform_uniform,
 
             playback,
-            midi,
 
             keyboard,
             waterfall,
@@ -104,7 +108,7 @@ impl Recorder {
     }
 
     fn update(&mut self, delta: Duration) {
-        let events = self.playback.update(&self.midi.merged_track, delta);
+        let events = self.playback.update(delta);
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
         self.waterfall

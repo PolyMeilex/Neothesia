@@ -27,7 +27,7 @@ impl MidiPlayer {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
                 Duration::from_secs(3),
-                &midi_file.merged_track,
+                midi_file.merged_tracks.clone(),
             ),
             output_manager: target.output_manager.clone(),
             midi_file,
@@ -42,10 +42,6 @@ impl MidiPlayer {
         player
     }
 
-    pub fn midi_file(&self) -> &MidiFile {
-        &self.midi_file
-    }
-
     /// When playing: returns midi events
     ///
     /// When paused: returns None
@@ -54,7 +50,7 @@ impl MidiPlayer {
 
         let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
 
-        let events = self.playback.update(&self.midi_file.merged_track, elapsed);
+        let events = self.playback.update(elapsed);
 
         events.iter().for_each(|event| {
             self.output_manager
@@ -116,9 +112,7 @@ impl MidiPlayer {
         self.playback.set_time(time);
 
         // Discard all of the events till that point
-        let events = self
-            .playback
-            .update(&self.midi_file.merged_track, Duration::ZERO);
+        let events = self.playback.update(Duration::ZERO);
         std::mem::drop(events);
 
         self.clear();

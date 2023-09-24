@@ -1,12 +1,18 @@
-use crate::{program_track::ProgramTrack, tempo_track::TempoTrack, MidiTrack};
+use crate::{program_track::ProgramTrack, tempo_track::TempoTrack, MidiEvent, MidiNote, MidiTrack};
 use midly::{Format, Smf, Timing};
-use std::{fs, path::Path};
+use std::{fs, path::Path, sync::Arc};
+
+#[derive(Debug, Clone)]
+pub struct MergedTracks {
+    pub notes: Arc<[MidiNote]>,
+    pub events: Arc<[MidiEvent]>,
+}
 
 #[derive(Debug, Clone)]
 pub struct MidiFile {
     pub format: Format,
-    pub tracks: Vec<MidiTrack>,
-    pub merged_track: MidiTrack,
+    pub tracks: Arc<[MidiTrack]>,
+    pub merged_tracks: MergedTracks,
     pub program_map: ProgramTrack,
 }
 
@@ -51,26 +57,36 @@ impl MidiFile {
             })
             .collect();
 
-        let mut merged_track: MidiTrack = tracks[0].clone();
+        let (notes_count, events_count) = tracks.iter().fold((0, 0), |(notes, events), track| {
+            (notes + track.notes.len(), events + track.events.len())
+        });
 
-        for track in tracks.iter().skip(1) {
+        let mut notes = Vec::with_capacity(notes_count);
+        let mut events = Vec::with_capacity(events_count);
+
+        for track in tracks.iter() {
             for n in track.notes.iter().cloned() {
-                merged_track.notes.push(n);
+                notes.push(n);
             }
             for e in track.events.iter().cloned() {
-                merged_track.events.push(e);
+                events.push(e);
             }
         }
 
-        merged_track.notes.sort_by_key(|n| n.start);
-        merged_track.events.sort_by_key(|n| n.timestamp);
+        notes.sort_by_key(|n| n.start);
+        events.sort_by_key(|n| n.timestamp);
 
-        let program_map = ProgramTrack::new(&merged_track.events);
+        let program_map = ProgramTrack::new(&events);
+
+        let merged_track = MergedTracks {
+            notes: notes.into(),
+            events: events.into(),
+        };
 
         Ok(Self {
             format: smf.header.format,
-            tracks,
-            merged_track,
+            tracks: tracks.into(),
+            merged_tracks: merged_track,
             program_map,
         })
     }

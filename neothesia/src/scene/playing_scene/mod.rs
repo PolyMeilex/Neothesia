@@ -37,7 +37,7 @@ impl PlayingScene {
 
         let mut notes = WaterfallRenderer::new(
             &target.gpu,
-            &midi_file,
+            midi_file.merged_tracks.clone(),
             &target.config,
             &target.transform_uniform,
             keyboard_layout.clone(),
@@ -77,7 +77,6 @@ impl Scene for PlayingScene {
         self.keyboard.resize(target);
         self.notes.resize(
             &target.gpu.queue,
-            self.player.midi_file(),
             &target.config,
             self.keyboard.layout().clone(),
         );

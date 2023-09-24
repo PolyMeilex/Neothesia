@@ -1,4 +1,4 @@
-use crate::target::Target;
+use neothesia_core::render::TextRenderer;
 
 #[derive(Default)]
 pub struct ToastManager {
@@ -6,33 +6,19 @@ pub struct ToastManager {
 }
 
 impl ToastManager {
-    pub fn update(&mut self, target: &mut Target) {
-        if let Some(mut toast) = self.toast.take() {
-            self.toast = if toast.draw(target) {
-                Some(toast)
-            } else {
-                None
-            };
+    pub fn update(&mut self, text_renderer: &mut TextRenderer) {
+        let Some(toast) = self.toast.as_ref() else {
+            return;
+        };
+
+        let alive = toast.draw(text_renderer);
+        if !alive {
+            self.toast = None;
         }
     }
 
-    pub fn toast(&mut self, text: String) {
-        self.toast = Some(Toast::new(move |target| {
-            let text = vec![wgpu_glyph::Text::new(&text)
-                .with_color([1.0, 1.0, 1.0, 1.0])
-                .with_scale(20.0)];
-
-            target.text_renderer.queue_text(wgpu_glyph::Section {
-                text,
-                screen_position: (0.0, 20.0),
-                layout: wgpu_glyph::Layout::Wrap {
-                    line_breaker: Default::default(),
-                    h_align: wgpu_glyph::HorizontalAlign::Left,
-                    v_align: wgpu_glyph::VerticalAlign::Top,
-                },
-                ..Default::default()
-            });
-        }));
+    pub fn toast(&mut self, text: impl Into<String>) {
+        self.toast = Some(Toast::new(text.into()));
     }
 
     pub fn speed_toast(&mut self, speed: f32) {
@@ -50,26 +36,42 @@ impl ToastManager {
 
 struct Toast {
     start_time: std::time::Instant,
-    inner_draw: Box<dyn Fn(&mut Target)>,
+    text: String,
 }
 
 impl Toast {
-    fn new(draw: impl Fn(&mut Target) + 'static) -> Self {
+    fn new(text: String) -> Self {
         Self {
             start_time: std::time::Instant::now(),
-            inner_draw: Box::new(draw),
+            text,
         }
     }
 
-    fn draw(&mut self, target: &mut Target) -> bool {
+    fn draw(&self, text_renderer: &mut TextRenderer) -> bool {
         let time = self.start_time.elapsed().as_secs();
 
         if time < 1 {
-            (*self.inner_draw)(target);
-
+            queue_text(&self.text, text_renderer);
             true
         } else {
             false
         }
     }
+}
+
+fn queue_text(text: &str, text_renderer: &mut TextRenderer) {
+    let text = vec![wgpu_glyph::Text::new(text)
+        .with_color([1.0, 1.0, 1.0, 1.0])
+        .with_scale(20.0)];
+
+    text_renderer.queue_text(wgpu_glyph::Section {
+        text,
+        screen_position: (0.0, 20.0),
+        layout: wgpu_glyph::Layout::Wrap {
+            line_breaker: Default::default(),
+            h_align: wgpu_glyph::HorizontalAlign::Left,
+            v_align: wgpu_glyph::VerticalAlign::Top,
+        },
+        ..Default::default()
+    });
 }

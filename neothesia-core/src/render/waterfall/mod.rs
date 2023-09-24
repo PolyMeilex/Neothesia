@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use crate::config::Config;
 use crate::TransformUniform;
 use crate::Uniform;
-use midi_file::MergedTracks;
+use midi_file::MidiTrack;
 use wgpu_jumpstart::Color;
 use wgpu_jumpstart::Gpu;
 
@@ -10,22 +12,23 @@ use pipeline::{NoteInstance, WaterfallPipeline};
 
 pub struct WaterfallRenderer {
     notes_pipeline: WaterfallPipeline,
-    merged_tracks: MergedTracks,
+    tracks: Arc<[MidiTrack]>,
 }
 
 impl WaterfallRenderer {
     pub fn new(
         gpu: &Gpu,
-        merged_tracks: MergedTracks,
+        tracks: Arc<[MidiTrack]>,
         config: &Config,
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_math::KeyboardLayout,
     ) -> Self {
-        let notes_pipeline =
-            WaterfallPipeline::new(gpu, transform_uniform, merged_tracks.notes.len());
+        let notes_count = tracks.iter().fold(0, |v, t| v + t.notes.len());
+
+        let notes_pipeline = WaterfallPipeline::new(gpu, transform_uniform, notes_count);
         let mut notes = Self {
             notes_pipeline,
-            merged_tracks,
+            tracks,
         };
         notes
             .notes_pipeline
@@ -49,34 +52,36 @@ impl WaterfallRenderer {
         let mut instances = Vec::new();
 
         let mut longer_than_range = false;
-        for note in self.merged_tracks.notes.iter() {
-            if layout.range.contains(note.note) && note.channel != 9 {
-                let key = &layout.keys[note.note as usize - range_start];
+        for track in self.tracks.iter() {
+            for note in track.notes.iter() {
+                if layout.range.contains(note.note) && note.channel != 9 {
+                    let key = &layout.keys[note.note as usize - range_start];
 
-                let color_schema = &config.color_schema;
+                    let color_schema = &config.color_schema;
 
-                let color = &color_schema[note.track_color_id % color_schema.len()];
-                let color = if key.kind().is_sharp() {
-                    color.dark
+                    let color = &color_schema[note.track_color_id % color_schema.len()];
+                    let color = if key.kind().is_sharp() {
+                        color.dark
+                    } else {
+                        color.base
+                    };
+                    let color: Color = color.into();
+
+                    let h = if note.duration.as_secs_f32() >= 0.1 {
+                        note.duration.as_secs_f32()
+                    } else {
+                        0.1
+                    };
+
+                    instances.push(NoteInstance {
+                        position: [key.x(), note.start.as_secs_f32()],
+                        size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
+                        color: color.into_linear_rgb(),
+                        radius: key.width() * 0.2,
+                    });
                 } else {
-                    color.base
-                };
-                let color: Color = color.into();
-
-                let h = if note.duration.as_secs_f32() >= 0.1 {
-                    note.duration.as_secs_f32()
-                } else {
-                    0.1
-                };
-
-                instances.push(NoteInstance {
-                    position: [key.x(), note.start.as_secs_f32()],
-                    size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
-                    color: color.into_linear_rgb(),
-                    radius: key.width() * 0.2,
-                });
-            } else {
-                longer_than_range = true;
+                    longer_than_range = true;
+                }
             }
         }
 

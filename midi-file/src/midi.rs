@@ -1,18 +1,11 @@
-use crate::{program_track::ProgramTrack, tempo_track::TempoTrack, MidiEvent, MidiNote, MidiTrack};
+use crate::{program_track::ProgramTrack, tempo_track::TempoTrack, MidiTrack};
 use midly::{Format, Smf, Timing};
 use std::{fs, path::Path, sync::Arc};
-
-#[derive(Debug, Clone)]
-pub struct MergedTracks {
-    pub notes: Arc<[MidiNote]>,
-    pub events: Arc<[MidiEvent]>,
-}
 
 #[derive(Debug, Clone)]
 pub struct MidiFile {
     pub format: Format,
     pub tracks: Arc<[MidiTrack]>,
-    pub merged_tracks: MergedTracks,
     pub program_map: ProgramTrack,
 }
 
@@ -57,36 +50,11 @@ impl MidiFile {
             })
             .collect();
 
-        let (notes_count, events_count) = tracks.iter().fold((0, 0), |(notes, events), track| {
-            (notes + track.notes.len(), events + track.events.len())
-        });
-
-        let mut notes = Vec::with_capacity(notes_count);
-        let mut events = Vec::with_capacity(events_count);
-
-        for track in tracks.iter() {
-            for n in track.notes.iter().cloned() {
-                notes.push(n);
-            }
-            for e in track.events.iter().cloned() {
-                events.push(e);
-            }
-        }
-
-        notes.sort_by_key(|n| n.start);
-        events.sort_by_key(|n| n.timestamp);
-
-        let program_map = ProgramTrack::new(&events);
-
-        let merged_track = MergedTracks {
-            notes: notes.into(),
-            events: events.into(),
-        };
+        let program_map = ProgramTrack::new(&tracks);
 
         Ok(Self {
             format: smf.header.format,
             tracks: tracks.into(),
-            merged_tracks: merged_track,
             program_map,
         })
     }

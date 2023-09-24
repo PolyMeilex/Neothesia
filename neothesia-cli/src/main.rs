@@ -78,14 +78,13 @@ impl Recorder {
 
         let mut waterfall = WaterfallRenderer::new(
             &gpu,
-            midi.merged_tracks.clone(),
+            midi.tracks.clone(),
             &config,
             &transform_uniform,
             keyboard_layout,
         );
 
-        let playback =
-            midi_file::PlaybackState::new(Duration::from_secs(3), midi.merged_tracks.clone());
+        let playback = midi_file::PlaybackState::new(Duration::from_secs(3), midi.tracks.clone());
 
         waterfall.update(&gpu.queue, time_without_lead_in(&playback));
 

@@ -27,7 +27,7 @@ impl MidiPlayer {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
                 Duration::from_secs(3),
-                midi_file.merged_tracks.clone(),
+                midi_file.tracks.clone(),
             ),
             output_manager: target.output_manager.clone(),
             midi_file,

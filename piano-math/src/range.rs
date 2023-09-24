@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use std::ops::{Range, RangeBounds};
+use std::{
+    ops::{Range, RangeBounds},
+    rc::Rc,
+};
 
 const KEY_CIS: u8 = 1;
 const KEY_DIS: u8 = 3;
@@ -23,9 +26,9 @@ impl KeyId {
 pub struct KeyboardRange {
     range: Range<u8>,
 
-    keys: Vec<KeyId>,
-    white_keys: Vec<KeyId>,
-    black_keys: Vec<KeyId>,
+    keys: Rc<[KeyId]>,
+    white_keys: Rc<[KeyId]>,
+    black_keys: Rc<[KeyId]>,
 }
 
 impl KeyboardRange {
@@ -67,9 +70,9 @@ impl KeyboardRange {
         Self {
             range,
 
-            keys,
-            white_keys,
-            black_keys,
+            keys: keys.into(),
+            white_keys: white_keys.into(),
+            black_keys: black_keys.into(),
         }
     }
 

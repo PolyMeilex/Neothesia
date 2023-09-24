@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 pub mod range;
 pub use range::KeyboardRange;
 
 #[derive(Debug, Clone)]
 pub struct KeyboardLayout {
-    pub keys: Vec<Key>,
+    pub keys: Rc<[Key]>,
 
     pub width: f32,
     pub height: f32,
@@ -64,7 +66,7 @@ impl KeyboardLayout {
         let height = neutral_height;
 
         KeyboardLayout {
-            keys,
+            keys: keys.into(),
 
             width,
             height,

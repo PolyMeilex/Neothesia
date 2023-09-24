@@ -5,13 +5,10 @@ use wgpu_jumpstart::Color;
 use winit::event::{KeyboardInput, WindowEvent};
 
 use super::Scene;
-use crate::{
-    render::{KeyboardRenderer, WaterfallRenderer},
-    target::Target,
-    NeothesiaEvent,
-};
+use crate::{render::WaterfallRenderer, target::Target, NeothesiaEvent};
 
-mod keyboard_events;
+mod keyboard;
+use keyboard::Keyboard;
 
 mod midi_player;
 use midi_player::MidiPlayer;
@@ -23,9 +20,7 @@ mod toast_manager;
 use toast_manager::ToastManager;
 
 pub struct PlayingScene {
-    keyboard_layout: piano_math::KeyboardLayout,
-
-    piano_keyboard: KeyboardRenderer,
+    keyboard: Keyboard,
     notes: WaterfallRenderer,
 
     player: MidiPlayer,
@@ -34,29 +29,11 @@ pub struct PlayingScene {
     toast_manager: ToastManager,
 }
 
-fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
-    let range = piano_math::KeyboardRange::standard_88_keys();
-    let white_count = range.white_count();
-    let neutral_width = width / white_count as f32;
-    let neutral_height = height * 0.2;
-
-    piano_math::KeyboardLayout::from_range(neutral_width, neutral_height, range)
-}
-
 impl PlayingScene {
     pub fn new(target: &Target, midi_file: midi_file::Midi) -> Self {
-        let keyboard_layout = get_layout(
-            target.window_state.logical_size.width,
-            target.window_state.logical_size.height,
-        );
+        let keyboard = Keyboard::new(target);
 
-        let mut piano_keyboard = KeyboardRenderer::new(
-            &target.gpu,
-            &target.transform_uniform,
-            keyboard_layout.clone(),
-        );
-
-        piano_keyboard.position_on_bottom_of_parent(target.window_state.logical_size.height);
+        let keyboard_layout = keyboard.layout();
 
         let mut notes = WaterfallRenderer::new(
             &target.gpu,
@@ -72,9 +49,8 @@ impl PlayingScene {
         player.start();
 
         Self {
-            keyboard_layout,
+            keyboard,
 
-            piano_keyboard,
             notes,
             player,
             rewind_controler: RewindController::new(),
@@ -100,20 +76,12 @@ impl PlayingScene {
 
 impl Scene for PlayingScene {
     fn resize(&mut self, target: &mut Target) {
-        self.keyboard_layout = get_layout(
-            target.window_state.logical_size.width,
-            target.window_state.logical_size.height,
-        );
-
-        self.piano_keyboard.set_layout(self.keyboard_layout.clone());
-        self.piano_keyboard
-            .position_on_bottom_of_parent(target.window_state.logical_size.height);
-
+        self.keyboard.resize(target);
         self.notes.resize(
             &target.gpu.queue,
             target.midi_file.as_ref().unwrap(),
             &target.config,
-            self.keyboard_layout.clone(),
+            self.keyboard.layout().clone(),
         );
     }
 
@@ -121,11 +89,7 @@ impl Scene for PlayingScene {
         if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
             self.rewind_controler.update(&mut self.player, target);
             let midi_events = self.player.update(target, delta);
-            keyboard_events::file_midi_events(
-                &mut self.piano_keyboard,
-                &target.config,
-                &midi_events,
-            );
+            self.keyboard.file_midi_events(&target.config, &midi_events);
         }
 
         self.update_progresbar(target);
@@ -135,7 +99,7 @@ impl Scene for PlayingScene {
             self.player.time_without_lead_in() + target.config.playback_offset,
         );
 
-        self.piano_keyboard
+        self.keyboard
             .update(&target.gpu.queue, target.text_renderer.glyph_brush());
         self.toast_manager.update(target);
     }
@@ -160,7 +124,7 @@ impl Scene for PlayingScene {
         self.notes
             .render(&target.transform_uniform, &mut render_pass);
 
-        self.piano_keyboard
+        self.keyboard
             .render(&target.transform_uniform, &mut render_pass);
 
         self.quad_pipeline
@@ -177,7 +141,7 @@ impl Scene for PlayingScene {
                     .handle_keyboard_input(&mut self.player, input);
 
                 if self.rewind_controler.is_rewinding() {
-                    self.piano_keyboard.reset_notes();
+                    self.keyboard.reset_notes();
                 }
 
                 settings_keyboard_input(target, &mut self.toast_manager, input, &mut self.notes);
@@ -199,7 +163,7 @@ impl Scene for PlayingScene {
                     .handle_mouse_input(&mut self.player, target, state, button);
 
                 if self.rewind_controler.is_rewinding() {
-                    self.piano_keyboard.reset_notes();
+                    self.keyboard.reset_notes();
                 }
             }
             CursorMoved { position, .. } => {
@@ -225,7 +189,7 @@ impl Scene for PlayingScene {
             _ => {}
         }
 
-        keyboard_events::user_midi_event(&mut self.piano_keyboard, message);
+        self.keyboard.user_midi_event(message);
     }
 }
 

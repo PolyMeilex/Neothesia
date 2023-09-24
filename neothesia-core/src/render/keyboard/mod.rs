@@ -78,7 +78,7 @@ impl KeyboardRenderer {
         self.queue_reupload();
     }
 
-    pub fn layout(&mut self) -> &piano_math::KeyboardLayout {
+    pub fn layout(&self) -> &piano_math::KeyboardLayout {
         &self.layout
     }
 

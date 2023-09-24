@@ -99,7 +99,7 @@ impl Scene for PlayingScene {
 
         self.keyboard
             .update(&target.gpu.queue, target.text_renderer.glyph_brush());
-        self.toast_manager.update(target);
+        self.toast_manager.update(&mut target.text_renderer);
     }
 
     fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {

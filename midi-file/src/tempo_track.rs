@@ -1,5 +1,5 @@
 use midly::{MetaMessage, TrackEvent, TrackEventKind};
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct TempoEvent {
@@ -9,17 +9,10 @@ pub struct TempoEvent {
     pub tempo: u32,
 }
 
+#[derive(Debug, Clone)]
 pub struct TempoTrack {
     pulses_per_quarter_note: u16,
-    events: Vec<TempoEvent>,
-}
-
-impl std::ops::Deref for TempoTrack {
-    type Target = Vec<TempoEvent>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.events
-    }
+    events: Arc<[TempoEvent]>,
 }
 
 impl TempoTrack {
@@ -68,7 +61,7 @@ impl TempoTrack {
 
         TempoTrack {
             pulses_per_quarter_note,
-            events: tempo_events,
+            events: tempo_events.into(),
         }
     }
 

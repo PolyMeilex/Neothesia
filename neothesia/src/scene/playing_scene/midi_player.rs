@@ -98,7 +98,7 @@ impl MidiPlayer {
     }
 
     fn send_midi_programs_for_timestamp(&self, time: &Duration) {
-        for (&channel, &p) in self.midi_file.program_map.program_for_timestamp(time) {
+        for (&channel, &p) in self.midi_file.program_track.program_for_timestamp(time) {
             self.output_manager.borrow_mut().midi_event(
                 u4::new(channel),
                 midi_file::midly::MidiMessage::ProgramChange {

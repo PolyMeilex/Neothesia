@@ -6,7 +6,8 @@ use std::{fs, path::Path, sync::Arc};
 pub struct MidiFile {
     pub format: Format,
     pub tracks: Arc<[MidiTrack]>,
-    pub program_map: ProgramTrack,
+    pub program_track: ProgramTrack,
+    pub tempo_track: TempoTrack,
 }
 
 impl MidiFile {
@@ -50,12 +51,13 @@ impl MidiFile {
             })
             .collect();
 
-        let program_map = ProgramTrack::new(&tracks);
+        let program_track = ProgramTrack::new(&tracks);
 
         Ok(Self {
             format: smf.header.format,
             tracks: tracks.into(),
-            program_map,
+            program_track,
+            tempo_track,
         })
     }
 }

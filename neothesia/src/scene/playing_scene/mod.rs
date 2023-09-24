@@ -77,7 +77,7 @@ impl Scene for PlayingScene {
         self.keyboard.resize(target);
         self.notes.resize(
             &target.gpu.queue,
-            target.midi_file.as_ref().unwrap(),
+            self.player.midi_file(),
             &target.config,
             self.keyboard.layout().clone(),
         );

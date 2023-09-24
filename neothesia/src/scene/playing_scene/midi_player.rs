@@ -39,6 +39,10 @@ impl MidiPlayer {
         player
     }
 
+    pub fn midi_file(&self) -> &midi_file::Midi {
+        &self.midi_file
+    }
+
     /// When playing: returns midi events
     ///
     /// When paused: returns None

@@ -4,7 +4,7 @@ use winit::{
 };
 
 use super::MidiPlayer;
-use crate::target::Target;
+use crate::{target::Target, utils::window::WindowState};
 
 pub enum RewindController {
     Keyboard { speed: i64, was_paused: bool },
@@ -50,7 +50,7 @@ impl RewindController {
         }
     }
 
-    pub fn update(&self, player: &mut MidiPlayer, target: &mut Target) {
+    pub fn update(&self, player: &mut MidiPlayer, target: &Target) {
         if let RewindController::Keyboard { speed, .. } = self {
             if target.window_state.modifers_state.shift() {
                 player.rewind(*speed * 2);
@@ -91,18 +91,18 @@ impl RewindController {
     pub fn handle_mouse_input(
         &mut self,
         player: &mut MidiPlayer,
-        target: &mut Target,
+        window_state: &WindowState,
         state: &ElementState,
         button: &MouseButton,
     ) {
         if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
-            let pos = &target.window_state.cursor_logical_position;
+            let pos = &window_state.cursor_logical_position;
 
             if pos.y < 20.0 && !self.is_rewinding() {
                 self.start_mouse_rewind(player);
 
-                let x = target.window_state.cursor_logical_position.x;
-                let w = target.window_state.logical_size.width;
+                let x = window_state.cursor_logical_position.x;
+                let w = window_state.logical_size.width;
 
                 let p = x / w;
                 log::debug!("Progressbar: x:{},p:{}", x, p);
@@ -118,14 +118,12 @@ impl RewindController {
     pub fn handle_cursor_moved(
         &mut self,
         player: &mut MidiPlayer,
-        target: &mut Target,
+        window_state: &WindowState,
         position: &PhysicalPosition<f64>,
     ) {
         if let RewindController::Mouse { .. } = self {
-            let x = position
-                .to_logical::<f32>(target.window_state.scale_factor)
-                .x;
-            let w = &target.window_state.logical_size.width;
+            let x = position.to_logical::<f32>(window_state.scale_factor).x;
+            let w = &window_state.logical_size.width;
 
             let p = x / w;
             log::debug!("Progressbar: x:{},p:{}", x, p);

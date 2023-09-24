@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::TransformUniform;
 use crate::Uniform;
-use midi_file::Midi;
+use midi_file::MidiFile;
 use wgpu_jumpstart::Color;
 use wgpu_jumpstart::Gpu;
 
@@ -15,7 +15,7 @@ pub struct WaterfallRenderer {
 impl WaterfallRenderer {
     pub fn new(
         gpu: &Gpu,
-        midi: &Midi,
+        midi: &MidiFile,
         config: &Config,
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_math::KeyboardLayout,
@@ -37,7 +37,7 @@ impl WaterfallRenderer {
     pub fn resize(
         &mut self,
         queue: &wgpu::Queue,
-        midi: &Midi,
+        midi: &MidiFile,
         config: &Config,
         layout: piano_math::KeyboardLayout,
     ) {

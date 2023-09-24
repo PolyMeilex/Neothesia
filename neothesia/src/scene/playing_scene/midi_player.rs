@@ -1,4 +1,7 @@
-use midi_file::midly::{num::u4, MidiMessage};
+use midi_file::{
+    midly::{num::u4, MidiMessage},
+    MidiFile,
+};
 
 use crate::{output_manager::OutputManager, target::Target};
 use std::{
@@ -11,14 +14,14 @@ use std::{
 pub struct MidiPlayer {
     playback: midi_file::PlaybackState,
     output_manager: Rc<RefCell<OutputManager>>,
-    midi_file: midi_file::Midi,
+    midi_file: MidiFile,
     play_along: PlayAlong,
 }
 
 impl MidiPlayer {
     pub fn new(
         target: &Target,
-        midi_file: midi_file::Midi,
+        midi_file: MidiFile,
         user_keyboard_range: piano_math::KeyboardRange,
     ) -> Self {
         let mut player = Self {
@@ -39,7 +42,7 @@ impl MidiPlayer {
         player
     }
 
-    pub fn midi_file(&self) -> &midi_file::Midi {
+    pub fn midi_file(&self) -> &MidiFile {
         &self.midi_file
     }
 

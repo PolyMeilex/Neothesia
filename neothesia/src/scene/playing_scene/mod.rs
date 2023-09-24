@@ -1,4 +1,4 @@
-use midi_file::midly::MidiMessage;
+use midi_file::{midly::MidiMessage, MidiFile};
 use neothesia_core::render::{QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::Color;
@@ -30,7 +30,7 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(target: &Target, midi_file: midi_file::Midi) -> Self {
+    pub fn new(target: &Target, midi_file: MidiFile) -> Self {
         let keyboard = Keyboard::new(target);
 
         let keyboard_layout = keyboard.layout();

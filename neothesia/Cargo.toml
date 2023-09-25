@@ -9,7 +9,7 @@ default-run = "neothesia"
 default = ["oxi-synth"]
 
 synth = []
-fluid-synth = ["synth", "cpal", "fluidlite"]
+fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
 oxi-synth = ["synth", "cpal", "oxisynth"]
 
 [dependencies]

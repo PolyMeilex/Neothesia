@@ -19,7 +19,7 @@ If you have any questions, feel free to join my Discord
 
 <a href="https://flathub.org/apps/details/com.github.polymeilex.neothesia"><img width="240" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.png"/></a>
 
-Arch Linux(AUR): <https://aur.archlinux.org/packages/neothesia>
+Arch Linux(Unofficial AUR built from source, maintained by @zayn7lie): <https://aur.archlinux.org/packages/neothesia>
 
 All binary releases:
 [https://github.com/PolyMeilex/Neothesia/releases](https://github.com/PolyMeilex/Neothesia/releases)

@@ -1,6 +1,6 @@
 use midi_file::midly::MidiMessage;
+use neothesia_core::render::TextRenderer;
 use piano_math::KeyboardRange;
-use wgpu_glyph::GlyphBrush;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 
 use crate::{config::Config, render::KeyboardRenderer, target::Target};
@@ -57,7 +57,7 @@ impl Keyboard {
         self.position_on_bottom_of_parent(target.window_state.logical_size.height);
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, brush: &mut GlyphBrush<()>) {
+    pub fn update(&mut self, queue: &wgpu::Queue, brush: &mut TextRenderer) {
         self.renderer.update(queue, brush)
     }
 

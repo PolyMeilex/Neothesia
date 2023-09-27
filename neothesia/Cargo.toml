@@ -22,7 +22,6 @@ serde = { version = "1.0", features = ["serde_derive"] }
 num = "0.4"
 
 wgpu = { workspace = true }
-wgpu_glyph = { workspace = true }
 wgpu-jumpstart = { workspace = true }
 
 neothesia-core = { workspace = true }

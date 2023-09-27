@@ -1206,44 +1206,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glyph_brush"
-version = "0.7.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4edefd123f28a0b1d41ec4a489c2b43020b369180800977801611084f342978d"
-dependencies = [
- "glyph_brush_draw_cache",
- "glyph_brush_layout",
- "ordered-float",
- "rustc-hash",
- "twox-hash",
-]
-
-[[package]]
-name = "glyph_brush_draw_cache"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6010675390f6889e09a21e2c8b575b3ee25667ea8237a8d59423f73cb8c28610"
-dependencies = [
- "ab_glyph",
- "crossbeam-channel",
- "crossbeam-deque",
- "linked-hash-map",
- "rayon",
- "rustc-hash",
-]
-
-[[package]]
-name = "glyph_brush_layout"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc32c2334f00ca5ac3695c5009ae35da21da8c62d255b5b96d56e2597a637a38"
-dependencies = [
- "ab_glyph",
- "approx",
- "xi-unicode",
-]
-
-[[package]]
 name = "glyphon"
 version = "0.3.0"
 source = "git+https://github.com/grovesNL/glyphon.git?rev=20f0f8fa80e0d0df4c63634ce9176fa489546ca9#20f0f8fa80e0d0df4c63634ce9176fa489546ca9"
@@ -1754,12 +1716,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2047,7 +2003,6 @@ dependencies = [
  "serde",
  "wgpu",
  "wgpu-jumpstart",
- "wgpu_glyph",
  "winit",
 ]
 
@@ -2069,6 +2024,7 @@ name = "neothesia-core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "glyphon",
  "log",
  "midi-file",
  "objc",
@@ -2077,7 +2033,6 @@ dependencies = [
  "serde",
  "wgpu",
  "wgpu-jumpstart",
- "wgpu_glyph",
 ]
 
 [[package]]
@@ -2378,15 +2333,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "221d488cd70617f1bd599ed8ceb659df2147d9393717954d82a0f5e8032a6ab1"
 dependencies = [
  "redox_syscall 0.3.5",
-]
-
-[[package]]
-name = "ordered-float"
-version = "3.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fc2dbde8f8a79f2102cc474ceb0ad68e3b80b85289ea62389b60e66777e4213"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
@@ -3777,18 +3723,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgpu_glyph"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d10e4593fcbe13066b7d9d97416174c724285b5430c9bc5c6b23b0ed49ccf6f1"
-dependencies = [
- "bytemuck",
- "glyph_brush",
- "log",
- "wgpu",
-]
-
-[[package]]
 name = "widestring"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4087,12 +4021,6 @@ checksum = "463705a63313cd4301184381c5e8042f0a7e9b4bb63653f216311d4ae74690b7"
 dependencies = [
  "nom",
 ]
-
-[[package]]
-name = "xi-unicode"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a67300977d3dc3f8034dae89778f502b6ba20b269527b3223ba59c0cf393bb8a"
 
 [[package]]
 name = "xml-rs"

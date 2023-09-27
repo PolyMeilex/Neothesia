@@ -139,8 +139,8 @@ impl Neothesia {
 
         self.game_scene.update(&mut self.target, delta);
 
-        #[cfg(debug_assertions)]
-        self.target.text_renderer.queue_fps(self.fps_timer.avg());
+        // #[cfg(debug_assertions)]
+        // self.target.text_renderer.queue_fps(self.fps_timer.avg());
     }
 
     fn render(&mut self) {
@@ -162,14 +162,14 @@ impl Neothesia {
 
         self.game_scene.render(&mut self.target, view);
 
-        self.target.text_renderer.render(
-            (
-                self.target.window_state.logical_size.width,
-                self.target.window_state.logical_size.height,
-            ),
-            &mut self.target.gpu,
-            view,
-        );
+        // self.target.text_renderer.render(
+        //     (
+        //         self.target.window_state.logical_size.width,
+        //         self.target.window_state.logical_size.height,
+        //     ),
+        //     &mut self.target.gpu,
+        //     view,
+        // );
 
         self.target.gpu.submit();
         frame.present();

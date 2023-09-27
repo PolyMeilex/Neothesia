@@ -13,7 +13,8 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.dependencies]
-wgpu = "0.16.1"
+wgpu = "0.17.1"
+wgpu_glyph = "0.21.0"
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.10"

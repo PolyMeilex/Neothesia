@@ -10,7 +10,7 @@ serde = { version = "1.0", features = ["serde_derive"] }
 
 bytemuck = { workspace = true }
 wgpu = { workspace = true }
-wgpu_glyph = "0.20.0"
+wgpu_glyph = { workspace = true }
 wgpu-jumpstart = { workspace = true }
 
 piano-math = { workspace = true }

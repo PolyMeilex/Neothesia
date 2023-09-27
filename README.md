@@ -1,6 +1,5 @@
 ![Neothesia Baner](https://github.com/PolyMeilex/Neothesia/assets/20758186/ca9aa8ae-2a69-48de-92d6-97d7ea9e678d)
 
-
 # Neothesia
 
 Opensource Synthesia was abandoned in favour of [closed source commercial project](https://www.synthesiagame.com/)  
@@ -17,9 +16,12 @@ If you have any questions, feel free to join my Discord
 [![Video](https://i.imgur.com/1R5uOnA.png)](https://youtu.be/ReE9nVuMCSE)
 
 ## Download
+
 <a href="https://flathub.org/apps/details/com.github.polymeilex.neothesia"><img width="240" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.png"/></a>
 
-Or binary releases:
+Arch Linux (**Unofficial AUR** built from source, maintained by @zayn7lie): <https://aur.archlinux.org/packages/neothesia>
+
+All binary releases:
 [https://github.com/PolyMeilex/Neothesia/releases](https://github.com/PolyMeilex/Neothesia/releases)
 
 ## FAQ

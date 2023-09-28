@@ -68,6 +68,18 @@ impl<'a> QuadPipeline {
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
 
+    pub fn clear(&mut self) {
+        self.instances.data.clear();
+    }
+
+    pub fn instances(&mut self) -> &mut Vec<QuadInstance> {
+        &mut self.instances.data
+    }
+
+    pub fn prepare(&self, queue: &wgpu::Queue) {
+        self.instances.update(queue);
+    }
+
     pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: Vec<QuadInstance>) {
         self.instances.data = instances;
         self.instances.update(queue);

@@ -2,7 +2,7 @@ use std::{default::Default, time::Duration};
 
 use neothesia_core::{
     config::Config,
-    render::{KeyboardRenderer, TextRenderer, WaterfallRenderer},
+    render::{KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
@@ -12,6 +12,7 @@ struct Recorder {
 
     playback: midi_file::PlaybackState,
 
+    quad_pipeline: QuadPipeline,
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
     text: TextRenderer,
@@ -70,14 +71,12 @@ impl Recorder {
             wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
         );
 
+        let quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
+
         let keyboard_layout = get_layout(width as f32, height as f32);
 
-        let mut keyboard = KeyboardRenderer::new(
-            &gpu,
-            &transform_uniform,
-            keyboard_layout.clone(),
-            config.vertical_guidelines,
-        );
+        let mut keyboard =
+            KeyboardRenderer::new(keyboard_layout.clone(), config.vertical_guidelines);
 
         keyboard.position_on_bottom_of_parent(height as f32);
 
@@ -101,6 +100,7 @@ impl Recorder {
 
             playback,
 
+            quad_pipeline,
             keyboard,
             waterfall,
             text,
@@ -118,7 +118,10 @@ impl Recorder {
         self.waterfall
             .update(&self.gpu.queue, time_without_lead_in(&self.playback));
 
-        self.keyboard.update(&self.gpu.queue, &mut self.text);
+        self.quad_pipeline.clear();
+        self.keyboard
+            .update(&mut self.quad_pipeline, &mut self.text);
+        self.quad_pipeline.prepare(&self.gpu.queue);
 
         self.text.update((self.width, self.height), &self.gpu);
     }
@@ -151,7 +154,8 @@ impl Recorder {
                 });
 
             self.waterfall.render(&self.transform_uniform, &mut rpass);
-            self.keyboard.render(&self.transform_uniform, &mut rpass);
+            self.quad_pipeline
+                .render(&self.transform_uniform, &mut rpass);
             self.text.render(&mut rpass);
         }
 
@@ -296,7 +300,7 @@ fn file_midi_events(
                 key.pressed_by_file_off();
             }
 
-            keyboard.queue_reupload();
+            keyboard.invalidate_cache();
         }
     }
 }

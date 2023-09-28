@@ -1,14 +1,12 @@
 use crate::{
     render::{QuadInstance, QuadPipeline},
     utils::Point,
-    TransformUniform, Uniform,
 };
 
 use piano_math::range::KeyboardRange;
 
 mod key_state;
 pub use key_state::KeyState;
-use wgpu_jumpstart::Gpu;
 
 use super::TextRenderer;
 
@@ -17,37 +15,30 @@ pub struct KeyboardRenderer {
 
     key_states: Vec<KeyState>,
 
-    quad_pipeline: QuadPipeline,
-    should_reupload: bool,
-
     layout: piano_math::KeyboardLayout,
     vertical_guidelines: bool,
+
+    cache: Vec<QuadInstance>,
 }
 
 impl KeyboardRenderer {
-    pub fn new(
-        gpu: &Gpu,
-        transform_uniform: &Uniform<TransformUniform>,
-        layout: piano_math::KeyboardLayout,
-        vertical_guidelines: bool,
-    ) -> Self {
-        let quad_pipeline = QuadPipeline::new(gpu, transform_uniform);
+    pub fn new(layout: piano_math::KeyboardLayout, vertical_guidelines: bool) -> Self {
         let key_states: Vec<KeyState> = layout
             .range
             .iter()
             .map(|id| KeyState::new(id.is_black()))
             .collect();
 
+        let cache = Vec::with_capacity(key_states.len() + 1);
+
         Self {
             pos: Default::default(),
 
             key_states,
 
-            quad_pipeline,
-            should_reupload: false,
-
             layout,
             vertical_guidelines,
+            cache,
         }
     }
 
@@ -55,7 +46,7 @@ impl KeyboardRenderer {
         for key in self.key_states.iter_mut() {
             key.pressed_by_file_off();
         }
-        self.queue_reupload();
+        self.invalidate_cache();
     }
 
     pub fn range(&self) -> &KeyboardRange {
@@ -79,7 +70,7 @@ impl KeyboardRenderer {
 
     pub fn set_pos(&mut self, pos: Point<f32>) {
         self.pos = pos;
-        self.queue_reupload();
+        self.invalidate_cache();
     }
 
     pub fn layout(&self) -> &piano_math::KeyboardLayout {
@@ -88,76 +79,77 @@ impl KeyboardRenderer {
 
     pub fn set_layout(&mut self, layout: piano_math::KeyboardLayout) {
         self.layout = layout;
-        self.queue_reupload();
+        self.invalidate_cache();
     }
 
-    pub fn queue_reupload(&mut self) {
-        self.should_reupload = true;
+    pub fn invalidate_cache(&mut self) {
+        self.cache.clear();
     }
 
     /// Reupload instances to GPU
-    fn reupload(&mut self, queue: &wgpu::Queue) {
-        self.quad_pipeline.with_instances_mut(queue, |instances| {
-            instances.clear();
+    fn reupload(&mut self) {
+        let instances = &mut self.cache;
 
-            // black_background
-            instances.push(QuadInstance {
-                position: self.pos.into(),
-                size: [self.layout.width, self.layout.height],
-                color: [0.0, 0.0, 0.0, 1.0],
-                ..Default::default()
-            });
-
-            for key in self
-                .layout
-                .keys
-                .iter()
-                .filter(|key| key.kind().is_neutral())
-            {
-                let id = key.id();
-                let color = self.key_states[id].color();
-
-                if self.vertical_guidelines {
-                    // Horizontal guides
-                    // TODO: Does not really fit in keyboard renderer
-                    if key.note_id() == 0 || key.note_id() == 5 {
-                        let x = self.pos.x + key.x();
-                        let y = 0.0;
-
-                        let w = 1.0;
-                        let h = f32::MAX;
-
-                        let color = if key.note_id() == 0 {
-                            [0.2, 0.2, 0.2, 1.0]
-                        } else {
-                            [0.05, 0.05, 0.05, 1.0]
-                        };
-
-                        instances.push(QuadInstance {
-                            position: [x, y],
-                            size: [w, h],
-                            color,
-                            border_radius: [0.0, 0.0, 0.0, 0.0],
-                        });
-                    }
-                }
-
-                instances.push(key_state::to_quad(key, color, self.pos));
-            }
-
-            for key in self.layout.keys.iter().filter(|key| key.kind().is_sharp()) {
-                let id = key.id();
-                let color = self.key_states[id].color();
-
-                instances.push(key_state::to_quad(key, color, self.pos));
-            }
+        // black_background
+        instances.push(QuadInstance {
+            position: self.pos.into(),
+            size: [self.layout.width, self.layout.height],
+            color: [0.0, 0.0, 0.0, 1.0],
+            ..Default::default()
         });
-        self.should_reupload = false;
+
+        for key in self
+            .layout
+            .keys
+            .iter()
+            .filter(|key| key.kind().is_neutral())
+        {
+            let id = key.id();
+            let color = self.key_states[id].color();
+
+            if self.vertical_guidelines {
+                // Horizontal guides
+                // TODO: Does not really fit in keyboard renderer
+                if key.note_id() == 0 || key.note_id() == 5 {
+                    let x = self.pos.x + key.x();
+                    let y = 0.0;
+
+                    let w = 1.0;
+                    let h = f32::MAX;
+
+                    let color = if key.note_id() == 0 {
+                        [0.2, 0.2, 0.2, 1.0]
+                    } else {
+                        [0.05, 0.05, 0.05, 1.0]
+                    };
+
+                    instances.push(QuadInstance {
+                        position: [x, y],
+                        size: [w, h],
+                        color,
+                        border_radius: [0.0, 0.0, 0.0, 0.0],
+                    });
+                }
+            }
+
+            instances.push(key_state::to_quad(key, color, self.pos));
+        }
+
+        for key in self.layout.keys.iter().filter(|key| key.kind().is_sharp()) {
+            let id = key.id();
+            let color = self.key_states[id].color();
+
+            instances.push(key_state::to_quad(key, color, self.pos));
+        }
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, text: &mut TextRenderer) {
-        if self.should_reupload {
-            self.reupload(queue);
+    pub fn update(&mut self, quads: &mut QuadPipeline, text: &mut TextRenderer) {
+        if self.cache.is_empty() {
+            self.reupload();
+        }
+
+        for quad in self.cache.iter() {
+            quads.instances().push(*quad);
         }
 
         for (id, key) in self
@@ -202,13 +194,5 @@ impl KeyboardRenderer {
                 default_color: glyphon::Color::rgb(153, 153, 153),
             });
         }
-    }
-
-    pub fn render<'rpass>(
-        &'rpass mut self,
-        transform_uniform: &'rpass Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'rpass>,
-    ) {
-        self.quad_pipeline.render(transform_uniform, render_pass);
     }
 }

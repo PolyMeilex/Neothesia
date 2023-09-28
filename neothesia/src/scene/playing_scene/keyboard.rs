@@ -1,7 +1,6 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::TextRenderer;
+use neothesia_core::render::{QuadPipeline, TextRenderer};
 use piano_math::KeyboardRange;
-use wgpu_jumpstart::{TransformUniform, Uniform};
 
 use crate::{config::Config, render::KeyboardRenderer, target::Target};
 
@@ -25,12 +24,7 @@ impl Keyboard {
             target.window_state.logical_size.height,
         );
 
-        let mut renderer = KeyboardRenderer::new(
-            &target.gpu,
-            &target.transform,
-            layout,
-            target.config.vertical_guidelines,
-        );
+        let mut renderer = KeyboardRenderer::new(layout, target.config.vertical_guidelines);
         renderer.position_on_bottom_of_parent(target.window_state.logical_size.height);
 
         Self { renderer }
@@ -62,20 +56,12 @@ impl Keyboard {
         self.position_on_bottom_of_parent(target.window_state.logical_size.height);
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, brush: &mut TextRenderer) {
-        self.renderer.update(queue, brush)
+    pub fn update(&mut self, quads: &mut QuadPipeline, brush: &mut TextRenderer) {
+        self.renderer.update(quads, brush)
     }
 
     pub fn reset_notes(&mut self) {
         self.renderer.reset_notes()
-    }
-
-    pub fn render<'rpass>(
-        &'rpass mut self,
-        transform_uniform: &'rpass Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'rpass>,
-    ) {
-        self.renderer.render(transform_uniform, render_pass)
     }
 
     pub fn user_midi_event(&mut self, message: &MidiMessage) {
@@ -92,7 +78,7 @@ impl Keyboard {
             let key = &mut self.renderer.key_states_mut()[id];
 
             key.set_pressed_by_user(is_on);
-            self.renderer.queue_reupload();
+            self.renderer.invalidate_cache();
         }
     }
 
@@ -117,7 +103,7 @@ impl Keyboard {
                     key.pressed_by_file_off();
                 }
 
-                self.renderer.queue_reupload();
+                self.renderer.invalidate_cache();
             }
         }
     }

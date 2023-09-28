@@ -5,7 +5,9 @@ use wgpu_jumpstart::{Color, TransformUniform, Uniform};
 use winit::event::{KeyboardInput, WindowEvent};
 
 use super::Scene;
-use crate::{render::WaterfallRenderer, target::Target, NeothesiaEvent};
+use crate::{
+    render::WaterfallRenderer, target::Target, utils::window::WindowState, NeothesiaEvent,
+};
 
 mod keyboard;
 use keyboard::Keyboard;
@@ -58,17 +60,14 @@ impl PlayingScene {
         }
     }
 
-    fn update_progresbar(&mut self, target: &mut Target) {
-        let size_x = target.window_state.logical_size.width * self.player.percentage();
-        self.quad_pipeline.update_instance_buffer(
-            &target.gpu.queue,
-            vec![QuadInstance {
-                position: [0.0, 0.0],
-                size: [size_x, 5.0],
-                color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
-                ..Default::default()
-            }],
-        );
+    fn update_progresbar(&mut self, window_state: &WindowState) {
+        let size_x = window_state.logical_size.width * self.player.percentage();
+        self.quad_pipeline.instances().push(QuadInstance {
+            position: [0.0, 0.0],
+            size: [size_x, 5.0],
+            color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
+            ..Default::default()
+        });
     }
 }
 
@@ -89,16 +88,21 @@ impl Scene for PlayingScene {
             self.keyboard.file_midi_events(&target.config, &midi_events);
         }
 
-        self.update_progresbar(target);
+        self.toast_manager.update(&mut target.text_renderer);
 
         self.notes.update(
             &target.gpu.queue,
             self.player.time_without_lead_in() + target.config.playback_offset,
         );
 
+        self.quad_pipeline.clear();
+
         self.keyboard
-            .update(&target.gpu.queue, &mut target.text_renderer);
-        self.toast_manager.update(&mut target.text_renderer);
+            .update(&mut self.quad_pipeline, &mut target.text_renderer);
+
+        self.update_progresbar(&target.window_state);
+
+        self.quad_pipeline.prepare(&target.gpu.queue);
     }
 
     fn render<'pass>(
@@ -107,7 +111,6 @@ impl Scene for PlayingScene {
         rpass: &mut wgpu::RenderPass<'pass>,
     ) {
         self.notes.render(transform, rpass);
-        self.keyboard.render(transform, rpass);
         self.quad_pipeline.render(transform, rpass)
     }
 

@@ -51,29 +51,10 @@ impl Toast {
         let time = self.start_time.elapsed().as_secs();
 
         if time < 1 {
-            queue_text(&self.text, text_renderer);
+            text_renderer.queue_text(&self.text);
             true
         } else {
             false
         }
     }
-}
-
-fn queue_text(text: &str, text_renderer: &mut TextRenderer) {
-    text_renderer.queue_text(text);
-
-    // let text = vec![wgpu_glyph::Text::new(text)
-    //     .with_color([1.0, 1.0, 1.0, 1.0])
-    //     .with_scale(20.0)];
-
-    // text_renderer.queue_text(wgpu_glyph::Section {
-    //     text,
-    //     screen_position: (0.0, 20.0),
-    //     layout: wgpu_glyph::Layout::Wrap {
-    //         line_breaker: Default::default(),
-    //         h_align: wgpu_glyph::HorizontalAlign::Left,
-    //         v_align: wgpu_glyph::VerticalAlign::Top,
-    //     },
-    //     ..Default::default()
-    // });
 }

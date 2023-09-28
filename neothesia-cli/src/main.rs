@@ -72,7 +72,12 @@ impl Recorder {
 
         let keyboard_layout = get_layout(width as f32, height as f32);
 
-        let mut keyboard = KeyboardRenderer::new(&gpu, &transform_uniform, keyboard_layout.clone());
+        let mut keyboard = KeyboardRenderer::new(
+            &gpu,
+            &transform_uniform,
+            keyboard_layout.clone(),
+            config.vertical_guidelines,
+        );
 
         keyboard.position_on_bottom_of_parent(height as f32);
 

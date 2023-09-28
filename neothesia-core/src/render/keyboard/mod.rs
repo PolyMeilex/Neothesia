@@ -21,6 +21,7 @@ pub struct KeyboardRenderer {
     should_reupload: bool,
 
     layout: piano_math::KeyboardLayout,
+    vertical_guidelines: bool,
 }
 
 impl KeyboardRenderer {
@@ -28,6 +29,7 @@ impl KeyboardRenderer {
         gpu: &Gpu,
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_math::KeyboardLayout,
+        vertical_guidelines: bool,
     ) -> Self {
         let quad_pipeline = QuadPipeline::new(gpu, transform_uniform);
         let key_states: Vec<KeyState> = layout
@@ -45,6 +47,7 @@ impl KeyboardRenderer {
             should_reupload: false,
 
             layout,
+            vertical_guidelines,
         }
     }
 
@@ -114,27 +117,29 @@ impl KeyboardRenderer {
                 let id = key.id();
                 let color = self.key_states[id].color();
 
-                // Horizontal guides
-                // TODO: Does not really fit in keyboard renderer
-                if key.note_id() == 0 || key.note_id() == 5 {
-                    let x = self.pos.x + key.x();
-                    let y = 0.0;
+                if self.vertical_guidelines {
+                    // Horizontal guides
+                    // TODO: Does not really fit in keyboard renderer
+                    if key.note_id() == 0 || key.note_id() == 5 {
+                        let x = self.pos.x + key.x();
+                        let y = 0.0;
 
-                    let w = 1.0;
-                    let h = f32::MAX;
+                        let w = 1.0;
+                        let h = f32::MAX;
 
-                    let color = if key.note_id() == 0 {
-                        [0.2, 0.2, 0.2, 1.0]
-                    } else {
-                        [0.05, 0.05, 0.05, 1.0]
-                    };
+                        let color = if key.note_id() == 0 {
+                            [0.2, 0.2, 0.2, 1.0]
+                        } else {
+                            [0.05, 0.05, 0.05, 1.0]
+                        };
 
-                    instances.push(QuadInstance {
-                        position: [x, y],
-                        size: [w, h],
-                        color,
-                        border_radius: [0.0, 0.0, 0.0, 0.0],
-                    });
+                        instances.push(QuadInstance {
+                            position: [x, y],
+                            size: [w, h],
+                            color,
+                            border_radius: [0.0, 0.0, 0.0, 0.0],
+                        });
+                    }
                 }
 
                 instances.push(key_state::to_quad(key, color, self.pos));

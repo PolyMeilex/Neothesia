@@ -117,7 +117,7 @@ impl TextRenderer {
         });
     }
 
-    pub fn render(&mut self, logical_size: (u32, u32), gpu: &mut Gpu, view: &wgpu::TextureView) {
+    pub fn update(&mut self, logical_size: (u32, u32), gpu: &Gpu) {
         let elements = self.queue.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
             left: area.left,
@@ -142,22 +142,10 @@ impl TextRenderer {
             )
             .unwrap();
 
-        // TODO: Use single pass, now that this is posible thanks to glyphon
-        let mut pass = gpu.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("glyphon text"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
-
-        self.text_renderer.render(&self.atlas, &mut pass).unwrap();
-
         self.queue.clear();
+    }
+
+    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+        self.text_renderer.render(&self.atlas, render_pass).unwrap();
     }
 }

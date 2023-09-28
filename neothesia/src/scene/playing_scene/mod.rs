@@ -1,7 +1,7 @@
 use midi_file::{midly::MidiMessage, MidiFile};
 use neothesia_core::render::{QuadInstance, QuadPipeline};
 use std::time::Duration;
-use wgpu_jumpstart::Color;
+use wgpu_jumpstart::{Color, TransformUniform, Uniform};
 use winit::event::{KeyboardInput, WindowEvent};
 
 use super::Scene;
@@ -39,7 +39,7 @@ impl PlayingScene {
             &target.gpu,
             &midi_file.tracks,
             &target.config,
-            &target.transform_uniform,
+            &target.transform,
             keyboard_layout.clone(),
         );
 
@@ -52,7 +52,7 @@ impl PlayingScene {
             notes,
             player,
             rewind_controler: RewindController::new(),
-            quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform_uniform),
+            quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
 
             toast_manager: ToastManager::default(),
         }
@@ -101,31 +101,14 @@ impl Scene for PlayingScene {
         self.toast_manager.update(&mut target.text_renderer);
     }
 
-    fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
-        let mut render_pass = target
-            .gpu
-            .encoder
-            .begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-        self.notes
-            .render(&target.transform_uniform, &mut render_pass);
-
-        self.keyboard
-            .render(&target.transform_uniform, &mut render_pass);
-
-        self.quad_pipeline
-            .render(&target.transform_uniform, &mut render_pass)
+    fn render<'pass>(
+        &'pass mut self,
+        transform: &'pass Uniform<TransformUniform>,
+        rpass: &mut wgpu::RenderPass<'pass>,
+    ) {
+        self.notes.render(transform, rpass);
+        self.keyboard.render(transform, rpass);
+        self.quad_pipeline.render(transform, rpass)
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {

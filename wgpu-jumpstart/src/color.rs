@@ -54,6 +54,16 @@ impl Color {
             linear_component(self.b),
         ]
     }
+
+    pub fn into_linear_wgpu_color(self) -> wgpu::Color {
+        let rgba = self.into_linear_rgba();
+        wgpu::Color {
+            r: rgba[0] as f64,
+            g: rgba[1] as f64,
+            b: rgba[2] as f64,
+            a: rgba[3] as f64,
+        }
+    }
 }
 
 impl From<(u8, u8, u8)> for Color {

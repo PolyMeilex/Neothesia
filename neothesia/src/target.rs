@@ -19,7 +19,7 @@ pub struct Target {
     pub window_state: WindowState,
     pub gpu: Gpu,
 
-    pub transform_uniform: Uniform<TransformUniform>,
+    pub transform: Uniform<TransformUniform>,
 
     pub text_renderer: TextRenderer,
 
@@ -82,7 +82,7 @@ impl Target {
 
             window_state,
             gpu,
-            transform_uniform,
+            transform: transform_uniform,
 
             text_renderer,
 
@@ -95,12 +95,12 @@ impl Target {
     }
 
     pub fn resize(&mut self) {
-        self.transform_uniform.data.update(
+        self.transform.data.update(
             self.window_state.logical_size.width,
             self.window_state.logical_size.height,
             self.window_state.scale_factor as f32,
         );
-        self.transform_uniform.update(&self.gpu.queue);
+        self.transform.update(&self.gpu.queue);
 
         self.iced_manager.resize(
             (

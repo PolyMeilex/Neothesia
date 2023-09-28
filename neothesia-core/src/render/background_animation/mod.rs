@@ -12,7 +12,7 @@ pub struct BgPipeline {
     time_uniform: Uniform<TimeUniform>,
 }
 
-impl<'a> BgPipeline {
+impl BgPipeline {
     pub fn new(gpu: &Gpu) -> Self {
         let shader = gpu
             .device
@@ -56,7 +56,7 @@ impl<'a> BgPipeline {
         }
     }
 
-    pub fn render(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.time_uniform.bind_group, &[]);
 

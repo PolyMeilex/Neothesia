@@ -11,6 +11,7 @@ use iced_menu::AppUi;
 use iced_style::Theme;
 use neothesia_core::render::BgPipeline;
 
+use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::event::WindowEvent;
 
 use crate::{
@@ -55,43 +56,36 @@ impl Scene for MenuScene {
     fn update(&mut self, target: &mut Target, delta: Duration) {
         self.bg_pipeline.update_time(&mut target.gpu, delta);
         self.iced_state.queue_message(iced_menu::Message::Tick);
+
+        self.futures
+            .retain_mut(|f| match f.as_mut().poll(&mut self.context) {
+                std::task::Poll::Ready(msg) => {
+                    self.iced_state.queue_message(msg);
+                    false
+                }
+                std::task::Poll::Pending => true,
+            });
+
+        if !self.iced_state.is_queue_empty() {
+            if let Some(command) = self.iced_state.update(target) {
+                for a in command.actions() {
+                    match a {
+                        iced_runtime::command::Action::Future(f) => {
+                            self.futures.push(f);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
-    fn render(&mut self, target: &mut Target, view: &wgpu::TextureView) {
-        self.bg_pipeline
-            .render(
-                &mut target
-                    .gpu
-                    .encoder
-                    .begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: None,
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                    }),
-            );
-
-        target
-            .iced_manager
-            .renderer
-            .with_primitives(|backend, primitive| {
-                backend.present(
-                    &target.gpu.device,
-                    &target.gpu.queue,
-                    &mut target.gpu.encoder,
-                    None,
-                    view,
-                    primitive,
-                    &target.iced_manager.viewport,
-                    &target.iced_manager.debug.overlay(),
-                )
-            })
+    fn render<'pass>(
+        &'pass mut self,
+        _transform: &'pass Uniform<TransformUniform>,
+        rpass: &mut wgpu::RenderPass<'pass>,
+    ) {
+        self.bg_pipeline.render(rpass);
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
@@ -111,52 +105,6 @@ impl Scene for MenuScene {
                     self.iced_state.queue_message(msg);
                 }
             }
-        }
-
-        // Well this feature was fun, but there is no way to detect user interaction with a
-        // scrollbar so this has to go for now
-
-        // match &event {
-        //     WindowEvent::MouseInput {
-        //         state: ElementState::Pressed,
-        //         button: MouseButton::Left,
-        //         ..
-        //     } => {
-        //         if self.iced_state.mouse_interaction() == Interaction::Idle {
-        //             target.window.drag_window().ok();
-        //         }
-        //     }
-        //     _ => {}
-        // }
-    }
-
-    fn main_events_cleared(&mut self, target: &mut Target) {
-        if !self.iced_state.is_queue_empty() {
-            if let Some(command) = self.iced_state.update(target) {
-                for a in command.actions() {
-                    match a {
-                        iced_runtime::command::Action::Future(f) => {
-                            self.futures.push(f);
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
-
-        let context = &mut self.context;
-        let mut messages = Vec::new();
-
-        self.futures.retain_mut(|f| match f.as_mut().poll(context) {
-            std::task::Poll::Ready(msg) => {
-                messages.push(msg);
-                false
-            }
-            std::task::Poll::Pending => true,
-        });
-
-        for msg in messages {
-            self.iced_state.queue_message(msg);
         }
     }
 }

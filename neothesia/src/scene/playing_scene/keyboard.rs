@@ -25,7 +25,7 @@ impl Keyboard {
             target.window_state.logical_size.height,
         );
 
-        let mut renderer = KeyboardRenderer::new(&target.gpu, &target.transform_uniform, layout);
+        let mut renderer = KeyboardRenderer::new(&target.gpu, &target.transform, layout);
         renderer.position_on_bottom_of_parent(target.window_state.logical_size.height);
 
         Self { renderer }

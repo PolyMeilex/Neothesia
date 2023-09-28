@@ -7,6 +7,9 @@ mod scene;
 mod target;
 mod utils;
 
+use std::time::Duration;
+
+use iced_core::Renderer;
 use scene::{menu_scene, playing_scene, Scene};
 use target::Target;
 use utils::window::WindowState;
@@ -38,10 +41,10 @@ pub enum NeothesiaEvent {
 struct Neothesia {
     target: Target,
     surface: Surface,
-
-    last_time: std::time::Instant,
-    fps_timer: fps_ticker::Fps,
     game_scene: Box<dyn Scene>,
+
+    #[cfg(debug_assertions)]
+    fps_ticker: fps_ticker::Fps,
 }
 
 impl Neothesia {
@@ -55,9 +58,10 @@ impl Neothesia {
         Self {
             target,
             surface,
-            last_time: std::time::Instant::now(),
-            fps_timer: Default::default(),
             game_scene: Box::new(game_scene),
+
+            #[cfg(debug_assertions)]
+            fps_ticker: fps_ticker::Fps::default(),
         }
     }
 
@@ -114,6 +118,8 @@ impl Neothesia {
     fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
             NeothesiaEvent::Play(midi_file) => {
+                self.target.iced_manager.renderer.clear();
+
                 let to = playing_scene::PlayingScene::new(&self.target, midi_file);
                 self.game_scene = Box::new(to);
             }
@@ -131,16 +137,18 @@ impl Neothesia {
         }
     }
 
-    fn update(&mut self) {
-        self.fps_timer.tick();
-
-        let delta = self.last_time.elapsed();
-        self.last_time = std::time::Instant::now();
+    fn update(&mut self, delta: Duration) {
+        #[cfg(debug_assertions)]
+        {
+            self.fps_ticker.tick();
+            self.target.text_renderer.queue_fps(self.fps_ticker.avg());
+        }
 
         self.game_scene.update(&mut self.target, delta);
-
-        #[cfg(debug_assertions)]
-        self.target.text_renderer.queue_fps(self.fps_timer.avg());
+        self.target.text_renderer.update(
+            self.target.window_state.physical_size.into(),
+            &self.target.gpu,
+        );
     }
 
     fn render(&mut self) {
@@ -156,20 +164,48 @@ impl Neothesia {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        {
+            let bg_color = self.target.config.background_color;
+            let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
+            let mut rpass =
+                self.target
+                    .gpu
+                    .encoder
+                    .begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Main Neothesia Pass"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(bg_color),
+                                store: true,
+                            },
+                        })],
+
+                        depth_stencil_attachment: None,
+                    });
+
+            self.game_scene.render(&self.target.transform, &mut rpass);
+            self.target.text_renderer.render(&mut rpass);
+        }
+
         self.target
-            .gpu
-            .clear(view, self.target.config.background_color.into());
-
-        self.game_scene.render(&mut self.target, view);
-
-        self.target.text_renderer.render(
-            (
-                self.target.window_state.physical_size.width,
-                self.target.window_state.physical_size.height,
-            ),
-            &mut self.target.gpu,
-            view,
-        );
+            .iced_manager
+            .renderer
+            .with_primitives(|backend, primitive| {
+                if !primitive.is_empty() {
+                    backend.present(
+                        &self.target.gpu.device,
+                        &self.target.gpu.queue,
+                        &mut self.target.gpu.encoder,
+                        None,
+                        view,
+                        primitive,
+                        &self.target.iced_manager.viewport,
+                        &self.target.iced_manager.debug.overlay(),
+                    );
+                }
+            });
 
         self.target.gpu.submit();
         frame.present();
@@ -188,6 +224,8 @@ fn main() {
 
     let mut app = Neothesia::new(target, surface);
 
+    let mut last_time = std::time::Instant::now();
+
     // Investigate:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
 
@@ -197,17 +235,18 @@ fn main() {
             Event::UserEvent(event) => {
                 app.neothesia_event(event, control_flow);
             }
-            Event::MainEventsCleared => {
-                app.game_scene.main_events_cleared(&mut app.target);
-
-                app.update();
-                app.target.window.request_redraw();
-            }
             Event::WindowEvent { event, .. } => {
                 app.window_event(&event, control_flow);
             }
             Event::RedrawRequested(_) => {
+                let delta = last_time.elapsed();
+                last_time = std::time::Instant::now();
+
+                app.update(delta);
                 app.render();
+            }
+            Event::RedrawEventsCleared => {
+                app.target.window.request_redraw();
             }
             _ => {}
         }

@@ -114,6 +114,8 @@ impl Recorder {
             .update(&self.gpu.queue, time_without_lead_in(&self.playback));
 
         self.keyboard.update(&self.gpu.queue, &mut self.text);
+
+        self.text.update((self.width, self.height), &self.gpu);
     }
 
     fn render(
@@ -123,10 +125,11 @@ impl Recorder {
         texture_desc: &wgpu::TextureDescriptor<'_>,
         output_buffer: &wgpu::Buffer,
     ) {
-        self.gpu.clear(view, self.config.background_color.into());
+        let bg_color = self.config.background_color;
+        let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
 
         {
-            let mut render_pass = self
+            let mut rpass = self
                 .gpu
                 .encoder
                 .begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -135,22 +138,17 @@ impl Recorder {
                         view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
+                            load: wgpu::LoadOp::Clear(bg_color),
                             store: true,
                         },
                     })],
                     depth_stencil_attachment: None,
                 });
 
-            self.waterfall
-                .render(&self.transform_uniform, &mut render_pass);
-
-            self.keyboard
-                .render(&self.transform_uniform, &mut render_pass);
+            self.waterfall.render(&self.transform_uniform, &mut rpass);
+            self.keyboard.render(&self.transform_uniform, &mut rpass);
+            self.text.render(&mut rpass);
         }
-
-        self.text
-            .render((self.width, self.height), &mut self.gpu, view);
 
         {
             let u32_size = std::mem::size_of::<u32>() as u32;

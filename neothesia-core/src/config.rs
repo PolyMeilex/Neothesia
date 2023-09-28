@@ -23,6 +23,9 @@ pub struct Config {
     #[serde(skip_serializing)]
     pub play_along: bool,
 
+    #[serde(default = "default_vertical_guidelines")]
+    pub vertical_guidelines: bool,
+
     #[serde(default = "default_color_schema")]
     pub color_schema: Vec<ColorSchema>,
 
@@ -66,6 +69,7 @@ impl Config {
             animation_speed: default_animation_speed(),
             playback_offset: default_playback_offset(),
             play_along: default_play_along(),
+            vertical_guidelines: default_vertical_guidelines(),
             color_schema: default_color_schema(),
             background_color: Default::default(),
             output: default_output(),
@@ -108,6 +112,10 @@ fn default_playback_offset() -> f32 {
 }
 
 fn default_play_along() -> bool {
+    false
+}
+
+fn default_vertical_guidelines() -> bool {
     false
 }
 

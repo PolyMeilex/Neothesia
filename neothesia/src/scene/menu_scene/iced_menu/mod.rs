@@ -4,11 +4,13 @@ use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
+    text::LineHeight,
     Alignment, Length, Padding,
 };
 use iced_runtime::Command;
 use iced_widget::{
-    button, checkbox, column as col, container, image, pick_list, row, text, vertical_space,
+    button, checkbox, column as col, container, image, pick_list, row, text, toggler,
+    vertical_space,
 };
 
 use crate::{
@@ -31,6 +33,7 @@ pub enum Message {
 
     SelectOutput(OutputDescriptor),
     SelectInput(InputDescriptor),
+    VerticalGuidelines(bool),
 
     OpenMidiFilePicker,
     MidiFileLoaded(Option<(midi_file::MidiFile, PathBuf)>),
@@ -152,6 +155,9 @@ impl Program for AppUi {
             Message::PlayAlongCheckbox(v) => {
                 target.config.play_along = v;
             }
+            Message::VerticalGuidelines(v) => {
+                target.config.vertical_guidelines = v;
+            }
             Message::Tick => {
                 self.data.outputs = target.output_manager.borrow().outputs();
                 self.data.inputs = target.input_manager.inputs();
@@ -257,7 +263,7 @@ impl<'a> Step {
         match self {
             Self::Exit => Self::exit(),
             Self::Main => Self::main(data, target),
-            Self::Settings => Self::settings(data),
+            Self::Settings => Self::settings(data, target),
             Self::TrackSelection => Self::track_selection(data, target),
         }
     }
@@ -349,7 +355,7 @@ impl<'a> Step {
         center_x(content).into()
     }
 
-    fn settings(data: &'a Data) -> Element<'a, Message> {
+    fn settings(data: &'a Data, target: &Target) -> Element<'a, Message> {
         let output_list = {
             let outputs = &data.outputs;
             let selected_output = data.selected_output.clone();
@@ -400,6 +406,21 @@ impl<'a> Step {
             .spacing(10)
         };
 
+        let guidelines = {
+            let title = text("Guidelines:")
+                .vertical_alignment(Vertical::Center)
+                .height(Length::Fixed(30.0));
+
+            let toggler = toggler(
+                Some("Vertical".to_string()),
+                target.config.vertical_guidelines,
+                Message::VerticalGuidelines,
+            )
+            .text_line_height(LineHeight::Absolute(30.0.into()));
+
+            row![title, toggler].spacing(10)
+        };
+
         let buttons = row![neo_button("Back")
             .on_press(Message::GoToPage(Step::Main))
             .width(Length::Fill),]
@@ -408,7 +429,7 @@ impl<'a> Step {
 
         let column = col![
             image(data.logo_handle.clone()),
-            col![output_list, input_list].spacing(10),
+            col![output_list, input_list, guidelines].spacing(10),
             buttons,
         ]
         .spacing(40)

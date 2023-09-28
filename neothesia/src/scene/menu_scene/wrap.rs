@@ -372,7 +372,8 @@ where
         let mut nodes: Vec<Node> = self
             .elements
             .iter()
-            .map(|elem| {
+            .zip(tree.children.iter_mut())
+            .map(|(elem, tree)| {
                 let node_limit = Limits::new(
                     Size::new(limits.min().width, line_minimal_length),
                     limits.max(),

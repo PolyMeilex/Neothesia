@@ -13,7 +13,6 @@ pub struct Gpu {
     pub adapter: wgpu::Adapter,
     pub queue: wgpu::Queue,
     pub encoder: wgpu::CommandEncoder,
-    pub staging_belt: wgpu::util::StagingBelt,
     pub texture_format: wgpu::TextureFormat,
 }
 
@@ -71,8 +70,6 @@ impl Gpu {
         let encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
-
         let adapter_info = adapter.get_info();
         let texture_format = compatible_surface.map(|s| s.get_capabilities(&adapter).formats[0]);
 
@@ -88,7 +85,6 @@ impl Gpu {
             adapter,
             queue,
             encoder,
-            staging_belt,
             texture_format: texture_format.unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb),
         })
     }
@@ -123,10 +119,7 @@ impl Gpu {
         // current frame
         let encoder = std::mem::replace(&mut self.encoder, new_encoder);
 
-        self.staging_belt.finish();
         self.queue.submit(Some(encoder.finish()));
-
-        self.staging_belt.recall();
     }
 }
 

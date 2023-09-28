@@ -106,7 +106,12 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         self.height
     }
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         let limits = limits
             .min_width(self.min_width)
             .min_height(self.min_height)
@@ -114,7 +119,10 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
             .height(self.height)
             .pad(Padding::new(self.padding));
 
-        let mut content = self.content.as_widget().layout(renderer, &limits);
+        let mut content = self
+            .content
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, &limits);
         content.move_to(Point::new(self.padding as _, self.padding as _));
 
         let size = limits
@@ -196,7 +204,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
 
     fn draw(
         &self,
-        state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &iced_style::Theme,
         _style: &Style,
@@ -261,7 +269,7 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         };
 
         self.content.as_widget().draw(
-            state,
+            &tree.children[0],
             renderer,
             theme,
             &Style {

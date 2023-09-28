@@ -164,8 +164,8 @@ impl Neothesia {
 
         self.target.text_renderer.render(
             (
-                self.target.window_state.logical_size.width,
-                self.target.window_state.logical_size.height,
+                self.target.window_state.physical_size.width,
+                self.target.window_state.physical_size.height,
             ),
             &mut self.target.gpu,
             view,
@@ -173,6 +173,8 @@ impl Neothesia {
 
         self.target.gpu.submit();
         frame.present();
+
+        self.target.text_renderer.atlas().trim();
     }
 }
 

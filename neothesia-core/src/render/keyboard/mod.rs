@@ -5,11 +5,12 @@ use crate::{
 };
 
 use piano_math::range::KeyboardRange;
-use wgpu_glyph::{GlyphBrush, Section};
 
 mod key_state;
 pub use key_state::KeyState;
 use wgpu_jumpstart::Gpu;
+
+use super::TextRenderer;
 
 pub struct KeyboardRenderer {
     pos: Point<f32>,
@@ -126,7 +127,7 @@ impl KeyboardRenderer {
         self.should_reupload = false;
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, brush: &mut GlyphBrush<()>) {
+    pub fn update(&mut self, queue: &wgpu::Queue, text: &mut TextRenderer) {
         if self.should_reupload {
             self.reupload(queue);
         }
@@ -146,16 +147,32 @@ impl KeyboardRenderer {
 
             let size = w * 0.7;
 
-            brush.queue(Section {
-                screen_position: (x + w / 2.0, y + h - size * 1.2),
-                text: vec![wgpu_glyph::Text::new(&format!("C{}", id + 1))
-                    .with_color([0.6, 0.6, 0.6, 1.0])
-                    .with_scale(size)],
-                bounds: (w, f32::INFINITY),
-                layout: wgpu_glyph::Layout::default()
-                    .h_align(wgpu_glyph::HorizontalAlign::Center)
-                    .v_align(wgpu_glyph::VerticalAlign::Top),
-            })
+            let mut buffer =
+                glyphon::Buffer::new(text.font_system(), glyphon::Metrics::new(size, size));
+            buffer.set_size(text.font_system(), w, h);
+            buffer.set_wrap(text.font_system(), glyphon::Wrap::None);
+            buffer.set_text(
+                text.font_system(),
+                &format!("C{}", id + 1),
+                glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+                glyphon::Shaping::Basic,
+            );
+            buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));
+            buffer.shape_until_scroll(text.font_system());
+
+            text.queue(super::text::TextArea {
+                buffer,
+                left: x,
+                top: y + h - size * 1.2,
+                scale: 1.0,
+                bounds: glyphon::TextBounds {
+                    left: x.round() as i32,
+                    top: y.round() as i32,
+                    right: x.round() as i32 + w.round() as i32,
+                    bottom: y.round() as i32 + h.round() as i32,
+                },
+                default_color: glyphon::Color::rgb(153, 153, 153),
+            });
         }
     }
 

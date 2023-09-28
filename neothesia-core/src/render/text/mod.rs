@@ -1,61 +1,163 @@
-use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
+use std::sync::Arc;
+
 use wgpu_jumpstart::Gpu;
 
+pub use glyphon;
+
+pub struct TextArea {
+    pub buffer: glyphon::Buffer,
+    /// The left edge of the buffer.
+    pub left: f32,
+    /// The top edge of the buffer.
+    pub top: f32,
+    /// The scaling to apply to the buffer.
+    pub scale: f32,
+    /// The visible bounds of the text area. This is used to clip the text and doesn't have to
+    /// match the `left` and `top` values.
+    pub bounds: glyphon::TextBounds,
+    // The default color of the text area.
+    pub default_color: glyphon::Color,
+}
+
 pub struct TextRenderer {
-    glyph_brush: GlyphBrush<()>,
+    font_system: glyphon::FontSystem,
+    cache: glyphon::SwashCache,
+    atlas: glyphon::TextAtlas,
+    text_renderer: glyphon::TextRenderer,
+
+    queue: Vec<TextArea>,
 }
 
 impl TextRenderer {
     pub fn new(gpu: &Gpu) -> Self {
-        let font =
-            wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("./Roboto-Regular.ttf"))
-                .expect("Load font");
-        let glyph_brush =
-            GlyphBrushBuilder::using_font(font).build(&gpu.device, gpu.texture_format);
+        let font_system = glyphon::FontSystem::new_with_fonts(
+            [glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                "./Roboto-Regular.ttf"
+            )))]
+            .into_iter(),
+        );
 
-        Self { glyph_brush }
+        let cache = glyphon::SwashCache::new();
+        let mut atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, gpu.texture_format);
+        let text_renderer = glyphon::TextRenderer::new(
+            &mut atlas,
+            &gpu.device,
+            wgpu::MultisampleState::default(),
+            None,
+        );
+
+        Self {
+            font_system,
+            cache,
+            atlas,
+            text_renderer,
+            queue: Vec::new(),
+        }
     }
 
-    pub fn glyph_brush(&mut self) -> &mut GlyphBrush<()> {
-        &mut self.glyph_brush
+    pub fn font_system(&mut self) -> &mut glyphon::FontSystem {
+        &mut self.font_system
     }
 
-    pub fn queue_text(&mut self, section: Section) {
-        self.glyph_brush.queue(section);
+    pub fn atlas(&mut self) -> &mut glyphon::TextAtlas {
+        &mut self.atlas
     }
 
-    pub fn queue_fps(&mut self, fps: f64) {
-        let s = format!("FPS: {}", fps.round() as u32);
-        let text = vec![wgpu_glyph::Text::new(&s)
-            .with_color([1.0, 1.0, 1.0, 1.0])
-            .with_scale(20.0)];
+    pub fn queue(&mut self, area: TextArea) {
+        self.queue.push(area);
+    }
 
-        self.queue_text(Section {
+    pub fn queue_text(&mut self, text: &str) {
+        let mut buffer =
+            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
+        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX);
+        buffer.set_text(
+            &mut self.font_system,
             text,
-            screen_position: (0.0, 5.0),
-            layout: wgpu_glyph::Layout::Wrap {
-                line_breaker: Default::default(),
-                h_align: wgpu_glyph::HorizontalAlign::Left,
-                v_align: wgpu_glyph::VerticalAlign::Top,
-            },
-            ..Default::default()
+            glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+            glyphon::Shaping::Basic,
+        );
+        buffer.shape_until_scroll(&mut self.font_system);
+
+        #[cfg(debug_assertions)]
+        let top = 20.0;
+        #[cfg(not(debug_assertions))]
+        let top = 5.0;
+
+        self.queue(TextArea {
+            buffer,
+            left: 0.0,
+            top,
+            scale: 1.0,
+            bounds: glyphon::TextBounds::default(),
+            default_color: glyphon::Color::rgb(255, 255, 255),
         });
     }
 
-    pub fn render(&mut self, logical_size: (f32, f32), gpu: &mut Gpu, view: &wgpu::TextureView) {
-        let encoder = &mut gpu.encoder;
+    pub fn queue_fps(&mut self, fps: f64) {
+        let text = format!("FPS: {}", fps.round() as u32);
+        let mut buffer =
+            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
+        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX);
+        buffer.set_text(
+            &mut self.font_system,
+            &text,
+            glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+            glyphon::Shaping::Basic,
+        );
+        buffer.shape_until_scroll(&mut self.font_system);
 
-        let (window_w, window_h) = logical_size;
+        self.queue(TextArea {
+            buffer,
+            left: 0.0,
+            top: 5.0,
+            scale: 1.0,
+            bounds: glyphon::TextBounds::default(),
+            default_color: glyphon::Color::rgb(255, 255, 255),
+        });
+    }
 
-        self.glyph_brush
-            .draw_queued(
+    pub fn render(&mut self, logical_size: (u32, u32), gpu: &mut Gpu, view: &wgpu::TextureView) {
+        let elements = self.queue.iter().map(|area| glyphon::TextArea {
+            buffer: &area.buffer,
+            left: area.left,
+            top: area.top,
+            scale: area.scale,
+            bounds: area.bounds,
+            default_color: area.default_color,
+        });
+
+        self.text_renderer
+            .prepare(
                 &gpu.device,
-                &mut gpu.staging_belt,
-                encoder,
-                view,
-                window_w.round() as u32,
-                window_h.round() as u32,
+                &gpu.queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                glyphon::Resolution {
+                    width: logical_size.0,
+                    height: logical_size.1,
+                },
+                elements,
+                &mut self.cache,
             )
-            .expect("glyph_brush");
+            .unwrap();
+
+        // TODO: Use single pass, now that this is posible thanks to glyphon
+        let mut pass = gpu.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("glyphon text"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                },
+            })],
+            depth_stencil_attachment: None,
+        });
+
+        self.text_renderer.render(&self.atlas, &mut pass).unwrap();
+
+        self.queue.clear();
     }
 }

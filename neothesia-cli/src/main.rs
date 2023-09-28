@@ -113,8 +113,7 @@ impl Recorder {
         self.waterfall
             .update(&self.gpu.queue, time_without_lead_in(&self.playback));
 
-        self.keyboard
-            .update(&self.gpu.queue, self.text.glyph_brush());
+        self.keyboard.update(&self.gpu.queue, &mut self.text);
     }
 
     fn render(
@@ -151,7 +150,7 @@ impl Recorder {
         }
 
         self.text
-            .render((self.width as f32, self.height as f32), &mut self.gpu, view);
+            .render((self.width, self.height), &mut self.gpu, view);
 
         {
             let u32_size = std::mem::size_of::<u32>() as u32;

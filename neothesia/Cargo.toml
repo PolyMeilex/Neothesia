@@ -22,7 +22,6 @@ serde = { version = "1.0", features = ["serde_derive"] }
 num = "0.4"
 
 wgpu = { workspace = true }
-wgpu_glyph = "0.20.0"
 wgpu-jumpstart = { workspace = true }
 
 neothesia-core = { workspace = true }
@@ -39,12 +38,12 @@ oxisynth = { version = "0.0.3", optional = true }
 midi-file = { workspace = true }
 midi-io = { path = "../midi-io" }
 
-iced_style = "0.9"
-iced_graphics = "0.9"
-iced_core = "0.10"
-iced_runtime = "0.1.0"
-iced_wgpu = { version = "0.11", features = ["image"] }
-iced_widget = { version = "0.1", features = ["image"] }
+iced_style = {git = "https://github.com/iced-rs/iced.git", rev="bc9bb28b1ccd1248d63ccdfef2f57d7aa837abbb"}
+iced_graphics = {git = "https://github.com/iced-rs/iced.git", rev="bc9bb28b1ccd1248d63ccdfef2f57d7aa837abbb"}
+iced_core = {git = "https://github.com/iced-rs/iced.git", rev="bc9bb28b1ccd1248d63ccdfef2f57d7aa837abbb"}
+iced_runtime = {git = "https://github.com/iced-rs/iced.git", rev="bc9bb28b1ccd1248d63ccdfef2f57d7aa837abbb"}
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev="bc9bb28b1ccd1248d63ccdfef2f57d7aa837abbb", features = ["image"] }
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev="bc9bb28b1ccd1248d63ccdfef2f57d7aa837abbb", features = ["image"] }
 
 [[bin]]
 name = "neothesia"

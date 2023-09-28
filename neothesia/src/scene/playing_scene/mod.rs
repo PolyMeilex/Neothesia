@@ -97,7 +97,7 @@ impl Scene for PlayingScene {
         );
 
         self.keyboard
-            .update(&target.gpu.queue, target.text_renderer.glyph_brush());
+            .update(&target.gpu.queue, &mut target.text_renderer);
         self.toast_manager.update(&mut target.text_renderer);
     }
 

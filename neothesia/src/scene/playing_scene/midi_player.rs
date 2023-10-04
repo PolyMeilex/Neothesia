@@ -95,6 +95,7 @@ impl MidiPlayer {
 
     pub fn resume(&mut self) {
         self.playback.resume();
+        self.play_along.clear();
     }
 
     fn send_midi_programs_for_timestamp(&self, time: &Duration) {
@@ -254,6 +255,10 @@ impl PlayAlong {
             MidiMessage::NoteOff { key, .. } => self.press_key(source, key.as_int(), false),
             _ => {}
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.required_notes.clear()
     }
 
     pub fn are_required_keys_pressed(&self) -> bool {

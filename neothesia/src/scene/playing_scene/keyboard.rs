@@ -2,10 +2,11 @@ use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadPipeline, TextRenderer};
 use piano_math::KeyboardRange;
 
-use crate::{config::Config, render::KeyboardRenderer, target::Target};
+use crate::{config::Config, render::KeyboardRenderer, song::SongConfig, target::Target};
 
 pub struct Keyboard {
     renderer: KeyboardRenderer,
+    song_config: SongConfig,
 }
 
 fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
@@ -18,7 +19,7 @@ fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
 }
 
 impl Keyboard {
-    pub fn new(target: &Target) -> Self {
+    pub fn new(target: &Target, song_config: SongConfig) -> Self {
         let layout = get_layout(
             target.window_state.logical_size.width,
             target.window_state.logical_size.height,
@@ -27,7 +28,10 @@ impl Keyboard {
         let mut renderer = KeyboardRenderer::new(layout, target.config.vertical_guidelines);
         renderer.position_on_bottom_of_parent(target.window_state.logical_size.height);
 
-        Self { renderer }
+        Self {
+            renderer,
+            song_config,
+        }
     }
 
     pub fn layout(&self) -> &piano_math::KeyboardLayout {
@@ -86,6 +90,11 @@ impl Keyboard {
         let range_start = self.range().start() as usize;
 
         for e in events {
+            let track = &self.song_config.tracks[e.track_id];
+            if !track.visible {
+                continue;
+            }
+
             let (is_on, key) = match e.message {
                 MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
                 MidiMessage::NoteOff { key, .. } => (false, key.as_int()),

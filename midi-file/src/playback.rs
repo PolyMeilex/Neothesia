@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{MidiEvent, MidiTrack};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 struct TrackState {
     seen_events: usize,
 }
@@ -34,7 +34,7 @@ impl PlaybackState {
             }
         }
 
-        let track_states = vec![TrackState::default(); tracks.len()];
+        let track_states = vec![TrackState { seen_events: 0 }; tracks.len()];
 
         Self {
             tracks,

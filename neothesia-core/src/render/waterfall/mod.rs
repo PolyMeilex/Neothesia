@@ -18,12 +18,14 @@ impl WaterfallRenderer {
     pub fn new(
         gpu: &Gpu,
         tracks: &[MidiTrack],
+        hidden_tracks: &[usize],
         config: &Config,
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_math::KeyboardLayout,
     ) -> Self {
         let mut notes: Vec<_> = tracks
             .iter()
+            .filter(|track| !hidden_tracks.contains(&track.track_id))
             .flat_map(|track| track.notes.iter().cloned())
             .collect();
         // We want to render newer notes on top of old notes

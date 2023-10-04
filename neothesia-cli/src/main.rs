@@ -83,6 +83,7 @@ impl Recorder {
         let mut waterfall = WaterfallRenderer::new(
             &gpu,
             &midi.tracks,
+            &[],
             &config,
             &transform_uniform,
             keyboard_layout,

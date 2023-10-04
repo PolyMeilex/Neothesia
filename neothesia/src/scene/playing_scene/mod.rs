@@ -1,4 +1,4 @@
-use midi_file::{midly::MidiMessage, MidiFile};
+use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::{Color, TransformUniform, Uniform};
@@ -6,7 +6,8 @@ use winit::event::{KeyboardInput, WindowEvent};
 
 use super::Scene;
 use crate::{
-    render::WaterfallRenderer, target::Target, utils::window::WindowState, NeothesiaEvent,
+    render::WaterfallRenderer, song::Song, target::Target, utils::window::WindowState,
+    NeothesiaEvent,
 };
 
 mod keyboard;
@@ -32,20 +33,29 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(target: &Target, midi_file: MidiFile) -> Self {
-        let keyboard = Keyboard::new(target);
+    pub fn new(target: &Target, song: Song) -> Self {
+        let keyboard = Keyboard::new(target, song.config.clone());
 
         let keyboard_layout = keyboard.layout();
 
+        let hidden_tracks: Vec<usize> = song
+            .config
+            .tracks
+            .iter()
+            .filter(|t| !t.visible)
+            .map(|t| t.track_id)
+            .collect();
+
         let mut notes = WaterfallRenderer::new(
             &target.gpu,
-            &midi_file.tracks,
+            &song.file.tracks,
+            &hidden_tracks,
             &target.config,
             &target.transform,
             keyboard_layout.clone(),
         );
 
-        let player = MidiPlayer::new(target, midi_file, keyboard_layout.range.clone());
+        let player = MidiPlayer::new(target, song, keyboard_layout.range.clone());
         notes.update(&target.gpu.queue, player.time_without_lead_in());
 
         Self {
@@ -55,7 +65,6 @@ impl PlayingScene {
             player,
             rewind_controler: RewindController::new(),
             quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
-
             toast_manager: ToastManager::default(),
         }
     }

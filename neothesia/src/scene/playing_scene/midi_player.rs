@@ -1,9 +1,10 @@
-use midi_file::{
-    midly::{num::u4, MidiMessage},
-    MidiFile,
-};
+use midi_file::midly::{num::u4, MidiMessage};
 
-use crate::{output_manager::OutputManager, target::Target};
+use crate::{
+    output_manager::OutputManager,
+    song::{PlayerConfig, Song},
+    target::Target,
+};
 use std::{
     cell::RefCell,
     collections::{HashSet, VecDeque},
@@ -14,24 +15,24 @@ use std::{
 pub struct MidiPlayer {
     playback: midi_file::PlaybackState,
     output_manager: Rc<RefCell<OutputManager>>,
-    midi_file: MidiFile,
+    song: Song,
     play_along: PlayAlong,
 }
 
 impl MidiPlayer {
     pub fn new(
         target: &Target,
-        midi_file: MidiFile,
+        song: Song,
         user_keyboard_range: piano_math::KeyboardRange,
     ) -> Self {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
                 Duration::from_secs(3),
-                midi_file.tracks.clone(),
+                song.file.tracks.clone(),
             ),
             output_manager: target.output_manager.clone(),
-            midi_file,
             play_along: PlayAlong::new(user_keyboard_range),
+            song,
         };
         // Let's reset programs,
         // for timestamp 0 most likely all programs will be 0, so this should clean any leftovers
@@ -53,16 +54,20 @@ impl MidiPlayer {
         let events = self.playback.update(elapsed);
 
         events.iter().for_each(|event| {
-            self.output_manager
-                .borrow_mut()
-                .midi_event(u4::new(event.channel), event.message);
+            let config = &self.song.config.tracks[event.track_id];
 
-            if event.channel == 9 {
-                return;
+            match config.player {
+                PlayerConfig::Auto => {
+                    self.output_manager
+                        .borrow_mut()
+                        .midi_event(u4::new(event.channel), event.message);
+                }
+                PlayerConfig::Human => {
+                    self.play_along
+                        .midi_event(MidiEventSource::File, &event.message);
+                }
+                PlayerConfig::Mute => {}
             }
-
-            self.play_along
-                .midi_event(MidiEventSource::File, &event.message);
         });
 
         events
@@ -99,7 +104,7 @@ impl MidiPlayer {
     }
 
     fn send_midi_programs_for_timestamp(&self, time: &Duration) {
-        for (&channel, &p) in self.midi_file.program_track.program_for_timestamp(time) {
+        for (&channel, &p) in self.song.file.program_track.program_for_timestamp(time) {
             self.output_manager.borrow_mut().midi_event(
                 u4::new(channel),
                 midi_file::midly::MidiMessage::ProgramChange {

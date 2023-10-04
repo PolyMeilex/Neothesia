@@ -17,6 +17,7 @@ use crate::{
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::neo_btn::neo_button,
+    song::{PlayerConfig, Song},
     target::Target,
     NeothesiaEvent,
 };
@@ -44,6 +45,8 @@ pub enum Message {
     Play,
 
     PlayAlongCheckbox(bool),
+    TrackPlayerConfig(usize, PlayerConfig),
+    TrackVisibilityConfig(usize, bool),
 
     GoToPage(Step),
     ExitApp,
@@ -94,7 +97,7 @@ impl Program for AppUi {
                 self.current = page;
             }
             Message::Play => {
-                if let Some(midi_file) = target.midi_file.as_ref() {
+                if let Some(song) = target.song.as_ref() {
                     if let Some(out) = self.data.selected_output.clone() {
                         let out = match out {
                             #[cfg(feature = "synth")]
@@ -113,7 +116,7 @@ impl Program for AppUi {
 
                     target
                         .proxy
-                        .send_event(NeothesiaEvent::Play(midi_file.clone()))
+                        .send_event(NeothesiaEvent::Play(song.clone()))
                         .ok();
                 }
             }
@@ -124,7 +127,7 @@ impl Program for AppUi {
             Message::MidiFileLoaded(midi) => {
                 if let Some((midi, path)) = midi {
                     target.config.last_opened_song = Some(path);
-                    target.midi_file = Some(midi);
+                    target.song = Some(Song::new(midi));
                 }
                 self.data.is_loading = false;
             }
@@ -154,6 +157,16 @@ impl Program for AppUi {
             }
             Message::PlayAlongCheckbox(v) => {
                 target.config.play_along = v;
+            }
+            Message::TrackPlayerConfig(track, config) => {
+                if let Some(song) = target.song.as_mut() {
+                    song.config.tracks[track].player = config;
+                }
+            }
+            Message::TrackVisibilityConfig(track, visible) => {
+                if let Some(song) = target.song.as_mut() {
+                    song.config.tracks[track].visible = visible;
+                }
             }
             Message::VerticalGuidelines(v) => {
                 target.config.vertical_guidelines = v;
@@ -322,7 +335,7 @@ impl<'a> Step {
 
         let mut content = top_padded(column);
 
-        if target.midi_file.is_some() {
+        if target.song.is_some() {
             let play_along = checkbox(
                 "PlayAlong",
                 target.config.play_along,
@@ -440,28 +453,51 @@ impl<'a> Step {
 
     fn track_selection(_data: &'a Data, target: &Target) -> Element<'a, Message> {
         let mut tracks = Vec::new();
-        if let Some(midi) = target.midi_file.as_ref() {
-            for track in midi.tracks.iter().filter(|t| !t.notes.is_empty()) {
-                let (color, name) = if track.has_drums && !track.has_other_than_drums {
-                    (iced_core::Color::from_rgb8(102, 102, 102), "Percussion")
+        if let Some(song) = target.song.as_ref() {
+            for track in song.file.tracks.iter().filter(|t| !t.notes.is_empty()) {
+                let config = &song.config.tracks[track.track_id];
+
+                let visible = config.visible;
+
+                let active = match config.player {
+                    PlayerConfig::Mute => 0,
+                    PlayerConfig::Auto => 1,
+                    PlayerConfig::Human => 2,
+                };
+
+                let color = if (track.has_drums && !track.has_other_than_drums) || !visible {
+                    iced_core::Color::from_rgb8(102, 102, 102)
                 } else {
                     let color_id = track.track_color_id % target.config.color_schema.len();
                     let color = &target.config.color_schema[color_id].base;
-                    let color = iced_core::Color::from_rgb8(color.0, color.1, color.2);
+                    iced_core::Color::from_rgb8(color.0, color.1, color.2)
+                };
 
+                let name = if track.has_drums && !track.has_other_than_drums {
+                    "Percussion"
+                } else {
                     let instrument_id = track
                         .programs
                         .last()
                         .map(|p| p.program as usize)
                         .unwrap_or(0);
-                    (color, midi_file::INSTRUMENT_NAMES[instrument_id])
+                    midi_file::INSTRUMENT_NAMES[instrument_id]
                 };
 
                 let body = segment_button::segment_button()
-                    .button("Mute", Message::Tick)
-                    .button("Auto", Message::Tick)
-                    .button("Human", Message::Tick)
-                    .active(1)
+                    .button(
+                        "Mute",
+                        Message::TrackPlayerConfig(track.track_id, PlayerConfig::Mute),
+                    )
+                    .button(
+                        "Auto",
+                        Message::TrackPlayerConfig(track.track_id, PlayerConfig::Auto),
+                    )
+                    .button(
+                        "Human",
+                        Message::TrackPlayerConfig(track.track_id, PlayerConfig::Human),
+                    )
+                    .active(active)
                     .active_color(color)
                     .build();
                 let card = track_card::track_card()
@@ -469,6 +505,7 @@ impl<'a> Step {
                     .subtitle(format!("{} Notes", track.notes.len()))
                     .track_color(color)
                     .body(body)
+                    .on_icon_press(Message::TrackVisibilityConfig(track.track_id, !visible))
                     .build();
                 tracks.push(card.into());
             }

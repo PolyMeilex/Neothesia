@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::render::TextRenderer;
+use crate::song::Song;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};
@@ -25,7 +26,7 @@ pub struct Target {
 
     pub output_manager: Rc<RefCell<OutputManager>>,
     pub input_manager: InputManager,
-    pub midi_file: Option<midi_file::MidiFile>,
+    pub song: Option<Song>,
     pub config: Config,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
@@ -88,7 +89,7 @@ impl Target {
 
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),
-            midi_file,
+            song: midi_file.map(Song::new),
             config,
             proxy,
         }

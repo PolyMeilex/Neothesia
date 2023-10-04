@@ -8,15 +8,17 @@ pub struct TrackCard<'a, MSG> {
     subtitle: String,
     body: Option<Element<'a, MSG, Renderer>>,
     track_color: Color,
+    on_icon_press: Option<MSG>,
 }
 
-impl<'a, MSG: 'a> TrackCard<'a, MSG> {
+impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
     pub fn new() -> Self {
         Self {
             title: String::new(),
             subtitle: String::new(),
             body: None,
             track_color: Color::from_rgba8(210, 89, 222, 1.0),
+            on_icon_press: None,
         }
     }
 
@@ -35,6 +37,11 @@ impl<'a, MSG: 'a> TrackCard<'a, MSG> {
         self
     }
 
+    pub fn on_icon_press(mut self, msg: MSG) -> Self {
+        self.on_icon_press = Some(msg);
+        self
+    }
+
     pub fn body(mut self, body: impl Into<Element<'a, MSG, Renderer>>) -> Self {
         self.body = Some(body.into());
         self
@@ -43,10 +50,11 @@ impl<'a, MSG: 'a> TrackCard<'a, MSG> {
     pub fn build(self) -> iced_widget::Container<'a, MSG, Renderer> {
         let header = {
             iced_widget::row![
-                iced_widget::container(iced_widget::text(""))
+                iced_widget::button(iced_widget::text(""))
                     .width(40)
                     .height(40)
-                    .style(theme::track_icon(self.track_color)),
+                    .style(theme::track_icon_button(self.track_color))
+                    .on_press_maybe(self.on_icon_press),
                 iced_widget::column(vec![
                     iced_widget::text(self.title).size(16).into(),
                     iced_widget::text(self.subtitle).size(14).into(),
@@ -68,6 +76,6 @@ impl<'a, MSG: 'a> TrackCard<'a, MSG> {
     }
 }
 
-pub fn track_card<'a, MSG: 'a>() -> TrackCard<'a, MSG> {
+pub fn track_card<'a, MSG: 'a + Clone>() -> TrackCard<'a, MSG> {
     TrackCard::new()
 }

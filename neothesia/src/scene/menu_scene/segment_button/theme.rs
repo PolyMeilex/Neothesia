@@ -49,10 +49,10 @@ impl iced_style::button::StyleSheet for SegmentButtonStyle {
     fn hovered(&self, style: &Self::Style) -> button::Appearance {
         let mut active = self.active(style);
 
-        if let Some(iced_core::Background::Color(ref mut background)) = active.background {
-            background.r += 0.05;
-            background.g += 0.05;
-            background.b += 0.05;
+        if let Some(iced_core::Background::Color(ref mut color)) = active.background {
+            color.r = (color.r + 0.05).min(1.0);
+            color.g = (color.g + 0.05).min(1.0);
+            color.b = (color.b + 0.05).min(1.0);
         }
 
         active

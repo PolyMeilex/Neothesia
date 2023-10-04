@@ -4,6 +4,7 @@ mod iced_utils;
 mod input_manager;
 mod output_manager;
 mod scene;
+mod song;
 mod target;
 mod utils;
 
@@ -26,7 +27,7 @@ use winit::{
 #[derive(Debug)]
 pub enum NeothesiaEvent {
     /// Go to playing scene
-    Play(midi_file::MidiFile),
+    Play(song::Song),
     /// Go to main menu scene
     MainMenu,
     MidiInput {
@@ -117,10 +118,10 @@ impl Neothesia {
 
     fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
         match event {
-            NeothesiaEvent::Play(midi_file) => {
+            NeothesiaEvent::Play(song) => {
                 self.target.iced_manager.renderer.clear();
 
-                let to = playing_scene::PlayingScene::new(&self.target, midi_file);
+                let to = playing_scene::PlayingScene::new(&self.target, song);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MainMenu => {

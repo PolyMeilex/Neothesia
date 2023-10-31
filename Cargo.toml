@@ -15,7 +15,7 @@ resolver = "2"
 default-members = ["neothesia"]
 
 [workspace.dependencies]
-wgpu = "0.16.1"
+wgpu = "0.17.1"
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.10"

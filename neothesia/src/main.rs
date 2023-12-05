@@ -179,11 +179,13 @@ impl Neothesia {
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Clear(bg_color),
-                                store: true,
+                                store: wgpu::StoreOp::Store,
                             },
                         })],
 
                         depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
                     });
 
             self.game_scene.render(&self.target.transform, &mut rpass);
@@ -277,6 +279,8 @@ fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Ta
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu_jumpstart::default_backends(),
         dx12_shader_compiler: wgpu::Dx12Compiler::default(),
+        flags: wgpu::InstanceFlags::default(),
+        gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
     });
 
     let size = window.inner_size();

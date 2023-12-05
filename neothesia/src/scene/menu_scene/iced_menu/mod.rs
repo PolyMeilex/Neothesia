@@ -465,7 +465,7 @@ impl<'a> Step {
                     PlayerConfig::Human => 2,
                 };
 
-                let color = if (track.has_drums && !track.has_other_than_drums) || !visible {
+                let color = if !visible {
                     iced_core::Color::from_rgb8(102, 102, 102)
                 } else {
                     let color_id = track.track_color_id % target.config.color_schema.len();
@@ -500,14 +500,20 @@ impl<'a> Step {
                     .active(active)
                     .active_color(color)
                     .build();
+
                 let card = track_card::track_card()
                     .title(name)
                     .subtitle(format!("{} Notes", track.notes.len()))
                     .track_color(color)
-                    .body(body)
-                    .on_icon_press(Message::TrackVisibilityConfig(track.track_id, !visible))
-                    .build();
-                tracks.push(card.into());
+                    .body(body);
+
+                let card = if track.has_drums && !track.has_other_than_drums {
+                    card
+                } else {
+                    card.on_icon_press(Message::TrackVisibilityConfig(track.track_id, !visible))
+                };
+
+                tracks.push(card.build().into());
             }
         }
 

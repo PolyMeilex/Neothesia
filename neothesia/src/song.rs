@@ -1,7 +1,8 @@
-#[derive(Debug, Default, Clone)]
+use midi_file::MidiTrack;
+
+#[derive(Debug, Clone)]
 pub enum PlayerConfig {
     Mute,
-    #[default]
     Auto,
     Human,
 }
@@ -13,24 +14,24 @@ pub struct TrackConfig {
     pub visible: bool,
 }
 
-impl TrackConfig {
-    fn new(track_id: usize) -> Self {
-        Self {
-            track_id,
-            player: PlayerConfig::default(),
-            visible: true,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SongConfig {
     pub tracks: Box<[TrackConfig]>,
 }
 
 impl SongConfig {
-    fn new(tracks_count: usize) -> Self {
-        let tracks: Vec<_> = (0..tracks_count).map(TrackConfig::new).collect();
+    fn new(tracks: &[MidiTrack]) -> Self {
+        let tracks: Vec<_> = tracks
+            .iter()
+            .map(|t| {
+                let is_drums = t.has_drums && !t.has_other_than_drums;
+                TrackConfig {
+                    track_id: t.track_id,
+                    player: PlayerConfig::Auto,
+                    visible: !is_drums,
+                }
+            })
+            .collect();
         Self {
             tracks: tracks.into(),
         }
@@ -45,7 +46,7 @@ pub struct Song {
 
 impl Song {
     pub fn new(file: midi_file::MidiFile) -> Self {
-        let config = SongConfig::new(file.tracks.len());
+        let config = SongConfig::new(&file.tracks);
         Self { file, config }
     }
 }

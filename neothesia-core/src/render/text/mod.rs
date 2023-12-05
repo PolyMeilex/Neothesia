@@ -30,12 +30,9 @@ pub struct TextRenderer {
 
 impl TextRenderer {
     pub fn new(gpu: &Gpu) -> Self {
-        let font_system = glyphon::FontSystem::new_with_fonts(
-            [glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
-                "./Roboto-Regular.ttf"
-            )))]
-            .into_iter(),
-        );
+        let font_system = glyphon::FontSystem::new_with_fonts([glyphon::fontdb::Source::Binary(
+            Arc::new(include_bytes!("./Roboto-Regular.ttf")),
+        )]);
 
         let cache = glyphon::SwashCache::new();
         let mut atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, gpu.texture_format);

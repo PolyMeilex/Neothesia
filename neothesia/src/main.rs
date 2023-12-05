@@ -202,6 +202,7 @@ impl Neothesia {
                         &self.target.gpu.queue,
                         &mut self.target.gpu.encoder,
                         None,
+                        self.target.gpu.texture_format,
                         view,
                         primitive,
                         &self.target.iced_manager.viewport,

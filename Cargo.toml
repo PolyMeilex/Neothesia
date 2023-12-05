@@ -13,8 +13,8 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.dependencies]
-wgpu = "0.17.1"
-glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "20f0f8fa80e0d0df4c63634ce9176fa489546ca9" }
+wgpu = "0.18"
+glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "2caa9fc5e5923c1d827d177c3619cab7e9885b85" }
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.10"

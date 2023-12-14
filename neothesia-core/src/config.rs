@@ -19,10 +19,6 @@ pub struct Config {
     #[serde(default = "default_playback_offset")]
     pub playback_offset: f32,
 
-    #[serde(default = "default_play_along")]
-    #[serde(skip_serializing)]
-    pub play_along: bool,
-
     #[serde(default = "default_vertical_guidelines")]
     pub vertical_guidelines: bool,
 
@@ -68,7 +64,6 @@ impl Config {
             speed_multiplier: default_speed_multiplier(),
             animation_speed: default_animation_speed(),
             playback_offset: default_playback_offset(),
-            play_along: default_play_along(),
             vertical_guidelines: default_vertical_guidelines(),
             color_schema: default_color_schema(),
             background_color: Default::default(),
@@ -109,10 +104,6 @@ fn default_animation_speed() -> f32 {
 
 fn default_playback_offset() -> f32 {
     0.0
-}
-
-fn default_play_along() -> bool {
-    false
 }
 
 fn default_vertical_guidelines() -> bool {

@@ -9,8 +9,7 @@ use iced_core::{
 };
 use iced_runtime::Command;
 use iced_widget::{
-    button, checkbox, column as col, container, image, pick_list, row, text, toggler,
-    vertical_space,
+    button, column as col, container, image, pick_list, row, text, toggler, vertical_space,
 };
 
 use crate::{
@@ -44,7 +43,6 @@ pub enum Message {
 
     Play,
 
-    PlayAlongCheckbox(bool),
     TrackPlayerConfig(usize, PlayerConfig),
     TrackVisibilityConfig(usize, bool),
 
@@ -155,9 +153,6 @@ impl Program for AppUi {
                 target.config.set_input(Some(&input));
                 self.data.selected_input = Some(input);
             }
-            Message::PlayAlongCheckbox(v) => {
-                target.config.play_along = v;
-            }
             Message::TrackPlayerConfig(track, config) => {
                 if let Some(song) = target.song.as_mut() {
                     song.config.tracks[track].player = config;
@@ -212,7 +207,7 @@ impl Program for AppUi {
     fn keyboard_input(
         &self,
         event: &iced_runtime::keyboard::Event,
-        target: &Target,
+        _target: &Target,
     ) -> Option<Message> {
         use iced_runtime::keyboard::{Event, KeyCode};
 
@@ -225,10 +220,6 @@ impl Program for AppUi {
                 },
                 KeyCode::S => match self.current {
                     Step::Main => Some(Message::GoToPage(Step::Settings)),
-                    _ => None,
-                },
-                KeyCode::A => match self.current {
-                    Step::Main => Some(Message::PlayAlongCheckbox(!target.config.play_along)),
                     _ => None,
                 },
                 KeyCode::Enter => match self.current {
@@ -336,13 +327,6 @@ impl<'a> Step {
         let mut content = top_padded(column);
 
         if target.song.is_some() {
-            let play_along = checkbox(
-                "PlayAlong",
-                target.config.play_along,
-                Message::PlayAlongCheckbox,
-            )
-            .style(theme::checkbox());
-
             let tracks = button(centered_text("Tracks"))
                 .on_press(Message::GoToPage(Step::TrackSelection))
                 .style(theme::button());
@@ -352,7 +336,7 @@ impl<'a> Step {
                 .min_width(80.0)
                 .on_press(Message::Play);
 
-            let row = row![tracks, play_along, play]
+            let row = row![tracks, play]
                 .spacing(20)
                 .align_items(Alignment::Center);
 

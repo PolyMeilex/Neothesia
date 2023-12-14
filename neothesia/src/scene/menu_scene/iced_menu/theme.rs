@@ -96,7 +96,7 @@ impl iced_style::button::StyleSheet for ButtonStyle {
     }
 }
 
-pub fn checkbox() -> iced_style::theme::Checkbox {
+pub fn _checkbox() -> iced_style::theme::Checkbox {
     iced_style::theme::Checkbox::Custom(Box::new(CheckboxStyle))
 }
 

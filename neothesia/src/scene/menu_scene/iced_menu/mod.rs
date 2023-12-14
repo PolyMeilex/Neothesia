@@ -18,6 +18,7 @@ use crate::{
     NeothesiaEvent,
 };
 
+mod exit;
 mod settings;
 mod theme;
 mod tracks;
@@ -30,17 +31,15 @@ type InputDescriptor = midi_io::MidiInputPort;
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
+    Play,
+    GoToPage(Step),
+    ExitApp,
 
     Settings(SettingsMessage),
     Tracks(TracksMessage),
 
     OpenMidiFilePicker,
     MidiFileLoaded(Option<(midi_file::MidiFile, PathBuf)>),
-
-    Play,
-
-    GoToPage(Step),
-    ExitApp,
 }
 
 struct Data {
@@ -122,14 +121,6 @@ impl Program for AppUi {
                 }
                 self.data.is_loading = false;
             }
-
-            Message::Settings(msg) => {
-                return settings::update(&mut self.data, msg, target);
-            }
-            Message::Tracks(msg) => {
-                return tracks::update(&mut self.data, msg, target);
-            }
-
             Message::Tick => {
                 self.data.outputs = target.output_manager.borrow().outputs();
                 self.data.inputs = target.input_manager.inputs();
@@ -160,8 +151,14 @@ impl Program for AppUi {
                     }
                 }
             }
+            Message::Settings(msg) => {
+                return settings::update(&mut self.data, msg, target);
+            }
+            Message::Tracks(msg) => {
+                return tracks::update(&mut self.data, msg, target);
+            }
             Message::ExitApp => {
-                target.proxy.send_event(NeothesiaEvent::Exit).ok();
+                return exit::update(&mut self.data, (), target);
             }
         }
 
@@ -229,7 +226,7 @@ impl<'a> Step {
         }
 
         match self {
-            Self::Exit => Self::exit(),
+            Self::Exit => exit::view(data, target),
             Self::Main => Self::main(data, target),
             Self::Settings => settings::view(data, target),
             Self::TrackSelection => tracks::view(data, target),
@@ -242,28 +239,6 @@ impl<'a> Step {
             .align_items(Alignment::Center);
 
         center_x(top_padded(column)).into()
-    }
-
-    fn exit() -> Element<'a, Message> {
-        let output = centered_text("Do you want to exit?").size(30);
-
-        let select_row = row![
-            neo_button("No")
-                .width(Length::Fill)
-                .on_press(Message::GoToPage(Step::Main)),
-            neo_button("Yes")
-                .width(Length::Fill)
-                .on_press(Message::ExitApp),
-        ]
-        .spacing(5)
-        .height(Length::Fixed(50.0));
-
-        let controls = col![output, select_row]
-            .align_items(Alignment::Center)
-            .width(Length::Fixed(650.0))
-            .spacing(30);
-
-        center_x(controls).center_y().into()
     }
 
     fn main(data: &'a Data, target: &Target) -> Element<'a, Message> {
@@ -385,28 +360,6 @@ fn open_midi_file_picker(
                 log::info!("User canceled dialog");
                 None
             }
-        },
-        f,
-    )
-}
-
-fn open_sound_font_picker(
-    f: impl FnOnce(Option<PathBuf>) -> Message + 'static + Send,
-) -> Command<Message> {
-    Command::perform(
-        async {
-            let file = rfd::AsyncFileDialog::new()
-                .add_filter("SoundFont2", &["sf2"])
-                .pick_file()
-                .await;
-
-            if let Some(file) = file.as_ref() {
-                log::info!("Font path = {:?}", file.path());
-            } else {
-                log::info!("User canceled dialog");
-            }
-
-            file.map(|f| f.path().to_owned())
         },
         f,
     )

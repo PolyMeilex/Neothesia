@@ -52,7 +52,7 @@ pub(super) fn update(
         }
         SettingsMessage::OpenSoundFontPicker => {
             data.is_loading = true;
-            return super::open_sound_font_picker(|res| {
+            return open_sound_font_picker(|res| {
                 Message::Settings(SettingsMessage::SoundFontFileLoaded(res))
             });
         }
@@ -152,4 +152,26 @@ pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> 
     .align_items(Alignment::Center);
 
     center_x(top_padded(column)).into()
+}
+
+fn open_sound_font_picker(
+    f: impl FnOnce(Option<PathBuf>) -> Message + 'static + Send,
+) -> Command<Message> {
+    Command::perform(
+        async {
+            let file = rfd::AsyncFileDialog::new()
+                .add_filter("SoundFont2", &["sf2"])
+                .pick_file()
+                .await;
+
+            if let Some(file) = file.as_ref() {
+                log::info!("Font path = {:?}", file.path());
+            } else {
+                log::info!("User canceled dialog");
+            }
+
+            file.map(|f| f.path().to_owned())
+        },
+        f,
+    )
 }

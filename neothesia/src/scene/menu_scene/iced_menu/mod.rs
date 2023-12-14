@@ -1,54 +1,42 @@
-use std::path::PathBuf;
-
 use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
-    text::LineHeight,
     Alignment, Length, Padding,
 };
 use iced_runtime::Command;
-use iced_widget::{
-    button, column as col, container, image, pick_list, row, text, toggler, vertical_space,
-};
+use iced_widget::{button, column as col, container, image, row, text, vertical_space};
 
 use crate::{
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::neo_btn::neo_button,
-    song::{PlayerConfig, Song},
     target::Target,
     NeothesiaEvent,
 };
 
-use super::{segment_button, track_card};
-
+mod exit;
+mod midi_file_picker;
+mod settings;
 mod theme;
+mod tracks;
+
+use midi_file_picker::MidiFilePickerMessage;
+use settings::SettingsMessage;
+use tracks::TracksMessage;
 
 type InputDescriptor = midi_io::MidiInputPort;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
-
-    SelectOutput(OutputDescriptor),
-    SelectInput(InputDescriptor),
-    VerticalGuidelines(bool),
-
-    OpenMidiFilePicker,
-    MidiFileLoaded(Option<(midi_file::MidiFile, PathBuf)>),
-
-    OpenSoundFontPicker,
-    SoundFontFileLoaded(Option<PathBuf>),
-
     Play,
-
-    AllTracksPlayerConfig(PlayerConfig),
-    TrackPlayerConfig(usize, PlayerConfig),
-    TrackVisibilityConfig(usize, bool),
-
     GoToPage(Step),
     ExitApp,
+
+    Settings(SettingsMessage),
+    Tracks(TracksMessage),
+    MidiFilePicker(MidiFilePickerMessage),
 }
 
 struct Data {
@@ -119,61 +107,6 @@ impl Program for AppUi {
                         .ok();
                 }
             }
-            Message::OpenMidiFilePicker => {
-                self.data.is_loading = true;
-                return open_midi_file_picker(Message::MidiFileLoaded);
-            }
-            Message::MidiFileLoaded(midi) => {
-                if let Some((midi, path)) = midi {
-                    target.config.last_opened_song = Some(path);
-                    target.song = Some(Song::new(midi));
-                }
-                self.data.is_loading = false;
-            }
-            Message::OpenSoundFontPicker => {
-                self.data.is_loading = true;
-                return open_sound_font_picker(Message::SoundFontFileLoaded);
-            }
-            Message::SoundFontFileLoaded(font) => {
-                if let Some(font) = font {
-                    target.config.soundfont_path = Some(font.clone());
-                }
-                self.data.is_loading = false;
-            }
-            Message::SelectOutput(output) => {
-                target
-                    .config
-                    .set_output(if let OutputDescriptor::DummyOutput = output {
-                        None
-                    } else {
-                        Some(output.to_string())
-                    });
-                self.data.selected_output = Some(output);
-            }
-            Message::SelectInput(input) => {
-                target.config.set_input(Some(&input));
-                self.data.selected_input = Some(input);
-            }
-            Message::AllTracksPlayerConfig(config) => {
-                if let Some(song) = target.song.as_mut() {
-                    for track in song.config.tracks.iter_mut() {
-                        track.player = config.clone();
-                    }
-                }
-            }
-            Message::TrackPlayerConfig(track, config) => {
-                if let Some(song) = target.song.as_mut() {
-                    song.config.tracks[track].player = config;
-                }
-            }
-            Message::TrackVisibilityConfig(track, visible) => {
-                if let Some(song) = target.song.as_mut() {
-                    song.config.tracks[track].visible = visible;
-                }
-            }
-            Message::VerticalGuidelines(v) => {
-                target.config.vertical_guidelines = v;
-            }
             Message::Tick => {
                 self.data.outputs = target.output_manager.borrow().outputs();
                 self.data.inputs = target.input_manager.inputs();
@@ -204,8 +137,17 @@ impl Program for AppUi {
                     }
                 }
             }
+            Message::Settings(msg) => {
+                return settings::update(&mut self.data, msg, target);
+            }
+            Message::Tracks(msg) => {
+                return tracks::update(&mut self.data, msg, target);
+            }
+            Message::MidiFilePicker(msg) => {
+                return midi_file_picker::update(&mut self.data, msg, target);
+            }
             Message::ExitApp => {
-                target.proxy.send_event(NeothesiaEvent::Exit).ok();
+                return exit::update(&mut self.data, (), target);
             }
         }
 
@@ -222,8 +164,8 @@ impl Program for AppUi {
         if let Event::KeyPressed { key_code, .. } = event {
             match key_code {
                 KeyCode::Tab => match self.current {
-                    Step::Main => Some(Message::OpenMidiFilePicker),
-                    Step::Settings => Some(Message::OpenSoundFontPicker),
+                    Step::Main => Some(midi_file_picker::open().into()),
+                    Step::Settings => Some(Message::Settings(SettingsMessage::OpenSoundFontPicker)),
                     _ => None,
                 },
                 KeyCode::S => match self.current {
@@ -235,7 +177,6 @@ impl Program for AppUi {
                     Step::Main => Some(Message::Play),
                     _ => None,
                 },
-                // Let's hide track screen behind a magic key, as it's not ready for prime time
                 KeyCode::T => match self.current {
                     Step::Main => Some(Message::GoToPage(Step::TrackSelection)),
                     _ => None,
@@ -273,10 +214,10 @@ impl<'a> Step {
         }
 
         match self {
-            Self::Exit => Self::exit(),
+            Self::Exit => exit::view(data, target),
             Self::Main => Self::main(data, target),
-            Self::Settings => Self::settings(data, target),
-            Self::TrackSelection => Self::track_selection(data, target),
+            Self::Settings => settings::view(data, target),
+            Self::TrackSelection => tracks::view(data, target),
         }
     }
 
@@ -288,32 +229,10 @@ impl<'a> Step {
         center_x(top_padded(column)).into()
     }
 
-    fn exit() -> Element<'a, Message> {
-        let output = centered_text("Do you want to exit?").size(30);
-
-        let select_row = row![
-            neo_button("No")
-                .width(Length::Fill)
-                .on_press(Message::GoToPage(Step::Main)),
-            neo_button("Yes")
-                .width(Length::Fill)
-                .on_press(Message::ExitApp),
-        ]
-        .spacing(5)
-        .height(Length::Fixed(50.0));
-
-        let controls = col![output, select_row]
-            .align_items(Alignment::Center)
-            .width(Length::Fixed(650.0))
-            .spacing(30);
-
-        center_x(controls).center_y().into()
-    }
-
     fn main(data: &'a Data, target: &Target) -> Element<'a, Message> {
         let buttons = col![
             neo_button("Select File")
-                .on_press(Message::OpenMidiFilePicker)
+                .on_press(midi_file_picker::open().into())
                 .width(Length::Fill)
                 .height(Length::Fixed(80.0)),
             neo_button("Settings")
@@ -363,180 +282,6 @@ impl<'a> Step {
 
         center_x(content).into()
     }
-
-    fn settings(data: &'a Data, target: &Target) -> Element<'a, Message> {
-        let output_list = {
-            let outputs = &data.outputs;
-            let selected_output = data.selected_output.clone();
-
-            let is_synth = matches!(selected_output, Some(OutputDescriptor::Synth(_)));
-
-            let output_list = pick_list(outputs, selected_output, Message::SelectOutput)
-                .width(Length::Fill)
-                .style(theme::pick_list());
-
-            let output_title = text("Output:")
-                .vertical_alignment(Vertical::Center)
-                .height(Length::Fixed(30.0));
-
-            if is_synth {
-                let btn = button(centered_text("SoundFont"))
-                    .width(Length::Fixed(50.0))
-                    .on_press(Message::OpenSoundFontPicker)
-                    .style(theme::button());
-
-                row![
-                    output_title.width(Length::Fixed(60.0)),
-                    output_list.width(Length::FillPortion(3)),
-                    btn.width(Length::FillPortion(1))
-                ]
-            } else {
-                row![output_title, output_list]
-            }
-            .spacing(10)
-        };
-
-        let input_list = {
-            let inputs = &data.inputs;
-            let selected_input = data.selected_input.clone();
-
-            let input_list = pick_list(inputs, selected_input, Message::SelectInput)
-                .width(Length::Fill)
-                .style(theme::pick_list());
-
-            let input_title = text("Input:")
-                .vertical_alignment(Vertical::Center)
-                .height(Length::Fixed(30.0));
-
-            row![
-                input_title.width(Length::Fixed(60.0)),
-                input_list.width(Length::FillPortion(3)),
-            ]
-            .spacing(10)
-        };
-
-        let guidelines = {
-            let title = text("Guidelines:")
-                .vertical_alignment(Vertical::Center)
-                .height(Length::Fixed(30.0));
-
-            let toggler = toggler(
-                Some("Vertical".to_string()),
-                target.config.vertical_guidelines,
-                Message::VerticalGuidelines,
-            )
-            .text_line_height(LineHeight::Absolute(30.0.into()));
-
-            row![title, toggler].spacing(10)
-        };
-
-        let buttons = row![neo_button("Back")
-            .on_press(Message::GoToPage(Step::Main))
-            .width(Length::Fill),]
-        .width(Length::Shrink)
-        .height(Length::Fixed(50.0));
-
-        let column = col![
-            image(data.logo_handle.clone()),
-            col![output_list, input_list, guidelines].spacing(10),
-            buttons,
-        ]
-        .spacing(40)
-        .align_items(Alignment::Center);
-
-        center_x(top_padded(column)).into()
-    }
-
-    fn track_selection(_data: &'a Data, target: &Target) -> Element<'a, Message> {
-        let mut tracks = Vec::new();
-        if let Some(song) = target.song.as_ref() {
-            for track in song.file.tracks.iter().filter(|t| !t.notes.is_empty()) {
-                let config = &song.config.tracks[track.track_id];
-
-                let visible = config.visible;
-
-                let active = match config.player {
-                    PlayerConfig::Mute => 0,
-                    PlayerConfig::Auto => 1,
-                    PlayerConfig::Human => 2,
-                };
-
-                let color = if !visible {
-                    iced_core::Color::from_rgb8(102, 102, 102)
-                } else {
-                    let color_id = track.track_color_id % target.config.color_schema.len();
-                    let color = &target.config.color_schema[color_id].base;
-                    iced_core::Color::from_rgb8(color.0, color.1, color.2)
-                };
-
-                let name = if track.has_drums && !track.has_other_than_drums {
-                    "Percussion"
-                } else {
-                    let instrument_id = track
-                        .programs
-                        .last()
-                        .map(|p| p.program as usize)
-                        .unwrap_or(0);
-                    midi_file::INSTRUMENT_NAMES[instrument_id]
-                };
-
-                let body = segment_button::segment_button()
-                    .button(
-                        "Mute",
-                        Message::TrackPlayerConfig(track.track_id, PlayerConfig::Mute),
-                    )
-                    .button(
-                        "Auto",
-                        Message::TrackPlayerConfig(track.track_id, PlayerConfig::Auto),
-                    )
-                    .button(
-                        "Human",
-                        Message::TrackPlayerConfig(track.track_id, PlayerConfig::Human),
-                    )
-                    .active(active)
-                    .active_color(color)
-                    .build();
-
-                let card = track_card::track_card()
-                    .title(name)
-                    .subtitle(format!("{} Notes", track.notes.len()))
-                    .track_color(color)
-                    .body(body);
-
-                let card = if track.has_drums && !track.has_other_than_drums {
-                    card
-                } else {
-                    card.on_icon_press(Message::TrackVisibilityConfig(track.track_id, !visible))
-                };
-
-                tracks.push(card.build().into());
-            }
-        }
-
-        let controls = {
-            let listen = button(centered_text("Listen Only"))
-                .on_press(Message::AllTracksPlayerConfig(PlayerConfig::Auto))
-                .style(theme::button());
-
-            let play_along = button(centered_text("Play Along"))
-                .on_press(Message::AllTracksPlayerConfig(PlayerConfig::Human))
-                .style(theme::button());
-
-            row![listen, play_along].spacing(14)
-        };
-
-        let column = super::wrap::Wrap::with_elements(tracks)
-            .spacing(14.0)
-            .line_spacing(14.0)
-            .padding(50.0)
-            .align_items(Alignment::Center);
-
-        let column = col![vertical_space(Length::Fixed(30.0)), controls, column]
-            .align_items(Alignment::Center)
-            .width(Length::Fill);
-
-        iced_widget::scrollable(column).into()
-    }
 }
 
 fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Renderer> {
@@ -567,67 +312,4 @@ fn center_x<'a, MSG: 'a>(
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x()
-}
-
-fn open_midi_file_picker(
-    f: impl FnOnce(Option<(midi_file::MidiFile, PathBuf)>) -> Message + 'static + Send,
-) -> Command<Message> where
-{
-    Command::perform(
-        async {
-            let file = rfd::AsyncFileDialog::new()
-                .add_filter("midi", &["mid", "midi"])
-                .pick_file()
-                .await;
-
-            if let Some(file) = file {
-                log::info!("File path = {:?}", file.path());
-
-                let thread = async_thread::Builder::new()
-                    .name("midi-loader".into())
-                    .spawn(move || {
-                        let midi = midi_file::MidiFile::new(file.path());
-
-                        if let Err(e) = &midi {
-                            log::error!("{}", e);
-                        }
-
-                        midi.map(|midi| (midi, file.path().to_path_buf())).ok()
-                    });
-
-                if let Ok(thread) = thread {
-                    thread.join().await.ok().flatten()
-                } else {
-                    None
-                }
-            } else {
-                log::info!("User canceled dialog");
-                None
-            }
-        },
-        f,
-    )
-}
-
-fn open_sound_font_picker(
-    f: impl FnOnce(Option<PathBuf>) -> Message + 'static + Send,
-) -> Command<Message> where
-{
-    Command::perform(
-        async {
-            let file = rfd::AsyncFileDialog::new()
-                .add_filter("SoundFont2", &["sf2"])
-                .pick_file()
-                .await;
-
-            if let Some(file) = file.as_ref() {
-                log::info!("Font path = {:?}", file.path());
-            } else {
-                log::info!("User canceled dialog");
-            }
-
-            file.map(|f| f.path().to_owned())
-        },
-        f,
-    )
 }

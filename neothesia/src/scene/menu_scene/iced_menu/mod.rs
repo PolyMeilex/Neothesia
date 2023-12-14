@@ -343,12 +343,16 @@ impl<'a> Step {
             )
             .style(theme::checkbox());
 
+            let tracks = button(centered_text("Tracks"))
+                .on_press(Message::GoToPage(Step::TrackSelection))
+                .style(theme::button());
+
             let play = neo_button("Play")
                 .height(Length::Fixed(60.0))
                 .min_width(80.0)
                 .on_press(Message::Play);
 
-            let row = row![play_along, play]
+            let row = row![tracks, play_along, play]
                 .spacing(20)
                 .align_items(Alignment::Center);
 
@@ -520,7 +524,7 @@ impl<'a> Step {
         let column = super::wrap::Wrap::with_elements(tracks)
             .spacing(14.0)
             .line_spacing(14.0)
-            .padding(20.0)
+            .padding(50.0)
             .align_items(Alignment::Center);
 
         let column = col![vertical_space(Length::Fixed(30.0)), column]

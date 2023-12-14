@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
@@ -13,16 +11,17 @@ use crate::{
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::neo_btn::neo_button,
-    song::Song,
     target::Target,
     NeothesiaEvent,
 };
 
 mod exit;
+mod midi_file_picker;
 mod settings;
 mod theme;
 mod tracks;
 
+use midi_file_picker::MidiFilePickerMessage;
 use settings::SettingsMessage;
 use tracks::TracksMessage;
 
@@ -37,9 +36,7 @@ pub enum Message {
 
     Settings(SettingsMessage),
     Tracks(TracksMessage),
-
-    OpenMidiFilePicker,
-    MidiFileLoaded(Option<(midi_file::MidiFile, PathBuf)>),
+    MidiFilePicker(MidiFilePickerMessage),
 }
 
 struct Data {
@@ -110,17 +107,6 @@ impl Program for AppUi {
                         .ok();
                 }
             }
-            Message::OpenMidiFilePicker => {
-                self.data.is_loading = true;
-                return open_midi_file_picker(Message::MidiFileLoaded);
-            }
-            Message::MidiFileLoaded(midi) => {
-                if let Some((midi, path)) = midi {
-                    target.config.last_opened_song = Some(path);
-                    target.song = Some(Song::new(midi));
-                }
-                self.data.is_loading = false;
-            }
             Message::Tick => {
                 self.data.outputs = target.output_manager.borrow().outputs();
                 self.data.inputs = target.input_manager.inputs();
@@ -157,6 +143,9 @@ impl Program for AppUi {
             Message::Tracks(msg) => {
                 return tracks::update(&mut self.data, msg, target);
             }
+            Message::MidiFilePicker(msg) => {
+                return midi_file_picker::update(&mut self.data, msg, target);
+            }
             Message::ExitApp => {
                 return exit::update(&mut self.data, (), target);
             }
@@ -175,7 +164,7 @@ impl Program for AppUi {
         if let Event::KeyPressed { key_code, .. } = event {
             match key_code {
                 KeyCode::Tab => match self.current {
-                    Step::Main => Some(Message::OpenMidiFilePicker),
+                    Step::Main => Some(midi_file_picker::open().into()),
                     Step::Settings => Some(Message::Settings(SettingsMessage::OpenSoundFontPicker)),
                     _ => None,
                 },
@@ -188,7 +177,6 @@ impl Program for AppUi {
                     Step::Main => Some(Message::Play),
                     _ => None,
                 },
-                // Let's hide track screen behind a magic key, as it's not ready for prime time
                 KeyCode::T => match self.current {
                     Step::Main => Some(Message::GoToPage(Step::TrackSelection)),
                     _ => None,
@@ -244,7 +232,7 @@ impl<'a> Step {
     fn main(data: &'a Data, target: &Target) -> Element<'a, Message> {
         let buttons = col![
             neo_button("Select File")
-                .on_press(Message::OpenMidiFilePicker)
+                .on_press(midi_file_picker::open().into())
                 .width(Length::Fill)
                 .height(Length::Fixed(80.0)),
             neo_button("Settings")
@@ -324,43 +312,4 @@ fn center_x<'a, MSG: 'a>(
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x()
-}
-
-fn open_midi_file_picker(
-    f: impl FnOnce(Option<(midi_file::MidiFile, PathBuf)>) -> Message + 'static + Send,
-) -> Command<Message> {
-    Command::perform(
-        async {
-            let file = rfd::AsyncFileDialog::new()
-                .add_filter("midi", &["mid", "midi"])
-                .pick_file()
-                .await;
-
-            if let Some(file) = file {
-                log::info!("File path = {:?}", file.path());
-
-                let thread = async_thread::Builder::new()
-                    .name("midi-loader".into())
-                    .spawn(move || {
-                        let midi = midi_file::MidiFile::new(file.path());
-
-                        if let Err(e) = &midi {
-                            log::error!("{}", e);
-                        }
-
-                        midi.map(|midi| (midi, file.path().to_path_buf())).ok()
-                    });
-
-                if let Ok(thread) = thread {
-                    thread.join().await.ok().flatten()
-                } else {
-                    None
-                }
-            } else {
-                log::info!("User canceled dialog");
-                None
-            }
-        },
-        f,
-    )
 }

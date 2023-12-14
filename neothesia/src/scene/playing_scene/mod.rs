@@ -93,7 +93,7 @@ impl Scene for PlayingScene {
     fn update(&mut self, target: &mut Target, delta: Duration) {
         self.rewind_controler.update(&mut self.player, target);
 
-        if self.player.play_along().are_required_keys_pressed() || !target.config.play_along {
+        if self.player.play_along().are_required_keys_pressed() {
             let midi_events = self.player.update(target, delta);
             self.keyboard.file_midi_events(&target.config, &midi_events);
         }

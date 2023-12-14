@@ -14,6 +14,8 @@ If you have any questions, feel free to join my Discord
 [![IMG](https://i.imgur.com/WUO61EN.png)](https://youtu.be/ReE9nVuMCSE)
 [Video](https://youtu.be/ReE9nVuMCSE)
 [![Video](https://i.imgur.com/1R5uOnA.png)](https://youtu.be/ReE9nVuMCSE)
+![track selection](https://github.com/PolyMeilex/Neothesia/assets/20758186/2309d970-0234-45ff-a9f4-105ff08514af)
+
 
 ## Download
 

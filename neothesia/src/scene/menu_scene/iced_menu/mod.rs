@@ -43,6 +43,7 @@ pub enum Message {
 
     Play,
 
+    AllTracksPlayerConfig(PlayerConfig),
     TrackPlayerConfig(usize, PlayerConfig),
     TrackVisibilityConfig(usize, bool),
 
@@ -152,6 +153,13 @@ impl Program for AppUi {
             Message::SelectInput(input) => {
                 target.config.set_input(Some(&input));
                 self.data.selected_input = Some(input);
+            }
+            Message::AllTracksPlayerConfig(config) => {
+                if let Some(song) = target.song.as_mut() {
+                    for track in song.config.tracks.iter_mut() {
+                        track.player = config.clone();
+                    }
+                }
             }
             Message::TrackPlayerConfig(track, config) => {
                 if let Some(song) = target.song.as_mut() {
@@ -505,13 +513,25 @@ impl<'a> Step {
             }
         }
 
+        let controls = {
+            let listen = button(centered_text("Listen Only"))
+                .on_press(Message::AllTracksPlayerConfig(PlayerConfig::Auto))
+                .style(theme::button());
+
+            let play_along = button(centered_text("Play Along"))
+                .on_press(Message::AllTracksPlayerConfig(PlayerConfig::Human))
+                .style(theme::button());
+
+            row![listen, play_along].spacing(14)
+        };
+
         let column = super::wrap::Wrap::with_elements(tracks)
             .spacing(14.0)
             .line_spacing(14.0)
             .padding(50.0)
             .align_items(Alignment::Center);
 
-        let column = col![vertical_space(Length::Fixed(30.0)), column]
+        let column = col![vertical_space(Length::Fixed(30.0)), controls, column]
             .align_items(Alignment::Center)
             .width(Length::Fill);
 

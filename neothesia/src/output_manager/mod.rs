@@ -50,9 +50,6 @@ pub struct OutputManager {
     midi_backend: Option<MidiBackend>,
 
     output_connection: (OutputDescriptor, Box<dyn OutputConnection>),
-
-    pub selected_output_id: Option<usize>,
-    pub selected_font_path: Option<PathBuf>,
 }
 
 impl Default for OutputManager {
@@ -86,8 +83,6 @@ impl OutputManager {
             midi_backend,
 
             output_connection: (OutputDescriptor::DummyOutput, Box::new(DummyOutput {})),
-            selected_output_id: None,
-            selected_font_path: None,
         }
     }
 
@@ -116,12 +111,10 @@ impl OutputManager {
                         if let Some(font) = font.clone() {
                             self.output_connection =
                                 (desc, Box::new(synth.new_output_connection(&font)));
-                            self.selected_font_path = Some(font);
                         } else if let Some(path) = crate::utils::resources::default_sf2() {
                             if path.exists() {
                                 self.output_connection =
                                     (desc, Box::new(synth.new_output_connection(&path)));
-                                self.selected_font_path = Some(path);
                             }
                         }
                     }

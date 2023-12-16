@@ -6,3 +6,6 @@ edition = "2021"
 
 [dependencies]
 midly = "0.5"
+
+[dev-dependencies]
+midi-io.workspace = true

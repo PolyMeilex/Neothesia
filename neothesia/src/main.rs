@@ -21,7 +21,7 @@ use wgpu_jumpstart::Surface;
 use wgpu_jumpstart::{Gpu, TransformUniform};
 use winit::{
     event::WindowEvent,
-    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
+    event_loop::{EventLoop, EventLoopBuilder},
 };
 
 #[derive(Debug)]
@@ -46,6 +46,7 @@ struct Neothesia {
 
     #[cfg(debug_assertions)]
     fps_ticker: fps_ticker::Fps,
+    last_time: std::time::Instant,
 }
 
 impl Neothesia {
@@ -63,10 +64,15 @@ impl Neothesia {
 
             #[cfg(debug_assertions)]
             fps_ticker: fps_ticker::Fps::default(),
+            last_time: std::time::Instant::now(),
         }
     }
 
-    fn window_event(&mut self, event: &WindowEvent, control_flow: &mut ControlFlow) {
+    fn window_event(
+        &mut self,
+        event: &WindowEvent,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<NeothesiaEvent>,
+    ) {
         self.target.window_state.window_event(event);
 
         match &event {
@@ -88,35 +94,51 @@ impl Neothesia {
                 self.game_scene.resize(&mut self.target);
             }
             WindowEvent::KeyboardInput {
-                input:
-                    winit::event::KeyboardInput {
+                event:
+                    winit::event::KeyEvent {
                         state: winit::event::ElementState::Pressed,
-                        virtual_keycode: Some(winit::event::VirtualKeyCode::F),
+                        logical_key,
                         ..
                     },
                 ..
-            } => {
-                if self.target.window.fullscreen().is_some() {
-                    self.target.window.set_fullscreen(None);
-                } else {
-                    let monitor = self.target.window.current_monitor();
-                    if let Some(monitor) = monitor {
-                        let f = winit::window::Fullscreen::Borderless(Some(monitor));
-                        self.target.window.set_fullscreen(Some(f));
+            } => match logical_key {
+                winit::keyboard::Key::Character(c) if c.as_str() == "f" => {
+                    if self.target.window.fullscreen().is_some() {
+                        self.target.window.set_fullscreen(None);
                     } else {
-                        let f = winit::window::Fullscreen::Borderless(None);
-                        self.target.window.set_fullscreen(Some(f));
+                        let monitor = self.target.window.current_monitor();
+                        if let Some(monitor) = monitor {
+                            let f = winit::window::Fullscreen::Borderless(Some(monitor));
+                            self.target.window.set_fullscreen(Some(f));
+                        } else {
+                            let f = winit::window::Fullscreen::Borderless(None);
+                            self.target.window.set_fullscreen(Some(f));
+                        }
                     }
                 }
+                _ => {}
+            },
+            WindowEvent::RedrawRequested => {
+                let delta = self.last_time.elapsed();
+                self.last_time = std::time::Instant::now();
+
+                self.update(delta);
+                self.render();
             }
-            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            WindowEvent::CloseRequested => {
+                event_loop.exit();
+            }
             _ => {}
         }
 
         self.game_scene.window_event(&mut self.target, event);
     }
 
-    fn neothesia_event(&mut self, event: NeothesiaEvent, control_flow: &mut ControlFlow) {
+    fn neothesia_event(
+        &mut self,
+        event: NeothesiaEvent,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<NeothesiaEvent>,
+    ) {
         match event {
             NeothesiaEvent::Play(song) => {
                 self.target.iced_manager.renderer.clear();
@@ -133,7 +155,7 @@ impl Neothesia {
                     .midi_event(&mut self.target, channel, &message);
             }
             NeothesiaEvent::Exit => {
-                *control_flow = ControlFlow::Exit;
+                event_loop.exit();
             }
         }
     }
@@ -228,40 +250,33 @@ fn main() {
 
     let mut app = Neothesia::new(target, surface);
 
-    let mut last_time = std::time::Instant::now();
-
     // Investigate:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
 
-    event_loop.run(move |event, _, control_flow| {
-        use winit::event::Event;
-        match event {
-            Event::UserEvent(event) => {
-                app.neothesia_event(event, control_flow);
+    event_loop
+        .run(move |event, event_loop| {
+            use winit::event::Event;
+            match event {
+                Event::UserEvent(event) => {
+                    app.neothesia_event(event, event_loop);
+                }
+                Event::WindowEvent { event, .. } => {
+                    app.window_event(&event, event_loop);
+                }
+                Event::AboutToWait => {
+                    app.target.window.request_redraw();
+                }
+                _ => {}
             }
-            Event::WindowEvent { event, .. } => {
-                app.window_event(&event, control_flow);
-            }
-            Event::RedrawRequested(_) => {
-                let delta = last_time.elapsed();
-                last_time = std::time::Instant::now();
-
-                app.update(delta);
-                app.render();
-            }
-            Event::RedrawEventsCleared => {
-                app.target.window.request_redraw();
-            }
-            _ => {}
-        }
-    });
+        })
+        .unwrap();
 }
 
 fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Target, Surface) {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
         .init();
 
-    let event_loop = EventLoopBuilder::with_user_event().build();
+    let event_loop = EventLoopBuilder::with_user_event().build().unwrap();
     let proxy = event_loop.create_proxy();
 
     let builder = builder

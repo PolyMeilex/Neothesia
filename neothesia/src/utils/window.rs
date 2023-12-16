@@ -1,6 +1,6 @@
 use winit::dpi::LogicalPosition;
 use winit::dpi::PhysicalPosition;
-use winit::event::ModifiersState;
+use winit::keyboard::ModifiersState;
 
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
@@ -55,13 +55,8 @@ impl WindowState {
                 self.physical_size = *ps;
                 self.logical_size = ps.to_logical(self.scale_factor);
             }
-            WindowEvent::ScaleFactorChanged {
-                scale_factor,
-                new_inner_size,
-            } => {
-                self.physical_size = **new_inner_size;
-                self.logical_size = new_inner_size.to_logical(self.scale_factor);
-
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                self.logical_size = self.physical_size.to_logical(self.scale_factor);
                 self.scale_factor = *scale_factor;
             }
             WindowEvent::CursorMoved { position, .. } => {
@@ -72,7 +67,7 @@ impl WindowState {
                 self.focused = *f;
             }
             WindowEvent::ModifiersChanged(state) => {
-                self.modifers_state = *state;
+                self.modifers_state = state.state();
             }
             _ => {}
         }

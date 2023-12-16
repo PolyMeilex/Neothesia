@@ -2,7 +2,7 @@ use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::{Color, TransformUniform, Uniform};
-use winit::event::{KeyboardInput, WindowEvent};
+use winit::event::{KeyEvent, WindowEvent};
 
 use super::Scene;
 use crate::{
@@ -125,33 +125,35 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        use winit::event::WindowEvent::*;
-        use winit::event::{ElementState, VirtualKeyCode};
+        use winit::{
+            event::ElementState,
+            keyboard::{Key, NamedKey},
+        };
 
         match &event {
-            KeyboardInput { input, .. } => {
+            WindowEvent::KeyboardInput { event, .. } => {
                 self.rewind_controler
-                    .handle_keyboard_input(&mut self.player, input);
+                    .handle_keyboard_input(&mut self.player, event);
 
                 if self.rewind_controler.is_rewinding() {
                     self.keyboard.reset_notes();
                 }
 
-                settings_keyboard_input(target, &mut self.toast_manager, input, &mut self.notes);
+                settings_keyboard_input(target, &mut self.toast_manager, event, &mut self.notes);
 
-                if input.state == ElementState::Released {
-                    match input.virtual_keycode {
-                        Some(VirtualKeyCode::Escape) => {
+                if event.state == ElementState::Released {
+                    match event.logical_key {
+                        Key::Named(NamedKey::Escape) => {
                             target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
                         }
-                        Some(VirtualKeyCode::Space) => {
+                        Key::Named(NamedKey::Space) => {
                             self.player.pause_resume();
                         }
                         _ => {}
                     }
                 }
             }
-            MouseInput { state, button, .. } => {
+            WindowEvent::MouseInput { state, button, .. } => {
                 self.rewind_controler.handle_mouse_input(
                     &mut self.player,
                     &target.window_state,
@@ -163,7 +165,7 @@ impl Scene for PlayingScene {
                     self.keyboard.reset_notes();
                 }
             }
-            CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 self.rewind_controler.handle_cursor_moved(
                     &mut self.player,
                     &target.window_state,
@@ -185,30 +187,27 @@ impl Scene for PlayingScene {
 fn settings_keyboard_input(
     target: &mut Target,
     toast_manager: &mut ToastManager,
-    input: &KeyboardInput,
+    input: &KeyEvent,
     waterfall: &mut WaterfallRenderer,
 ) {
-    use winit::event::{ElementState, VirtualKeyCode};
+    use winit::{
+        event::ElementState,
+        keyboard::{Key, NamedKey},
+    };
 
     if input.state != ElementState::Released {
         return;
     }
 
-    let virtual_keycode = if let Some(virtual_keycode) = input.virtual_keycode {
-        virtual_keycode
-    } else {
-        return;
-    };
-
-    match virtual_keycode {
-        VirtualKeyCode::Up | VirtualKeyCode::Down => {
-            let amount = if target.window_state.modifers_state.shift() {
+    match input.logical_key {
+        Key::Named(key @ (NamedKey::ArrowUp | NamedKey::ArrowDown)) => {
+            let amount = if target.window_state.modifers_state.shift_key() {
                 0.5
             } else {
                 0.1
             };
 
-            if virtual_keycode == VirtualKeyCode::Up {
+            if key == NamedKey::ArrowUp {
                 target.config.speed_multiplier += amount;
             } else {
                 target.config.speed_multiplier -= amount;
@@ -218,14 +217,14 @@ fn settings_keyboard_input(
             toast_manager.speed_toast(target.config.speed_multiplier);
         }
 
-        VirtualKeyCode::PageUp | VirtualKeyCode::PageDown => {
-            let amount = if target.window_state.modifers_state.shift() {
+        Key::Named(key @ (NamedKey::PageUp | NamedKey::PageDown)) => {
+            let amount = if target.window_state.modifers_state.shift_key() {
                 500.0
             } else {
                 100.0
             };
 
-            if virtual_keycode == VirtualKeyCode::PageUp {
+            if key == NamedKey::PageUp {
                 target.config.animation_speed += amount;
             } else {
                 target.config.animation_speed -= amount;
@@ -238,14 +237,14 @@ fn settings_keyboard_input(
             toast_manager.animation_speed_toast(target.config.animation_speed);
         }
 
-        VirtualKeyCode::Minus | VirtualKeyCode::Plus | VirtualKeyCode::Equals => {
-            let amount = if target.window_state.modifers_state.shift() {
+        Key::Character(ref ch) if matches!(ch.as_str(), "_" | "-" | "+" | "=") => {
+            let amount = if target.window_state.modifers_state.shift_key() {
                 0.1
             } else {
                 0.01
             };
 
-            if virtual_keycode == VirtualKeyCode::Minus {
+            if matches!(ch.as_str(), "-" | "_") {
                 target.config.playback_offset -= amount;
             } else {
                 target.config.playback_offset += amount;

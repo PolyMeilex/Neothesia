@@ -1,4 +1,9 @@
-use super::{icons, neo_btn::NeoBtn, Renderer};
+use super::{
+    icons,
+    layout::{BarLayout, Layout},
+    neo_btn::NeoBtn,
+    Renderer,
+};
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
@@ -251,7 +256,7 @@ impl<'a> Step {
             .spacing(40)
             .align_items(Alignment::Center);
 
-        let mut content = top_padded(column);
+        let mut layout = Layout::new().body(top_padded(column));
 
         if target.song.is_some() {
             let tracks = NeoBtn::new(
@@ -288,10 +293,10 @@ impl<'a> Step {
                     left: 0.0,
                 });
 
-            content = content.push(container);
+            layout = layout.bottom(BarLayout::new().right(container));
         }
 
-        center_x(content).into()
+        layout.into()
     }
 }
 

@@ -7,6 +7,7 @@ members = [
     "neothesia-core",
     "midi-file",
     "midi-io",
+    "dumb-http",
 ]
 
 default-members = ["neothesia"]
@@ -24,3 +25,4 @@ neothesia = { path = "./neothesia", default-features = false }
 neothesia-core = { path = "./neothesia-core" }
 midi-file = { path = "./midi-file" }
 piano-math = { path = "./piano-math" }
+dumb-http = { path = "./dumb-http" }

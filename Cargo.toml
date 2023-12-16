@@ -23,4 +23,5 @@ wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia = { path = "./neothesia", default-features = false }
 neothesia-core = { path = "./neothesia-core" }
 midi-file = { path = "./midi-file" }
+midi-io = { path = "./midi-io" }
 piano-math = { path = "./piano-math" }

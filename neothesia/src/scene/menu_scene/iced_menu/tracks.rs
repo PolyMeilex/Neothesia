@@ -7,7 +7,12 @@ use iced_widget::{button, column as col, container, row, vertical_space};
 
 use crate::{
     iced_utils::iced_state::Element,
-    scene::menu_scene::{icons, neo_btn::NeoBtn, segment_button, track_card},
+    scene::menu_scene::{
+        icons,
+        layout::{BarLayout, Layout},
+        neo_btn::NeoBtn,
+        segment_button, track_card,
+    },
     song::PlayerConfig,
     target::Target,
 };
@@ -133,15 +138,6 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
 
     let column = iced_widget::scrollable(column);
 
-    let mut content = {
-        let content = column.height(Length::Fill);
-
-        col![content]
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_items(Alignment::Center)
-    };
-
     let right = {
         let back = NeoBtn::new(
             icons::left_arrow_icon()
@@ -210,13 +206,8 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
             left: 0.0,
         });
 
-    let left = row![].width(Length::Fill);
-    let center = row![center].width(Length::Fill);
-    let right = row![right].width(Length::Fill);
-
-    let main = row![left, center, right].align_items(Alignment::Center);
-
-    content = content.push(main);
-
-    content.into()
+    Layout::new()
+        .body(column)
+        .bottom(BarLayout::new().center(center).right(right))
+        .into()
 }

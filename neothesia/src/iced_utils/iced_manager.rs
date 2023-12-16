@@ -1,3 +1,5 @@
+use iced_core::text::Renderer;
+
 pub struct IcedManager {
     pub renderer: iced_wgpu::Renderer<iced_style::Theme>,
     pub viewport: iced_wgpu::graphics::Viewport,
@@ -16,11 +18,14 @@ impl IcedManager {
 
         let settings = iced_wgpu::Settings::default();
 
-        let renderer = iced_wgpu::Renderer::new(
+        let mut renderer = iced_wgpu::Renderer::new(
             iced_wgpu::Backend::new(device, queue, settings, texture_format),
             iced_core::Font::default(),
             iced_core::Pixels(16.0),
         );
+        renderer.load_font(std::borrow::Cow::Borrowed(include_bytes!(
+            "./bootstrap-icons.ttf"
+        )));
 
         let viewport = iced_wgpu::graphics::Viewport::with_physical_size(
             iced_core::Size::new(physical_size.0, physical_size.1),

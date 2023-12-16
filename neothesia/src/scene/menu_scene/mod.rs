@@ -1,5 +1,6 @@
 mod iced_menu;
 
+mod icons;
 mod neo_btn;
 mod segment_button;
 mod track_card;

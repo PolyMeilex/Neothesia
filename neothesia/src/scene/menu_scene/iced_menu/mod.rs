@@ -1,11 +1,11 @@
-use super::Renderer;
+use super::{icons, neo_btn::NeoBtn, Renderer};
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
     Alignment, Length, Padding,
 };
 use iced_runtime::Command;
-use iced_widget::{button, column as col, container, image, row, text, vertical_space};
+use iced_widget::{column as col, container, image, row, text, vertical_space};
 
 use crate::{
     iced_utils::iced_state::{Element, Program},
@@ -242,7 +242,7 @@ impl<'a> Step {
             neo_button("Exit")
                 .on_press(Message::GoToPage(Step::Exit))
                 .width(Length::Fill)
-                .height(Length::Fixed(80.0))
+                .height(Length::Fixed(80.0)),
         ]
         .width(Length::Fixed(450.0))
         .spacing(10);
@@ -254,17 +254,28 @@ impl<'a> Step {
         let mut content = top_padded(column);
 
         if target.song.is_some() {
-            let tracks = button(centered_text("Tracks"))
-                .on_press(Message::GoToPage(Step::TrackSelection))
-                .style(theme::button());
+            let tracks = NeoBtn::new(
+                icons::note_list_icon()
+                    .size(30.0)
+                    .vertical_alignment(Vertical::Center)
+                    .horizontal_alignment(Horizontal::Center),
+            )
+            .height(Length::Fixed(60.0))
+            .min_width(80.0)
+            .on_press(Message::GoToPage(Step::TrackSelection));
 
-            let play = neo_button("Play")
-                .height(Length::Fixed(60.0))
-                .min_width(80.0)
-                .on_press(Message::Play);
+            let play = NeoBtn::new(
+                icons::play_icon()
+                    .size(30.0)
+                    .vertical_alignment(Vertical::Center)
+                    .horizontal_alignment(Horizontal::Center),
+            )
+            .height(Length::Fixed(60.0))
+            .min_width(80.0)
+            .on_press(Message::Play);
 
             let row = row![tracks, play]
-                .spacing(20)
+                .spacing(10)
                 .align_items(Alignment::Center);
 
             let container = container(row)

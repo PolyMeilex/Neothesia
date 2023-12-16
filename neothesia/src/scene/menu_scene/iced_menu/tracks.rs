@@ -1,10 +1,13 @@
-use iced_core::{Alignment, Length};
+use iced_core::{
+    alignment::{Horizontal, Vertical},
+    Alignment, Length, Padding,
+};
 use iced_runtime::Command;
-use iced_widget::{button, column as col, row, vertical_space};
+use iced_widget::{button, column as col, container, row, vertical_space};
 
 use crate::{
     iced_utils::iced_state::Element,
-    scene::menu_scene::{segment_button, track_card},
+    scene::menu_scene::{icons, neo_btn::NeoBtn, segment_button, track_card},
     song::PlayerConfig,
     target::Target,
 };
@@ -118,7 +121,70 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
         }
     }
 
-    let controls = {
+    let column = super::super::wrap::Wrap::with_elements(tracks)
+        .spacing(14.0)
+        .line_spacing(14.0)
+        .padding(30.0)
+        .align_items(Alignment::Center);
+
+    let column = col![vertical_space(Length::Fixed(30.0)), column]
+        .align_items(Alignment::Center)
+        .width(Length::Fill);
+
+    let column = iced_widget::scrollable(column);
+
+    let mut content = {
+        let content = column.height(Length::Fill);
+
+        col![content]
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_items(Alignment::Center)
+    };
+
+    let right = {
+        let back = NeoBtn::new(
+            icons::left_arrow_icon()
+                .size(30.0)
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Center),
+        )
+        .height(Length::Fixed(60.0))
+        .min_width(80.0)
+        .on_press(Message::GoToPage(super::Step::Main));
+
+        let play = NeoBtn::new(
+            icons::play_icon()
+                .size(30.0)
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Center),
+        )
+        .height(Length::Fixed(60.0))
+        .min_width(80.0)
+        .on_press(Message::Play);
+
+        if target.song.is_some() {
+            row![back, play]
+        } else {
+            row![back]
+        }
+        .spacing(10)
+        .width(Length::Shrink)
+        .align_items(Alignment::Center)
+    };
+
+    let right = container(right)
+        .width(Length::Fill)
+        .align_x(Horizontal::Right)
+        .align_y(Vertical::Center)
+        .padding(Padding {
+            top: 0.0,
+            right: 10.0,
+            bottom: 10.0,
+            left: 0.0,
+        });
+
+    let center = {
         let listen = button(centered_text("Listen Only"))
             .on_press(TracksMessage::AllTracksPlayer(PlayerConfig::Auto).into())
             .style(theme::button());
@@ -127,18 +193,30 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
             .on_press(TracksMessage::AllTracksPlayer(PlayerConfig::Human).into())
             .style(theme::button());
 
-        row![listen, play_along].spacing(14)
+        row![listen, play_along]
+            .width(Length::Shrink)
+            .align_items(Alignment::Center)
+            .spacing(14)
     };
 
-    let column = super::super::wrap::Wrap::with_elements(tracks)
-        .spacing(14.0)
-        .line_spacing(14.0)
-        .padding(50.0)
-        .align_items(Alignment::Center);
+    let center = container(center)
+        .width(Length::Fill)
+        .align_x(Horizontal::Center)
+        .align_y(Vertical::Center)
+        .padding(Padding {
+            top: 0.0,
+            right: 10.0,
+            bottom: 10.0,
+            left: 0.0,
+        });
 
-    let column = col![vertical_space(Length::Fixed(30.0)), controls, column]
-        .align_items(Alignment::Center)
-        .width(Length::Fill);
+    let left = row![].width(Length::Fill);
+    let center = row![center].width(Length::Fill);
+    let right = row![right].width(Length::Fill);
 
-    iced_widget::scrollable(column).into()
+    let main = row![left, center, right].align_items(Alignment::Center);
+
+    content = content.push(main);
+
+    content.into()
 }

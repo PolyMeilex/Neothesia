@@ -91,7 +91,7 @@ impl Scene for MenuScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        use winit::event::ModifiersState;
+        use winit::keyboard::ModifiersState;
 
         let modifiers = ModifiersState::default();
 

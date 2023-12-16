@@ -1,6 +1,6 @@
 use winit::{
     dpi::PhysicalPosition,
-    event::{ElementState, KeyboardInput, MouseButton, VirtualKeyCode},
+    event::{ElementState, MouseButton},
 };
 
 use super::MidiPlayer;
@@ -52,9 +52,9 @@ impl RewindController {
 
     pub fn update(&self, player: &mut MidiPlayer, target: &Target) {
         if let RewindController::Keyboard { speed, .. } = self {
-            if target.window_state.modifers_state.shift() {
+            if target.window_state.modifers_state.shift_key() {
                 player.rewind(*speed * 2);
-            } else if target.window_state.modifers_state.ctrl() {
+            } else if target.window_state.modifers_state.control_key() {
                 player.rewind(*speed / 2);
             } else {
                 player.rewind(*speed);
@@ -62,11 +62,17 @@ impl RewindController {
         }
     }
 
-    pub fn handle_keyboard_input(&mut self, player: &mut MidiPlayer, input: &KeyboardInput) {
-        if let Some(virtual_keycode) = input.virtual_keycode {
-            match virtual_keycode {
-                VirtualKeyCode::Left => {
-                    if let winit::event::ElementState::Pressed = input.state {
+    pub fn handle_keyboard_input(
+        &mut self,
+        player: &mut MidiPlayer,
+        input: &winit::event::KeyEvent,
+    ) {
+        use winit::keyboard::{Key, NamedKey};
+
+        if let Key::Named(name) = input.logical_key {
+            match name {
+                NamedKey::ArrowLeft => {
+                    if let ElementState::Pressed = input.state {
                         if !self.is_rewinding() {
                             self.start_keyboard_rewind(player, -100);
                         }
@@ -74,8 +80,8 @@ impl RewindController {
                         self.stop_rewind(player);
                     }
                 }
-                VirtualKeyCode::Right => {
-                    if let winit::event::ElementState::Pressed = input.state {
+                NamedKey::ArrowRight => {
+                    if let ElementState::Pressed = input.state {
                         if !self.is_rewinding() {
                             self.start_keyboard_rewind(player, 100);
                         }

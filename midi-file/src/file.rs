@@ -4,6 +4,7 @@ use std::{fs, path::Path, sync::Arc};
 
 #[derive(Debug, Clone)]
 pub struct MidiFile {
+    pub name: String,
     pub format: Format,
     pub tracks: Arc<[MidiTrack]>,
     pub program_track: ProgramTrack,
@@ -12,6 +13,13 @@ pub struct MidiFile {
 
 impl MidiFile {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+        let name = path
+            .as_ref()
+            .file_name()
+            .ok_or(String::from("File not found"))?
+            .to_string_lossy()
+            .to_string();
+
         let data = match fs::read(path) {
             Ok(buff) => buff,
             Err(_) => return Err(String::from("Could Not Open File")),
@@ -54,6 +62,7 @@ impl MidiFile {
         let program_track = ProgramTrack::new(&tracks);
 
         Ok(Self {
+            name,
             format: smf.header.format,
             tracks: tracks.into(),
             program_track,

@@ -258,7 +258,7 @@ impl<'a> Step {
 
         let mut layout = Layout::new().body(top_padded(column));
 
-        if target.song.is_some() {
+        if let Some(song) = target.song.as_ref() {
             let tracks = NeoBtn::new(
                 icons::note_list_icon()
                     .size(30.0)
@@ -293,7 +293,16 @@ impl<'a> Step {
                     left: 0.0,
                 });
 
-            layout = layout.bottom(BarLayout::new().right(container));
+            layout = layout.bottom(
+                BarLayout::new()
+                    .center(
+                        text(&song.file.name)
+                            .width(Length::Fill)
+                            .vertical_alignment(Vertical::Center)
+                            .horizontal_alignment(Horizontal::Center),
+                    )
+                    .right(container),
+            );
         }
 
         layout.into()

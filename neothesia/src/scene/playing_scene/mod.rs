@@ -1,5 +1,5 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GuidelineRenderer, QuadPipeline};
+use neothesia_core::render::{GlowInstance, GlowPipeline, GuidelineRenderer, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::{
@@ -33,6 +33,10 @@ const EVENT_IGNORED: bool = false;
 const LAYER_BG: usize = 0;
 const LAYER_FG: usize = 1;
 
+struct GlowState {
+    time: f32,
+}
+
 pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
@@ -41,6 +45,8 @@ pub struct PlayingScene {
     player: MidiPlayer,
     rewind_controller: RewindController,
     quad_pipeline: QuadPipeline,
+    glow_pipeline: GlowPipeline,
+    glow_states: Vec<GlowState>,
     toast_manager: ToastManager,
 
     top_bar: TopBar,
@@ -88,6 +94,13 @@ impl PlayingScene {
         quad_pipeline.init_layer(&ctx.gpu, 50); // BG
         quad_pipeline.init_layer(&ctx.gpu, 150); // FG
 
+        let glow_states: Vec<GlowState> = keyboard
+            .layout()
+            .range
+            .iter()
+            .map(|_| GlowState { time: 0.0 })
+            .collect();
+
         Self {
             keyboard,
             guidelines,
@@ -96,8 +109,36 @@ impl PlayingScene {
             player,
             rewind_controller: RewindController::new(),
             quad_pipeline,
+            glow_pipeline: GlowPipeline::new(&ctx.gpu, &ctx.transform),
+            glow_states,
             toast_manager: ToastManager::default(),
             top_bar: TopBar::new(),
+        }
+    }
+
+    fn update_glow(&mut self) {
+        self.glow_pipeline.clear();
+
+        let key_states = self.keyboard.key_states();
+        for key in self.keyboard.layout().keys.iter() {
+            let glow_state = &mut self.glow_states[key.id()];
+            let glow_w = 200.0 + glow_state.time.sin() * 50.0;
+            let glow_h = 200.0 + glow_state.time.sin() * 50.0;
+
+            let y = self.keyboard.pos().y;
+            if let Some(color) = &key_states[key.id()].pressed_by_file {
+                glow_state.time += 0.1;
+                let mut color = color.into_linear_rgba();
+                color[0] += 0.1;
+                color[1] += 0.1;
+                color[2] += 0.1;
+                color[3] = 0.3;
+                self.glow_pipeline.instances().push(GlowInstance {
+                    position: [key.x() - glow_w / 2.0 + key.width() / 2.0, y - glow_w / 2.0],
+                    size: [glow_w, glow_h],
+                    color,
+                });
+            }
         }
     }
 
@@ -156,7 +197,10 @@ impl Scene for PlayingScene {
 
         TopBar::update(self, ctx);
 
+        self.update_glow();
+
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
+        self.glow_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
 
         if self.player.is_finished() && !self.player.is_paused() {
             ctx.proxy
@@ -174,6 +218,7 @@ impl Scene for PlayingScene {
         self.quad_pipeline.render(LAYER_BG, transform, rpass);
         self.waterfall.render(transform, rpass);
         self.quad_pipeline.render(LAYER_FG, transform, rpass);
+        self.glow_pipeline.render(transform, rpass);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

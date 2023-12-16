@@ -13,6 +13,7 @@ fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
 oxi-synth = ["synth", "cpal", "oxisynth"]
 
 [dependencies]
+dumb-http.workspace = true
 futures = { workspace = true }
 log = { workspace = true }
 env_logger = { workspace = true }

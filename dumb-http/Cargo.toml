@@ -1,0 +1,8 @@
+[package]
+name = "dumb-http"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rustls = "0.22"
+webpki-roots = "0.26"

@@ -152,13 +152,8 @@ impl KeyboardRenderer {
             quads.instances().push(*quad);
         }
 
-        for (id, key) in self
-            .layout
-            .keys
-            .iter()
-            .filter(|key| key.note_id() == 0)
-            .enumerate()
-        {
+        let range_start = self.layout.range.start() as usize;
+        for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
             let x = self.pos.x + key.x();
             let y = self.pos.y;
 
@@ -167,13 +162,15 @@ impl KeyboardRenderer {
 
             let size = w * 0.7;
 
+            let oct_number = (key.id() + range_start) / 12;
+
             let mut buffer =
                 glyphon::Buffer::new(text.font_system(), glyphon::Metrics::new(size, size));
             buffer.set_size(text.font_system(), w, h);
             buffer.set_wrap(text.font_system(), glyphon::Wrap::None);
             buffer.set_text(
                 text.font_system(),
-                &format!("C{}", id + 1),
+                &format!("C{}", oct_number as i8 - 1),
                 glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                 glyphon::Shaping::Basic,
             );

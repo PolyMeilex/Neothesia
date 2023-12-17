@@ -102,10 +102,18 @@ impl Scene for MenuScene {
         ) {
             self.iced_state.queue_event(event.clone());
 
-            if let iced_core::event::Event::Keyboard(event) = &event {
-                if let Some(msg) = self.iced_state.program().keyboard_input(event, target) {
-                    self.iced_state.queue_message(msg);
+            match &event {
+                iced_core::event::Event::Mouse(event) => {
+                    if let Some(msg) = self.iced_state.program().mouse_input(event, target) {
+                        self.iced_state.queue_message(msg);
+                    }
                 }
+                iced_core::event::Event::Keyboard(event) => {
+                    if let Some(msg) = self.iced_state.program().keyboard_input(event, target) {
+                        self.iced_state.queue_message(msg);
+                    }
+                }
+                _ => {}
             }
         }
     }

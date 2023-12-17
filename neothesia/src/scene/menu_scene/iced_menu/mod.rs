@@ -159,6 +159,14 @@ impl Program for AppUi {
         Command::none()
     }
 
+    fn mouse_input(&self, event: &iced_core::mouse::Event, _target: &Target) -> Option<Message> {
+        if let iced_core::mouse::Event::ButtonPressed(iced_core::mouse::Button::Other(99)) = event {
+            Some(Message::GoToPage(self.current.previous_step()))
+        } else {
+            None
+        }
+    }
+
     fn keyboard_input(
         &self,
         event: &iced_runtime::keyboard::Event,
@@ -180,18 +188,14 @@ impl Program for AppUi {
                 KeyCode::Enter => match self.current {
                     Step::Exit => Some(Message::ExitApp),
                     Step::Main => Some(Message::Play),
+                    Step::TrackSelection => Some(Message::Play),
                     _ => None,
                 },
                 KeyCode::T => match self.current {
                     Step::Main => Some(Message::GoToPage(Step::TrackSelection)),
                     _ => None,
                 },
-                KeyCode::Escape => Some(match self.current {
-                    Step::Exit => Message::GoToPage(Step::Main),
-                    Step::Main => Message::GoToPage(Step::Exit),
-                    Step::Settings => Message::GoToPage(Step::Main),
-                    Step::TrackSelection => Message::GoToPage(Step::Main),
-                }),
+                KeyCode::Escape => Some(Message::GoToPage(self.current.previous_step())),
                 _ => None,
             }
         } else {
@@ -213,6 +217,15 @@ pub enum Step {
 }
 
 impl<'a> Step {
+    fn previous_step(&self) -> Self {
+        match self {
+            Step::Exit => Step::Main,
+            Step::Main => Step::Exit,
+            Step::Settings => Step::Main,
+            Step::TrackSelection => Step::Main,
+        }
+    }
+
     fn view(&'a self, data: &'a Data, target: &Target) -> Element<Message> {
         if data.is_loading {
             return Self::loading(data);

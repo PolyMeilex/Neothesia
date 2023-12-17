@@ -126,7 +126,7 @@ impl Scene for PlayingScene {
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
         use winit::{
-            event::ElementState,
+            event::{ElementState, MouseButton},
             keyboard::{Key, NamedKey},
         };
 
@@ -154,6 +154,10 @@ impl Scene for PlayingScene {
                 }
             }
             WindowEvent::MouseInput { state, button, .. } => {
+                if let (MouseButton::Back, ElementState::Pressed) = (button, state) {
+                    target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+                }
+
                 self.rewind_controler.handle_mouse_input(
                     &mut self.player,
                     &target.window_state,

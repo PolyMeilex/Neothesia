@@ -20,14 +20,6 @@ pub struct KeyboardLayout {
 }
 
 impl KeyboardLayout {
-    pub fn standard_88_keys(neutral_width: f32, neutral_height: f32) -> Self {
-        Self::from_range(
-            neutral_width,
-            neutral_height,
-            KeyboardRange::standard_88_keys(),
-        )
-    }
-
     pub fn from_range(neutral_width: f32, neutral_height: f32, range: KeyboardRange) -> Self {
         let sharp_width = neutral_width * 0.625; // 62.5%
         let sharp_height = neutral_height * 0.635;

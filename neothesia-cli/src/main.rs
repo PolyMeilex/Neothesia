@@ -22,8 +22,11 @@ struct Recorder {
     height: u32,
 }
 
-fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
-    let range = piano_math::KeyboardRange::standard_88_keys();
+fn get_layout(
+    width: f32,
+    height: f32,
+    range: piano_math::KeyboardRange,
+) -> piano_math::KeyboardLayout {
     let white_count = range.white_count();
     let neutral_width = width / white_count as f32;
     let neutral_height = height * 0.2;
@@ -73,7 +76,11 @@ impl Recorder {
 
         let quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
 
-        let keyboard_layout = get_layout(width as f32, height as f32);
+        let keyboard_layout = get_layout(
+            width as f32,
+            height as f32,
+            piano_math::KeyboardRange::new(config.piano_range()),
+        );
 
         let mut keyboard =
             KeyboardRenderer::new(keyboard_layout.clone(), config.vertical_guidelines);

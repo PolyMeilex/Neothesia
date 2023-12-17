@@ -9,8 +9,11 @@ pub struct Keyboard {
     song_config: SongConfig,
 }
 
-fn get_layout(width: f32, height: f32) -> piano_math::KeyboardLayout {
-    let range = piano_math::KeyboardRange::standard_88_keys();
+fn get_layout(
+    width: f32,
+    height: f32,
+    range: piano_math::KeyboardRange,
+) -> piano_math::KeyboardLayout {
     let white_count = range.white_count();
     let neutral_width = width / white_count as f32;
     let neutral_height = height * 0.2;
@@ -23,6 +26,7 @@ impl Keyboard {
         let layout = get_layout(
             target.window_state.logical_size.width,
             target.window_state.logical_size.height,
+            piano_math::KeyboardRange::new(target.config.piano_range()),
         );
 
         let mut renderer = KeyboardRenderer::new(layout, target.config.vertical_guidelines);
@@ -54,6 +58,7 @@ impl Keyboard {
         let keyboard_layout = get_layout(
             target.window_state.logical_size.width,
             target.window_state.logical_size.height,
+            self.renderer.layout().range.clone(),
         );
 
         self.set_layout(keyboard_layout.clone());

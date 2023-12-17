@@ -34,7 +34,7 @@ pub struct KeyboardRange {
 impl KeyboardRange {
     pub fn new<R>(range: R) -> Self
     where
-        R: RangeBounds<usize>,
+        R: RangeBounds<u8>,
     {
         let mut keys = Vec::new();
         let mut white_keys = Vec::new();
@@ -47,15 +47,16 @@ impl KeyboardRange {
             std::ops::Bound::Included(id) => *id,
             std::ops::Bound::Excluded(id) => *id + 1,
             std::ops::Bound::Unbounded => 0,
-        } as u8;
+        };
 
         let end = match end {
             std::ops::Bound::Included(id) => *id + 1,
             std::ops::Bound::Excluded(id) => *id,
-            std::ops::Bound::Unbounded => 0,
-        } as u8;
+            std::ops::Bound::Unbounded => 128,
+        };
 
-        let range = start..end;
+        // 127 is the top of MIDI tuning range
+        let range = start..end.min(128);
 
         for id in range.clone().map(KeyId) {
             keys.push(id);

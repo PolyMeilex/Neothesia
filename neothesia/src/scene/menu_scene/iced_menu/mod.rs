@@ -188,6 +188,7 @@ impl Program for AppUi {
                 KeyCode::Enter => match self.current {
                     Step::Exit => Some(Message::ExitApp),
                     Step::Main => Some(Message::Play),
+                    Step::TrackSelection => Some(Message::Play),
                     _ => None,
                 },
                 KeyCode::T => match self.current {

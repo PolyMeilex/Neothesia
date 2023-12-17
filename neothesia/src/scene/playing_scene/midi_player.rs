@@ -63,6 +63,12 @@ impl MidiPlayer {
                         .midi_event(u4::new(event.channel), event.message);
                 }
                 PlayerConfig::Human => {
+                    // Let's play the sound, in case the user does not want it they can just set
+                    // no-output output in settings
+                    // TODO: Perhaps play on midi-in instead
+                    self.output_manager
+                        .borrow_mut()
+                        .midi_event(u4::new(event.channel), event.message);
                     self.play_along
                         .midi_event(MidiEventSource::File, &event.message);
                 }

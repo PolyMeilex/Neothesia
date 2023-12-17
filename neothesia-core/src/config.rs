@@ -34,6 +34,9 @@ pub struct Config {
 
     pub soundfont_path: Option<PathBuf>,
     pub last_opened_song: Option<PathBuf>,
+
+    #[serde(default = "default_piano_range")]
+    pub piano_range: (u8, u8),
 }
 
 impl Default for Config {
@@ -71,7 +74,12 @@ impl Config {
             input: None,
             soundfont_path: None,
             last_opened_song: None,
+            piano_range: default_piano_range(),
         })
+    }
+
+    pub fn piano_range(&self) -> std::ops::RangeInclusive<u8> {
+        self.piano_range.0..=self.piano_range.1
     }
 
     pub fn set_output(&mut self, output: Option<String>) {
@@ -92,6 +100,10 @@ impl Drop for Config {
             }
         }
     }
+}
+
+fn default_piano_range() -> (u8, u8) {
+    (21, 108)
 }
 
 fn default_speed_multiplier() -> f32 {

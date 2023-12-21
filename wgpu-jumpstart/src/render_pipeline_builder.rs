@@ -17,45 +17,42 @@ pub fn default_color_target_state(texture_format: wgpu::TextureFormat) -> wgpu::
     }
 }
 
-pub struct RenderPipelineBuilder<'a> {
-    render_pipeline_descriptor: wgpu::RenderPipelineDescriptor<'a>,
+pub trait RenderPipelineBuilder<'a> {
+    fn builder(layout: &'a wgpu::PipelineLayout, vertex: wgpu::VertexState<'a>) -> Self;
+    fn fragment(
+        self,
+        entry_point: &'a str,
+        fragment_module: &'a wgpu::ShaderModule,
+        targets: &'a [Option<wgpu::ColorTargetState>],
+    ) -> Self;
+    fn create_render_pipeline(&self, device: &wgpu::Device) -> wgpu::RenderPipeline;
 }
 
-impl<'a> RenderPipelineBuilder<'a> {
-    pub fn new(
-        layout: &'a wgpu::PipelineLayout,
-        entry_point: &'a str,
-        vertex_module: &'a wgpu::ShaderModule,
-    ) -> Self {
-        Self {
-            render_pipeline_descriptor: wgpu::RenderPipelineDescriptor {
-                label: None,
-                layout: Some(layout),
-                vertex: wgpu::VertexState {
-                    module: vertex_module,
-                    entry_point,
-                    buffers: &[],
-                },
-                fragment: None,
-                primitive: wgpu::PrimitiveState::default(),
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                multiview: None,
+impl<'a> RenderPipelineBuilder<'a> for wgpu::RenderPipelineDescriptor<'a> {
+    fn builder(layout: &'a wgpu::PipelineLayout, vertex: wgpu::VertexState<'a>) -> Self {
+        wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(layout),
+            vertex,
+            fragment: None,
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
             },
+            multiview: None,
         }
     }
 
-    pub fn fragment(
+    fn fragment(
         mut self,
         entry_point: &'a str,
         fragment_module: &'a wgpu::ShaderModule,
         targets: &'a [Option<wgpu::ColorTargetState>],
     ) -> Self {
-        self.render_pipeline_descriptor.fragment = Some(wgpu::FragmentState {
+        self.fragment = Some(wgpu::FragmentState {
             module: fragment_module,
             entry_point,
             targets,
@@ -63,12 +60,7 @@ impl<'a> RenderPipelineBuilder<'a> {
         self
     }
 
-    pub fn vertex_buffers(mut self, vertex_buffers: &'a [wgpu::VertexBufferLayout]) -> Self {
-        self.render_pipeline_descriptor.vertex.buffers = vertex_buffers;
-        self
-    }
-
-    pub fn build(self, device: &wgpu::Device) -> wgpu::RenderPipeline {
-        device.create_render_pipeline(&self.render_pipeline_descriptor)
+    fn create_render_pipeline(&self, device: &wgpu::Device) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(self)
     }
 }

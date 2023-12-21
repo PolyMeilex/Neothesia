@@ -39,19 +39,22 @@ impl BgPipeline {
 
         let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
 
-        let render_pipeline =
-            RenderPipelineBuilder::new(render_pipeline_layout, "vs_main", &shader)
-                .fragment("fs_main", &shader, &[Some(target)])
-                .vertex_buffers(&[Shape::layout()])
-                .build(&gpu.device);
+        let render_pipeline = wgpu::RenderPipelineDescriptor::builder(
+            render_pipeline_layout,
+            wgpu::VertexState {
+                module: &shader,
+                entry_point: "vs_main",
+                buffers: &[Shape::layout()],
+            },
+        )
+        .fragment("fs_main", &shader, &[Some(target)])
+        .create_render_pipeline(&gpu.device);
 
         let fullscreen_quad = Shape::new_fullscreen_quad(&gpu.device);
 
         Self {
             render_pipeline,
-
             fullscreen_quad,
-
             time_uniform,
         }
     }

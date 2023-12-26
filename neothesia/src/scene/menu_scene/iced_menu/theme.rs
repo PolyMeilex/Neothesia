@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use iced_core::BorderRadius;
 use iced_graphics::core::Color;
 use iced_style::{button, pick_list};
 
@@ -21,28 +22,25 @@ impl iced_style::pick_list::StyleSheet for PickListStyle {
     fn active(&self, _style: &Self::Style) -> pick_list::Appearance {
         pick_list::Appearance {
             text_color: Color::WHITE,
-            background: iced_core::Background::Color(Color::BLACK),
+            background: iced_core::Background::Color(Color::from_rgba8(74, 68, 88, 1.0)),
             placeholder_color: Color::WHITE,
-            border_radius: iced_core::BorderRadius::from(2.0),
-            border_width: 1.0,
+            border_radius: iced_core::BorderRadius::from(5.0),
+            border_width: 0.0,
             border_color: SURFACE,
             handle_color: Color::WHITE,
         }
     }
 
-    fn hovered(&self, _style: &Self::Style) -> pick_list::Appearance {
-        let accent = Color::from_rgba8(160, 81, 255, 1.0);
-        pick_list::Appearance {
-            text_color: Color::WHITE,
-            background: iced_core::Background::Color(Color::BLACK),
-            // background: iced_graphics::Background::Color(Color::from_rgb8(42, 42, 42)),
-            placeholder_color: Color::WHITE,
-            border_radius: iced_core::BorderRadius::from(2.0),
-            border_width: 1.0,
-            // border_color: Color::from_rgb8(42, 42, 42),
-            border_color: accent,
-            handle_color: Color::WHITE,
+    fn hovered(&self, style: &Self::Style) -> pick_list::Appearance {
+        let mut active = self.active(style);
+
+        if let iced_core::Background::Color(ref mut color) = active.background {
+            color.r = (color.r + 0.05).min(1.0);
+            color.g = (color.g + 0.05).min(1.0);
+            color.b = (color.b + 0.05).min(1.0);
         }
+
+        active
     }
 }
 
@@ -55,9 +53,9 @@ impl iced_style::menu::StyleSheet for MenuStyle {
         let accent = Color::from_rgba8(160, 81, 255, 1.0);
         iced_style::menu::Appearance {
             text_color: Color::WHITE,
-            background: iced_core::Background::Color(Color::BLACK),
-            border_width: 1.0,
-            border_radius: iced_core::BorderRadius::from(0.0),
+            background: iced_core::Background::from(iced_core::Color::from_rgba8(27, 25, 32, 1.0)),
+            border_width: 0.0,
+            border_radius: iced_core::BorderRadius::from(5.0),
             border_color: SURFACE,
             selected_text_color: Color::WHITE,
             selected_background: iced_core::Background::Color(accent),
@@ -77,22 +75,25 @@ impl iced_style::button::StyleSheet for ButtonStyle {
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
             text_color: Color::WHITE,
-            border_color: SURFACE,
-            border_width: 1.0,
-            background: Some(iced_core::Background::Color(Color::BLACK)),
+            border_width: 0.0,
+            border_radius: BorderRadius::from(5.0),
+            background: Some(iced_core::Background::Color(Color::from_rgba8(
+                74, 68, 88, 1.0,
+            ))),
             ..Default::default()
         }
     }
 
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        let accent = Color::from_rgba8(160, 81, 255, 1.0);
-        button::Appearance {
-            text_color: Color::WHITE,
-            border_color: accent,
-            border_width: 1.0,
-            background: Some(iced_core::Background::Color(Color::BLACK)),
-            ..Default::default()
+    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        let mut active = self.active(style);
+
+        if let Some(iced_core::Background::Color(ref mut color)) = active.background {
+            color.r = (color.r + 0.05).min(1.0);
+            color.g = (color.g + 0.05).min(1.0);
+            color.b = (color.b + 0.05).min(1.0);
         }
+
+        active
     }
 }
 
@@ -126,6 +127,54 @@ impl iced_style::checkbox::StyleSheet for CheckboxStyle {
             }
             .into(),
             ..self.active(style, is_checked)
+        }
+    }
+}
+
+pub fn toggler() -> iced_style::theme::Toggler {
+    iced_style::theme::Toggler::Custom(Box::new(TogglerStyle))
+}
+
+struct TogglerStyle;
+
+impl iced_style::toggler::StyleSheet for TogglerStyle {
+    type Style = iced_style::Theme;
+
+    fn active(&self, _style: &Self::Style, is_active: bool) -> iced_style::toggler::Appearance {
+        let default = <iced_style::Theme as iced_style::toggler::StyleSheet>::active(
+            &iced_style::Theme::Dark,
+            &iced_style::theme::Toggler::Default,
+            is_active,
+        );
+
+        if is_active {
+            iced_style::toggler::Appearance {
+                background: Color::from_rgba8(160, 81, 255, 1.0),
+                ..default
+            }
+        } else {
+            default
+        }
+    }
+
+    fn hovered(&self, _style: &Self::Style, is_active: bool) -> iced_style::toggler::Appearance {
+        if is_active {
+            let default = <iced_style::Theme as iced_style::toggler::StyleSheet>::active(
+                &iced_style::Theme::Dark,
+                &iced_style::theme::Toggler::Default,
+                is_active,
+            );
+
+            iced_style::toggler::Appearance {
+                background: Color::from_rgba8(180, 101, 255, 1.0),
+                ..default
+            }
+        } else {
+            <iced_style::Theme as iced_style::toggler::StyleSheet>::hovered(
+                &iced_style::Theme::Dark,
+                &iced_style::theme::Toggler::Default,
+                is_active,
+            )
         }
     }
 }

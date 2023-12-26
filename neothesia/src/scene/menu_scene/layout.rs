@@ -40,33 +40,28 @@ impl<'a, M: 'static> Layout<'a, M> {
     }
 
     pub fn build(self) -> Element<'a, M> {
-        let mut root = col![].width(Length::Fill).height(Length::Fill);
-
-        if let Some(top) = self.top {
-            let top = col![top].width(Length::Fill).align_items(Alignment::Center);
-            root = root.push(top);
-        }
-
-        let body = if let Some(body) = self.body {
-            col![body]
-        } else {
-            col![]
-        };
-
+        let body = col![].push_if(self.body);
         let body = col![body]
             .width(Length::Fill)
             .height(Length::Fill)
             .align_items(Alignment::Center);
-        root = root.push(body);
 
-        if let Some(bottom) = self.bottom {
-            let bottom = col![bottom]
+        let top = self
+            .top
+            .map(|top| col![top].width(Length::Fill).align_items(Alignment::Center));
+        let bottom = self.bottom.map(|bottom| {
+            col![bottom]
                 .width(Length::Fill)
-                .align_items(Alignment::Center);
-            root = root.push(bottom);
-        }
+                .align_items(Alignment::Center)
+        });
 
-        root.into()
+        col![]
+            .push_if(top)
+            .push(body)
+            .push_if(bottom)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
 
@@ -114,19 +109,9 @@ impl<'a, M: 'static> BarLayout<'a, M> {
     }
 
     pub fn build(self) -> Element<'a, M> {
-        let mut left = row![].width(Length::Fill);
-        let mut center = row![].width(Length::Fill);
-        let mut right = row![].width(Length::Fill);
-
-        if let Some(item) = self.left {
-            left = left.push(item);
-        }
-        if let Some(item) = self.center {
-            center = center.push(item);
-        }
-        if let Some(item) = self.right {
-            right = right.push(item);
-        }
+        let left = row![].push_if(self.left).width(Length::Fill);
+        let center = row![].push_if(self.center).width(Length::Fill);
+        let right = row![].push_if(self.right).width(Length::Fill);
 
         row![left, center, right]
             .align_items(Alignment::Center)
@@ -137,5 +122,29 @@ impl<'a, M: 'static> BarLayout<'a, M> {
 impl<'a, M: 'static> From<BarLayout<'a, M>> for Element<'a, M> {
     fn from(val: BarLayout<'a, M>) -> Self {
         val.build()
+    }
+}
+
+pub trait PushIf<'a, M, R> {
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self;
+}
+
+impl<'a, M, R: iced_core::Renderer> PushIf<'a, M, R> for iced_widget::Row<'a, M, R> {
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self {
+        if let Some(item) = item {
+            self.push(item)
+        } else {
+            self
+        }
+    }
+}
+
+impl<'a, M, R: iced_core::Renderer> PushIf<'a, M, R> for iced_widget::Column<'a, M, R> {
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self {
+        if let Some(item) = item {
+            self.push(item)
+        } else {
+            self
+        }
     }
 }

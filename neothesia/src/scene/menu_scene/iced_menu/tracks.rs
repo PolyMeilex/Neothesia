@@ -139,16 +139,6 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
     let column = iced_widget::scrollable(column);
 
     let right = {
-        let back = NeoBtn::new(
-            icons::left_arrow_icon()
-                .size(30.0)
-                .vertical_alignment(Vertical::Center)
-                .horizontal_alignment(Horizontal::Center),
-        )
-        .height(Length::Fixed(60.0))
-        .min_width(80.0)
-        .on_press(Message::GoToPage(super::Step::Main));
-
         let play = NeoBtn::new(
             icons::play_icon()
                 .size(30.0)
@@ -160,9 +150,9 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
         .on_press(Message::Play);
 
         if target.song.is_some() {
-            row![back, play]
+            row![play]
         } else {
-            row![back]
+            row![]
         }
         .spacing(10)
         .width(Length::Shrink)
@@ -178,6 +168,31 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
             right: 10.0,
             bottom: 10.0,
             left: 0.0,
+        });
+
+    let left = {
+        let back = NeoBtn::new(
+            icons::left_arrow_icon()
+                .size(30.0)
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Center),
+        )
+        .height(Length::Fixed(60.0))
+        .min_width(80.0)
+        .on_press(Message::GoToPage(super::Step::Main));
+
+        row![back].align_items(Alignment::Start)
+    };
+
+    let left = container(left)
+        .width(Length::Fill)
+        .align_x(Horizontal::Left)
+        .align_y(Vertical::Center)
+        .padding(Padding {
+            top: 0.0,
+            right: 10.0,
+            bottom: 10.0,
+            left: 10.0,
         });
 
     let center = {
@@ -208,6 +223,6 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
 
     Layout::new()
         .body(column)
-        .bottom(BarLayout::new().center(center).right(right))
+        .bottom(BarLayout::new().left(left).center(center).right(right))
         .into()
 }

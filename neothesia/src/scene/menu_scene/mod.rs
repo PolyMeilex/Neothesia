@@ -3,6 +3,7 @@ mod iced_menu;
 mod icons;
 mod layout;
 mod neo_btn;
+mod preferences_group;
 mod segment_button;
 mod track_card;
 mod wrap;

@@ -1,15 +1,25 @@
 use std::path::PathBuf;
 
-use iced_core::{alignment::Vertical, text::LineHeight, Alignment, Length};
+use iced_core::{
+    alignment::{Horizontal, Vertical},
+    Alignment, Length, Padding,
+};
 use iced_runtime::Command;
-use iced_widget::{button, column as col, image, pick_list, row, text, toggler};
+use iced_widget::{column as col, container, pick_list, row, toggler};
 
 use crate::{
-    iced_utils::iced_state::Element, output_manager::OutputDescriptor,
-    scene::menu_scene::neo_btn::neo_button, target::Target,
+    iced_utils::iced_state::Element,
+    output_manager::OutputDescriptor,
+    scene::menu_scene::{
+        icons,
+        layout::{BarLayout, Layout},
+        neo_btn::NeoBtn,
+        preferences_group,
+    },
+    target::Target,
 };
 
-use super::{center_x, centered_text, theme, top_padded, Data, InputDescriptor, Message, Step};
+use super::{centered_text, theme, top_padded, Data, InputDescriptor, Message};
 
 #[derive(Debug, Clone)]
 pub enum SettingsMessage {
@@ -77,28 +87,40 @@ pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> 
         let output_list = pick_list(outputs, selected_output, |v| {
             SettingsMessage::SelectOutput(v).into()
         })
-        .width(Length::Fill)
         .style(theme::pick_list());
 
-        let output_title = text("Output:")
-            .vertical_alignment(Vertical::Center)
-            .height(Length::Fixed(30.0));
+        let mut group = preferences_group::PreferencesGroup::new()
+            .title("Output")
+            .push(
+                preferences_group::ActionRow::new()
+                    .title("Output")
+                    .suffix(output_list),
+            );
 
         if is_synth {
-            let btn = button(centered_text("SoundFont"))
-                .width(Length::Fixed(50.0))
-                .on_press(SettingsMessage::OpenSoundFontPicker.into())
-                .style(theme::button());
+            let subtitle = target
+                .config
+                .soundfont_path
+                .as_ref()
+                .and_then(|path| path.file_name())
+                .map(|name| name.to_string_lossy().to_string());
 
-            row![
-                output_title.width(Length::Fixed(60.0)),
-                output_list.width(Length::FillPortion(3)),
-                btn.width(Length::FillPortion(1))
-            ]
-        } else {
-            row![output_title, output_list]
+            let mut row = preferences_group::ActionRow::new()
+                .title("SourdFont")
+                .suffix(
+                    iced_widget::button(centered_text("Select File"))
+                        .style(theme::button())
+                        .on_press(SettingsMessage::OpenSoundFontPicker.into()),
+                );
+
+            if let Some(subtitle) = subtitle {
+                row = row.subtitle(subtitle);
+            }
+
+            group = group.push(row);
         }
-        .spacing(10)
+
+        group.build()
     };
 
     let input_list = {
@@ -108,50 +130,72 @@ pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> 
         let input_list = pick_list(inputs, selected_input, |v| {
             SettingsMessage::SelectInput(v).into()
         })
-        .width(Length::Fill)
         .style(theme::pick_list());
 
-        let input_title = text("Input:")
-            .vertical_alignment(Vertical::Center)
-            .height(Length::Fixed(30.0));
-
-        row![
-            input_title.width(Length::Fixed(60.0)),
-            input_list.width(Length::FillPortion(3)),
-        ]
-        .spacing(10)
+        preferences_group::PreferencesGroup::new()
+            .title("Input")
+            .push(
+                preferences_group::ActionRow::new()
+                    .title("Input")
+                    .suffix(input_list),
+            )
+            .build()
     };
 
     let guidelines = {
-        let title = text("Guidelines:")
-            .vertical_alignment(Vertical::Center)
-            .height(Length::Fixed(30.0));
+        let toggler = toggler(None, target.config.vertical_guidelines, |v| {
+            SettingsMessage::VerticalGuidelines(v).into()
+        })
+        .style(theme::toggler());
 
-        let toggler = toggler(
-            Some("Vertical".to_string()),
-            target.config.vertical_guidelines,
-            |v| SettingsMessage::VerticalGuidelines(v).into(),
-        )
-        .text_line_height(LineHeight::Absolute(30.0.into()));
-
-        row![title, toggler].spacing(10)
+        preferences_group::PreferencesGroup::new()
+            .title("Render")
+            .push(
+                preferences_group::ActionRow::new()
+                    .title("Vertical Guidelines")
+                    .subtitle("Display octave indicators")
+                    .suffix(toggler),
+            )
+            .build()
     };
 
-    let buttons = row![neo_button("Back")
-        .on_press(Message::GoToPage(Step::Main))
-        .width(Length::Fill),]
-    .width(Length::Shrink)
-    .height(Length::Fixed(50.0));
+    let column = col![output_list, input_list, guidelines]
+        .spacing(10)
+        .width(Length::Fill)
+        .align_items(Alignment::Center);
 
-    let column = col![
-        image(data.logo_handle.clone()),
-        col![output_list, input_list, guidelines].spacing(10),
-        buttons,
-    ]
-    .spacing(40)
-    .align_items(Alignment::Center);
+    let left = {
+        let back = NeoBtn::new(
+            icons::left_arrow_icon()
+                .size(30.0)
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Center),
+        )
+        .height(Length::Fixed(60.0))
+        .min_width(80.0)
+        .on_press(Message::GoToPage(super::Step::Main));
 
-    center_x(top_padded(column)).into()
+        row![back]
+            .spacing(10)
+            .width(Length::Shrink)
+            .align_items(Alignment::Center)
+    };
+
+    let left = container(left)
+        .width(Length::Fill)
+        .align_x(Horizontal::Left)
+        .align_y(Vertical::Center)
+        .padding(Padding {
+            top: 0.0,
+            right: 10.0,
+            bottom: 10.0,
+            left: 10.0,
+        });
+
+    Layout::new()
+        .body(top_padded(column))
+        .bottom(BarLayout::new().left(left))
+        .into()
 }
 
 fn open_sound_font_picker(

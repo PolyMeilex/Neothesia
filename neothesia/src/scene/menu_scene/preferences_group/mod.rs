@@ -37,8 +37,8 @@ impl<'a, MSG: 'a> PreferencesGroup<'a, MSG> {
         self
     }
 
-    pub fn push(mut self, item: ActionRow<'a, MSG>) -> Self {
-        self.items.push(item.build().into());
+    pub fn push(mut self, item: impl Into<Element<'a, MSG>>) -> Self {
+        self.items.push(item.into());
         self
     }
 
@@ -126,6 +126,12 @@ pub struct ActionRow<'a, MSG> {
     suffix: Option<Element<'a, MSG>>,
 }
 
+impl<'a, MSG: 'a> Default for ActionRow<'a, MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, MSG: 'a> ActionRow<'a, MSG> {
     pub fn new() -> Self {
         Self {
@@ -167,5 +173,11 @@ impl<'a, MSG: 'a> ActionRow<'a, MSG> {
         tripple_split(self.prefix, center, self.suffix)
             .width(700)
             .padding(15)
+    }
+}
+
+impl<'a, M: 'a> From<ActionRow<'a, M>> for Element<'a, M> {
+    fn from(val: ActionRow<'a, M>) -> Self {
+        val.build().into()
     }
 }

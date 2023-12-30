@@ -33,7 +33,7 @@ async-thread = "0.1"
 
 cpal = { version = "0.15.0", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }
-oxisynth = { version = "0.0.3", optional = true }
+oxisynth = { version = "0.0.5", optional = true }
 
 midi-file = { workspace = true }
 midi-io = { path = "../midi-io" }

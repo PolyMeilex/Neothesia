@@ -2192,6 +2192,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-derive"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfb77679af88f8b125209d354a202862602672222e7f2313fdd6dc349bad4712"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2364,7 +2375,7 @@ dependencies = [
  "jni 0.20.0",
  "ndk 0.7.0",
  "ndk-context",
- "num-derive",
+ "num-derive 0.3.3",
  "num-traits",
  "oboe-sys",
 ]
@@ -2404,17 +2415,17 @@ dependencies = [
 
 [[package]]
 name = "oxisynth"
-version = "0.0.3"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a245a73af80b7e84354983ab79553896119fe22749bcb3e9add63596a273cbb0"
+checksum = "8ac4177ce94a34c3bcfa9e39f8338c8170918faa560d00dd923d984331a749e4"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.4.1",
  "byte-slice-cast",
  "byteorder",
  "generational-arena",
  "lazy_static",
  "log",
- "num-derive",
+ "num-derive 0.4.1",
  "num-traits",
  "soundfont",
  "thiserror",
@@ -3087,9 +3098,9 @@ dependencies = [
 
 [[package]]
 name = "soundfont"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc966ccbaedaff67e1eecd139975d8856b30d95842791d262835569f64796ba"
+checksum = "88f3c4ee9be1386dc5d4f33fb1df6f813eb2f49510cb24e8bfd30784f4853fce"
 dependencies = [
  "riff",
 ]

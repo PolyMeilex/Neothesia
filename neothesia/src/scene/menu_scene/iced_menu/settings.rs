@@ -5,7 +5,7 @@ use iced_core::{
     Alignment, Length, Padding,
 };
 use iced_runtime::Command;
-use iced_widget::{column as col, container, pick_list, row, toggler};
+use iced_widget::{button, column as col, container, pick_list, row, toggler};
 
 use crate::{
     iced_utils::iced_state::Element,
@@ -14,12 +14,18 @@ use crate::{
         icons,
         layout::{BarLayout, Layout, PushIf},
         neo_btn::NeoBtn,
-        preferences_group,
+        preferences_group, scroll_listener,
     },
     target::Target,
 };
 
-use super::{centered_text, theme, top_padded, Data, InputDescriptor, Message};
+use super::{centered_text, theme, Data, InputDescriptor, Message};
+
+#[derive(Debug, Clone)]
+pub enum RangeUpdateKind {
+    Add,
+    Sub,
+}
 
 #[derive(Debug, Clone)]
 pub enum SettingsMessage {
@@ -29,6 +35,9 @@ pub enum SettingsMessage {
 
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
+
+    RangeStart(RangeUpdateKind),
+    RangeEnd(RangeUpdateKind),
 }
 
 impl From<SettingsMessage> for Message {
@@ -72,6 +81,28 @@ pub(super) fn update(
             }
             data.is_loading = false;
         }
+        SettingsMessage::RangeStart(kind) => match kind {
+            RangeUpdateKind::Add => {
+                let v = (target.config.piano_range().start() + 1).min(127);
+                if v + 24 < *target.config.piano_range().end() {
+                    target.config.piano_range.0 = v;
+                }
+            }
+            RangeUpdateKind::Sub => {
+                target.config.piano_range.0 = target.config.piano_range.0.saturating_sub(1);
+            }
+        },
+        SettingsMessage::RangeEnd(kind) => match kind {
+            RangeUpdateKind::Add => {
+                target.config.piano_range.1 = (target.config.piano_range.1 + 1).min(127);
+            }
+            RangeUpdateKind::Sub => {
+                let v = target.config.piano_range().end().saturating_sub(1);
+                if *target.config.piano_range().start() + 24 < v {
+                    target.config.piano_range.1 = v;
+                }
+            }
+        },
     }
 
     Command::none()
@@ -139,6 +170,57 @@ fn input_group<'a>(data: &'a Data, _target: &Target) -> Element<'a, Message> {
         .build()
 }
 
+fn counter<'a>(
+    value: u8,
+    msg: fn(RangeUpdateKind) -> SettingsMessage,
+) -> Element<'a, SettingsMessage> {
+    let label = centered_text(value);
+    let sub = button(centered_text("-").width(30).height(30))
+        .padding(0)
+        .style(theme::round_button())
+        .on_press(msg(RangeUpdateKind::Sub));
+    let add = button(centered_text("+").width(30).height(30))
+        .padding(0)
+        .style(theme::round_button())
+        .on_press(msg(RangeUpdateKind::Add));
+
+    let row = row![label, sub, add]
+        .spacing(10)
+        .align_items(Alignment::Center);
+
+    scroll_listener::ScrollListener::new(row, move |delta| {
+        if delta.is_sign_positive() {
+            msg(RangeUpdateKind::Add)
+        } else {
+            msg(RangeUpdateKind::Sub)
+        }
+    })
+    .into()
+}
+
+fn note_range_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message> {
+    let start = counter(
+        *target.config.piano_range().start(),
+        SettingsMessage::RangeStart,
+    )
+    .map(Message::Settings);
+    let end = counter(
+        *target.config.piano_range().end(),
+        SettingsMessage::RangeEnd,
+    )
+    .map(Message::Settings);
+
+    preferences_group::PreferencesGroup::new()
+        .title("Note Range")
+        .push(
+            preferences_group::ActionRow::new()
+                .title("Start")
+                .suffix(start),
+        )
+        .push(preferences_group::ActionRow::new().title("End").suffix(end))
+        .build()
+}
+
 fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message> {
     let toggler = toggler(None, target.config.vertical_guidelines, |v| {
         SettingsMessage::VerticalGuidelines(v).into()
@@ -159,12 +241,18 @@ fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message
 pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
     let output_group = output_group(data, target);
     let input_group = input_group(data, target);
+    let note_range_group = note_range_group(data, target);
     let guidelines_group = guidelines_group(data, target);
 
-    let column = col![output_group, input_group, guidelines_group]
-        .spacing(10)
-        .width(Length::Fill)
-        .align_items(Alignment::Center);
+    let column = col![
+        output_group,
+        input_group,
+        note_range_group,
+        guidelines_group
+    ]
+    .spacing(10)
+    .width(Length::Fill)
+    .align_items(Alignment::Center);
 
     let left = {
         let back = NeoBtn::new(
@@ -194,8 +282,19 @@ pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> 
             left: 10.0,
         });
 
+    let body = container(column).max_width(650).padding(Padding {
+        top: 50.0,
+        ..Padding::ZERO
+    });
+
+    let body = col![body]
+        .width(Length::Fill)
+        .align_items(Alignment::Center);
+
+    let column = iced_widget::scrollable(body);
+
     Layout::new()
-        .body(top_padded(column))
+        .body(column)
         .bottom(BarLayout::new().left(left))
         .into()
 }

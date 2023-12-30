@@ -4,6 +4,7 @@ mod icons;
 mod layout;
 mod neo_btn;
 mod preferences_group;
+mod scroll_listener;
 mod segment_button;
 mod track_card;
 mod wrap;

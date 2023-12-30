@@ -97,6 +97,30 @@ impl iced_style::button::StyleSheet for ButtonStyle {
     }
 }
 
+pub fn round_button() -> iced_style::theme::Button {
+    iced_style::theme::Button::Custom(Box::new(RoundButtonStyle))
+}
+
+struct RoundButtonStyle;
+
+impl iced_style::button::StyleSheet for RoundButtonStyle {
+    type Style = iced_style::Theme;
+
+    fn active(&self, style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            border_radius: BorderRadius::from(f32::MAX),
+            ..ButtonStyle::active(&ButtonStyle, style)
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            border_radius: BorderRadius::from(f32::MAX),
+            ..ButtonStyle::hovered(&ButtonStyle, style)
+        }
+    }
+}
+
 pub fn _checkbox() -> iced_style::theme::Checkbox {
     iced_style::theme::Checkbox::Custom(Box::new(CheckboxStyle))
 }

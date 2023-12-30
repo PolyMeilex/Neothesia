@@ -12,7 +12,7 @@ use crate::{
     output_manager::OutputDescriptor,
     scene::menu_scene::{
         icons,
-        layout::{BarLayout, Layout},
+        layout::{BarLayout, Layout, PushIf},
         neo_btn::NeoBtn,
         preferences_group,
     },
@@ -77,89 +77,91 @@ pub(super) fn update(
     Command::none()
 }
 
-pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
-    let output_list = {
-        let outputs = &data.outputs;
-        let selected_output = data.selected_output.clone();
-
-        let is_synth = matches!(selected_output, Some(OutputDescriptor::Synth(_)));
-
-        let output_list = pick_list(outputs, selected_output, |v| {
+fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
+    let output_settings = {
+        let output_list = pick_list(&data.outputs, data.selected_output.clone(), |v| {
             SettingsMessage::SelectOutput(v).into()
         })
         .style(theme::pick_list());
 
-        let mut group = preferences_group::PreferencesGroup::new()
+        preferences_group::ActionRow::new()
             .title("Output")
-            .push(
-                preferences_group::ActionRow::new()
-                    .title("Output")
-                    .suffix(output_list),
+            .suffix(output_list)
+    };
+
+    let is_synth = matches!(data.selected_output, Some(OutputDescriptor::Synth(_)));
+    let synth_settings = is_synth.then(|| {
+        let subtitle = target
+            .config
+            .soundfont_path
+            .as_ref()
+            .and_then(|path| path.file_name())
+            .map(|name| name.to_string_lossy().to_string());
+
+        let mut row = preferences_group::ActionRow::new()
+            .title("SourdFont")
+            .suffix(
+                iced_widget::button(centered_text("Select File"))
+                    .style(theme::button())
+                    .on_press(SettingsMessage::OpenSoundFontPicker.into()),
             );
 
-        if is_synth {
-            let subtitle = target
-                .config
-                .soundfont_path
-                .as_ref()
-                .and_then(|path| path.file_name())
-                .map(|name| name.to_string_lossy().to_string());
-
-            let mut row = preferences_group::ActionRow::new()
-                .title("SourdFont")
-                .suffix(
-                    iced_widget::button(centered_text("Select File"))
-                        .style(theme::button())
-                        .on_press(SettingsMessage::OpenSoundFontPicker.into()),
-                );
-
-            if let Some(subtitle) = subtitle {
-                row = row.subtitle(subtitle);
-            }
-
-            group = group.push(row);
+        if let Some(subtitle) = subtitle {
+            row = row.subtitle(subtitle);
         }
 
-        group.build()
-    };
+        row
+    });
 
-    let input_list = {
-        let inputs = &data.inputs;
-        let selected_input = data.selected_input.clone();
+    preferences_group::PreferencesGroup::new()
+        .title("Output")
+        .push(output_settings)
+        .push_if(synth_settings)
+        .build()
+}
 
-        let input_list = pick_list(inputs, selected_input, |v| {
-            SettingsMessage::SelectInput(v).into()
-        })
-        .style(theme::pick_list());
+fn input_group<'a>(data: &'a Data, _target: &Target) -> Element<'a, Message> {
+    let inputs = &data.inputs;
+    let selected_input = data.selected_input.clone();
 
-        preferences_group::PreferencesGroup::new()
-            .title("Input")
-            .push(
-                preferences_group::ActionRow::new()
-                    .title("Input")
-                    .suffix(input_list),
-            )
-            .build()
-    };
+    let input_list = pick_list(inputs, selected_input, |v| {
+        SettingsMessage::SelectInput(v).into()
+    })
+    .style(theme::pick_list());
 
-    let guidelines = {
-        let toggler = toggler(None, target.config.vertical_guidelines, |v| {
-            SettingsMessage::VerticalGuidelines(v).into()
-        })
-        .style(theme::toggler());
+    preferences_group::PreferencesGroup::new()
+        .title("Input")
+        .push(
+            preferences_group::ActionRow::new()
+                .title("Input")
+                .suffix(input_list),
+        )
+        .build()
+}
 
-        preferences_group::PreferencesGroup::new()
-            .title("Render")
-            .push(
-                preferences_group::ActionRow::new()
-                    .title("Vertical Guidelines")
-                    .subtitle("Display octave indicators")
-                    .suffix(toggler),
-            )
-            .build()
-    };
+fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message> {
+    let toggler = toggler(None, target.config.vertical_guidelines, |v| {
+        SettingsMessage::VerticalGuidelines(v).into()
+    })
+    .style(theme::toggler());
 
-    let column = col![output_list, input_list, guidelines]
+    preferences_group::PreferencesGroup::new()
+        .title("Render")
+        .push(
+            preferences_group::ActionRow::new()
+                .title("Vertical Guidelines")
+                .subtitle("Display octave indicators")
+                .suffix(toggler),
+        )
+        .build()
+}
+
+pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
+    let output_group = output_group(data, target);
+    let input_group = input_group(data, target);
+    let guidelines_group = guidelines_group(data, target);
+
+    let column = col![output_group, input_group, guidelines_group]
         .spacing(10)
         .width(Length::Fill)
         .align_items(Alignment::Center);

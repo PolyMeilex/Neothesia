@@ -129,7 +129,7 @@ pub trait PushIf<'a, M, R> {
     fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self;
 }
 
-impl<'a, M, R: iced_core::Renderer> PushIf<'a, M, R> for iced_widget::Row<'a, M, R> {
+impl<'a, M, R> PushIf<'a, M, R> for iced_widget::Row<'a, M, R> {
     fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self {
         if let Some(item) = item {
             self.push(item)
@@ -139,8 +139,20 @@ impl<'a, M, R: iced_core::Renderer> PushIf<'a, M, R> for iced_widget::Row<'a, M,
     }
 }
 
-impl<'a, M, R: iced_core::Renderer> PushIf<'a, M, R> for iced_widget::Column<'a, M, R> {
+impl<'a, M, R> PushIf<'a, M, R> for iced_widget::Column<'a, M, R> {
     fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self {
+        if let Some(item) = item {
+            self.push(item)
+        } else {
+            self
+        }
+    }
+}
+
+impl<'a, M: 'a> PushIf<'a, M, super::Renderer>
+    for super::preferences_group::PreferencesGroup<'a, M>
+{
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, super::Renderer>>>) -> Self {
         if let Some(item) = item {
             self.push(item)
         } else {

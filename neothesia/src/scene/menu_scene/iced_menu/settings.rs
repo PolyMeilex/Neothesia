@@ -243,12 +243,14 @@ pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> 
     let input_group = input_group(data, target);
     let note_range_group = note_range_group(data, target);
     let guidelines_group = guidelines_group(data, target);
+    let range = super::super::piano_range::PianoRange(target.config.piano_range());
 
     let column = col![
         output_group,
         input_group,
         note_range_group,
-        guidelines_group
+        range,
+        guidelines_group,
     ]
     .spacing(10)
     .width(Length::Fill)

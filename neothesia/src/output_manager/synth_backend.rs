@@ -178,7 +178,6 @@ fn oxisynth_adapter(
 
     let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
         sample_rate,
-        gain: 1.0,
         ..Default::default()
     })
     .unwrap();
@@ -218,7 +217,6 @@ fn fluidsynth_adapter(
 
         let synth = fluidlite::Synth::new(settings).unwrap();
         synth.sfload(path, true).unwrap();
-        synth.set_gain(1.0);
 
         synth
     };

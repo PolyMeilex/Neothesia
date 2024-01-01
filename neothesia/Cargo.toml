@@ -47,3 +47,7 @@ iced_widget = { git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626
 
 [[bin]]
 name = "neothesia"
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+image = "0.24"
+embed-resource = "2.4.0"

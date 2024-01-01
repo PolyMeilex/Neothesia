@@ -291,6 +291,10 @@ fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Ta
 
     let window = builder.build(&event_loop).unwrap();
 
+    if let Err(err) = set_window_icon(&window) {
+        log::error!("Failed to load window icon: {}", err);
+    }
+
     let window_state = WindowState::new(&window);
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu_jumpstart::default_backends(),
@@ -307,4 +311,26 @@ fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Ta
     let target = Target::new(window, window_state, proxy, gpu);
 
     (event_loop, target, surface)
+}
+
+fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
+    use iced_graphics::image::image_rs;
+    use image_rs::codecs::png::PngDecoder;
+    use image_rs::ImageDecoder;
+    use std::io::{Cursor, Read};
+
+    let icon = PngDecoder::new(Cursor::new(include_bytes!(
+        "../../flatpak/com.github.polymeilex.neothesia.png"
+    )))?;
+
+    let (w, h) = icon.dimensions();
+
+    let mut icon = icon.into_reader()?;
+
+    let mut buff = Vec::new();
+    icon.read_to_end(&mut buff)?;
+
+    window.set_window_icon(Some(winit::window::Icon::from_rgba(buff, w, h)?));
+
+    Ok(())
 }

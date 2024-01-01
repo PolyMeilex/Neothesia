@@ -169,7 +169,7 @@ impl Neothesia {
 
         self.game_scene.update(&mut self.target, delta);
         self.target.text_renderer.update(
-            self.target.window_state.physical_size.into(),
+            self.target.window_state.logical_size.into(),
             &self.target.gpu,
         );
     }

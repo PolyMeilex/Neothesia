@@ -1,6 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::render::TextRenderer;
@@ -24,7 +21,7 @@ pub struct Target {
 
     pub text_renderer: TextRenderer,
 
-    pub output_manager: Rc<RefCell<OutputManager>>,
+    pub output_manager: OutputManager,
     pub input_manager: InputManager,
     pub song: Option<Song>,
     pub config: Config,

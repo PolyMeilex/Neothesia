@@ -1,20 +1,18 @@
 use midi_file::midly::{num::u4, MidiMessage};
 
 use crate::{
-    output_manager::OutputManager,
+    output_manager::OutputConnection,
     song::{PlayerConfig, Song},
     target::Target,
 };
 use std::{
-    cell::RefCell,
     collections::{HashSet, VecDeque},
-    rc::Rc,
     time::{Duration, Instant},
 };
 
 pub struct MidiPlayer {
     playback: midi_file::PlaybackState,
-    output_manager: Rc<RefCell<OutputManager>>,
+    output: OutputConnection,
     song: Song,
     play_along: PlayAlong,
 }
@@ -30,7 +28,7 @@ impl MidiPlayer {
                 Duration::from_secs(3),
                 song.file.tracks.clone(),
             ),
-            output_manager: target.output_manager.clone(),
+            output: target.output_manager.connection().clone(),
             play_along: PlayAlong::new(user_keyboard_range),
             song,
         };
@@ -58,16 +56,14 @@ impl MidiPlayer {
 
             match config.player {
                 PlayerConfig::Auto => {
-                    self.output_manager
-                        .borrow_mut()
+                    self.output
                         .midi_event(u4::new(event.channel), event.message);
                 }
                 PlayerConfig::Human => {
                     // Let's play the sound, in case the user does not want it they can just set
                     // no-output output in settings
                     // TODO: Perhaps play on midi-in instead
-                    self.output_manager
-                        .borrow_mut()
+                    self.output
                         .midi_event(u4::new(event.channel), event.message);
                     self.play_along
                         .midi_event(MidiEventSource::File, &event.message);
@@ -80,7 +76,7 @@ impl MidiPlayer {
     }
 
     fn clear(&mut self) {
-        self.output_manager.borrow_mut().stop_all();
+        self.output.stop_all();
     }
 }
 
@@ -111,7 +107,7 @@ impl MidiPlayer {
 
     fn send_midi_programs_for_timestamp(&self, time: &Duration) {
         for (&channel, &p) in self.song.file.program_track.program_for_timestamp(time) {
-            self.output_manager.borrow_mut().midi_event(
+            self.output.midi_event(
                 u4::new(channel),
                 midi_file::midly::MidiMessage::ProgramChange {
                     program: midi_file::midly::num::u7::new(p),

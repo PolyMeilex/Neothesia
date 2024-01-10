@@ -1,6 +1,6 @@
-use std::{error::Error, path::Path, sync::mpsc::Receiver};
+use std::{error::Error, path::Path, rc::Rc, sync::mpsc::Receiver};
 
-use crate::output_manager::{OutputConnection, OutputDescriptor};
+use crate::output_manager::{OutputConnectionProxy, OutputDescriptor};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use midi_file::midly::{self, num::u4};
@@ -82,7 +82,7 @@ impl SynthBackend {
 
     pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<oxisynth::MidiEvent>();
-        let _stream = match self.sample_format {
+        let stream = match self.sample_format {
             cpal::SampleFormat::I8 => self.run::<i8>(rx, path),
             cpal::SampleFormat::I16 => self.run::<i16>(rx, path),
             cpal::SampleFormat::I32 => self.run::<i32>(rx, path),
@@ -98,7 +98,10 @@ impl SynthBackend {
             sample_format => unimplemented!("Unsupported sample format '{sample_format}'"),
         };
 
-        SynthOutputConnection { _stream, tx }
+        SynthOutputConnection {
+            _stream: Rc::new(stream),
+            tx,
+        }
     }
 
     pub fn get_outputs(&self) -> Vec<OutputDescriptor> {
@@ -106,18 +109,19 @@ impl SynthBackend {
     }
 }
 
+#[derive(Clone)]
 pub struct SynthOutputConnection {
-    _stream: cpal::Stream,
+    _stream: Rc<cpal::Stream>,
     tx: std::sync::mpsc::Sender<oxisynth::MidiEvent>,
 }
 
-impl OutputConnection for SynthOutputConnection {
-    fn midi_event(&mut self, channel: u4, msg: midly::MidiMessage) {
+impl OutputConnectionProxy for SynthOutputConnection {
+    fn midi_event(&self, channel: u4, msg: midly::MidiMessage) {
         let event = libmidi_to_oxisynth_event(channel, msg);
         self.tx.send(event).ok();
     }
 
-    fn stop_all(&mut self) {
+    fn stop_all(&self) {
         for channel in 0..16 {
             self.tx
                 .send(oxisynth::MidiEvent::AllNotesOff { channel })

@@ -99,7 +99,7 @@ impl Program for AppUi {
                             o => o,
                         };
 
-                        target.output_manager.borrow_mut().connect(out)
+                        target.output_manager.connect(out)
                     }
 
                     if let Some(port) = self.data.selected_input.clone() {
@@ -113,7 +113,7 @@ impl Program for AppUi {
                 }
             }
             Message::Tick => {
-                self.data.outputs = target.output_manager.borrow().outputs();
+                self.data.outputs = target.output_manager.outputs();
                 self.data.inputs = target.input_manager.inputs();
 
                 if self.data.selected_output.is_none() {

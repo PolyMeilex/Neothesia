@@ -33,15 +33,36 @@ impl Display for OutputDescriptor {
     }
 }
 
-pub trait OutputConnection {
-    fn midi_event(&mut self, channel: u4, msg: MidiMessage);
-    fn stop_all(&mut self);
+trait OutputConnectionProxy {
+    fn midi_event(&self, channel: u4, msg: MidiMessage);
+    fn stop_all(&self);
 }
 
-struct DummyOutput {}
-impl OutputConnection for DummyOutput {
-    fn midi_event(&mut self, _channel: u4, _msg: MidiMessage) {}
-    fn stop_all(&mut self) {}
+#[derive(Clone)]
+pub enum OutputConnection {
+    Midi(midi_backend::MidiOutputConnection),
+    #[cfg(feature = "synth")]
+    Synth(synth_backend::SynthOutputConnection),
+    DummyOutput,
+}
+
+impl OutputConnection {
+    pub fn midi_event(&self, channel: u4, msg: MidiMessage) {
+        match self {
+            OutputConnection::Midi(b) => b.midi_event(channel, msg),
+            #[cfg(feature = "synth")]
+            OutputConnection::Synth(b) => b.midi_event(channel, msg),
+            OutputConnection::DummyOutput => {}
+        }
+    }
+    pub fn stop_all(&self) {
+        match self {
+            OutputConnection::Midi(b) => b.stop_all(),
+            #[cfg(feature = "synth")]
+            OutputConnection::Synth(b) => b.stop_all(),
+            OutputConnection::DummyOutput => {}
+        }
+    }
 }
 
 pub struct OutputManager {
@@ -49,7 +70,7 @@ pub struct OutputManager {
     synth_backend: Option<SynthBackend>,
     midi_backend: Option<MidiBackend>,
 
-    output_connection: (OutputDescriptor, Box<dyn OutputConnection>),
+    output_connection: (OutputDescriptor, OutputConnection),
 }
 
 impl Default for OutputManager {
@@ -82,7 +103,7 @@ impl OutputManager {
             synth_backend,
             midi_backend,
 
-            output_connection: (OutputDescriptor::DummyOutput, Box::new(DummyOutput {})),
+            output_connection: (OutputDescriptor::DummyOutput, OutputConnection::DummyOutput),
         }
     }
 
@@ -109,33 +130,33 @@ impl OutputManager {
                 OutputDescriptor::Synth(ref font) => {
                     if let Some(ref mut synth) = self.synth_backend {
                         if let Some(font) = font.clone() {
-                            self.output_connection =
-                                (desc, Box::new(synth.new_output_connection(&font)));
+                            self.output_connection = (
+                                desc,
+                                OutputConnection::Synth(synth.new_output_connection(&font)),
+                            );
                         } else if let Some(path) = crate::utils::resources::default_sf2() {
                             if path.exists() {
-                                self.output_connection =
-                                    (desc, Box::new(synth.new_output_connection(&path)));
+                                self.output_connection = (
+                                    desc,
+                                    OutputConnection::Synth(synth.new_output_connection(&path)),
+                                );
                             }
                         }
                     }
                 }
                 OutputDescriptor::MidiOut(ref info) => {
                     if let Some(conn) = MidiBackend::new_output_connection(info) {
-                        self.output_connection = (desc, Box::new(conn));
+                        self.output_connection = (desc, OutputConnection::Midi(conn));
                     }
                 }
                 OutputDescriptor::DummyOutput => {
-                    self.output_connection = (desc, Box::new(DummyOutput {}));
+                    self.output_connection = (desc, OutputConnection::DummyOutput);
                 }
             }
         }
     }
 
-    pub fn midi_event(&mut self, channel: u4, msg: MidiMessage) {
-        self.output_connection.1.midi_event(channel, msg);
-    }
-
-    pub fn stop_all(&mut self) {
-        self.output_connection.1.stop_all();
+    pub fn connection(&self) -> &OutputConnection {
+        &self.output_connection.1
     }
 }

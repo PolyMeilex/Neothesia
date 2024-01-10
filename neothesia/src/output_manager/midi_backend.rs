@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
-use crate::output_manager::{OutputConnection, OutputDescriptor};
+use crate::output_manager::{OutputConnectionProxy, OutputDescriptor};
 
 use midi_file::midly::{
     self,
@@ -14,18 +14,25 @@ struct ActiveNote {
     channel: u4,
 }
 
-pub struct MidiOutputConnection {
+struct MidiOutputConnectionInner {
     conn: midi_io::MidiOutputConnection,
     active_notes: HashSet<ActiveNote>,
     buf: Vec<u8>,
 }
 
+#[derive(Clone)]
+pub struct MidiOutputConnection {
+    inner: Rc<RefCell<MidiOutputConnectionInner>>,
+}
+
 impl From<midi_io::MidiOutputConnection> for MidiOutputConnection {
     fn from(conn: midi_io::MidiOutputConnection) -> Self {
         Self {
-            conn,
-            active_notes: Default::default(),
-            buf: Vec::with_capacity(8),
+            inner: Rc::new(RefCell::new(MidiOutputConnectionInner {
+                conn,
+                active_notes: Default::default(),
+                buf: Vec::with_capacity(8),
+            })),
         }
     }
 }
@@ -55,28 +62,30 @@ impl MidiBackend {
     }
 }
 
-impl OutputConnection for MidiOutputConnection {
-    fn midi_event(&mut self, channel: u4, message: midly::MidiMessage) {
+impl OutputConnectionProxy for MidiOutputConnection {
+    fn midi_event(&self, channel: u4, message: midly::MidiMessage) {
+        let inner = &mut *self.inner.borrow_mut();
         match message {
             midly::MidiMessage::NoteOff { key, .. } => {
-                self.active_notes.remove(&ActiveNote { key, channel });
+                inner.active_notes.remove(&ActiveNote { key, channel });
             }
             midly::MidiMessage::NoteOn { key, .. } => {
-                self.active_notes.insert(ActiveNote { key, channel });
+                inner.active_notes.insert(ActiveNote { key, channel });
             }
             _ => {}
         }
 
-        self.buf.clear();
+        inner.buf.clear();
         let msg = midly::live::LiveEvent::Midi { channel, message };
-        msg.write(&mut self.buf).unwrap();
+        msg.write(&mut inner.buf).unwrap();
 
-        self.conn.send(&self.buf).ok();
+        inner.conn.send(&inner.buf).ok();
     }
 
-    fn stop_all(&mut self) {
-        for note in std::mem::take(&mut self.active_notes).iter() {
-            self.buf.clear();
+    fn stop_all(&self) {
+        let inner = &mut *self.inner.borrow_mut();
+        for note in std::mem::take(&mut inner.active_notes).iter() {
+            inner.buf.clear();
             let msg = LiveEvent::Midi {
                 channel: note.channel,
                 message: midly::MidiMessage::NoteOff {
@@ -84,9 +93,9 @@ impl OutputConnection for MidiOutputConnection {
                     vel: u7::new(0),
                 },
             };
-            msg.write(&mut self.buf).unwrap();
+            msg.write(&mut inner.buf).unwrap();
 
-            self.conn.send(&self.buf).ok();
+            inner.conn.send(&inner.buf).ok();
         }
     }
 }

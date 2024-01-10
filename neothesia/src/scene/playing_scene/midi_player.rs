@@ -3,7 +3,6 @@ use midi_file::midly::{num::u4, MidiMessage};
 use crate::{
     output_manager::OutputConnection,
     song::{PlayerConfig, Song},
-    target::Target,
 };
 use std::{
     collections::{HashSet, VecDeque},
@@ -19,7 +18,7 @@ pub struct MidiPlayer {
 
 impl MidiPlayer {
     pub fn new(
-        target: &Target,
+        output: OutputConnection,
         song: Song,
         user_keyboard_range: piano_math::KeyboardRange,
     ) -> Self {
@@ -28,7 +27,7 @@ impl MidiPlayer {
                 Duration::from_secs(3),
                 song.file.tracks.clone(),
             ),
-            output: target.output_manager.connection().clone(),
+            output,
             play_along: PlayAlong::new(user_keyboard_range),
             song,
         };
@@ -36,7 +35,7 @@ impl MidiPlayer {
         // for timestamp 0 most likely all programs will be 0, so this should clean any leftovers
         // from previous songs
         player.send_midi_programs_for_timestamp(&player.playback.time());
-        player.update(target, Duration::ZERO);
+        player.update(Duration::ZERO);
 
         player
     }
@@ -44,12 +43,10 @@ impl MidiPlayer {
     /// When playing: returns midi events
     ///
     /// When paused: returns None
-    pub fn update(&mut self, target: &Target, delta: Duration) -> Vec<&midi_file::MidiEvent> {
+    pub fn update(&mut self, delta: Duration) -> Vec<&midi_file::MidiEvent> {
         self.play_along.update();
 
-        let elapsed = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
-
-        let events = self.playback.update(elapsed);
+        let events = self.playback.update(delta);
 
         events.iter().for_each(|event| {
             let config = &self.song.config.tracks[event.track_id];

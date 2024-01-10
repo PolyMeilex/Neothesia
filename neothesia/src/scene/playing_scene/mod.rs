@@ -55,7 +55,11 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let player = MidiPlayer::new(target, song, keyboard_layout.range.clone());
+        let player = MidiPlayer::new(
+            target.output_manager.connection().clone(),
+            song,
+            keyboard_layout.range.clone(),
+        );
         notes.update(&target.gpu.queue, player.time_without_lead_in());
 
         Self {
@@ -94,7 +98,8 @@ impl Scene for PlayingScene {
         self.rewind_controler.update(&mut self.player, target);
 
         if self.player.play_along().are_required_keys_pressed() {
-            let midi_events = self.player.update(target, delta);
+            let delta = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
+            let midi_events = self.player.update(delta);
             self.keyboard.file_midi_events(&target.config, &midi_events);
         }
 

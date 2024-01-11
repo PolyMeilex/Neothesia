@@ -1,5 +1,8 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{QuadPipeline, TextRenderer};
+use neothesia_core::{
+    render::{KeyboardKeyState, QuadPipeline, TextRenderer},
+    utils::Point,
+};
 use piano_math::KeyboardRange;
 
 use crate::{config::Config, render::KeyboardRenderer, song::SongConfig, target::Target};
@@ -36,6 +39,14 @@ impl Keyboard {
             renderer,
             song_config,
         }
+    }
+
+    pub fn pos(&self) -> &Point<f32> {
+        self.renderer.pos()
+    }
+
+    pub fn key_states(&self) -> &[KeyboardKeyState] {
+        self.renderer.key_states()
     }
 
     pub fn layout(&self) -> &piano_math::KeyboardLayout {

@@ -1,5 +1,5 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{QuadInstance, QuadPipeline};
+use neothesia_core::render::{GlowInstance, GlowPipeline, QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::{Color, TransformUniform, Uniform};
 use winit::event::{KeyEvent, WindowEvent};
@@ -22,6 +22,10 @@ use rewind_controller::RewindController;
 mod toast_manager;
 use toast_manager::ToastManager;
 
+struct GlowState {
+    time: f32,
+}
+
 pub struct PlayingScene {
     keyboard: Keyboard,
     notes: WaterfallRenderer,
@@ -29,6 +33,8 @@ pub struct PlayingScene {
     player: MidiPlayer,
     rewind_controler: RewindController,
     quad_pipeline: QuadPipeline,
+    glow_pipeline: GlowPipeline,
+    glow_states: Vec<GlowState>,
     toast_manager: ToastManager,
 }
 
@@ -62,6 +68,13 @@ impl PlayingScene {
         );
         notes.update(&target.gpu.queue, player.time_without_lead_in());
 
+        let glow_states: Vec<GlowState> = keyboard
+            .layout()
+            .range
+            .iter()
+            .map(|_| GlowState { time: 0.0 })
+            .collect();
+
         Self {
             keyboard,
 
@@ -69,6 +82,8 @@ impl PlayingScene {
             player,
             rewind_controler: RewindController::new(),
             quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
+            glow_pipeline: GlowPipeline::new(&target.gpu, &target.transform),
+            glow_states,
             toast_manager: ToastManager::default(),
         }
     }
@@ -81,6 +96,32 @@ impl PlayingScene {
             color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
             ..Default::default()
         });
+    }
+
+    fn update_glow(&mut self) {
+        self.glow_pipeline.clear();
+
+        let key_states = self.keyboard.key_states();
+        for key in self.keyboard.layout().keys.iter() {
+            let glow_state = &mut self.glow_states[key.id()];
+            let glow_w = 200.0 + glow_state.time.sin() * 50.0;
+            let glow_h = 200.0 + glow_state.time.sin() * 50.0;
+
+            let y = self.keyboard.pos().y;
+            if let Some(color) = &key_states[key.id()].pressed_by_file {
+                glow_state.time += 0.1;
+                let mut color = color.into_linear_rgba();
+                color[0] += 0.1;
+                color[1] += 0.1;
+                color[2] += 0.1;
+                color[3] = 0.3;
+                self.glow_pipeline.instances().push(GlowInstance {
+                    position: [key.x() - glow_w / 2.0 + key.width() / 2.0, y - glow_w / 2.0],
+                    size: [glow_w, glow_h],
+                    color,
+                });
+            }
+        }
     }
 }
 
@@ -116,8 +157,10 @@ impl Scene for PlayingScene {
             .update(&mut self.quad_pipeline, &mut target.text_renderer);
 
         self.update_progresbar(&target.window_state);
+        self.update_glow();
 
         self.quad_pipeline.prepare(&target.gpu.queue);
+        self.glow_pipeline.prepare(&target.gpu.queue);
     }
 
     fn render<'pass>(
@@ -126,7 +169,8 @@ impl Scene for PlayingScene {
         rpass: &mut wgpu::RenderPass<'pass>,
     ) {
         self.notes.render(transform, rpass);
-        self.quad_pipeline.render(transform, rpass)
+        self.quad_pipeline.render(transform, rpass);
+        self.glow_pipeline.render(transform, rpass);
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {

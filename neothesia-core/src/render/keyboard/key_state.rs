@@ -9,7 +9,7 @@ use wgpu_jumpstart::Color;
 pub struct KeyState {
     is_sharp: bool,
 
-    pressed_by_file: Option<Color>,
+    pub pressed_by_file: Option<Color>,
     pressed_by_user: bool,
 }
 

@@ -53,6 +53,10 @@ impl KeyboardRenderer {
         &self.layout.range
     }
 
+    pub fn key_states(&self) -> &[KeyState] {
+        &self.key_states
+    }
+
     pub fn key_states_mut(&mut self) -> &mut [KeyState] {
         &mut self.key_states
     }

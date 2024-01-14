@@ -2,7 +2,10 @@ use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::{Color, TransformUniform, Uniform};
-use winit::event::{KeyEvent, WindowEvent};
+use winit::{
+    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    keyboard::{Key, NamedKey},
+};
 
 use super::Scene;
 use crate::{
@@ -130,11 +133,6 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        use winit::{
-            event::{ElementState, MouseButton},
-            keyboard::{Key, NamedKey},
-        };
-
         self.rewind_controler
             .handle_window_event(target, event, &mut self.player);
 
@@ -142,29 +140,9 @@ impl Scene for PlayingScene {
             self.keyboard.reset_notes();
         }
 
-        match &event {
-            WindowEvent::KeyboardInput { event, .. } => {
-                settings_keyboard_input(target, &mut self.toast_manager, event, &mut self.notes);
-
-                if event.state == ElementState::Released {
-                    match event.logical_key {
-                        Key::Named(NamedKey::Escape) => {
-                            target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
-                        }
-                        Key::Named(NamedKey::Space) => {
-                            self.player.pause_resume();
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            WindowEvent::MouseInput { state, button, .. } => {
-                if let (MouseButton::Back, ElementState::Pressed) = (button, state) {
-                    target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
-                }
-            }
-            _ => {}
-        }
+        handle_back_button(target, event);
+        handle_pause_button(&mut self.player, event);
+        handle_settings_input(target, &mut self.toast_manager, &mut self.notes, event);
     }
 
     fn midi_event(&mut self, _target: &mut Target, _channel: u8, message: &MidiMessage) {
@@ -175,22 +153,65 @@ impl Scene for PlayingScene {
     }
 }
 
-fn settings_keyboard_input(
+fn handle_pause_button(player: &mut MidiPlayer, event: &WindowEvent) {
+    match event {
+        WindowEvent::KeyboardInput {
+            event:
+                KeyEvent {
+                    state: ElementState::Released,
+                    logical_key: Key::Named(NamedKey::Space),
+                    ..
+                },
+            ..
+        } => {
+            player.pause_resume();
+        }
+        _ => {}
+    }
+}
+
+fn handle_back_button(target: &Target, event: &WindowEvent) {
+    let mut is_back_event = matches!(
+        event,
+        WindowEvent::KeyboardInput {
+            event: KeyEvent {
+                state: ElementState::Released,
+                logical_key: Key::Named(NamedKey::Escape),
+                ..
+            },
+            ..
+        }
+    );
+
+    is_back_event |= matches!(
+        event,
+        WindowEvent::MouseInput {
+            state: ElementState::Pressed,
+            button: MouseButton::Back,
+            ..
+        }
+    );
+
+    if is_back_event {
+        target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+    }
+}
+
+fn handle_settings_input(
     target: &mut Target,
     toast_manager: &mut ToastManager,
-    input: &KeyEvent,
     waterfall: &mut WaterfallRenderer,
+    event: &WindowEvent,
 ) {
-    use winit::{
-        event::ElementState,
-        keyboard::{Key, NamedKey},
+    let WindowEvent::KeyboardInput { event, .. } = event else {
+        return;
     };
 
-    if input.state != ElementState::Released {
+    if event.state != ElementState::Released {
         return;
     }
 
-    match input.logical_key {
+    match event.logical_key {
         Key::Named(key @ (NamedKey::ArrowUp | NamedKey::ArrowDown)) => {
             let amount = if target.window_state.modifers_state.shift_key() {
                 0.5

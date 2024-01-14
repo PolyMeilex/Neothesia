@@ -2,7 +2,7 @@ use std::{default::Default, time::Duration};
 
 use neothesia_core::{
     config::Config,
-    render::{KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
+    render::{GuidelineRenderer, KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
@@ -12,10 +12,12 @@ struct Recorder {
 
     playback: midi_file::PlaybackState,
 
+    bg_quad_pipeline: QuadPipeline,
     quad_pipeline: QuadPipeline,
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
     text: TextRenderer,
+    guidelines: GuidelineRenderer,
 
     config: Config,
     width: u32,
@@ -74,6 +76,7 @@ impl Recorder {
             wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
         );
 
+        let bg_quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
         let quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
 
         let keyboard_layout = get_layout(
@@ -82,10 +85,16 @@ impl Recorder {
             piano_math::KeyboardRange::new(config.piano_range()),
         );
 
-        let mut keyboard =
-            KeyboardRenderer::new(keyboard_layout.clone(), config.vertical_guidelines);
-
+        let mut keyboard = KeyboardRenderer::new(keyboard_layout.clone());
         keyboard.position_on_bottom_of_parent(height as f32);
+
+        let guidelines = GuidelineRenderer::new(
+            keyboard.layout().clone(),
+            *keyboard.pos(),
+            config.vertical_guidelines,
+            config.horizontal_guidelines,
+            midi.measures.clone(),
+        );
 
         let mut waterfall = WaterfallRenderer::new(
             &gpu,
@@ -108,10 +117,12 @@ impl Recorder {
 
             playback,
 
+            bg_quad_pipeline,
             quad_pipeline,
             keyboard,
             waterfall,
             text,
+            guidelines,
 
             config,
             width,
@@ -123,8 +134,17 @@ impl Recorder {
         let events = self.playback.update(delta);
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
-        self.waterfall
-            .update(&self.gpu.queue, time_without_lead_in(&self.playback));
+        let time = time_without_lead_in(&self.playback);
+
+        self.bg_quad_pipeline.clear();
+        self.guidelines.update(
+            &mut self.bg_quad_pipeline,
+            self.config.animation_speed,
+            time,
+        );
+        self.bg_quad_pipeline.prepare(&self.gpu.queue);
+
+        self.waterfall.update(&self.gpu.queue, time);
 
         self.quad_pipeline.clear();
         self.keyboard
@@ -163,6 +183,8 @@ impl Recorder {
                     occlusion_query_set: None,
                 });
 
+            self.bg_quad_pipeline
+                .render(&self.transform_uniform, &mut rpass);
             self.waterfall.render(&self.transform_uniform, &mut rpass);
             self.quad_pipeline
                 .render(&self.transform_uniform, &mut rpass);

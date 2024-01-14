@@ -16,13 +16,12 @@ pub struct KeyboardRenderer {
     key_states: Vec<KeyState>,
 
     layout: piano_math::KeyboardLayout,
-    vertical_guidelines: bool,
 
     cache: Vec<QuadInstance>,
 }
 
 impl KeyboardRenderer {
-    pub fn new(layout: piano_math::KeyboardLayout, vertical_guidelines: bool) -> Self {
+    pub fn new(layout: piano_math::KeyboardLayout) -> Self {
         let key_states: Vec<KeyState> = layout
             .range
             .iter()
@@ -37,7 +36,6 @@ impl KeyboardRenderer {
             key_states,
 
             layout,
-            vertical_guidelines,
             cache,
         }
     }
@@ -106,31 +104,6 @@ impl KeyboardRenderer {
         {
             let id = key.id();
             let color = self.key_states[id].color();
-
-            if self.vertical_guidelines {
-                // Horizontal guides
-                // TODO: Does not really fit in keyboard renderer
-                if key.note_id() == 0 || key.note_id() == 5 {
-                    let x = self.pos.x + key.x();
-                    let y = 0.0;
-
-                    let w = 1.0;
-                    let h = f32::MAX;
-
-                    let color = if key.note_id() == 0 {
-                        [0.2, 0.2, 0.2, 1.0]
-                    } else {
-                        [0.05, 0.05, 0.05, 1.0]
-                    };
-
-                    instances.push(QuadInstance {
-                        position: [x, y],
-                        size: [w, h],
-                        color,
-                        border_radius: [0.0, 0.0, 0.0, 0.0],
-                    });
-                }
-            }
 
             instances.push(key_state::to_quad(key, color, self.pos));
         }

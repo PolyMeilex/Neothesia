@@ -135,15 +135,15 @@ impl Scene for PlayingScene {
             keyboard::{Key, NamedKey},
         };
 
+        self.rewind_controler
+            .handle_window_event(target, event, &mut self.player);
+
+        if self.rewind_controler.is_rewinding() {
+            self.keyboard.reset_notes();
+        }
+
         match &event {
             WindowEvent::KeyboardInput { event, .. } => {
-                self.rewind_controler
-                    .handle_keyboard_input(&mut self.player, event);
-
-                if self.rewind_controler.is_rewinding() {
-                    self.keyboard.reset_notes();
-                }
-
                 settings_keyboard_input(target, &mut self.toast_manager, event, &mut self.notes);
 
                 if event.state == ElementState::Released {
@@ -162,24 +162,6 @@ impl Scene for PlayingScene {
                 if let (MouseButton::Back, ElementState::Pressed) = (button, state) {
                     target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
                 }
-
-                self.rewind_controler.handle_mouse_input(
-                    &mut self.player,
-                    &target.window_state,
-                    state,
-                    button,
-                );
-
-                if self.rewind_controler.is_rewinding() {
-                    self.keyboard.reset_notes();
-                }
-            }
-            WindowEvent::CursorMoved { position, .. } => {
-                self.rewind_controler.handle_cursor_moved(
-                    &mut self.player,
-                    &target.window_state,
-                    position,
-                );
             }
             _ => {}
         }

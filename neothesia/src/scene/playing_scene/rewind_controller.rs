@@ -1,6 +1,6 @@
 use winit::{
     dpi::PhysicalPosition,
-    event::{ElementState, MouseButton},
+    event::{ElementState, MouseButton, WindowEvent},
 };
 
 use super::MidiPlayer;
@@ -62,66 +62,94 @@ impl RewindController {
         }
     }
 
-    pub fn handle_keyboard_input(
+    pub fn handle_window_event(
         &mut self,
+        target: &mut Target,
+        event: &WindowEvent,
         player: &mut MidiPlayer,
-        input: &winit::event::KeyEvent,
     ) {
-        use winit::keyboard::{Key, NamedKey};
-
-        if let Key::Named(name) = input.logical_key {
-            match name {
-                NamedKey::ArrowLeft => {
-                    if let ElementState::Pressed = input.state {
-                        if !self.is_rewinding() {
-                            self.start_keyboard_rewind(player, -100);
-                        }
-                    } else if let RewindController::Keyboard { .. } = self {
-                        self.stop_rewind(player);
-                    }
-                }
-                NamedKey::ArrowRight => {
-                    if let ElementState::Pressed = input.state {
-                        if !self.is_rewinding() {
-                            self.start_keyboard_rewind(player, 100);
-                        }
-                    } else if let RewindController::Keyboard { .. } = self {
-                        self.stop_rewind(player);
-                    }
-                }
-                _ => {}
+        match &event {
+            WindowEvent::KeyboardInput { event, .. } => {
+                self.handle_keyboard_input(player, event);
             }
+            WindowEvent::MouseInput { state, button, .. } => {
+                self.handle_mouse_input(player, &target.window_state, state, button);
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.handle_cursor_moved(player, &target.window_state, position);
+            }
+            _ => {}
         }
     }
 
-    pub fn handle_mouse_input(
+    fn handle_keyboard_input(&mut self, player: &mut MidiPlayer, input: &winit::event::KeyEvent) {
+        use winit::keyboard::{Key, NamedKey};
+
+        let Key::Named(name) = input.logical_key else {
+            return;
+        };
+
+        match name {
+            NamedKey::ArrowLeft => match input.state {
+                ElementState::Pressed => {
+                    if !self.is_rewinding() {
+                        self.start_keyboard_rewind(player, -100);
+                    }
+                }
+                ElementState::Released => {
+                    if let RewindController::Keyboard { .. } = self {
+                        self.stop_rewind(player);
+                    }
+                }
+            },
+            NamedKey::ArrowRight => match input.state {
+                ElementState::Pressed => {
+                    if !self.is_rewinding() {
+                        self.start_keyboard_rewind(player, 100);
+                    }
+                }
+                ElementState::Released => {
+                    if let RewindController::Keyboard { .. } = self {
+                        self.stop_rewind(player);
+                    }
+                }
+            },
+            _ => {}
+        }
+    }
+
+    fn handle_mouse_input(
         &mut self,
         player: &mut MidiPlayer,
         window_state: &WindowState,
         state: &ElementState,
         button: &MouseButton,
     ) {
-        if let (ElementState::Pressed, MouseButton::Left) = (state, button) {
-            let pos = &window_state.cursor_logical_position;
+        match (state, button) {
+            (ElementState::Pressed, MouseButton::Left) => {
+                let pos = &window_state.cursor_logical_position;
 
-            if pos.y < 20.0 && !self.is_rewinding() {
-                self.start_mouse_rewind(player);
+                if pos.y < 20.0 && !self.is_rewinding() {
+                    self.start_mouse_rewind(player);
 
-                let x = window_state.cursor_logical_position.x;
-                let w = window_state.logical_size.width;
+                    let x = window_state.cursor_logical_position.x;
+                    let w = window_state.logical_size.width;
 
-                let p = x / w;
-                log::debug!("Progressbar: x:{},p:{}", x, p);
-                player.set_percentage_time(p);
+                    let p = x / w;
+                    log::debug!("Progressbar: x:{},p:{}", x, p);
+                    player.set_percentage_time(p);
+                }
             }
-        } else if let (ElementState::Released, MouseButton::Left) = (state, button) {
-            if let RewindController::Mouse { .. } = self {
-                self.stop_rewind(player);
+            (ElementState::Released, MouseButton::Left) => {
+                if let RewindController::Mouse { .. } = self {
+                    self.stop_rewind(player);
+                }
             }
+            _ => {}
         }
     }
 
-    pub fn handle_cursor_moved(
+    fn handle_cursor_moved(
         &mut self,
         player: &mut MidiPlayer,
         window_state: &WindowState,

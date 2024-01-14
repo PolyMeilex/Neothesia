@@ -94,6 +94,10 @@ impl GuidelineRenderer {
             let w = f32::MAX;
             let h = 1.0;
 
+            if y < 0.0 {
+                break;
+            }
+
             quads.instances().push(QuadInstance {
                 position: [x, y],
                 size: [w, h],

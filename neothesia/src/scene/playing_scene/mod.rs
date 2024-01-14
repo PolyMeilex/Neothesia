@@ -262,9 +262,16 @@ fn handle_settings_input(
 
             if key == NamedKey::PageUp {
                 target.config.animation_speed += amount;
+                // 0.0 is invalid speed, let's skip it and jump to positive
+                if target.config.animation_speed == 0.0 {
+                    target.config.animation_speed += amount;
+                }
             } else {
                 target.config.animation_speed -= amount;
-                target.config.animation_speed = target.config.animation_speed.max(100.0);
+                // 0.0 is invalid speed, let's skip it and jump to negative
+                if target.config.animation_speed == 0.0 {
+                    target.config.animation_speed -= amount;
+                }
             }
 
             waterfall

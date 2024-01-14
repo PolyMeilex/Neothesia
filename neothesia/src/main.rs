@@ -317,7 +317,7 @@ fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::er
     use iced_graphics::image::image_rs;
     use image_rs::codecs::png::PngDecoder;
     use image_rs::ImageDecoder;
-    use std::io::{Cursor, Read};
+    use std::io::Cursor;
 
     let icon = PngDecoder::new(Cursor::new(include_bytes!(
         "../../flatpak/com.github.polymeilex.neothesia.png"
@@ -325,10 +325,8 @@ fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::er
 
     let (w, h) = icon.dimensions();
 
-    let mut icon = icon.into_reader()?;
-
-    let mut buff = Vec::new();
-    icon.read_to_end(&mut buff)?;
+    let mut buff = vec![0; icon.total_bytes() as usize];
+    icon.read_image(&mut buff)?;
 
     window.set_window_icon(Some(winit::window::Icon::from_rgba(buff, w, h)?));
 

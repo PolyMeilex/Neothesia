@@ -32,6 +32,7 @@ pub struct PlayingScene {
 
     player: MidiPlayer,
     rewind_controler: RewindController,
+    bg_quad_pipeline: QuadPipeline,
     quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
 }
@@ -46,6 +47,7 @@ impl PlayingScene {
             keyboard_layout.clone(),
             *keyboard.pos(),
             target.config.vertical_guidelines,
+            song.file.mesures.clone(),
         );
 
         let hidden_tracks: Vec<usize> = song
@@ -79,6 +81,7 @@ impl PlayingScene {
             notes,
             player,
             rewind_controler: RewindController::new(),
+            bg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             toast_manager: ToastManager::default(),
         }
@@ -120,14 +123,19 @@ impl Scene for PlayingScene {
 
         self.toast_manager.update(&mut target.text_renderer);
 
-        self.notes.update(
-            &target.gpu.queue,
-            self.player.time_without_lead_in() + target.config.playback_offset,
+        let time = self.player.time_without_lead_in() + target.config.playback_offset;
+
+        self.bg_quad_pipeline.clear();
+        self.guidelines.update(
+            &mut self.bg_quad_pipeline,
+            target.config.animation_speed,
+            time,
         );
+        self.bg_quad_pipeline.prepare(&target.gpu.queue);
+
+        self.notes.update(&target.gpu.queue, time);
 
         self.quad_pipeline.clear();
-
-        self.guidelines.update(&mut self.quad_pipeline);
 
         self.keyboard
             .update(&mut self.quad_pipeline, &mut target.text_renderer);
@@ -142,8 +150,9 @@ impl Scene for PlayingScene {
         transform: &'pass Uniform<TransformUniform>,
         rpass: &mut wgpu::RenderPass<'pass>,
     ) {
+        self.bg_quad_pipeline.render(transform, rpass);
         self.notes.render(transform, rpass);
-        self.quad_pipeline.render(transform, rpass)
+        self.quad_pipeline.render(transform, rpass);
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {

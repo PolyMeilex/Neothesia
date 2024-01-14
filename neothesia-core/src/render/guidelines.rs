@@ -1,3 +1,5 @@
+use std::{time::Duration, sync::Arc};
+
 use crate::{
     render::{QuadInstance, QuadPipeline},
     utils::Point,
@@ -10,6 +12,7 @@ pub struct GuidelineRenderer {
     vertical_guidelines: bool,
 
     cache: Vec<QuadInstance>,
+    mesures: Arc<[Duration]>,
 }
 
 impl GuidelineRenderer {
@@ -17,12 +20,14 @@ impl GuidelineRenderer {
         layout: piano_math::KeyboardLayout,
         pos: Point<f32>,
         vertical_guidelines: bool,
+        mesures: Arc<[Duration]>,
     ) -> Self {
         Self {
             pos,
             layout,
             vertical_guidelines,
             cache: Vec::new(),
+            mesures,
         }
     }
 
@@ -69,10 +74,29 @@ impl GuidelineRenderer {
         }
     }
 
-    pub fn update(&mut self, quads: &mut QuadPipeline) {
+    fn update_horizontal_guidelines(&mut self, quads: &mut QuadPipeline, animation_speed: f32, time: f32) {
+        for mesure in self.mesures.iter().skip_while(|bar| bar.as_secs_f32() < time) {
+            let x = 0.0;
+            let y = self.pos.y - (mesure.as_secs_f32() - time) * animation_speed;
+
+            let w = f32::MAX;
+            let h = 1.0;
+
+            quads.instances().push(QuadInstance {
+                position: [x, y],
+                size: [w, h],
+                color: [0.05, 0.05, 0.05, 1.0],
+                border_radius: [0.0, 0.0, 0.0, 0.0],
+            });
+        }
+    }
+
+    pub fn update(&mut self, quads: &mut QuadPipeline, animation_speed: f32, time: f32) {
         if self.cache.is_empty() {
             self.reupload();
         }
+
+        self.update_horizontal_guidelines(quads, animation_speed, time);
 
         for quad in self.cache.iter() {
             quads.instances().push(*quad);

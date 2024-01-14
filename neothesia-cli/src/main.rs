@@ -12,6 +12,7 @@ struct Recorder {
 
     playback: midi_file::PlaybackState,
 
+    bg_quad_pipeline: QuadPipeline,
     quad_pipeline: QuadPipeline,
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
@@ -75,6 +76,7 @@ impl Recorder {
             wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
         );
 
+        let bg_quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
         let quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
 
         let keyboard_layout = get_layout(
@@ -90,6 +92,7 @@ impl Recorder {
             keyboard.layout().clone(),
             *keyboard.pos(),
             config.vertical_guidelines,
+            midi.mesures.clone(),
         );
 
         let mut waterfall = WaterfallRenderer::new(
@@ -113,6 +116,7 @@ impl Recorder {
 
             playback,
 
+            bg_quad_pipeline,
             quad_pipeline,
             keyboard,
             waterfall,
@@ -129,12 +133,19 @@ impl Recorder {
         let events = self.playback.update(delta);
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
-        self.waterfall
-            .update(&self.gpu.queue, time_without_lead_in(&self.playback));
+        let time = time_without_lead_in(&self.playback);
+
+        self.bg_quad_pipeline.clear();
+        self.guidelines.update(
+            &mut self.bg_quad_pipeline,
+            self.config.animation_speed,
+            time,
+        );
+        self.bg_quad_pipeline.prepare(&self.gpu.queue);
+
+        self.waterfall.update(&self.gpu.queue, time);
 
         self.quad_pipeline.clear();
-
-        self.guidelines.update(&mut self.quad_pipeline);
         self.keyboard
             .update(&mut self.quad_pipeline, &mut self.text);
         self.quad_pipeline.prepare(&self.gpu.queue);
@@ -171,6 +182,8 @@ impl Recorder {
                     occlusion_query_set: None,
                 });
 
+            self.bg_quad_pipeline
+                .render(&self.transform_uniform, &mut rpass);
             self.waterfall.render(&self.transform_uniform, &mut rpass);
             self.quad_pipeline
                 .render(&self.transform_uniform, &mut rpass);

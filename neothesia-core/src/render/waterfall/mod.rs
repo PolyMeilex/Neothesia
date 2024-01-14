@@ -55,7 +55,7 @@ impl WaterfallRenderer {
     ) {
         let range_start = layout.range.start() as usize;
 
-        let mut instances = Vec::new();
+        self.notes_pipeline.clear();
 
         let mut longer_than_range = false;
         for note in self.notes.iter() {
@@ -78,7 +78,7 @@ impl WaterfallRenderer {
                     0.1
                 };
 
-                instances.push(NoteInstance {
+                self.notes_pipeline.instances().push(NoteInstance {
                     position: [key.x(), note.start.as_secs_f32()],
                     size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a litle gap bettwen successive notes
                     color: color.into_linear_rgb(),
@@ -96,7 +96,7 @@ impl WaterfallRenderer {
             );
         }
 
-        self.notes_pipeline.update_instance_buffer(queue, instances);
+        self.notes_pipeline.prepare(queue);
     }
 
     pub fn update(&mut self, queue: &wgpu::Queue, time: f32) {

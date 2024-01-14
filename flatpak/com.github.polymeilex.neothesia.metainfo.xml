@@ -7,32 +7,8 @@
   <project_license>GPL-3.0-only</project_license>
 
   <releases>
-    <release version="0.2.0" date="2024-14-01">
+    <release version="0.2.0" date="2024-14-01" timestamp="1705211142">
       <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.2.0</url>
-    </release>
-    <release version="0.1.0" date="2023-06-02">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.1.0</url>
-    </release>
-    <release version="0.0.16" date="2023-02-17">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.16</url>
-    </release>
-    <release version="0.0.15" date="2022-09-26">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.15</url>
-    </release>
-    <release version="0.0.14" date="2022-09-26">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.14</url>
-    </release>
-    <release version="0.0.13" date="2022-07-03">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.13</url>
-    </release>
-    <release version="0.0.12" date="2022-07-03">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.12-flatpak</url>
-    </release>
-    <release version="0.0.11" date="2021-10-17">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.11-flatpak</url>
-    </release>
-    <release version="0.0.10" date="2021-06-14">
-      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.0.10-flatpak</url>
     </release>
   </releases>
 

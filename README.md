@@ -11,11 +11,14 @@ If you have any questions, feel free to join my Discord
 
 ## Screenshots
 
-[![IMG](https://i.imgur.com/WUO61EN.png)](https://youtu.be/ReE9nVuMCSE)
-[Video](https://youtu.be/ReE9nVuMCSE)
-[![Video](https://i.imgur.com/1R5uOnA.png)](https://youtu.be/ReE9nVuMCSE)
-![track selection](https://github.com/PolyMeilex/Neothesia/assets/20758186/2309d970-0234-45ff-a9f4-105ff08514af)
+![image](https://github.com/PolyMeilex/Neothesia/assets/20758186/65483bab-0b74-4fd4-90b1-fdd00508b676)
 
+[![Video](https://github.com/PolyMeilex/Neothesia/assets/20758186/dc564433-aade-4430-b137-5f90000ae9e0)](https://youtu.be/ReE9nVuMCSE)
+
+|![settings](https://github.com/PolyMeilex/Neothesia/assets/20758186/e38642e2-6118-4931-9964-a1df27a36db9)|![track selection](https://github.com/PolyMeilex/Neothesia/assets/20758186/2309d970-0234-45ff-a9f4-105ff08514af)|
+|--|--|
+
+[Video](https://youtu.be/ReE9nVuMCSE)
 
 ## Download
 

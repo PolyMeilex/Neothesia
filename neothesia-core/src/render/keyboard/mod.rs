@@ -76,7 +76,7 @@ impl KeyboardRenderer {
     }
 
     pub fn set_layout(&mut self, layout: piano_math::KeyboardLayout) {
-        self.layout = layout.clone();
+        self.layout = layout;
         self.invalidate_cache();
     }
 

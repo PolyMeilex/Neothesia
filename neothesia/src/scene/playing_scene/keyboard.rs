@@ -1,5 +1,8 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{QuadPipeline, TextRenderer};
+use neothesia_core::{
+    render::{QuadPipeline, TextRenderer},
+    utils::Point,
+};
 use piano_math::KeyboardRange;
 
 use crate::{config::Config, render::KeyboardRenderer, song::SongConfig, target::Target};
@@ -29,7 +32,7 @@ impl Keyboard {
             piano_math::KeyboardRange::new(target.config.piano_range()),
         );
 
-        let mut renderer = KeyboardRenderer::new(layout, target.config.vertical_guidelines);
+        let mut renderer = KeyboardRenderer::new(layout);
         renderer.position_on_bottom_of_parent(target.window_state.logical_size.height);
 
         Self {
@@ -48,6 +51,10 @@ impl Keyboard {
 
     pub fn range(&self) -> &KeyboardRange {
         &self.layout().range
+    }
+
+    pub fn pos(&self) -> &Point<f32> {
+        self.renderer.pos()
     }
 
     fn position_on_bottom_of_parent(&mut self, parent_height: f32) {

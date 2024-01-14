@@ -2,7 +2,7 @@ use std::{default::Default, time::Duration};
 
 use neothesia_core::{
     config::Config,
-    render::{KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
+    render::{GuidelineRenderer, KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
@@ -16,6 +16,7 @@ struct Recorder {
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
     text: TextRenderer,
+    guidelines: GuidelineRenderer,
 
     config: Config,
     width: u32,
@@ -82,10 +83,14 @@ impl Recorder {
             piano_math::KeyboardRange::new(config.piano_range()),
         );
 
-        let mut keyboard =
-            KeyboardRenderer::new(keyboard_layout.clone(), config.vertical_guidelines);
-
+        let mut keyboard = KeyboardRenderer::new(keyboard_layout.clone());
         keyboard.position_on_bottom_of_parent(height as f32);
+
+        let guidelines = GuidelineRenderer::new(
+            keyboard.layout().clone(),
+            *keyboard.pos(),
+            config.vertical_guidelines,
+        );
 
         let mut waterfall = WaterfallRenderer::new(
             &gpu,
@@ -112,6 +117,7 @@ impl Recorder {
             keyboard,
             waterfall,
             text,
+            guidelines,
 
             config,
             width,
@@ -127,6 +133,8 @@ impl Recorder {
             .update(&self.gpu.queue, time_without_lead_in(&self.playback));
 
         self.quad_pipeline.clear();
+
+        self.guidelines.update(&mut self.quad_pipeline);
         self.keyboard
             .update(&mut self.quad_pipeline, &mut self.text);
         self.quad_pipeline.prepare(&self.gpu.queue);

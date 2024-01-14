@@ -1,5 +1,5 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{QuadInstance, QuadPipeline};
+use neothesia_core::render::{GuidelineRenderer, QuadInstance, QuadPipeline};
 use std::time::Duration;
 use wgpu_jumpstart::{Color, TransformUniform, Uniform};
 use winit::{
@@ -28,6 +28,7 @@ use toast_manager::ToastManager;
 pub struct PlayingScene {
     keyboard: Keyboard,
     notes: WaterfallRenderer,
+    guidelines: GuidelineRenderer,
 
     player: MidiPlayer,
     rewind_controler: RewindController,
@@ -40,6 +41,12 @@ impl PlayingScene {
         let keyboard = Keyboard::new(target, song.config.clone());
 
         let keyboard_layout = keyboard.layout();
+
+        let guidelines = GuidelineRenderer::new(
+            keyboard_layout.clone(),
+            *keyboard.pos(),
+            target.config.vertical_guidelines,
+        );
 
         let hidden_tracks: Vec<usize> = song
             .config
@@ -67,6 +74,7 @@ impl PlayingScene {
 
         Self {
             keyboard,
+            guidelines,
 
             notes,
             player,
@@ -90,6 +98,10 @@ impl PlayingScene {
 impl Scene for PlayingScene {
     fn resize(&mut self, target: &mut Target) {
         self.keyboard.resize(target);
+
+        self.guidelines.set_layout(self.keyboard.layout().clone());
+        self.guidelines.set_pos(*self.keyboard.pos());
+
         self.notes.resize(
             &target.gpu.queue,
             &target.config,
@@ -114,6 +126,8 @@ impl Scene for PlayingScene {
         );
 
         self.quad_pipeline.clear();
+
+        self.guidelines.update(&mut self.quad_pipeline);
 
         self.keyboard
             .update(&mut self.quad_pipeline, &mut target.text_renderer);

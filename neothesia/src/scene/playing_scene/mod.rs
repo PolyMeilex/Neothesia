@@ -47,6 +47,7 @@ impl PlayingScene {
             keyboard_layout.clone(),
             *keyboard.pos(),
             target.config.vertical_guidelines,
+            target.config.horizontal_guidelines,
             song.file.mesures.clone(),
         );
 

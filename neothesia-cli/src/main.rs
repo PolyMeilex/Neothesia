@@ -92,6 +92,7 @@ impl Recorder {
             keyboard.layout().clone(),
             *keyboard.pos(),
             config.vertical_guidelines,
+            config.horizontal_guidelines,
             midi.mesures.clone(),
         );
 

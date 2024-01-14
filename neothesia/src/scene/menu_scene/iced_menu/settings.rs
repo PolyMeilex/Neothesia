@@ -32,6 +32,7 @@ pub enum SettingsMessage {
     SelectOutput(OutputDescriptor),
     SelectInput(InputDescriptor),
     VerticalGuidelines(bool),
+    HorizontalGuidelines(bool),
 
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
@@ -68,6 +69,9 @@ pub(super) fn update(
         }
         SettingsMessage::VerticalGuidelines(v) => {
             target.config.vertical_guidelines = v;
+        }
+        SettingsMessage::HorizontalGuidelines(v) => {
+            target.config.horizontal_guidelines = v;
         }
         SettingsMessage::OpenSoundFontPicker => {
             data.is_loading = true;
@@ -108,11 +112,13 @@ pub(super) fn update(
     Command::none()
 }
 
-fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
+fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
     let output_settings = {
-        let output_list = pick_list(&data.outputs, data.selected_output.clone(), |v| {
-            SettingsMessage::SelectOutput(v).into()
-        })
+        let output_list = pick_list(
+            &data.outputs,
+            data.selected_output.clone(),
+            SettingsMessage::SelectOutput,
+        )
         .style(theme::pick_list());
 
         preferences_group::ActionRow::new()
@@ -134,7 +140,7 @@ fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
             .suffix(
                 iced_widget::button(centered_text("Select File"))
                     .style(theme::button())
-                    .on_press(SettingsMessage::OpenSoundFontPicker.into()),
+                    .on_press(SettingsMessage::OpenSoundFontPicker),
             );
 
         if let Some(subtitle) = subtitle {
@@ -151,14 +157,12 @@ fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
         .build()
 }
 
-fn input_group<'a>(data: &'a Data, _target: &Target) -> Element<'a, Message> {
+fn input_group<'a>(data: &'a Data, _target: &Target) -> Element<'a, SettingsMessage> {
     let inputs = &data.inputs;
     let selected_input = data.selected_input.clone();
 
-    let input_list = pick_list(inputs, selected_input, |v| {
-        SettingsMessage::SelectInput(v).into()
-    })
-    .style(theme::pick_list());
+    let input_list =
+        pick_list(inputs, selected_input, SettingsMessage::SelectInput).style(theme::pick_list());
 
     preferences_group::PreferencesGroup::new()
         .title("Input")
@@ -198,17 +202,15 @@ fn counter<'a>(
     .into()
 }
 
-fn note_range_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message> {
+fn note_range_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
     let start = counter(
         *target.config.piano_range().start(),
         SettingsMessage::RangeStart,
-    )
-    .map(Message::Settings);
+    );
     let end = counter(
         *target.config.piano_range().end(),
         SettingsMessage::RangeEnd,
-    )
-    .map(Message::Settings);
+    );
 
     preferences_group::PreferencesGroup::new()
         .title("Note Range")
@@ -221,10 +223,19 @@ fn note_range_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message
         .build()
 }
 
-fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message> {
-    let toggler = toggler(None, target.config.vertical_guidelines, |v| {
-        SettingsMessage::VerticalGuidelines(v).into()
-    })
+fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
+    let vertical = toggler(
+        None,
+        target.config.vertical_guidelines,
+        SettingsMessage::VerticalGuidelines,
+    )
+    .style(theme::toggler());
+
+    let horizontal = toggler(
+        None,
+        target.config.horizontal_guidelines,
+        SettingsMessage::HorizontalGuidelines,
+    )
     .style(theme::toggler());
 
     preferences_group::PreferencesGroup::new()
@@ -233,7 +244,13 @@ fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message
             preferences_group::ActionRow::new()
                 .title("Vertical Guidelines")
                 .subtitle("Display octave indicators")
-                .suffix(toggler),
+                .suffix(vertical),
+        )
+        .push(
+            preferences_group::ActionRow::new()
+                .title("Horizontal Guidelines")
+                .subtitle("Display mesure/bar indicators")
+                .suffix(horizontal),
         )
         .build()
 }
@@ -255,6 +272,9 @@ pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> 
     .spacing(10)
     .width(Length::Fill)
     .align_items(Alignment::Center);
+
+    let column: Element<SettingsMessage> = column.into();
+    let column: Element<Message> = column.map(Message::Settings);
 
     let left = {
         let back = NeoBtn::new(

@@ -48,7 +48,7 @@ impl PlayingScene {
             *keyboard.pos(),
             target.config.vertical_guidelines,
             target.config.horizontal_guidelines,
-            song.file.mesures.clone(),
+            song.file.measures.clone(),
         );
 
         let hidden_tracks: Vec<usize> = song

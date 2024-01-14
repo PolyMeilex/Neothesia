@@ -249,7 +249,7 @@ fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Setting
         .push(
             preferences_group::ActionRow::new()
                 .title("Horizontal Guidelines")
-                .subtitle("Display mesure/bar indicators")
+                .subtitle("Display measure/bar indicators")
                 .suffix(horizontal),
         )
         .build()

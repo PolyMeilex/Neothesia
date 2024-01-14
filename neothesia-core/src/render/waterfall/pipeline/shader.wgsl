@@ -39,10 +39,17 @@ struct VertexOutput {
 @vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     let speed = time_uniform.speed / view_uniform.scale;
-    let size = vec2<f32>(note.size.x, note.size.y * speed);
+    let size = vec2<f32>(note.size.x, note.size.y * abs(speed));
 
-    let y = view_uniform.size.y - view_uniform.size.y / 5.0 - size.y / 2.0;
-    let pos = vec2<f32>(note.n_position.x, y) - vec2<f32>(0.0, size.y / 2.0);
+    let keyboard_start_y = view_uniform.size.y - view_uniform.size.y / 5.0;
+    let y = keyboard_start_y - size.y / 2.0;
+    var pos = vec2<f32>(note.n_position.x, y) - vec2<f32>(0.0, size.y / 2.0);
+
+    // If notes are falling from down to top, we need to adjust the position,
+    // as their start is on top of the quad rather than down
+    if speed < 0.0 {
+        pos.y += size.y;
+    }
 
     let offset = vec2<f32>(0.0, -(note.n_position.y - time_uniform.time) * speed);
 

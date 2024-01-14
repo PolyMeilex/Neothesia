@@ -93,8 +93,15 @@ impl<'a> WaterfallPipeline {
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
 
-    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: Vec<NoteInstance>) {
-        self.instances.data = instances;
+    pub fn clear(&mut self) {
+        self.instances.data.clear();
+    }
+
+    pub fn instances(&mut self) -> &mut Vec<NoteInstance> {
+        &mut self.instances.data
+    }
+
+    pub fn prepare(&self, queue: &wgpu::Queue) {
         self.instances.update(queue);
     }
 

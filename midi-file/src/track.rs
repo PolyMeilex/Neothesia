@@ -1,4 +1,4 @@
-use midly::{MidiMessage, TrackEvent, TrackEventKind};
+use midly::{num::u4, MidiMessage, TrackEvent, TrackEventKind};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::tempo_track::TempoTrack;
@@ -53,104 +53,147 @@ impl MidiTrack {
         tempo_track: &TempoTrack,
         track_events: &[TrackEvent],
     ) -> Self {
-        std::thread::scope(|tb| {
-            let notes =
-                tb.spawn(|| build_notes(track_id, track_color_id, tempo_track, track_events));
-
-            let events =
-                tb.spawn(|| build_events(track_id, track_color_id, tempo_track, track_events));
-
-            let notes = notes.join().unwrap();
-            let (events, programs, has_drums, has_other_than_drums) = events.join().unwrap();
-
-            Self {
-                track_id,
-                track_color_id,
-                notes: notes.into(),
-                events: events.into(),
-                programs: programs.into(),
+        let (
+            events,
+            EventsBuilder {
+                programs,
+                notes,
                 has_drums,
                 has_other_than_drums,
-            }
-        })
+                ..
+            },
+        ) = build(track_id, track_color_id, tempo_track, track_events);
+
+        Self {
+            track_id,
+            track_color_id,
+            notes: notes.into(),
+            events: events.into(),
+            programs: programs.into(),
+            has_drums,
+            has_other_than_drums,
+        }
     }
 }
 
-fn build_notes(
-    track_id: usize,
-    track_color_id: usize,
-    tempo_track: &TempoTrack,
-    track_events: &[TrackEvent],
-) -> Vec<MidiNote> {
-    struct NoteInfo {
-        velocity: u8,
-        channel: u8,
-        pulses: u64,
-    }
+struct NoteInfo {
+    velocity: u8,
+    channel: u8,
+    timestamp: Duration,
+}
 
-    let mut active_notes: HashMap<u8, NoteInfo> = HashMap::new();
-    let mut notes = Vec::new();
+#[derive(Default)]
+struct EventsBuilder {
+    programs: Vec<ProgramEvent>,
+    has_drums: bool,
+    has_other_than_drums: bool,
 
-    let mut pulses: u64 = 0;
-    for event in track_events.iter() {
-        pulses += event.delta.as_int() as u64;
+    active_notes: HashMap<u8, NoteInfo>,
+    notes: Vec<MidiNote>,
+}
 
-        if let TrackEventKind::Midi { channel, message } = event.kind {
-            let (key, velocity) = match message {
-                MidiMessage::NoteOn { vel, key } => (key.as_int(), vel.as_int()),
-                MidiMessage::NoteOff { vel, key } => (key.as_int(), vel.as_int()),
-                _ => {
-                    continue;
-                }
+impl EventsBuilder {
+    fn build_notes(
+        &mut self,
+        channel: u4,
+        message: &MidiMessage,
+        timestamp: Duration,
+        track_id: usize,
+        track_color_id: usize,
+    ) {
+        let (key, velocity) = match message {
+            MidiMessage::NoteOn { vel, key } => (key.as_int(), vel.as_int()),
+            MidiMessage::NoteOff { vel, key } => (key.as_int(), vel.as_int()),
+            _ => {
+                return;
+            }
+        };
+
+        if let Some(active) = self.active_notes.remove(&key) {
+            let start = active.timestamp;
+            let end = timestamp;
+            let duration = end - start;
+
+            let note = MidiNote {
+                start,
+                end,
+                duration,
+                note: key,
+                velocity: active.velocity,
+                channel: active.channel,
+                track_id,
+                track_color_id,
             };
 
-            if let Some(active) = active_notes.remove(&key) {
-                let start = active.pulses;
-                let end = pulses;
+            self.notes.push(note);
+        }
 
-                let start = tempo_track.pulses_to_duration(start);
-                let end = tempo_track.pulses_to_duration(end);
-                let duration = end - start;
-
-                let note = MidiNote {
-                    start,
-                    end,
-                    duration,
-                    note: key,
-                    velocity: active.velocity,
-                    channel: active.channel,
-                    track_id,
-                    track_color_id,
-                };
-
-                notes.push(note);
-            }
-
-            let on = matches!(&message, MidiMessage::NoteOn { .. }) && velocity > 0;
-
-            if on {
-                let note = NoteInfo {
-                    channel: channel.as_int(),
-                    velocity,
-                    pulses,
-                };
-                active_notes.insert(key, note);
-            }
+        if let MidiMessage::NoteOn { .. } = message {
+            let note = NoteInfo {
+                channel: channel.as_int(),
+                velocity,
+                timestamp,
+            };
+            self.active_notes.insert(key, note);
         }
     }
 
-    notes
+    fn check_for_drums(&mut self, channel: u4) {
+        if channel == 9 || channel == 15 {
+            self.has_drums = true;
+        } else {
+            self.has_other_than_drums = true;
+        }
+    }
+
+    fn on_event(
+        &mut self,
+        channel: u4,
+        message: MidiMessage,
+        timestamp: Duration,
+        track_id: usize,
+        track_color_id: usize,
+    ) -> MidiEvent {
+        let message = match message {
+            midly::MidiMessage::NoteOn { key, vel } => {
+                self.check_for_drums(channel);
+
+                if vel.as_int() > 0 {
+                    message
+                } else {
+                    midly::MidiMessage::NoteOff { key, vel }
+                }
+            }
+            midly::MidiMessage::ProgramChange { program } => {
+                self.programs.push(ProgramEvent {
+                    timestamp,
+                    channel: channel.as_int(),
+                    program: program.as_int(),
+                });
+                message
+            }
+            message => message,
+        };
+
+        self.build_notes(channel, &message, timestamp, track_id, track_color_id);
+
+        MidiEvent {
+            channel: channel.as_int(),
+            timestamp,
+            message,
+            track_id,
+            track_color_id,
+        }
+    }
 }
 
-fn build_events(
+fn build(
     track_id: usize,
     track_color_id: usize,
     tempo_track: &TempoTrack,
     track_events: &[TrackEvent],
-) -> (Vec<MidiEvent>, Vec<ProgramEvent>, bool, bool) {
-    let mut programs = Vec::new();
-    let mut has_drums = false;
-    let mut has_other_than_drums = false;
+) -> (Vec<MidiEvent>, EventsBuilder) {
+    let mut builder = EventsBuilder::default();
 
     let mut pulses: u64 = 0;
     let events = track_events
@@ -160,44 +203,12 @@ fn build_events(
             match event.kind {
                 TrackEventKind::Midi { channel, message } => {
                     let timestamp = tempo_track.pulses_to_duration(pulses);
-
-                    let message = match message {
-                        midly::MidiMessage::NoteOn { key, vel } => {
-                            if channel == 9 || channel == 15 {
-                                has_drums = true;
-                            } else {
-                                has_other_than_drums = true;
-                            }
-
-                            if vel.as_int() > 0 {
-                                message
-                            } else {
-                                midly::MidiMessage::NoteOff { key, vel }
-                            }
-                        }
-                        midly::MidiMessage::ProgramChange { program } => {
-                            programs.push(ProgramEvent {
-                                timestamp,
-                                channel: channel.as_int(),
-                                program: program.as_int(),
-                            });
-                            message
-                        }
-                        message => message,
-                    };
-
-                    Some(MidiEvent {
-                        channel: channel.as_int(),
-                        timestamp,
-                        message,
-                        track_id,
-                        track_color_id,
-                    })
+                    Some(builder.on_event(channel, message, timestamp, track_id, track_color_id))
                 }
                 _ => None,
             }
         })
         .collect();
 
-    (events, programs, has_drums, has_other_than_drums)
+    (events, builder)
 }

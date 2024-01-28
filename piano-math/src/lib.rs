@@ -206,17 +206,27 @@ fn partial_octave(sizing: &Sizing, range: std::ops::Range<u8>) -> Octave {
     let sharp_ids: [u8; 5] = [1, 3, 6, 8, 10];
 
     #[inline(always)]
-    fn sharp_id_to_x(id: u8, mult: f32) -> f32 {
-        (id + 1) as f32 * mult
+    fn sharp_id_to_x(id: u8, cde_width: f32, cde_mult: f32, fgab_mult: f32) -> f32 {
+        let id = id + 1;
+        if matches!(id, 2 | 4) {
+            let mult = cde_mult;
+            id as f32 * mult - mult / 2.0
+        } else {
+            let mult = fgab_mult;
+            let id = id - 5;
+            cde_width + id as f32 * mult - mult / 2.0
+        }
     }
 
-    let mult = width / 12.0;
-    let last_x = sharp_id_to_x(sharp_ids[4], mult);
-    let offset = (width - last_x) / 2.0;
+    // Mathematically there is no correct™ way to position keys, but doing it separately for cde and fgh
+    // is quite popular, and gives decently accurate results, so let's do that
+    let cde_width = sizing.neutral_width * 3.0;
+    let fgab_width = sizing.neutral_width * 4.0;
+    let cde_mult = cde_width / 5.0;
+    let fgab_mult = fgab_width / 7.0;
 
     for note_id in sharp_ids {
-        let x = sharp_id_to_x(note_id, mult);
-        let x = x - offset;
+        let x = sharp_id_to_x(note_id, cde_width, cde_mult, fgab_mult);
 
         let w = sizing.sharp_width;
         let hw = w / 2.0;

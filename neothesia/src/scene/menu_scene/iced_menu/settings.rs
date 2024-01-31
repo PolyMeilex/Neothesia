@@ -136,7 +136,7 @@ fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMess
             .map(|name| name.to_string_lossy().to_string());
 
         let mut row = preferences_group::ActionRow::new()
-            .title("SourdFont")
+            .title("SoundFont")
             .suffix(
                 iced_widget::button(centered_text("Select File"))
                     .style(theme::button())

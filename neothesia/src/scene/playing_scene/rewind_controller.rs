@@ -129,7 +129,7 @@ impl RewindController {
             (ElementState::Pressed, MouseButton::Left) => {
                 let pos = &window_state.cursor_logical_position;
 
-                if pos.y < 20.0 && !self.is_rewinding() {
+                if pos.y < 45.0 && !self.is_rewinding() {
                     self.start_mouse_rewind(player);
 
                     let x = window_state.cursor_logical_position.x;

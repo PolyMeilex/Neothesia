@@ -40,6 +40,10 @@ impl MidiPlayer {
         player
     }
 
+    pub fn song(&self) -> &Song {
+        &self.song
+    }
+
     /// When playing: returns midi events
     ///
     /// When paused: returns None
@@ -142,6 +146,14 @@ impl MidiPlayer {
         self.set_time(Duration::from_secs_f32(
             (p * self.playback.lenght().as_secs_f32()).max(0.0),
         ));
+    }
+
+    pub fn leed_in(&self) -> &Duration {
+        self.playback.leed_in()
+    }
+
+    pub fn lenght(&self) -> Duration {
+        self.playback.lenght()
     }
 
     pub fn percentage(&self) -> f32 {

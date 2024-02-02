@@ -1,17 +1,16 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GuidelineRenderer, QuadInstance, QuadPipeline};
+use neothesia_core::render::{GuidelineRenderer, QuadPipeline};
 use std::time::Duration;
-use wgpu_jumpstart::{Color, TransformUniform, Uniform};
+use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::{
     event::{ElementState, KeyEvent, MouseButton, WindowEvent},
     keyboard::{Key, NamedKey},
 };
 
+use self::top_bar::TopBar;
+
 use super::Scene;
-use crate::{
-    render::WaterfallRenderer, song::Song, target::Target, utils::window::WindowState,
-    NeothesiaEvent,
-};
+use crate::{render::WaterfallRenderer, song::Song, target::Target, NeothesiaEvent};
 
 mod keyboard;
 use keyboard::Keyboard;
@@ -25,6 +24,9 @@ use rewind_controller::RewindController;
 mod toast_manager;
 use toast_manager::ToastManager;
 
+mod animation;
+mod top_bar;
+
 pub struct PlayingScene {
     keyboard: Keyboard,
     notes: WaterfallRenderer,
@@ -35,6 +37,8 @@ pub struct PlayingScene {
     bg_quad_pipeline: QuadPipeline,
     quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
+
+    top_bar: TopBar,
 }
 
 impl PlayingScene {
@@ -85,17 +89,8 @@ impl PlayingScene {
             bg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             toast_manager: ToastManager::default(),
+            top_bar: TopBar::default(),
         }
-    }
-
-    fn update_progresbar(&mut self, window_state: &WindowState) {
-        let size_x = window_state.logical_size.width * self.player.percentage();
-        self.quad_pipeline.instances().push(QuadInstance {
-            position: [0.0, 0.0],
-            size: [size_x, 5.0],
-            color: Color::from_rgba8(56, 145, 255, 1.0).into_linear_rgba(),
-            ..Default::default()
-        });
     }
 }
 
@@ -141,7 +136,7 @@ impl Scene for PlayingScene {
         self.keyboard
             .update(&mut self.quad_pipeline, &mut target.text_renderer);
 
-        self.update_progresbar(&target.window_state);
+        TopBar::update(self, &target.window_state);
 
         self.quad_pipeline.prepare(&target.gpu.queue);
     }

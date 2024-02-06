@@ -29,13 +29,13 @@ mod top_bar;
 
 pub struct PlayingScene {
     keyboard: Keyboard,
-    notes: WaterfallRenderer,
+    waterfall: WaterfallRenderer,
     guidelines: GuidelineRenderer,
 
     player: MidiPlayer,
     rewind_controler: RewindController,
     bg_quad_pipeline: QuadPipeline,
-    quad_pipeline: QuadPipeline,
+    fg_quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
 
     top_bar: TopBar,
@@ -63,7 +63,7 @@ impl PlayingScene {
             .map(|t| t.track_id)
             .collect();
 
-        let mut notes = WaterfallRenderer::new(
+        let mut waterfall = WaterfallRenderer::new(
             &target.gpu,
             &song.file.tracks,
             &hidden_tracks,
@@ -77,20 +77,30 @@ impl PlayingScene {
             song,
             keyboard_layout.range.clone(),
         );
-        notes.update(&target.gpu.queue, player.time_without_lead_in());
+        waterfall.update(&target.gpu.queue, player.time_without_lead_in());
 
         Self {
             keyboard,
             guidelines,
 
-            notes,
+            waterfall,
             player,
             rewind_controler: RewindController::new(),
             bg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
-            quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
+            fg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             toast_manager: ToastManager::default(),
             top_bar: TopBar::default(),
         }
+    }
+
+    fn update_midi_player(&mut self, target: &Target, delta: Duration) -> f32 {
+        if self.player.play_along().are_required_keys_pressed() {
+            let delta = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
+            let midi_events = self.player.update(delta);
+            self.keyboard.file_midi_events(&target.config, &midi_events);
+        }
+
+        self.player.time_without_lead_in() + target.config.playback_offset
     }
 }
 
@@ -101,7 +111,7 @@ impl Scene for PlayingScene {
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
 
-        self.notes.resize(
+        self.waterfall.resize(
             &target.gpu.queue,
             &target.config,
             self.keyboard.layout().clone(),
@@ -109,36 +119,26 @@ impl Scene for PlayingScene {
     }
 
     fn update(&mut self, target: &mut Target, delta: Duration) {
+        self.bg_quad_pipeline.clear();
+        self.fg_quad_pipeline.clear();
+
         self.rewind_controler.update(&mut self.player, target);
-
-        if self.player.play_along().are_required_keys_pressed() {
-            let delta = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
-            let midi_events = self.player.update(delta);
-            self.keyboard.file_midi_events(&target.config, &midi_events);
-        }
-
         self.toast_manager.update(&mut target.text_renderer);
 
-        let time = self.player.time_without_lead_in() + target.config.playback_offset;
-
-        self.bg_quad_pipeline.clear();
+        let time = self.update_midi_player(target, delta);
+        self.waterfall.update(&target.gpu.queue, time);
         self.guidelines.update(
             &mut self.bg_quad_pipeline,
             target.config.animation_speed,
             time,
         );
-        self.bg_quad_pipeline.prepare(&target.gpu.queue);
-
-        self.notes.update(&target.gpu.queue, time);
-
-        self.quad_pipeline.clear();
-
         self.keyboard
-            .update(&mut self.quad_pipeline, &mut target.text_renderer);
+            .update(&mut self.fg_quad_pipeline, &mut target.text_renderer);
 
         TopBar::update(self, &target.window_state);
 
-        self.quad_pipeline.prepare(&target.gpu.queue);
+        self.bg_quad_pipeline.prepare(&target.gpu.queue);
+        self.fg_quad_pipeline.prepare(&target.gpu.queue);
     }
 
     fn render<'pass>(
@@ -147,8 +147,8 @@ impl Scene for PlayingScene {
         rpass: &mut wgpu::RenderPass<'pass>,
     ) {
         self.bg_quad_pipeline.render(transform, rpass);
-        self.notes.render(transform, rpass);
-        self.quad_pipeline.render(transform, rpass);
+        self.waterfall.render(transform, rpass);
+        self.fg_quad_pipeline.render(transform, rpass);
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
@@ -161,7 +161,7 @@ impl Scene for PlayingScene {
 
         handle_back_button(target, event);
         handle_pause_button(&mut self.player, event);
-        handle_settings_input(target, &mut self.toast_manager, &mut self.notes, event);
+        handle_settings_input(target, &mut self.toast_manager, &mut self.waterfall, event);
     }
 
     fn midi_event(&mut self, _target: &mut Target, _channel: u8, message: &MidiMessage) {

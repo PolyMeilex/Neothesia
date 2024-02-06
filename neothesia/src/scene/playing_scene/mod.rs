@@ -27,6 +27,9 @@ use toast_manager::ToastManager;
 mod animation;
 mod top_bar;
 
+const EVENT_CAPTURED: bool = true;
+const EVENT_IGNORED: bool = false;
+
 pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
@@ -89,11 +92,16 @@ impl PlayingScene {
             bg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             fg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
             toast_manager: ToastManager::default(),
-            top_bar: TopBar::default(),
+            top_bar: TopBar::new(),
         }
     }
 
     fn update_midi_player(&mut self, target: &Target, delta: Duration) -> f32 {
+        if self.top_bar.loop_active && self.player.time() > self.top_bar.loop_end {
+            self.player.set_time(self.top_bar.loop_start);
+            self.keyboard.reset_notes();
+        }
+
         if self.player.play_along().are_required_keys_pressed() {
             let delta = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
             let midi_events = self.player.update(delta);
@@ -135,7 +143,7 @@ impl Scene for PlayingScene {
         self.keyboard
             .update(&mut self.fg_quad_pipeline, &mut target.text_renderer);
 
-        TopBar::update(self, &target.window_state);
+        TopBar::update(self, &target.window_state, &mut target.text_renderer);
 
         self.bg_quad_pipeline.prepare(&target.gpu.queue);
         self.fg_quad_pipeline.prepare(&target.gpu.queue);
@@ -152,6 +160,10 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
+        if TopBar::handle_window_event(self, target, event) {
+            return;
+        }
+
         self.rewind_controler
             .handle_window_event(target, event, &mut self.player);
 

@@ -117,7 +117,7 @@ impl MidiPlayer {
         }
     }
 
-    fn set_time(&mut self, time: Duration) {
+    pub fn set_time(&mut self, time: Duration) {
         self.playback.set_time(time);
 
         // Discard all of the events till that point
@@ -142,10 +142,16 @@ impl MidiPlayer {
         self.set_time(time);
     }
 
+    pub fn percentage_to_time(&self, p: f32) -> Duration {
+        Duration::from_secs_f32((p * self.playback.lenght().as_secs_f32()).max(0.0))
+    }
+
+    pub fn time_to_percentage(&self, time: &Duration) -> f32 {
+        time.as_secs_f32() / self.playback.lenght().as_secs_f32()
+    }
+
     pub fn set_percentage_time(&mut self, p: f32) {
-        self.set_time(Duration::from_secs_f32(
-            (p * self.playback.lenght().as_secs_f32()).max(0.0),
-        ));
+        self.set_time(self.percentage_to_time(p));
     }
 
     pub fn leed_in(&self) -> &Duration {
@@ -158,6 +164,10 @@ impl MidiPlayer {
 
     pub fn percentage(&self) -> f32 {
         self.playback.percentage()
+    }
+
+    pub fn time(&self) -> Duration {
+        self.playback.time()
     }
 
     pub fn time_without_lead_in(&self) -> f32 {

@@ -24,7 +24,7 @@ const DARK_MEASURE: Color = Color::new(0.4, 0.4, 0.4, 1.0);
 impl TopBar {
     pub fn update(scene: &mut PlayingScene, window_state: &WindowState) {
         let top_bar = &mut scene.top_bar;
-        let quad_pipeline = &mut scene.quad_pipeline;
+        let quad_pipeline = &mut scene.fg_quad_pipeline;
         let player = &scene.player;
         let rewind_controler = &scene.rewind_controler;
 

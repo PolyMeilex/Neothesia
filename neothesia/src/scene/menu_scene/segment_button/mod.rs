@@ -1,12 +1,15 @@
+use crate::iced_utils::iced_state::Element;
+
 use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     Color, Length,
 };
+use iced_style::Theme;
 
 mod theme;
 
-fn segment<'a, MSG: 'a>(label: &str) -> iced_widget::Button<'a, MSG, Renderer> {
+fn segment<'a, MSG: 'a>(label: &str) -> iced_widget::Button<'a, MSG, Theme, Renderer> {
     iced_widget::button(
         iced_widget::text(label)
             .horizontal_alignment(Horizontal::Center)
@@ -53,7 +56,7 @@ impl<'a, MSG: Clone + 'a> SegmentButton<MSG> {
         self
     }
 
-    pub fn build(mut self) -> iced_widget::Container<'a, MSG, Renderer> {
+    pub fn build(mut self) -> iced_widget::Container<'a, MSG, Theme, Renderer> {
         let mut new = Vec::new();
 
         let last_id = self.buttons.len() - 1;
@@ -91,10 +94,9 @@ impl<'a, MSG: Clone + 'a> SegmentButton<MSG> {
         }
         new.push(last);
 
-        iced_widget::container(iced_widget::row(
-            new.into_iter().map(|btn| btn.into()).collect(),
-        ))
-        .height(40)
-        .width(Length::Fill)
+        let new: Vec<Element<MSG>> = new.into_iter().map(|btn| btn.into()).collect();
+        iced_widget::container(iced_widget::row(new))
+            .height(40)
+            .width(Length::Fill)
     }
 }

@@ -1,13 +1,15 @@
 use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
+    border::Radius,
     layout, mouse,
     renderer::Style,
     widget::{tree, Tree},
-    Background, Clipboard, Color, Element, Event, Layout, Length, Padding, Point, Rectangle, Shell,
-    Widget,
+    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Padding, Rectangle,
+    Shell, Size, Widget,
 };
 use iced_graphics::Primitive;
+use iced_style::Theme;
 use iced_widget::text;
 
 /// Creates a new [`Button`] with the provided content.
@@ -28,14 +30,14 @@ pub struct NeoBtn<'a, Message> {
     padding: f32,
     border_radius: f32,
     disabled: bool,
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
 }
 
 impl<'a, Message: Clone> NeoBtn<'a, Message> {
     pub fn new<E>(content: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Theme, Renderer>>,
     {
         Self {
             on_press: None,
@@ -81,7 +83,7 @@ impl<'a, Message: Clone> NeoBtn<'a, Message> {
     }
 }
 
-impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
+impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message> {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
     }
@@ -98,12 +100,11 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -112,24 +113,19 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .min_width(self.min_width)
-            .min_height(self.min_height)
-            .width(self.width)
-            .height(self.height)
-            .pad(Padding::new(self.padding));
+        let limits = limits.min_width(self.min_width).min_height(self.min_height);
 
-        let mut content = self
-            .content
-            .as_widget()
-            .layout(&mut tree.children[0], renderer, &limits);
-        content.move_to(Point::new(self.padding as _, self.padding as _));
-
-        let size = limits
-            .resolve(content.size())
-            .pad(Padding::new(self.padding));
-
-        layout::Node::with_children(size, vec![content])
+        iced_core::layout::padded(
+            &limits,
+            self.width,
+            self.height,
+            Padding::new(self.padding),
+            |limits| {
+                self.content
+                    .as_widget()
+                    .layout(&mut tree.children[0], renderer, limits)
+            },
+        )
     }
 
     fn mouse_interaction(
@@ -237,9 +233,12 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
                 ..bounds
             },
             background: Background::Color(colors.0),
-            border_radius: iced_core::BorderRadius::from(self.border_radius).into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
+            border: Border {
+                radius: Radius::from(self.border_radius),
+                width: 0.0,
+                color: Color::TRANSPARENT,
+            },
+            shadow: iced_core::Shadow::default(),
         };
         renderer.draw_primitive(bg);
 
@@ -255,9 +254,12 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
                     ..bounds
                 },
                 background: Background::Color(colors.1),
-                border_radius: iced_core::BorderRadius::from(self.border_radius).into(),
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
+                border: Border {
+                    radius: Radius::from(self.border_radius),
+                    width: 0.0,
+                    color: Color::TRANSPARENT,
+                },
+                shadow: iced_core::Shadow::default(),
             }),
         };
         renderer.draw_primitive(btn_bar);
@@ -286,11 +288,11 @@ impl<'a, Message: Clone> Widget<Message, Renderer> for NeoBtn<'a, Message> {
     }
 }
 
-impl<'a, Message> From<NeoBtn<'a, Message>> for Element<'a, Message, Renderer>
+impl<'a, Message> From<NeoBtn<'a, Message>> for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
 {
-    fn from(from: NeoBtn<'a, Message>) -> Element<'a, Message, Renderer> {
+    fn from(from: NeoBtn<'a, Message>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(from)
     }
 }

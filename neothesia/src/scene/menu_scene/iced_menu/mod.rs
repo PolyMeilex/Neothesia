@@ -10,6 +10,7 @@ use iced_core::{
     Alignment, Length, Padding,
 };
 use iced_runtime::Command;
+use iced_style::Theme;
 use iced_widget::{column as col, container, image, row, text, vertical_space};
 
 use crate::{
@@ -160,7 +161,7 @@ impl Program for AppUi {
     }
 
     fn mouse_input(&self, event: &iced_core::mouse::Event, _target: &Target) -> Option<Message> {
-        if let iced_core::mouse::Event::ButtonPressed(iced_core::mouse::Button::Other(99)) = event {
+        if let iced_core::mouse::Event::ButtonPressed(iced_core::mouse::Button::Back) = event {
             Some(Message::GoToPage(self.current.previous_step()))
         } else {
             None
@@ -172,34 +173,42 @@ impl Program for AppUi {
         event: &iced_runtime::keyboard::Event,
         _target: &Target,
     ) -> Option<Message> {
-        use iced_runtime::keyboard::{Event, KeyCode};
+        use iced_runtime::keyboard::{key::Named, Event, Key};
 
-        if let Event::KeyPressed { key_code, .. } = event {
-            match key_code {
-                KeyCode::Tab => match self.current {
+        match event {
+            Event::KeyPressed {
+                key: Key::Named(key),
+                ..
+            } => match key {
+                Named::Tab => match self.current {
                     Step::Main => Some(midi_file_picker::open().into()),
                     Step::Settings => Some(Message::Settings(SettingsMessage::OpenSoundFontPicker)),
                     _ => None,
                 },
-                KeyCode::S => match self.current {
-                    Step::Main => Some(Message::GoToPage(Step::Settings)),
-                    _ => None,
-                },
-                KeyCode::Enter => match self.current {
+                Named::Enter => match self.current {
                     Step::Exit => Some(Message::ExitApp),
                     Step::Main => Some(Message::Play),
                     Step::TrackSelection => Some(Message::Play),
                     _ => None,
                 },
-                KeyCode::T => match self.current {
+                Named::Escape => Some(Message::GoToPage(self.current.previous_step())),
+                _ => None,
+            },
+            Event::KeyPressed {
+                key: Key::Character(ch),
+                ..
+            } => match ch.as_ref() {
+                "s" => match self.current {
+                    Step::Main => Some(Message::GoToPage(Step::Settings)),
+                    _ => None,
+                },
+                "t" => match self.current {
                     Step::Main => Some(Message::GoToPage(Step::TrackSelection)),
                     _ => None,
                 },
-                KeyCode::Escape => Some(Message::GoToPage(self.current.previous_step())),
                 _ => None,
-            }
-        } else {
-            None
+            },
+            _ => None,
         }
     }
 
@@ -322,7 +331,7 @@ impl<'a> Step {
     }
 }
 
-fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Renderer> {
+fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Theme, Renderer> {
     text(label)
         .horizontal_alignment(Horizontal::Center)
         .vertical_alignment(Vertical::Center)
@@ -330,7 +339,7 @@ fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Renderer> {
 
 fn top_padded<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
-) -> iced_widget::Column<'a, MSG, Renderer> {
+) -> iced_widget::Column<'a, MSG, Theme, Renderer> {
     let spacer = vertical_space(Length::FillPortion(1));
     let content = container(content)
         .height(Length::FillPortion(4))
@@ -345,7 +354,7 @@ fn top_padded<'a, MSG: 'a>(
 
 fn center_x<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
-) -> iced_widget::Container<'a, MSG, Renderer> {
+) -> iced_widget::Container<'a, MSG, Theme, Renderer> {
     container(content)
         .width(Length::Fill)
         .height(Length::Fill)

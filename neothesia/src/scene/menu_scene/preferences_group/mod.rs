@@ -1,4 +1,5 @@
 use iced_core::{Font, Length};
+use iced_style::Theme;
 use iced_widget::{column, container, row, text};
 
 use crate::iced_utils::iced_state::Element;
@@ -82,7 +83,7 @@ fn tripple_split<'a, T: 'a>(
     prefix: Option<Element<'a, T>>,
     center: Option<Element<'a, T>>,
     suffix: Option<Element<'a, T>>,
-) -> iced_widget::Row<'a, T, Renderer> {
+) -> iced_widget::Row<'a, T, Theme, Renderer> {
     let mut row = row![];
 
     row = row.push(row![].push_if(prefix).width(Length::Shrink));
@@ -113,7 +114,7 @@ fn group_header<'a, T: 'a>(data: PreferencesGroupHeader) -> Element<'a, T> {
 fn title<'a, T: 'a>(
     title: Option<String>,
     subtitle: Option<String>,
-) -> iced_widget::Column<'a, T, Renderer> {
+) -> iced_widget::Column<'a, T, Theme, Renderer> {
     column![]
         .push_if(title.map(|title| text(title).size(14.6)))
         .push_if(subtitle.map(|subtitle| text(subtitle).size(12.2).style(theme::subtitle())))
@@ -163,7 +164,7 @@ impl<'a, MSG: 'a> ActionRow<'a, MSG> {
         self
     }
 
-    fn build(self) -> iced_widget::Row<'a, MSG, Renderer> {
+    fn build(self) -> iced_widget::Row<'a, MSG, Theme, Renderer> {
         let center = if self.title.is_some() || self.subtitle.is_some() {
             Some(title(self.title, self.subtitle).into())
         } else {

@@ -1,5 +1,6 @@
 use crate::iced_utils::iced_state::Element;
-use iced_core::{Alignment, Length};
+use iced_core::{Alignment, Length, Renderer};
+use iced_style::Theme;
 use iced_widget::{column as col, row};
 
 pub struct Layout<'a, Message> {
@@ -126,11 +127,11 @@ impl<'a, M: 'static> From<BarLayout<'a, M>> for Element<'a, M> {
 }
 
 pub trait PushIf<'a, M, R> {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self;
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, Theme, R>>>) -> Self;
 }
 
-impl<'a, M, R> PushIf<'a, M, R> for iced_widget::Row<'a, M, R> {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self {
+impl<'a, M, R: Renderer> PushIf<'a, M, R> for iced_widget::Row<'a, M, Theme, R> {
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, Theme, R>>>) -> Self {
         if let Some(item) = item {
             self.push(item)
         } else {
@@ -139,8 +140,8 @@ impl<'a, M, R> PushIf<'a, M, R> for iced_widget::Row<'a, M, R> {
     }
 }
 
-impl<'a, M, R> PushIf<'a, M, R> for iced_widget::Column<'a, M, R> {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, R>>>) -> Self {
+impl<'a, M, R: Renderer> PushIf<'a, M, R> for iced_widget::Column<'a, M, Theme, R> {
+    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, Theme, R>>>) -> Self {
         if let Some(item) = item {
             self.push(item)
         } else {
@@ -152,7 +153,10 @@ impl<'a, M, R> PushIf<'a, M, R> for iced_widget::Column<'a, M, R> {
 impl<'a, M: 'a> PushIf<'a, M, super::Renderer>
     for super::preferences_group::PreferencesGroup<'a, M>
 {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, super::Renderer>>>) -> Self {
+    fn push_if(
+        self,
+        item: Option<impl Into<iced_core::Element<'a, M, Theme, super::Renderer>>>,
+    ) -> Self {
         if let Some(item) = item {
             self.push(item)
         } else {

@@ -1,12 +1,13 @@
 use super::Renderer;
 use iced_core::{Alignment, Color, Element};
+use iced_style::Theme;
 
 mod theme;
 
 pub struct TrackCard<'a, MSG> {
     title: String,
     subtitle: String,
-    body: Option<Element<'a, MSG, Renderer>>,
+    body: Option<Element<'a, MSG, Theme, Renderer>>,
     track_color: Color,
     on_icon_press: Option<MSG>,
 }
@@ -42,12 +43,12 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
         self
     }
 
-    pub fn body(mut self, body: impl Into<Element<'a, MSG, Renderer>>) -> Self {
+    pub fn body(mut self, body: impl Into<Element<'a, MSG, Theme, Renderer>>) -> Self {
         self.body = Some(body.into());
         self
     }
 
-    pub fn build(self) -> iced_widget::Container<'a, MSG, Renderer> {
+    pub fn build(self) -> iced_widget::Container<'a, MSG, Theme, Renderer> {
         let header = {
             iced_widget::row![
                 iced_widget::button(iced_widget::text(""))

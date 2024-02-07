@@ -1,16 +1,20 @@
-use iced_core::{renderer::Quad, Background, BorderRadius, Color, Rectangle, Size, Vector, Widget};
+use iced_core::{
+    border::{Border, Radius},
+    renderer::Quad,
+    Background, Color, Length, Rectangle, Size, Vector, Widget,
+};
+use iced_style::Theme;
 
 use crate::iced_utils::iced_state::Element;
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 
-impl<M, R: iced_core::Renderer> Widget<M, R> for PianoRange {
-    fn width(&self) -> iced_core::Length {
-        iced_core::Length::Fill
-    }
-
-    fn height(&self) -> iced_core::Length {
-        iced_core::Length::Fixed(100.0)
+impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: iced_core::Length::Fill,
+            height: iced_core::Length::Fixed(100.0),
+        }
     }
 
     fn layout(
@@ -19,19 +23,15 @@ impl<M, R: iced_core::Renderer> Widget<M, R> for PianoRange {
         _renderer: &R,
         limits: &iced_core::layout::Limits,
     ) -> iced_core::layout::Node {
-        let width = Widget::<M, R>::width(self);
-        let height = Widget::<M, R>::height(self);
-
-        let limits = limits.width(width).height(height);
-        let size = limits.resolve(Size::ZERO);
-        iced_core::layout::Node::new(size)
+        let size = Widget::<M, Theme, R>::size(self);
+        iced_core::layout::atomic(limits, size.width, size.height)
     }
 
     fn draw(
         &self,
         _tree: &iced_core::widget::Tree,
         renderer: &mut R,
-        _theme: &<R as iced_core::Renderer>::Theme,
+        _theme: &Theme,
         _style: &iced_core::renderer::Style,
         layout: iced_core::Layout<'_>,
         _cursor: iced_core::mouse::Cursor,
@@ -66,15 +66,18 @@ impl<M, R: iced_core::Renderer> Widget<M, R> for PianoRange {
                 renderer.fill_quad(
                     Quad {
                         bounds,
-                        border_radius: if n == 0 {
-                            BorderRadius::from([12.0, 0.0, 5.0, 12.0])
-                        } else if neutral.peek().is_none() {
-                            BorderRadius::from([0.0, 12.0, 12.0, 5.0])
-                        } else {
-                            BorderRadius::from([0.0, 0.0, 5.0, 5.0])
+                        border: Border {
+                            radius: if n == 0 {
+                                Radius::from([12.0, 0.0, 5.0, 12.0])
+                            } else if neutral.peek().is_none() {
+                                Radius::from([0.0, 12.0, 12.0, 5.0])
+                            } else {
+                                Radius::from([0.0, 0.0, 5.0, 5.0])
+                            },
+                            width: 0.0,
+                            color: Color::TRANSPARENT,
                         },
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
+                        shadow: Default::default(),
                     },
                     Background::Color(Color::WHITE),
                 );
@@ -91,9 +94,12 @@ impl<M, R: iced_core::Renderer> Widget<M, R> for PianoRange {
                 renderer.fill_quad(
                     Quad {
                         bounds,
-                        border_radius: BorderRadius::default(),
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
+                        border: Border {
+                            radius: Radius::default(),
+                            width: 0.0,
+                            color: Color::TRANSPARENT,
+                        },
+                        shadow: Default::default(),
                     },
                     Background::Color(Color::BLACK),
                 );

@@ -38,12 +38,12 @@ oxisynth = { version = "0.0.5", optional = true }
 midi-file = { workspace = true }
 midi-io = { path = "../midi-io" }
 
-iced_style = {git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626408c56bbc1605fcf0c974b2f69"}
-iced_graphics = {git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626408c56bbc1605fcf0c974b2f69"}
-iced_core = {git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626408c56bbc1605fcf0c974b2f69"}
-iced_runtime = {git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626408c56bbc1605fcf0c974b2f69"}
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626408c56bbc1605fcf0c974b2f69", features = ["image"] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev="fc285d3e461626408c56bbc1605fcf0c974b2f69", features = ["image"] }
+iced_style = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
+iced_graphics = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
+iced_core = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
+iced_runtime = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812", features = ["image"] }
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812", features = ["image"] }
 
 [[bin]]
 name = "neothesia"

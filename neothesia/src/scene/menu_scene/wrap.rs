@@ -1,6 +1,7 @@
 //! A widget that displays its children in multiple horizontal or vertical runs.
 //!
 //! *This API requires the following crate features to be activated: `wrap`*
+use iced_style::Theme;
 use iced_widget::core::{
     self, event,
     layout::{Limits, Node},
@@ -11,13 +12,14 @@ use iced_widget::core::{
     Widget,
 };
 
+use core::Vector;
 use std::marker::PhantomData;
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
 pub struct Wrap<'a, Message, Direction, Renderer = super::Renderer> {
     /// The elements to distribute.
-    pub elements: Vec<Element<'a, Message, Renderer>>,
+    pub elements: Vec<Element<'a, Message, Theme, Renderer>>,
     /// The alignment of the [`Wrap`](Wrap).
     pub alignment: Alignment,
     /// The width of the [`Wrap`](Wrap).
@@ -52,7 +54,7 @@ impl<'a, Message, Renderer> Wrap<'a, Message, direction::Horizontal, Renderer> {
     /// It expects:
     ///     * the vector containing the [`Element`]s for this [`Wrap`](Wrap).
     #[must_use]
-    pub fn with_elements(elements: Vec<Element<'a, Message, Renderer>>) -> Self {
+    pub fn with_elements(elements: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             elements,
             ..Wrap::default()
@@ -72,7 +74,7 @@ impl<'a, Message, Renderer> Wrap<'a, Message, direction::Vertical, Renderer> {
     /// It expects:
     ///     * the vector containing the [`Element`]s for this [`Wrap`](Wrap).
     #[must_use]
-    pub fn with_elements_vertical(elements: Vec<Element<'a, Message, Renderer>>) -> Self {
+    pub fn with_elements_vertical(elements: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             elements,
             ..Wrap::default()
@@ -148,14 +150,14 @@ impl<'a, Message, Renderer, Direction> Wrap<'a, Message, Direction, Renderer> {
     #[must_use]
     pub fn push<E>(mut self, element: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Theme, Renderer>>,
     {
         self.elements.push(element.into());
         self
     }
 }
 
-impl<'a, Message, Renderer, Direction> Widget<Message, Renderer>
+impl<'a, Message, Renderer, Direction> Widget<Message, Theme, Renderer>
     for Wrap<'a, Message, Direction, Renderer>
 where
     Self: WrapLayout<Renderer>,
@@ -169,12 +171,11 @@ where
         tree.diff_children(&self.elements);
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(&self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
@@ -216,13 +217,16 @@ where
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<core::overlay::Element<'b, Message, Renderer>> {
+        translation: Vector,
+    ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
         self.elements
             .iter_mut()
             .zip(&mut state.children)
             .zip(layout.children())
             .find_map(|((child, state), layout)| {
-                child.as_widget_mut().overlay(state, layout, renderer)
+                child
+                    .as_widget_mut()
+                    .overlay(state, layout, renderer, translation)
             })
     }
 
@@ -251,7 +255,7 @@ where
         &self,
         state: &Tree,
         renderer: &mut Renderer,
-        theme: &<Renderer as renderer::Renderer>::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: Cursor,
@@ -290,27 +294,27 @@ where
 }
 
 impl<'a, Message, Renderer> From<Wrap<'a, Message, direction::Vertical, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: 'a + core::Renderer,
     Message: 'a,
 {
     fn from(
         wrap: Wrap<'a, Message, direction::Vertical, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(wrap)
     }
 }
 
 impl<'a, Message, Renderer> From<Wrap<'a, Message, direction::Horizontal, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: 'a + core::Renderer,
     Message: 'a,
 {
     fn from(
         wrap: Wrap<'a, Message, direction::Horizontal, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(wrap)
     }
 }
@@ -355,13 +359,14 @@ where
         #[allow(clippy::cast_precision_loss)] // TODO: possible precision loss
         let line_minimal_length = self.line_minimal_length;
         let limits = limits
-            .pad(padding)
+            .shrink(padding)
             .width(self.width)
             .height(self.height)
             .max_width(self.max_width)
             .max_height(self.max_height);
         let max_width = limits.max().width;
 
+        let mut children = tree.children.iter_mut();
         let mut curse = padding.left;
         let mut deep_curse = padding.left;
         let mut current_line_height = line_minimal_length;
@@ -372,13 +377,16 @@ where
         let mut nodes: Vec<Node> = self
             .elements
             .iter()
-            .zip(tree.children.iter_mut())
-            .map(|(elem, tree)| {
+            .map(|elem| {
                 let node_limit = Limits::new(
                     Size::new(limits.min().width, line_minimal_length),
                     limits.max(),
                 );
-                let mut node = elem.as_widget().layout(tree, renderer, &node_limit);
+                let mut node = elem.as_widget().layout(
+                    children.next().expect("wrap missing expected child"),
+                    renderer,
+                    &node_limit,
+                );
 
                 let size = node.size();
 
@@ -391,10 +399,10 @@ where
                     start = end;
                     end += 1;
                     current_line_height = line_minimal_length;
-                    node.move_to(Point::new(padding.left, deep_curse));
+                    node.move_to_mut(Point::new(padding.left, deep_curse));
                     curse = offset_init + padding.left;
                 } else {
-                    node.move_to(Point::new(curse, deep_curse));
+                    node.move_to_mut(Point::new(curse, deep_curse));
                     curse = offset;
                     end += 1;
                 }
@@ -411,16 +419,16 @@ where
             nodes[range].iter_mut().for_each(|node| {
                 let size = node.size();
                 let space = Size::new(size.width, max_length);
-                node.align(Alignment::Start, self.alignment, space);
+                node.align_mut(Alignment::Start, self.alignment, space);
             });
         }
         let (width, height) = (
             max_main - padding.left,
             deep_curse - padding.left + current_line_height,
         );
-        let size = limits.resolve(Size::new(width, height));
+        let size = limits.resolve(self.width, self.height, Size::new(width, height));
 
-        Node::with_children(size.pad(padding), nodes)
+        Node::with_children(size.expand(padding), nodes)
     }
 }
 
@@ -438,13 +446,14 @@ where
         #[allow(clippy::cast_precision_loss)] // TODO: possible precision loss
         let line_minimal_length = self.line_minimal_length;
         let limits = limits
-            .pad(padding)
+            .shrink(padding)
             .width(self.width)
             .height(self.height)
             .max_width(self.max_width)
             .max_height(self.max_height);
         let max_height = limits.max().height;
 
+        let mut children = tree.children.iter_mut();
         let mut curse = padding.left;
         let mut wide_curse = padding.left;
         let mut current_line_width = line_minimal_length;
@@ -460,7 +469,11 @@ where
                     Size::new(line_minimal_length, limits.min().height),
                     limits.max(),
                 );
-                let mut node = elem.as_widget().layout(tree, renderer, &node_limit);
+                let mut node = elem.as_widget().layout(
+                    children.next().expect("wrap missing expected child"),
+                    renderer,
+                    &node_limit,
+                );
 
                 let size = node.size();
 
@@ -473,10 +486,10 @@ where
                     start = end;
                     end += 1;
                     current_line_width = line_minimal_length;
-                    node.move_to(Point::new(wide_curse, padding.left));
+                    node = node.move_to(Point::new(wide_curse, padding.left));
                     curse = offset_init + padding.left;
                 } else {
-                    node.move_to(Point::new(wide_curse, curse));
+                    node = node.move_to(Point::new(wide_curse, curse));
                     end += 1;
                     curse = offset;
                 }
@@ -494,7 +507,7 @@ where
             nodes[range].iter_mut().for_each(|node| {
                 let size = node.size();
                 let space = Size::new(max_length, size.height);
-                node.align(self.alignment, Alignment::Start, space);
+                node.align_mut(self.alignment, Alignment::Start, space);
             });
         }
 
@@ -502,9 +515,9 @@ where
             wide_curse - padding.left + current_line_width,
             max_main - padding.left,
         );
-        let size = limits.resolve(Size::new(width, height));
+        let size = limits.resolve(self.width, self.height, Size::new(width, height));
 
-        Node::with_children(size.pad(padding), nodes)
+        Node::with_children(size.expand(padding), nodes)
     }
 }
 

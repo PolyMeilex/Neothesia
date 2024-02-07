@@ -1,4 +1,5 @@
-use iced_core::{mouse::ScrollDelta, Widget};
+use iced_core::{mouse::ScrollDelta, Length, Size, Widget};
+use iced_style::Theme;
 
 use crate::iced_utils::iced_state::Element;
 
@@ -16,13 +17,9 @@ impl<'a, M> ScrollListener<'a, M> {
     }
 }
 
-impl<'a, M> Widget<M, super::Renderer> for ScrollListener<'a, M> {
-    fn width(&self) -> iced_core::Length {
-        self.content.as_widget().width()
-    }
-
-    fn height(&self) -> iced_core::Length {
-        self.content.as_widget().height()
+impl<'a, M> Widget<M, Theme, super::Renderer> for ScrollListener<'a, M> {
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
     }
 
     fn layout(
@@ -38,7 +35,7 @@ impl<'a, M> Widget<M, super::Renderer> for ScrollListener<'a, M> {
         &self,
         tree: &iced_core::widget::Tree,
         renderer: &mut super::Renderer,
-        theme: &<super::Renderer as iced_core::Renderer>::Theme,
+        theme: &Theme,
         style: &iced_core::renderer::Style,
         layout: iced_core::Layout<'_>,
         cursor: iced_core::mouse::Cursor,
@@ -136,10 +133,11 @@ impl<'a, M> Widget<M, super::Renderer> for ScrollListener<'a, M> {
         state: &'b mut iced_core::widget::Tree,
         layout: iced_core::Layout<'_>,
         renderer: &super::Renderer,
-    ) -> Option<iced_core::overlay::Element<'b, M, super::Renderer>> {
+        translation: iced_core::Vector,
+    ) -> Option<iced_core::overlay::Element<'b, M, Theme, super::Renderer>> {
         self.content
             .as_widget_mut()
-            .overlay(state, layout, renderer)
+            .overlay(state, layout, renderer, translation)
     }
 }
 

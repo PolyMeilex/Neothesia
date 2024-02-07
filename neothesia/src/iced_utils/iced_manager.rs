@@ -1,7 +1,7 @@
 use iced_core::text::Renderer;
 
 pub struct IcedManager {
-    pub renderer: iced_wgpu::Renderer<iced_style::Theme>,
+    pub renderer: iced_wgpu::Renderer,
     pub viewport: iced_wgpu::graphics::Viewport,
     pub debug: iced_runtime::Debug,
 }

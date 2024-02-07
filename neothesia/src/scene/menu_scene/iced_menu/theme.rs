@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use iced_core::BorderRadius;
+use iced_core::border::{Border, Radius};
 use iced_graphics::core::Color;
 use iced_style::{button, pick_list};
 
@@ -24,9 +24,11 @@ impl iced_style::pick_list::StyleSheet for PickListStyle {
             text_color: Color::WHITE,
             background: iced_core::Background::Color(Color::from_rgba8(74, 68, 88, 1.0)),
             placeholder_color: Color::WHITE,
-            border_radius: iced_core::BorderRadius::from(5.0),
-            border_width: 0.0,
-            border_color: SURFACE,
+            border: Border {
+                radius: Radius::from(5.0),
+                width: 0.0,
+                color: SURFACE,
+            },
             handle_color: Color::WHITE,
         }
     }
@@ -54,9 +56,11 @@ impl iced_style::menu::StyleSheet for MenuStyle {
         iced_style::menu::Appearance {
             text_color: Color::WHITE,
             background: iced_core::Background::from(iced_core::Color::from_rgba8(27, 25, 32, 1.0)),
-            border_width: 0.0,
-            border_radius: iced_core::BorderRadius::from(5.0),
-            border_color: SURFACE,
+            border: Border {
+                width: 0.0,
+                radius: Radius::from(5.0),
+                color: SURFACE,
+            },
             selected_text_color: Color::WHITE,
             selected_background: iced_core::Background::Color(accent),
         }
@@ -75,8 +79,11 @@ impl iced_style::button::StyleSheet for ButtonStyle {
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
             text_color: Color::WHITE,
-            border_width: 0.0,
-            border_radius: BorderRadius::from(5.0),
+            border: Border {
+                width: 0.0,
+                radius: Radius::from(5.0),
+                ..Default::default()
+            },
             background: Some(iced_core::Background::Color(Color::from_rgba8(
                 74, 68, 88, 1.0,
             ))),
@@ -107,16 +114,24 @@ impl iced_style::button::StyleSheet for RoundButtonStyle {
     type Style = iced_style::Theme;
 
     fn active(&self, style: &Self::Style) -> button::Appearance {
+        let def = ButtonStyle::active(&ButtonStyle, style);
         button::Appearance {
-            border_radius: BorderRadius::from(f32::MAX),
-            ..ButtonStyle::active(&ButtonStyle, style)
+            border: Border {
+                radius: Radius::from(f32::MAX),
+                ..def.border
+            },
+            ..def
         }
     }
 
     fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        let def = ButtonStyle::hovered(&ButtonStyle, style);
         button::Appearance {
-            border_radius: BorderRadius::from(f32::MAX),
-            ..ButtonStyle::hovered(&ButtonStyle, style)
+            border: Border {
+                radius: Radius::from(f32::MAX),
+                ..def.border
+            },
+            ..def
         }
     }
 }
@@ -135,9 +150,11 @@ impl iced_style::checkbox::StyleSheet for CheckboxStyle {
         iced_style::checkbox::Appearance {
             background: if is_checked { active } else { SURFACE }.into(),
             text_color: Some(Color::WHITE),
-            border_radius: iced_core::BorderRadius::from(2.0),
-            border_width: 1.0,
-            border_color: active,
+            border: Border {
+                radius: Radius::from(2.0),
+                width: 1.0,
+                color: active,
+            },
             icon_color: Color::WHITE,
         }
     }
@@ -152,6 +169,11 @@ impl iced_style::checkbox::StyleSheet for CheckboxStyle {
             .into(),
             ..self.active(style, is_checked)
         }
+    }
+
+    fn disabled(&self, style: &Self::Style, is_checked: bool) -> iced_style::checkbox::Appearance {
+        // TODO
+        self.active(style, is_checked)
     }
 }
 

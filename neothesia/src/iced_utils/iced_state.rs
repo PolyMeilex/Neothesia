@@ -8,7 +8,7 @@ use iced_style::Theme;
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
 use crate::target::Target;
 
-pub type Element<'a, M> = iced_core::Element<'a, M, iced_wgpu::Renderer<Theme>>;
+pub type Element<'a, M> = iced_core::Element<'a, M, Theme, iced_wgpu::Renderer>;
 
 /// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {
@@ -197,7 +197,7 @@ fn build_user_interface<'a, P: Program>(
     cache: user_interface::Cache,
     size: Size,
     target: &mut Target,
-) -> UserInterface<'a, P::Message, iced_wgpu::Renderer<Theme>> {
+) -> UserInterface<'a, P::Message, Theme, iced_wgpu::Renderer> {
     let view = program.view(target);
     UserInterface::build(view, size, cache, &mut target.iced_manager.renderer)
 }

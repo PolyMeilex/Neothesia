@@ -1,4 +1,7 @@
-use iced_core::{BorderRadius, Color};
+use iced_core::{
+    border::{Border, Radius},
+    Color,
+};
 use iced_style::button;
 
 pub enum ButtonSegmentKind {
@@ -22,9 +25,9 @@ impl iced_style::button::StyleSheet for SegmentButtonStyle {
 
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         let border_radius = match self.0 {
-            ButtonSegmentKind::Start => BorderRadius::from([255.0, 0.0, 0.0, 255.0]),
-            ButtonSegmentKind::Center => BorderRadius::from(0.0),
-            ButtonSegmentKind::End => BorderRadius::from([0.0, 255.0, 255.0, 0.0]),
+            ButtonSegmentKind::Start => Radius::from([255.0, 0.0, 0.0, 255.0]),
+            ButtonSegmentKind::Center => Radius::from(0.0),
+            ButtonSegmentKind::End => Radius::from([0.0, 255.0, 255.0, 0.0]),
         };
         let active = self.1;
 
@@ -38,9 +41,11 @@ impl iced_style::button::StyleSheet for SegmentButtonStyle {
 
         button::Appearance {
             text_color: Color::WHITE,
-            border_color: Color::TRANSPARENT,
-            border_width: 0.0,
-            border_radius,
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: border_radius,
+            },
             background,
             ..Default::default()
         }

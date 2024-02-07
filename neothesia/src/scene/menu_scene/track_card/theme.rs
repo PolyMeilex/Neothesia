@@ -1,4 +1,4 @@
-use iced_core::BorderRadius;
+use iced_core::border::{Border, Radius};
 
 pub fn card() -> iced_style::theme::Container {
     iced_style::theme::Container::Custom(Box::new(ContainerStyle))
@@ -14,7 +14,10 @@ impl iced_style::container::StyleSheet for ContainerStyle {
             background: Some(iced_core::Background::from(iced_core::Color::from_rgba8(
                 37, 35, 42, 1.0,
             ))),
-            border_radius: BorderRadius::from(12.0),
+            border: Border {
+                radius: Radius::from(12.0),
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
@@ -32,7 +35,10 @@ impl iced_style::button::StyleSheet for TrackIconButtonStyle {
     fn active(&self, _style: &Self::Style) -> iced_style::button::Appearance {
         iced_style::button::Appearance {
             background: Some(iced_core::Background::from(self.0)),
-            border_radius: BorderRadius::from(255.0),
+            border: Border {
+                radius: Radius::from(255.0),
+                ..Default::default()
+            },
             ..Default::default()
         }
     }

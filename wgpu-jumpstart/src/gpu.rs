@@ -1,4 +1,4 @@
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use super::color::Color;
 use super::GpuInitError;
@@ -17,13 +17,15 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    pub async fn for_window<H: HasRawWindowHandle + HasRawDisplayHandle>(
+    pub async fn for_window<H: HasDisplayHandle + HasWindowHandle>(
         instance: &wgpu::Instance,
         window: &H,
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
-        let surface = unsafe { instance.create_surface(window) }?;
+        let surface = unsafe {
+            instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::from_window(window).unwrap())
+        }?;
         let gpu = Self::new(instance, Some(&surface)).await?;
         let surface = Surface::new(&gpu.device, surface, gpu.texture_format, width, height);
 
@@ -32,7 +34,7 @@ impl Gpu {
 
     pub async fn new(
         instance: &wgpu::Instance,
-        compatible_surface: Option<&wgpu::Surface>,
+        compatible_surface: Option<&wgpu::Surface<'static>>,
     ) -> Result<Self, GpuInitError> {
         let power_preference = wgpu::util::power_preference_from_env()
             .unwrap_or(wgpu::PowerPreference::HighPerformance);
@@ -49,8 +51,8 @@ impl Gpu {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits {
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits {
                         max_compute_workgroup_storage_size: 0,
                         max_compute_invocations_per_workgroup: 0,
                         max_compute_workgroup_size_x: 0,
@@ -126,14 +128,14 @@ impl Gpu {
 }
 
 pub struct Surface {
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'static>,
     surface_configuration: wgpu::SurfaceConfiguration,
 }
 
 impl Surface {
     pub fn new(
         device: &wgpu::Device,
-        surface: wgpu::Surface,
+        surface: wgpu::Surface<'static>,
         texture_format: wgpu::TextureFormat,
         width: u32,
         height: u32,
@@ -146,6 +148,7 @@ impl Surface {
             height,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            desired_maximum_frame_latency: 2,
         };
 
         surface.configure(device, &surface_configuration);

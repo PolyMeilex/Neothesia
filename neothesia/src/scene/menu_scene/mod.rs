@@ -13,7 +13,6 @@ mod wrap;
 use std::time::Duration;
 
 use iced_menu::AppUi;
-use iced_style::Theme;
 use neothesia_core::render::BgPipeline;
 
 use wgpu_jumpstart::{TransformUniform, Uniform};
@@ -28,7 +27,7 @@ use crate::{
     target::Target,
 };
 
-type Renderer = iced_wgpu::Renderer<Theme>;
+type Renderer = iced_wgpu::Renderer;
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
@@ -99,7 +98,7 @@ impl Scene for MenuScene {
         let modifiers = ModifiersState::default();
 
         if let Some(event) = iced_conversion::window_event(
-            event,
+            event.clone(),
             target.iced_manager.viewport.scale_factor(),
             modifiers,
         ) {

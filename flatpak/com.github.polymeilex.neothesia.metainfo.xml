@@ -7,6 +7,7 @@
   <project_license>GPL-3.0-only</project_license>
 
   <releases>
+    <release version="0.2.1" date="2024-14-01" timestamp="1707775500"></release>
     <release version="0.2.0" date="2024-14-01" timestamp="1705211142">
       <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.2.0</url>
     </release>
@@ -18,6 +19,7 @@
   <url type="bugtracker">https://github.com/PolyMeilex/Neothesia/issues</url>
 
   <name>Neothesia</name>
+  <developer_name>Bartłomiej Maryńczak</developer_name>
   <summary>GPU accelerated midi visualizer</summary>
   <description>
     <p>Neothesia is a simple software that helps you to learn how to play on the piano.</p>

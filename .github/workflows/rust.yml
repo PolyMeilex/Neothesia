@@ -2,6 +2,9 @@ name: Rust
 
 on: [push, pull_request]
 
+env:
+  MACOSX_DEPLOYMENT_TARGET: 10.12
+
 jobs:
   build_ubuntu:
     runs-on: ubuntu-latest

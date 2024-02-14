@@ -1,21 +1,27 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Neothesia</title>
-    
-    <meta content="Neothesia" property="og:title">
-    <meta content="Neothesia is a cross-platform GPU accelerated midi visualizer, build completely in Rust. It helps people to quickly learn how to play piano. It takes music notes from a midi file as an input and displays them as colorful falling blocks on a virtual piano." property="og:description">
-    <meta content="https://polymeilex.github.io/Neothesia/" property="og:url">
-    <meta content="https://i.imgur.com/QfdMwMI.png" property="og:image">
 
+    <meta content="Neothesia" property="og:title" />
+    <meta
+      content="Neothesia is a cross-platform GPU accelerated midi visualizer, build completely in Rust. It helps people to quickly learn how to play piano. It takes music notes from a midi file as an input and displays them as colorful falling blocks on a virtual piano."
+      property="og:description"
+    />
+    <meta content="https://polymeilex.github.io/Neothesia/" property="og:url" />
+    <meta content="https://i.imgur.com/QfdMwMI.png" property="og:image" />
 
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"
       integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w=="
       crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
     <link rel="stylesheet" href="vendor/normalize.css" />
     <link rel="stylesheet" href="style.css" />
@@ -27,58 +33,131 @@
     />
 
     <script src="./neoBackground.js" defer></script>
-    <script src="./customTags.js" defer></script>
+    <!-- <script src="./customTags.js" defer></script> -->
+    <script src="./customTags2.js" defer></script>
   </head>
+
   <body>
-    <neo-background
-      style="position: fixed; width: 100%; height: 100%; z-index: -5"
-    ></neo-background>
+    <!-- <neo-background -->
+    <!--   style="position: fixed; width: 100%; height: 100%; z-index: -5" -->
+    <!-- ></neo-background> -->
 
-    <neo-paginator>
-      <!-- Main Page -->
-      <neo-page data-anchor="main-page">
-        <neo-floater class="floater--animated">
-          <section class="floater__head">
-            <img src="./img/baner.png" width="932px" height="166px" />
-          </section>
+    <header>
+      <neo-background
+        style="position: absolute; width: 100%; height: 100%"
+      ></neo-background>
 
-          <section class="floater__main">
-            <neo-button-group gap="5px">
-              <neo-button
-                href="https://github.com/PolyMeilex/Neothesia/releases"
-                target="_blank"
-              >
-                <i class="fas fa-download"></i>
-                <span>Download</span>
-              </neo-button>
+      <neo-container>
+        <!-- <img -->
+        <!--   src="./img/neothesia.svg" -->
+        <!--   style="width: 50%; display: block; margin: auto" -->
+        <!-- /> -->
 
-              <neo-button
-                href="https://github.com/PolyMeilex/Neothesia/"
-                target="_blank"
-              >
-                <i class="fab fa-github"></i>
-                <span>GitHub</span>
-              </neo-button>
-            </neo-button-group>
-          </section>
-        </neo-floater>
-      </neo-page>
-      <!-- About Page -->
-      <neo-page data-anchor="about-page">
-        <neo-floater style="max-width: 1100px">
-          <section id="about-floater">
-            <img
-              src="https://polymeilex.github.io/img/proj/neothesia-gif.gif"
-            />
-            <div>
-              <h1 style="margin-top: 0px; margin-bottom: 5px">Neothesia</h1>
-              Neothesia is a cross-platform GPU accelerated midi visualizer, build completely in Rust.
-              It helps people to quickly learn how to play piano.
-              It takes music notes from a midi file as an input and displays them as colorful falling blocks on a virtual piano.
+        <!-- <div style="text-align: center; font-size: 20px; margin-bottom: 50px"> -->
+        <!-- Cross-platform way to learn how to play the piano -->
+        <!-- </div> -->
+
+        <div style="display: flex; justify-content: center">
+          <div style="width: 70%">
+            <img src="./img/neothesia.svg" style="width: 100%" />
+            <div style="text-align: center; font-size: 25px; margin-top: -20px">
+              Cross-platform way to learn how to play the piano
             </div>
-          </section>
-        </neo-floater>
-      </neo-page>
-    </neo-paginator>
+          </div>
+        </div>
+
+        <!-- <div style="display: flex"> -->
+        <!--   <div style="width: 100%;"> -->
+        <!--     <hr /> -->
+        <!--   </div> -->
+        <!--   <h4 style="width: 100%; text-align: center; margin: 0; padding: 0; font-size: 20px;"> -->
+        <!--     <!-- Cross-platform way to learn how to play the piano -->
+        <!--     Latest Release: 🎉 -->
+        <!--     <a -->
+        <!--       href="https://github.com/PolyMeilex/Neothesia/releases" -->
+        <!--       style="color: white; text-decoration: none" -->
+        <!--     > -->
+        <!--       0.2.0 -->
+        <!--     </a> -->
+        <!--   </h4> -->
+        <!--   <div style="width: 100%;"> -->
+        <!--     <hr /> -->
+        <!--   </div> -->
+        <!-- </div> -->
+
+        <div
+          id="neo-features"
+          style="display: flex; width: 100%; margin-top: 50px"
+        >
+          <neo-feature-col icon="file-earmark-music">
+            <div style="font-size: 20px; font-weight: bold">MIDI File</div>
+            <div style="margin: auto; margin-top: 10px; max-width: 220px">
+              Accepts plain old MIDI files, just load whatever songs you are
+              able to find.
+            </div>
+          </neo-feature-col>
+          <!-- <neo-feature-col icon="usb-plug"> -->
+          <!--   <div style="font-size: 20px; font-weight: bold;"> -->
+          <!--     MIDI IO -->
+          <!--   </div> -->
+          <!-- </neo-feature-col> -->
+          <neo-feature-col icon="usb-plug">
+            <div style="font-size: 20px; font-weight: bold">Play Along</div>
+            <div style="margin: auto; margin-top: 10px; max-width: 220px">
+              Connect your MIDI device to play along to your favourite tracks.
+            </div>
+          </neo-feature-col>
+          <neo-feature-col icon="balloon">
+            <div style="font-size: 20px; font-weight: bold">Easy To Use</div>
+            <div style="margin: auto; margin-top: 10px; max-width: 220px">
+              Strives to be as simple and intuitive as possible.
+            </div>
+          </neo-feature-col>
+
+          <neo-feature-col icon="pci-card-sound">
+            <div style="font-size: 20px; font-weight: bold">SoundFont™</div>
+            <div style="margin: auto; margin-top: 10px; max-width: 220px">
+              Choose whatever sound packs you like and let
+
+              <a
+                href="https://github.com/PolyMeilex/OxiSynth"
+                style="
+                  color: transparent;
+                  text-decoration: none;
+                  background: linear-gradient(180deg, #a051ff 0%, #eb00ff 100%);
+                  background-clip: text;
+                  font-weight: bold;
+                "
+              >
+                OxiSynth
+              </a>
+              do it's magic.
+            </div>
+          </neo-feature-col>
+        </div>
+      </neo-container>
+    </header>
+
+    <neo-container>
+      <div style="display: flex; width: 80%; margin: auto">
+        <div
+          style="
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          "
+        >
+          <neo-download></neo-download>
+        </div>
+        <!-- <div style="width: 50%"> -->
+        <!--   <video -->
+        <!--     src="https://github.com/PolyMeilex/OxiSynth/assets/20758186/d50d2e95-f316-472f-88e9-111ed2f52784" -->
+        <!--     controls -->
+        <!--     style="width: 100%" -->
+        <!--   /> -->
+        <!-- </div> -->
+      </div>
+    </neo-container>
   </body>
 </html>

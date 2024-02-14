@@ -2,124 +2,63 @@
 
 * {
   box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: hidden;
+}
+
+.gradient-text {
+  color: transparent;
+  background: linear-gradient(180deg, #a051ff 0%, #eb00ff 100%);
+  background-clip: text;
 }
 
 body {
-  background-color: #0c0c0c;
-  color: white;
-
   font-family: "Roboto", sans-serif;
+  /* background-color: rgb(30, 0, 51); */
+  background-color: rgb(7, 7, 7);
 }
 
-#main-page,
-#about-page {
+header {
+  position: relative;
+  /* background-color: #150322; */
+  background-color: rgba(0, 0, 0, 0.4);
+  /* background: linear-gradient(180deg, rgb(0, 0, 0) 0%, rgb(79, 25, 117) 100%); */
+  /* background: linear-gradient(180deg, #A051FF 0%, #EB00FF 100%); */
+}
+
+header > neo-background {
+  z-index: -1;
+}
+
+hr {
+  box-sizing: content-box;
+  overflow: visible;
+  border: 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+#neo-features > neo-feature-col {
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+#neo-features > neo-feature-col:last-child {
+  border-right: none;
+}
+
+#neo-download {
+  background: linear-gradient(-90deg, #a051ff 0%, #eb00ff 100%);
+  border: none;
+  border-radius: 3px;
+  padding: 15px 25px;
+  font-size: 18px;
+  color: #fff;
   display: flex;
-  height: 100%;
-  justify-content: center;
   align-items: center;
-}
-
-#main-page .floater__head img {
-  width: 100%;
-  height: auto;
-}
-
-#about-page {
-  font-size: 30px;
-}
-
-neo-floater {
-  padding-bottom: 100px;
-
-  max-width: 935px;
-  width: 100%;
-}
-
-.floater--animated {
-  animation: floating 5s ease-in-out infinite;
-}
-
-.floater__main {
-  padding: 50px;
-}
-
-@media screen and (max-width: 500px) {
-  .floater__main {
-    padding: 5px;
-  }
-}
-
-@keyframes floating {
-  0% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(20px);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-
-neo-button {
-  padding: 20px;
-  font-size: 25px;
-  font-weight: bold;
-  text-align: center;
-  vertical-align: middle;
-
-  border-bottom: solid 5px;
-  border-radius: 5px;
-
-  background-color: rgba(9, 9, 9, 0.6);
-  border-color: rgba(160, 81, 255, 1);
-
-  display: flex;
   justify-content: center;
-
-  flex-wrap: wrap;
-
-  cursor: pointer;
+  transition: background-size 500ms;
+  background-size: 100%;
+  cursor: pointer; 
 }
 
-neo-button > i {
-  margin-right: 6px;
-}
-
-neo-button > span {
-  min-width: 115px;
-}
-
-neo-button:hover {
-  background-color: rgba(17, 17, 17, 0.6);
-  border-color: rgba(56, 145, 255, 1);
-}
-
-#about-floater {
-  display: flex;
-}
-
-#about-floater > img {
-  width: 40%;
-  height: auto;
-  border-radius: 5px;
-  margin-right: 20px;
-}
-#about-floater > div {
-  width: 60%;
-}
-
-@media screen and (max-width: 800px) {
-  #about-floater {
-    flex-wrap: wrap;
-    padding: 20px;
-  }
-  #about-floater > img {
-    width: 100%;
-  }
-  #about-floater > div {
-    width: 100%;
-  }
+#neo-download:hover {
+  background-size: 400%;
 }

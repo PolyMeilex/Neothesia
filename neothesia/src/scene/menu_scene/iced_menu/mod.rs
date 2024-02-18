@@ -340,7 +340,7 @@ fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Theme, Rende
 fn top_padded<'a, MSG: 'a>(
     content: impl Into<Element<'a, MSG>>,
 ) -> iced_widget::Column<'a, MSG, Theme, Renderer> {
-    let spacer = vertical_space(Length::FillPortion(1));
+    let spacer = vertical_space().height(Length::FillPortion(1));
     let content = container(content)
         .height(Length::FillPortion(4))
         .center_x()

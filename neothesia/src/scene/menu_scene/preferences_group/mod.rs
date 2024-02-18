@@ -4,7 +4,7 @@ use iced_widget::{column, container, row, text};
 
 use crate::iced_utils::iced_state::Element;
 
-use super::{layout::PushIf, Renderer};
+use super::Renderer;
 
 mod theme;
 
@@ -43,11 +43,19 @@ impl<'a, MSG: 'a> PreferencesGroup<'a, MSG> {
         self
     }
 
+    pub fn push_maybe(self, child: Option<impl Into<Element<'a, MSG>>>) -> Self {
+        if let Some(child) = child {
+            self.push(child)
+        } else {
+            self
+        }
+    }
+
     pub fn build(self) -> Element<'a, MSG> {
         let header = self.header.map(|header| group_header(header));
         let body = group_body(self.items);
 
-        column![].push_if(header).push(body).spacing(14).into()
+        column![].push_maybe(header).push(body).spacing(14).into()
     }
 }
 
@@ -86,9 +94,9 @@ fn tripple_split<'a, T: 'a>(
 ) -> iced_widget::Row<'a, T, Theme, Renderer> {
     let mut row = row![];
 
-    row = row.push(row![].push_if(prefix).width(Length::Shrink));
-    row = row.push(row![].push_if(center).width(Length::Fill));
-    row = row.push(row![].push_if(suffix).width(Length::Shrink));
+    row = row.push(row![].push_maybe(prefix).width(Length::Shrink));
+    row = row.push(row![].push_maybe(center).width(Length::Fill));
+    row = row.push(row![].push_maybe(suffix).width(Length::Shrink));
 
     row.align_items(iced_core::Alignment::Center).spacing(6)
 }
@@ -106,7 +114,7 @@ fn group_header<'a, T: 'a>(data: PreferencesGroupHeader) -> Element<'a, T> {
         .subtitle
         .map(|title| text(title).style(theme::subtitle()).size(12.2));
 
-    let header = column![].push_if(title).push_if(subtitle);
+    let header = column![].push_maybe(title).push_maybe(subtitle);
 
     tripple_split(None, Some(header.into()), None).into()
 }
@@ -116,8 +124,8 @@ fn title<'a, T: 'a>(
     subtitle: Option<String>,
 ) -> iced_widget::Column<'a, T, Theme, Renderer> {
     column![]
-        .push_if(title.map(|title| text(title).size(14.6)))
-        .push_if(subtitle.map(|subtitle| text(subtitle).size(12.2).style(theme::subtitle())))
+        .push_maybe(title.map(|title| text(title).size(14.6)))
+        .push_maybe(subtitle.map(|subtitle| text(subtitle).size(12.2).style(theme::subtitle())))
 }
 
 pub struct ActionRow<'a, MSG> {

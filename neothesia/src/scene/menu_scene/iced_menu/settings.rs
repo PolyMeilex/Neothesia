@@ -12,7 +12,7 @@ use crate::{
     output_manager::OutputDescriptor,
     scene::menu_scene::{
         icons,
-        layout::{BarLayout, Layout, PushIf},
+        layout::{BarLayout, Layout},
         neo_btn::NeoBtn,
         preferences_group, scroll_listener,
     },
@@ -115,7 +115,7 @@ pub(super) fn update(
 fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
     let output_settings = {
         let output_list = pick_list(
-            &data.outputs,
+            data.outputs.as_ref(),
             data.selected_output.clone(),
             SettingsMessage::SelectOutput,
         )
@@ -153,16 +153,19 @@ fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMess
     preferences_group::PreferencesGroup::new()
         .title("Output")
         .push(output_settings)
-        .push_if(synth_settings)
+        .push_maybe(synth_settings)
         .build()
 }
 
 fn input_group<'a>(data: &'a Data, _target: &Target) -> Element<'a, SettingsMessage> {
-    let inputs = &data.inputs;
     let selected_input = data.selected_input.clone();
 
-    let input_list =
-        pick_list(inputs, selected_input, SettingsMessage::SelectInput).style(theme::pick_list());
+    let input_list = pick_list(
+        data.inputs.as_ref(),
+        selected_input,
+        SettingsMessage::SelectInput,
+    )
+    .style(theme::pick_list());
 
     preferences_group::PreferencesGroup::new()
         .title("Input")

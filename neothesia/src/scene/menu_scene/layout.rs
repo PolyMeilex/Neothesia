@@ -1,6 +1,5 @@
 use crate::iced_utils::iced_state::Element;
-use iced_core::{Alignment, Length, Renderer};
-use iced_style::Theme;
+use iced_core::{Alignment, Length};
 use iced_widget::{column as col, row};
 
 pub struct Layout<'a, Message> {
@@ -41,7 +40,7 @@ impl<'a, M: 'static> Layout<'a, M> {
     }
 
     pub fn build(self) -> Element<'a, M> {
-        let body = col![].push_if(self.body);
+        let body = col![].push_maybe(self.body);
         let body = col![body]
             .width(Length::Fill)
             .height(Length::Fill)
@@ -57,9 +56,9 @@ impl<'a, M: 'static> Layout<'a, M> {
         });
 
         col![]
-            .push_if(top)
+            .push_maybe(top)
             .push(body)
-            .push_if(bottom)
+            .push_maybe(bottom)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -110,9 +109,9 @@ impl<'a, M: 'static> BarLayout<'a, M> {
     }
 
     pub fn build(self) -> Element<'a, M> {
-        let left = row![].push_if(self.left).width(Length::Fill);
-        let center = row![].push_if(self.center).width(Length::Fill);
-        let right = row![].push_if(self.right).width(Length::Fill);
+        let left = row![].push_maybe(self.left).width(Length::Fill);
+        let center = row![].push_maybe(self.center).width(Length::Fill);
+        let right = row![].push_maybe(self.right).width(Length::Fill);
 
         row![left, center, right]
             .align_items(Alignment::Center)
@@ -123,44 +122,5 @@ impl<'a, M: 'static> BarLayout<'a, M> {
 impl<'a, M: 'static> From<BarLayout<'a, M>> for Element<'a, M> {
     fn from(val: BarLayout<'a, M>) -> Self {
         val.build()
-    }
-}
-
-pub trait PushIf<'a, M, R> {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, Theme, R>>>) -> Self;
-}
-
-impl<'a, M, R: Renderer> PushIf<'a, M, R> for iced_widget::Row<'a, M, Theme, R> {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, Theme, R>>>) -> Self {
-        if let Some(item) = item {
-            self.push(item)
-        } else {
-            self
-        }
-    }
-}
-
-impl<'a, M, R: Renderer> PushIf<'a, M, R> for iced_widget::Column<'a, M, Theme, R> {
-    fn push_if(self, item: Option<impl Into<iced_core::Element<'a, M, Theme, R>>>) -> Self {
-        if let Some(item) = item {
-            self.push(item)
-        } else {
-            self
-        }
-    }
-}
-
-impl<'a, M: 'a> PushIf<'a, M, super::Renderer>
-    for super::preferences_group::PreferencesGroup<'a, M>
-{
-    fn push_if(
-        self,
-        item: Option<impl Into<iced_core::Element<'a, M, Theme, super::Renderer>>>,
-    ) -> Self {
-        if let Some(item) = item {
-            self.push(item)
-        } else {
-            self
-        }
     }
 }

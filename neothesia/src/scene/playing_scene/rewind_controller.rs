@@ -1,6 +1,6 @@
 use winit::{
     dpi::PhysicalPosition,
-    event::{ElementState, MouseButton, WindowEvent},
+    event::{ElementState, WindowEvent},
 };
 
 use super::MidiPlayer;
@@ -21,7 +21,7 @@ impl RewindController {
         !matches!(self, RewindController::None)
     }
 
-    fn start_mouse_rewind(&mut self, player: &mut MidiPlayer) {
+    pub fn start_mouse_rewind(&mut self, player: &mut MidiPlayer) {
         let was_paused = player.is_paused();
         self.start_rewind(player, RewindController::Mouse { was_paused });
     }
@@ -36,7 +36,7 @@ impl RewindController {
         *self = controller;
     }
 
-    fn stop_rewind(&mut self, player: &mut MidiPlayer) {
+    pub fn stop_rewind(&mut self, player: &mut MidiPlayer) {
         let controller = std::mem::replace(self, RewindController::None);
 
         let was_paused = match controller {
@@ -71,9 +71,6 @@ impl RewindController {
         match &event {
             WindowEvent::KeyboardInput { event, .. } => {
                 self.handle_keyboard_input(player, event);
-            }
-            WindowEvent::MouseInput { state, button, .. } => {
-                self.handle_mouse_input(player, &target.window_state, state, button);
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.handle_cursor_moved(player, &target.window_state, position);
@@ -114,37 +111,6 @@ impl RewindController {
                     }
                 }
             },
-            _ => {}
-        }
-    }
-
-    fn handle_mouse_input(
-        &mut self,
-        player: &mut MidiPlayer,
-        window_state: &WindowState,
-        state: &ElementState,
-        button: &MouseButton,
-    ) {
-        match (state, button) {
-            (ElementState::Pressed, MouseButton::Left) => {
-                let pos = &window_state.cursor_logical_position;
-
-                if pos.y < 45.0 && !self.is_rewinding() {
-                    self.start_mouse_rewind(player);
-
-                    let x = window_state.cursor_logical_position.x;
-                    let w = window_state.logical_size.width;
-
-                    let p = x / w;
-                    log::debug!("Progressbar: x:{},p:{}", x, p);
-                    player.set_percentage_time(p);
-                }
-            }
-            (ElementState::Released, MouseButton::Left) => {
-                if let RewindController::Mouse { .. } = self {
-                    self.stop_rewind(player);
-                }
-            }
             _ => {}
         }
     }

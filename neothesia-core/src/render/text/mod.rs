@@ -30,9 +30,12 @@ pub struct TextRenderer {
 
 impl TextRenderer {
     pub fn new(gpu: &Gpu) -> Self {
-        let font_system = glyphon::FontSystem::new_with_fonts([glyphon::fontdb::Source::Binary(
-            Arc::new(include_bytes!("./Roboto-Regular.ttf")),
-        )]);
+        let font_system = glyphon::FontSystem::new_with_fonts([
+            glyphon::fontdb::Source::Binary(Arc::new(include_bytes!("./Roboto-Regular.ttf"))),
+            glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                "../../../../neothesia/src/iced_utils/bootstrap-icons.ttf"
+            ))),
+        ]);
 
         let cache = glyphon::SwashCache::new();
         let mut atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, gpu.texture_format);
@@ -85,6 +88,28 @@ impl TextRenderer {
             buffer,
             left: 0.0,
             top,
+            scale: 1.0,
+            bounds: glyphon::TextBounds::default(),
+            default_color: glyphon::Color::rgb(255, 255, 255),
+        });
+    }
+
+    pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str) {
+        let mut buffer =
+            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));
+        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX);
+        buffer.set_text(
+            &mut self.font_system,
+            icon,
+            glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
+            glyphon::Shaping::Basic,
+        );
+        buffer.shape_until_scroll(&mut self.font_system);
+
+        self.queue(TextArea {
+            buffer,
+            left: x,
+            top: y,
             scale: 1.0,
             bounds: glyphon::TextBounds::default(),
             default_color: glyphon::Color::rgb(255, 255, 255),

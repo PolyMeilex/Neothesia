@@ -132,7 +132,7 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
         .padding(30.0)
         .align_items(Alignment::Center);
 
-    let column = col![vertical_space(Length::Fixed(30.0)), column]
+    let column = col![vertical_space().height(Length::Fixed(30.0)), column]
         .align_items(Alignment::Center)
         .width(Length::Fill);
 

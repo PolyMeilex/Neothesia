@@ -38,12 +38,12 @@ oxisynth = { version = "0.0.5", optional = true }
 midi-file = { workspace = true }
 midi-io = { path = "../midi-io" }
 
-iced_style = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
-iced_graphics = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
-iced_core = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
-iced_runtime = {git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812"}
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812", features = ["image"] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev="b4dcf4ecf702a493476791efd95e190e5c1db812", features = ["image"] }
+iced_style = "0.12"
+iced_graphics = "0.12"
+iced_core = "0.12"
+iced_runtime = "0.12"
+iced_wgpu = { version = "0.12", features = ["image"] }
+iced_widget = { version = "0.12", features = ["image"] }
 
 [[bin]]
 name = "neothesia"

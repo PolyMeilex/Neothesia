@@ -278,29 +278,22 @@ fn main() {
 
         {
             let slice = output_buffer.slice(..);
-            futures::executor::block_on(async {
-                let (tx, rx) = futures::channel::oneshot::channel();
 
-                slice.map_async(wgpu::MapMode::Read, move |_| {
-                    tx.send(()).unwrap();
-                });
+            slice.map_async(wgpu::MapMode::Read, move |_| {});
 
-                recorder.gpu.device.poll(wgpu::Maintain::Wait);
+            recorder.gpu.device.poll(wgpu::Maintain::Wait);
 
-                rx.await.unwrap();
+            let mapping = slice.get_mapped_range();
 
-                let mapping = slice.get_mapped_range();
-
-                let data: &[u8] = &mapping;
-                encoder.encode_bgra(1920, 1080, data, false);
-                print!(
-                    "\r Encoded {} frames ({}s, {}%) in {}s",
-                    n,
-                    (n as f32 / 60.0).round(),
-                    (recorder.playback.percentage() * 100.0).round().min(100.0),
-                    start.elapsed().as_secs()
-                );
-            });
+            let data: &[u8] = &mapping;
+            encoder.encode_bgra(1920, 1080, data, false);
+            print!(
+                "\r Encoded {} frames ({}s, {}%) in {}s",
+                n,
+                (n as f32 / 60.0).round(),
+                (recorder.playback.percentage() * 100.0).round().min(100.0),
+                start.elapsed().as_secs()
+            );
         }
 
         n += 1;

@@ -1,5 +1,3 @@
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-
 use super::color::Color;
 use super::GpuInitError;
 
@@ -17,15 +15,13 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    pub async fn for_window<H: HasDisplayHandle + HasWindowHandle>(
+    pub async fn for_window(
         instance: &wgpu::Instance,
-        window: &H,
+        window: impl Into<wgpu::SurfaceTarget<'static>>,
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
-        let surface = unsafe {
-            instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::from_window(window).unwrap())
-        }?;
+        let surface = instance.create_surface(window.into())?;
         let gpu = Self::new(instance, Some(&surface)).await?;
         let surface = Surface::new(&gpu.device, surface, gpu.texture_format, width, height);
 

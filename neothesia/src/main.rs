@@ -8,6 +8,7 @@ mod song;
 mod target;
 mod utils;
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use iced_core::Renderer;
@@ -304,9 +305,14 @@ fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Ta
     });
 
     let size = window.inner_size();
-    let (gpu, surface) =
-        futures::executor::block_on(Gpu::for_window(&instance, &window, size.width, size.height))
-            .unwrap();
+    let window = Arc::new(window);
+    let (gpu, surface) = futures::executor::block_on(Gpu::for_window(
+        &instance,
+        window.clone(),
+        size.width,
+        size.height,
+    ))
+    .unwrap();
 
     let target = Target::new(window, window_state, proxy, gpu);
 

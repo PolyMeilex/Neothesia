@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::render::TextRenderer;
@@ -11,7 +13,7 @@ use crate::iced_utils::IcedManager;
 use winit::window::Window;
 
 pub struct Target {
-    pub window: Window,
+    pub window: Arc<Window>,
     pub iced_manager: IcedManager,
 
     pub window_state: WindowState,
@@ -31,7 +33,7 @@ pub struct Target {
 
 impl Target {
     pub fn new(
-        window: Window,
+        window: Arc<Window>,
         window_state: WindowState,
         proxy: EventLoopProxy<NeothesiaEvent>,
         gpu: Gpu,

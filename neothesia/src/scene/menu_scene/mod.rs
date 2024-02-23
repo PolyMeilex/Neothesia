@@ -43,16 +43,13 @@ impl MenuScene {
         let iced_state =
             iced_state::State::new(menu, ctx.iced_manager.viewport.logical_size(), ctx);
 
-        let mut scene = Self {
+        Self {
             bg_pipeline: BgPipeline::new(&ctx.gpu),
             iced_state,
 
             context: std::task::Context::from_waker(futures::task::noop_waker_ref()),
             futures: Vec::new(),
-        };
-
-        scene.resize(ctx);
-        scene
+        }
     }
 }
 

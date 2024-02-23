@@ -52,10 +52,9 @@ struct Neothesia {
 
 impl Neothesia {
     fn new(mut context: Context, surface: Surface) -> Self {
-        let mut game_scene = menu_scene::MenuScene::new(&mut context);
+        let game_scene = menu_scene::MenuScene::new(&mut context);
 
         context.resize();
-        game_scene.resize(&mut context);
         context.gpu.submit();
 
         Self {
@@ -85,14 +84,12 @@ impl Neothesia {
                 );
 
                 self.context.resize();
-                self.game_scene.resize(&mut self.context);
 
                 self.context.gpu.submit();
             }
             WindowEvent::ScaleFactorChanged { .. } => {
                 // TODO: Check if this update is needed;
                 self.context.resize();
-                self.game_scene.resize(&mut self.context);
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -242,12 +239,40 @@ impl Neothesia {
 }
 
 fn main() {
-    let builder = winit::window::WindowBuilder::new().with_inner_size(winit::dpi::LogicalSize {
-        width: 1080.0,
-        height: 720.0,
-    });
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
+        .init();
 
-    let (event_loop, ctx, surface) = init(builder);
+    let event_loop: EventLoop<NeothesiaEvent> =
+        EventLoopBuilder::with_user_event().build().unwrap();
+
+    let builder = winit::window::WindowBuilder::new()
+        .with_inner_size(winit::dpi::LogicalSize {
+            width: 1080.0,
+            height: 720.0,
+        })
+        .with_title("Neothesia")
+        .with_theme(Some(winit::window::Theme::Dark));
+
+    // TODO: This can be removed now
+    #[cfg(target_os = "windows")]
+    let builder = {
+        use winit::platform::windows::WindowBuilderExtWindows;
+        builder.with_drag_and_drop(false)
+    };
+    let window = builder.build(&event_loop).unwrap();
+
+    if let Err(err) = set_window_icon(&window) {
+        log::error!("Failed to load window icon: {}", err);
+    }
+
+    let window_state = WindowState::new(&window);
+    let size = window.inner_size();
+    let window = Arc::new(window);
+    let (gpu, surface) =
+        futures::executor::block_on(Gpu::for_window(window.clone(), size.width, size.height))
+            .unwrap();
+
+    let ctx = Context::new(window, window_state, event_loop.create_proxy(), gpu);
 
     let mut app = Neothesia::new(ctx, surface);
 
@@ -271,52 +296,6 @@ fn main() {
             }
         })
         .unwrap();
-}
-
-fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Context, Surface) {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
-        .init();
-
-    let event_loop = EventLoopBuilder::with_user_event().build().unwrap();
-    let proxy = event_loop.create_proxy();
-
-    let builder = builder
-        .with_title("Neothesia")
-        .with_theme(Some(winit::window::Theme::Dark));
-
-    #[cfg(target_os = "windows")]
-    let builder = {
-        use winit::platform::windows::WindowBuilderExtWindows;
-        builder.with_drag_and_drop(false)
-    };
-
-    let window = builder.build(&event_loop).unwrap();
-
-    if let Err(err) = set_window_icon(&window) {
-        log::error!("Failed to load window icon: {}", err);
-    }
-
-    let window_state = WindowState::new(&window);
-    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-        backends: wgpu_jumpstart::default_backends(),
-        dx12_shader_compiler: wgpu::Dx12Compiler::default(),
-        flags: wgpu::InstanceFlags::default(),
-        gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
-    });
-
-    let size = window.inner_size();
-    let window = Arc::new(window);
-    let (gpu, surface) = futures::executor::block_on(Gpu::for_window(
-        &instance,
-        window.clone(),
-        size.width,
-        size.height,
-    ))
-    .unwrap();
-
-    let ctx = Context::new(window, window_state, proxy, gpu);
-
-    (event_loop, ctx, surface)
 }
 
 fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {

@@ -106,7 +106,7 @@ impl TopBar {
         }
     }
 
-    fn is_fully_colapsed(&self) -> bool {
+    fn is_fully_collapsed(&self) -> bool {
         self.animation == 0.0
     }
 
@@ -171,9 +171,11 @@ impl TopBar {
 
                     if pos.y > 30.0
                         && pos.y < scene.top_bar.height
-                        && !scene.rewind_controler.is_rewinding()
+                        && !scene.rewind_controller.is_rewinding()
                     {
-                        scene.rewind_controler.start_mouse_rewind(&mut scene.player);
+                        scene
+                            .rewind_controller
+                            .start_mouse_rewind(&mut scene.player);
 
                         let x = ctx.window_state.cursor_logical_position.x;
                         let w = ctx.window_state.logical_size.width;
@@ -189,8 +191,8 @@ impl TopBar {
             (ElementState::Released, MouseButton::Left) => {
                 scene.top_bar.drag = Element::None;
 
-                if let RewindController::Mouse { .. } = scene.rewind_controler {
-                    scene.rewind_controler.stop_rewind(&mut scene.player);
+                if let RewindController::Mouse { .. } = scene.rewind_controller {
+                    scene.rewind_controller.stop_rewind(&mut scene.player);
                 }
             }
             _ => {}
@@ -234,18 +236,18 @@ impl TopBar {
         let top_bar = &mut scene.top_bar;
         let quad_pipeline = &mut scene.fg_quad_pipeline;
         let player = &scene.player;
-        let rewind_controler = &scene.rewind_controler;
+        let rewind_controller = &scene.rewind_controller;
 
         let h = top_bar.height;
         let w = window_state.logical_size.width;
         let progress_x = w * player.percentage();
 
-        let mut is_hovered = if top_bar.is_fully_colapsed() {
+        let mut is_hovered = if top_bar.is_fully_collapsed() {
             window_state.cursor_logical_position.y < h
         } else {
             window_state.cursor_logical_position.y < h * 3.0
         };
-        is_hovered |= rewind_controler.is_rewinding();
+        is_hovered |= rewind_controller.is_rewinding();
 
         if !is_hovered {
             quad_pipeline.instances().push(QuadInstance {
@@ -265,7 +267,7 @@ impl TopBar {
         top_bar.animation = top_bar.animation.min(1.0);
         top_bar.animation = top_bar.animation.max(0.0);
 
-        if top_bar.is_fully_colapsed() {
+        if top_bar.is_fully_collapsed() {
             return;
         }
 
@@ -293,9 +295,9 @@ impl TopBar {
         });
 
         for m in player.song().file.measures.iter() {
-            let lenght = player.lenght().as_secs_f32();
-            let start = player.leed_in().as_secs_f32() / lenght;
-            let measure = m.as_secs_f32() / lenght;
+            let length = player.length().as_secs_f32();
+            let start = player.leed_in().as_secs_f32() / length;
+            let measure = m.as_secs_f32() / length;
 
             let x = (start + measure) * w;
 

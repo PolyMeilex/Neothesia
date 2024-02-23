@@ -16,13 +16,19 @@ pub struct Gpu {
 
 impl Gpu {
     pub async fn for_window(
-        instance: &wgpu::Instance,
         window: impl Into<wgpu::SurfaceTarget<'static>>,
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: crate::default_backends(),
+            dx12_shader_compiler: wgpu::Dx12Compiler::default(),
+            flags: wgpu::InstanceFlags::default(),
+            gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
+        });
+
         let surface = instance.create_surface(window.into())?;
-        let gpu = Self::new(instance, Some(&surface)).await?;
+        let gpu = Self::new(&instance, Some(&surface)).await?;
         let surface = Surface::new(&gpu.device, surface, gpu.texture_format, width, height);
 
         Ok((gpu, surface))

@@ -8,7 +8,6 @@ use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::event::WindowEvent;
 
 pub trait Scene {
-    fn resize(&mut self, _ctx: &mut Context) {}
     fn update(&mut self, ctx: &mut Context, delta: Duration);
     fn render<'pass>(
         &'pass mut self,

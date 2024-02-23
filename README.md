@@ -35,12 +35,14 @@ All binary releases:
 
 ## Video encoding
 
-- To encode video you need to install [rust](https://www.rust-lang.org/)
-- You also need to install [ffmpeg](https://ffmpeg.org/)
-- And compile the `neothesia-cli`, like so `cargo build --release -p neothesia-cli` (if you have make: `make build-recorder`)
-- It will compile `neothesia-cli`, from now on it is used as a comand line tool
+- For Linux and Windows you can download neothesia-cli / recorder build from releasses
+- For macOS
+    - To encode video you need to install [rust](https://www.rust-lang.org/)
+    - You also need to install [ffmpeg](https://ffmpeg.org/)
+    - And compile the `neothesia-cli`, like so `cargo build --release -p neothesia-cli` (if you have make: `make build-recorder`)
+    - It will compile `neothesia-cli`, from now on it is used as a cmomand line tool
 - To encode a `test.mid` file run `./target/release/neothesia-cli ./test.mid`
-- Video will be outputed to `./out` directory`
+- Video will be outputted to `./out` directory`
 
 ## Thanks to
 

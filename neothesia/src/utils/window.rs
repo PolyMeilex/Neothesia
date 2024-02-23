@@ -18,7 +18,7 @@ pub struct WindowState {
 
     pub focused: bool,
 
-    pub modifers_state: ModifiersState,
+    pub modifiers_state: ModifiersState,
 }
 
 impl WindowState {
@@ -45,7 +45,7 @@ impl WindowState {
 
             focused: false,
 
-            modifers_state: ModifiersState::default(),
+            modifiers_state: ModifiersState::default(),
         }
     }
 
@@ -67,7 +67,7 @@ impl WindowState {
                 self.focused = *f;
             }
             WindowEvent::ModifiersChanged(state) => {
-                self.modifers_state = state.state();
+                self.modifiers_state = state.state();
             }
             _ => {}
         }

@@ -90,7 +90,7 @@ impl PlaybackState {
     }
 
     pub fn percentage(&self) -> f32 {
-        self.running.as_secs_f32() / self.lenght().as_secs_f32()
+        self.running.as_secs_f32() / self.length().as_secs_f32()
     }
 
     pub fn leed_in(&self) -> &Duration {
@@ -105,7 +105,7 @@ impl PlaybackState {
         &self.last_note_end
     }
 
-    pub fn lenght(&self) -> Duration {
+    pub fn length(&self) -> Duration {
         self.last_note_end + self.leed_in
     }
 

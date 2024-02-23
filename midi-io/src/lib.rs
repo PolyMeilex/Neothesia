@@ -20,21 +20,21 @@ impl From<midir::InitError> for InitError {
 }
 
 pub struct MidiOutputManager {
-    outout: midir::MidiOutput,
+    output: midir::MidiOutput,
 }
 
 impl MidiOutputManager {
     pub fn new() -> Result<Self, InitError> {
-        let outout = midir::MidiOutput::new("MidiIo-out-manager")?;
+        let output = midir::MidiOutput::new("MidiIo-out-manager")?;
 
-        Ok(Self { outout })
+        Ok(Self { output })
     }
 
     pub fn outputs(&self) -> Vec<MidiOutputPort> {
-        self.outout
+        self.output
             .ports()
             .iter()
-            .filter_map(|p| self.outout.port_name(p).ok())
+            .filter_map(|p| self.output.port_name(p).ok())
             .map(MidiOutputPort)
             .collect()
     }

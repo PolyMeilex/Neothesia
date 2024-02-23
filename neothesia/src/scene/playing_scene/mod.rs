@@ -36,7 +36,7 @@ pub struct PlayingScene {
     guidelines: GuidelineRenderer,
 
     player: MidiPlayer,
-    rewind_controler: RewindController,
+    rewind_controller: RewindController,
     bg_quad_pipeline: QuadPipeline,
     fg_quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
@@ -88,7 +88,7 @@ impl PlayingScene {
 
             waterfall,
             player,
-            rewind_controler: RewindController::new(),
+            rewind_controller: RewindController::new(),
             bg_quad_pipeline: QuadPipeline::new(&ctx.gpu, &ctx.transform),
             fg_quad_pipeline: QuadPipeline::new(&ctx.gpu, &ctx.transform),
             toast_manager: ToastManager::default(),
@@ -110,9 +110,7 @@ impl PlayingScene {
 
         self.player.time_without_lead_in() + ctx.config.playback_offset
     }
-}
 
-impl Scene for PlayingScene {
     fn resize(&mut self, ctx: &mut Context) {
         self.keyboard.resize(ctx);
 
@@ -122,12 +120,14 @@ impl Scene for PlayingScene {
         self.waterfall
             .resize(&ctx.gpu.queue, &ctx.config, self.keyboard.layout().clone());
     }
+}
 
+impl Scene for PlayingScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.bg_quad_pipeline.clear();
         self.fg_quad_pipeline.clear();
 
-        self.rewind_controler.update(&mut self.player, ctx);
+        self.rewind_controller.update(&mut self.player, ctx);
         self.toast_manager.update(&mut ctx.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);
@@ -158,16 +158,20 @@ impl Scene for PlayingScene {
             return;
         }
 
-        self.rewind_controler
+        self.rewind_controller
             .handle_window_event(ctx, event, &mut self.player);
 
-        if self.rewind_controler.is_rewinding() {
+        if self.rewind_controller.is_rewinding() {
             self.keyboard.reset_notes();
         }
 
         handle_back_button(ctx, event);
         handle_pause_button(&mut self.player, event);
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
+
+        if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
+            self.resize(ctx)
+        }
     }
 
     fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {
@@ -238,7 +242,7 @@ fn handle_settings_input(
 
     match event.logical_key {
         Key::Named(key @ (NamedKey::ArrowUp | NamedKey::ArrowDown)) => {
-            let amount = if ctx.window_state.modifers_state.shift_key() {
+            let amount = if ctx.window_state.modifiers_state.shift_key() {
                 0.5
             } else {
                 0.1
@@ -255,7 +259,7 @@ fn handle_settings_input(
         }
 
         Key::Named(key @ (NamedKey::PageUp | NamedKey::PageDown)) => {
-            let amount = if ctx.window_state.modifers_state.shift_key() {
+            let amount = if ctx.window_state.modifiers_state.shift_key() {
                 500.0
             } else {
                 100.0
@@ -282,7 +286,7 @@ fn handle_settings_input(
         }
 
         Key::Character(ref ch) if matches!(ch.as_str(), "_" | "-" | "+" | "=") => {
-            let amount = if ctx.window_state.modifers_state.shift_key() {
+            let amount = if ctx.window_state.modifiers_state.shift_key() {
                 0.1
             } else {
                 0.01

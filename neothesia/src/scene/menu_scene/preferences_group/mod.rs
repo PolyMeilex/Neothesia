@@ -87,7 +87,7 @@ fn group_body<'a, M: 'a>(items: Vec<Element<'a, M>>) -> Element<'a, M> {
     container(coll).style(theme::card()).into()
 }
 
-fn tripple_split<'a, T: 'a>(
+fn triple_split<'a, T: 'a>(
     prefix: Option<Element<'a, T>>,
     center: Option<Element<'a, T>>,
     suffix: Option<Element<'a, T>>,
@@ -116,7 +116,7 @@ fn group_header<'a, T: 'a>(data: PreferencesGroupHeader) -> Element<'a, T> {
 
     let header = column![].push_maybe(title).push_maybe(subtitle);
 
-    tripple_split(None, Some(header.into()), None).into()
+    triple_split(None, Some(header.into()), None).into()
 }
 
 fn title<'a, T: 'a>(
@@ -179,7 +179,7 @@ impl<'a, MSG: 'a> ActionRow<'a, MSG> {
             None
         };
 
-        tripple_split(self.prefix, center, self.suffix)
+        triple_split(self.prefix, center, self.suffix)
             .width(700)
             .padding(15)
     }

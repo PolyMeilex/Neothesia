@@ -27,11 +27,11 @@ impl KeyState {
         self.pressed_by_user = is;
     }
 
-    pub fn pressed_by_file_on(&mut self, schem: &ColorSchema) {
+    pub fn pressed_by_file_on(&mut self, scheme: &ColorSchema) {
         let (r, g, b) = if self.is_sharp {
-            schem.dark
+            scheme.dark
         } else {
-            schem.base
+            scheme.base
         };
 
         self.pressed_by_file = Some(Color::from_rgba8(r, g, b, 1.0));

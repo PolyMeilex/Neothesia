@@ -52,9 +52,9 @@ impl RewindController {
 
     pub fn update(&self, player: &mut MidiPlayer, ctx: &Context) {
         if let RewindController::Keyboard { speed, .. } = self {
-            if ctx.window_state.modifers_state.shift_key() {
+            if ctx.window_state.modifiers_state.shift_key() {
                 player.rewind(*speed * 2);
-            } else if ctx.window_state.modifers_state.control_key() {
+            } else if ctx.window_state.modifiers_state.control_key() {
                 player.rewind(*speed / 2);
             } else {
                 player.rewind(*speed);

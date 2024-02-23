@@ -143,11 +143,11 @@ impl MidiPlayer {
     }
 
     pub fn percentage_to_time(&self, p: f32) -> Duration {
-        Duration::from_secs_f32((p * self.playback.lenght().as_secs_f32()).max(0.0))
+        Duration::from_secs_f32((p * self.playback.length().as_secs_f32()).max(0.0))
     }
 
     pub fn time_to_percentage(&self, time: &Duration) -> f32 {
-        time.as_secs_f32() / self.playback.lenght().as_secs_f32()
+        time.as_secs_f32() / self.playback.length().as_secs_f32()
     }
 
     pub fn set_percentage_time(&mut self, p: f32) {
@@ -158,8 +158,8 @@ impl MidiPlayer {
         self.playback.leed_in()
     }
 
-    pub fn lenght(&self) -> Duration {
-        self.playback.lenght()
+    pub fn length(&self) -> Duration {
+        self.playback.length()
     }
 
     pub fn percentage(&self) -> f32 {
@@ -221,7 +221,7 @@ impl PlayAlong {
     }
 
     fn update(&mut self) {
-        // Instead of calling .elapsed() per item let's fetch `now` once, and substract it ourselfs
+        // Instead of calling .elapsed() per item let's fetch `now` once, and subtract it ourselves
         let now = Instant::now();
 
         while let Some(item) = self.user_pressed_recently.front_mut() {

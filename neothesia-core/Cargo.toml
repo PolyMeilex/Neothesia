@@ -7,13 +7,13 @@ edition = "2021"
 ron = "0.8"
 serde = { version = "1", features = ["serde_derive"] }
 
-log = { workspace = true }
-bytemuck = { workspace = true }
-wgpu = { workspace = true }
-glyphon = { workspace = true }
-wgpu-jumpstart = { workspace = true }
-piano-math = { workspace = true }
-midi-file = { workspace = true }
+log.workspace = true
+bytemuck.workspace = true
+wgpu.workspace = true
+glyphon.workspace = true
+wgpu-jumpstart.workspace = true
+piano-math.workspace = true
+midi-file.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"

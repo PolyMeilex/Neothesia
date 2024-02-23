@@ -1,7 +1,7 @@
 use iced_core::{mouse::ScrollDelta, Length, Size, Widget};
 use iced_style::Theme;
 
-use crate::iced_utils::iced_state::Element;
+use super::Element;
 
 pub struct ScrollListener<'a, M> {
     content: Element<'a, M>,

@@ -6,16 +6,9 @@ use iced_runtime::Command;
 use iced_widget::{button, column as col, container, row, vertical_space};
 
 use crate::{
-    context::Context,
-    iced_utils::iced_state::Element,
-    scene::menu_scene::{
-        icons,
-        layout::{BarLayout, Layout},
-        neo_btn::NeoBtn,
-        segment_button, track_card,
-    },
-    song::PlayerConfig,
+    context::Context, iced_utils::iced_state::Element, scene::menu_scene::icons, song::PlayerConfig,
 };
+use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
 
 use super::{centered_text, theme, Data, Message};
 
@@ -89,7 +82,7 @@ pub(super) fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Message> {
                 midi_file::INSTRUMENT_NAMES[instrument_id]
             };
 
-            let body = segment_button::segment_button()
+            let body = neothesia_iced_widgets::SegmentButton::new()
                 .button(
                     "Mute",
                     TracksMessage::TrackPlayer(track.track_id, PlayerConfig::Mute).into(),
@@ -103,10 +96,9 @@ pub(super) fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Message> {
                     TracksMessage::TrackPlayer(track.track_id, PlayerConfig::Human).into(),
                 )
                 .active(active)
-                .active_color(color)
-                .build();
+                .active_color(color);
 
-            let card = track_card::track_card()
+            let card = neothesia_iced_widgets::TrackCard::new()
                 .title(name)
                 .subtitle(format!("{} Notes", track.notes.len()))
                 .track_color(color)
@@ -118,11 +110,11 @@ pub(super) fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Message> {
                 card.on_icon_press(TracksMessage::TrackVisibility(track.track_id, !visible).into())
             };
 
-            tracks.push(card.build().into());
+            tracks.push(card.into());
         }
     }
 
-    let column = super::super::wrap::Wrap::with_elements(tracks)
+    let column = neothesia_iced_widgets::Wrap::with_elements(tracks)
         .spacing(14.0)
         .line_spacing(14.0)
         .padding(30.0)

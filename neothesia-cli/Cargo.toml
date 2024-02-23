@@ -8,11 +8,11 @@ edition = "2021"
 build-ffmpeg = ["mpeg_encoder/build"]
 
 [dependencies]
-neothesia-core = { workspace = true }
-midi-file = { workspace = true }
-piano-math = { workspace = true }
-wgpu-jumpstart = { workspace = true }
-env_logger = { workspace = true }
-futures = { workspace = true }
+neothesia-core.workspace = true
+midi-file.workspace = true
+piano-math.workspace = true
+wgpu-jumpstart.workspace = true
+env_logger.workspace = true
+futures.workspace = true
 
 mpeg_encoder = { git = "https://github.com/PolyMeilex/mpeg_encoder_next.git" }

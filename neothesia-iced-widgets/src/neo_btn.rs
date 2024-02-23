@@ -12,16 +12,6 @@ use iced_graphics::Primitive;
 use iced_style::Theme;
 use iced_widget::text;
 
-/// Creates a new [`Button`] with the provided content.
-pub fn neo_button<'a, Message: Clone>(label: &str) -> NeoBtn<'a, Message> {
-    NeoBtn::new(
-        text(label)
-            .size(30)
-            .vertical_alignment(Vertical::Center)
-            .horizontal_alignment(Horizontal::Center),
-    )
-}
-
 pub struct NeoBtn<'a, Message> {
     width: Length,
     height: Length,
@@ -35,6 +25,15 @@ pub struct NeoBtn<'a, Message> {
 }
 
 impl<'a, Message: Clone> NeoBtn<'a, Message> {
+    pub fn new_with_label(label: &str) -> Self {
+        Self::new(
+            text(label)
+                .size(30)
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Center),
+        )
+    }
+
     pub fn new<E>(content: E) -> Self
     where
         E: Into<Element<'a, Message, Theme, Renderer>>,

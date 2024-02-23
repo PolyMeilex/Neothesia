@@ -13,15 +13,23 @@ fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
 oxi-synth = ["synth", "cpal", "oxisynth"]
 
 [dependencies]
-futures = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
-wgpu = { workspace = true }
-wgpu-jumpstart = { workspace = true }
-neothesia-core = { workspace = true }
-piano-math = { workspace = true }
-midi-file = { workspace = true }
-midi-io = { workspace = true }
+futures.workspace = true
+log.workspace = true
+env_logger.workspace = true
+wgpu.workspace = true
+wgpu-jumpstart.workspace = true
+neothesia-core.workspace = true
+neothesia-iced-widgets.workspace = true
+piano-math.workspace = true
+midi-file.workspace = true
+midi-io.workspace = true
+
+iced_style.workspace = true
+iced_graphics.workspace = true
+iced_core.workspace = true
+iced_runtime.workspace = true
+iced_wgpu.workspace = true
+iced_widget.workspace = true
 
 fps_ticker = "1"
 winit = { version = "0.29", features = ["rwh_05"] }
@@ -31,13 +39,6 @@ async-thread = "0.1"
 cpal = { version = "0.15", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }
 oxisynth = { version = "0.0.5", optional = true }
-
-iced_style = "0.12"
-iced_graphics = "0.12"
-iced_core = "0.12"
-iced_runtime = "0.12"
-iced_wgpu = { version = "0.12", features = ["image"] }
-iced_widget = { version = "0.12", features = ["image"] }
 
 [[bin]]
 name = "neothesia"

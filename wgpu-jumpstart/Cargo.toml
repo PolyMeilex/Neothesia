@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-wgpu = { workspace = true }
-log = { workspace = true }
-bytemuck = { workspace = true }
+wgpu.workspace = true
+log.workspace = true
+bytemuck.workspace = true
 raw-window-handle = "0.6.0"

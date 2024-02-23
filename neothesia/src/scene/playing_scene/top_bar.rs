@@ -7,7 +7,7 @@ use winit::{
     event::{ElementState, MouseButton, WindowEvent},
 };
 
-use crate::{target::Target, utils::window::WindowState, NeothesiaEvent};
+use crate::{context::Context, utils::window::WindowState, NeothesiaEvent};
 
 use super::{
     animation, rewind_controller::RewindController, PlayingScene, EVENT_CAPTURED, EVENT_IGNORED,
@@ -126,15 +126,15 @@ impl TopBar {
 
     pub fn handle_window_event(
         scene: &mut PlayingScene,
-        target: &mut Target,
+        ctx: &mut Context,
         event: &WindowEvent,
     ) -> bool {
         match &event {
             WindowEvent::MouseInput { state, button, .. } => {
-                return Self::handle_mouse_input(scene, target, state, button);
+                return Self::handle_mouse_input(scene, ctx, state, button);
             }
             WindowEvent::CursorMoved { position, .. } => {
-                Self::handle_cursor_moved(scene, target, position);
+                Self::handle_cursor_moved(scene, ctx, position);
             }
             _ => {}
         }
@@ -144,7 +144,7 @@ impl TopBar {
 
     fn handle_mouse_input(
         scene: &mut PlayingScene,
-        target: &mut Target,
+        ctx: &mut Context,
         state: &ElementState,
         button: &MouseButton,
     ) -> bool {
@@ -159,7 +159,7 @@ impl TopBar {
                     return EVENT_CAPTURED;
                 }
                 Element::BackButton => {
-                    target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+                    ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
                     return EVENT_CAPTURED;
                 }
                 Element::StartTick | Element::EndTick => {
@@ -167,7 +167,7 @@ impl TopBar {
                     return EVENT_CAPTURED;
                 }
                 _ => {
-                    let pos = &target.window_state.cursor_logical_position;
+                    let pos = &ctx.window_state.cursor_logical_position;
 
                     if pos.y > 30.0
                         && pos.y < scene.top_bar.height
@@ -175,8 +175,8 @@ impl TopBar {
                     {
                         scene.rewind_controler.start_mouse_rewind(&mut scene.player);
 
-                        let x = target.window_state.cursor_logical_position.x;
-                        let w = target.window_state.logical_size.width;
+                        let x = ctx.window_state.cursor_logical_position.x;
+                        let w = ctx.window_state.logical_size.width;
 
                         let p = x / w;
                         log::debug!("Progressbar: x:{},p:{}", x, p);
@@ -201,16 +201,12 @@ impl TopBar {
 
     fn handle_cursor_moved(
         scene: &mut PlayingScene,
-        target: &mut Target,
+        ctx: &mut Context,
         position: &PhysicalPosition<f64>,
     ) {
-        let x = position
-            .to_logical::<f32>(target.window_state.scale_factor)
-            .x;
-        let y = position
-            .to_logical::<f32>(target.window_state.scale_factor)
-            .y;
-        let w = target.window_state.logical_size.width;
+        let x = position.to_logical::<f32>(ctx.window_state.scale_factor).x;
+        let y = position.to_logical::<f32>(ctx.window_state.scale_factor).y;
+        let w = ctx.window_state.logical_size.width;
 
         scene.top_bar.hovered = scene.top_bar.hovered(x, y);
 

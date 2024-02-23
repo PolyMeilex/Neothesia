@@ -19,12 +19,12 @@ use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::event::WindowEvent;
 
 use crate::{
+    context::Context,
     iced_utils::{
         iced_conversion,
         iced_state::{self, Program},
     },
     scene::Scene,
-    target::Target,
 };
 
 type Renderer = iced_wgpu::Renderer;
@@ -38,27 +38,27 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub fn new(target: &mut Target) -> Self {
-        let menu = AppUi::new(target);
+    pub fn new(ctx: &mut Context) -> Self {
+        let menu = AppUi::new(ctx);
         let iced_state =
-            iced_state::State::new(menu, target.iced_manager.viewport.logical_size(), target);
+            iced_state::State::new(menu, ctx.iced_manager.viewport.logical_size(), ctx);
 
         let mut scene = Self {
-            bg_pipeline: BgPipeline::new(&target.gpu),
+            bg_pipeline: BgPipeline::new(&ctx.gpu),
             iced_state,
 
             context: std::task::Context::from_waker(futures::task::noop_waker_ref()),
             futures: Vec::new(),
         };
 
-        scene.resize(target);
+        scene.resize(ctx);
         scene
     }
 }
 
 impl Scene for MenuScene {
-    fn update(&mut self, target: &mut Target, delta: Duration) {
-        self.bg_pipeline.update_time(&mut target.gpu, delta);
+    fn update(&mut self, ctx: &mut Context, delta: Duration) {
+        self.bg_pipeline.update_time(&mut ctx.gpu, delta);
         self.iced_state.queue_message(iced_menu::Message::Tick);
 
         self.futures
@@ -71,7 +71,7 @@ impl Scene for MenuScene {
             });
 
         if !self.iced_state.is_queue_empty() {
-            if let Some(command) = self.iced_state.update(target) {
+            if let Some(command) = self.iced_state.update(ctx) {
                 for a in command.actions() {
                     match a {
                         iced_runtime::command::Action::Future(f) => {
@@ -92,26 +92,26 @@ impl Scene for MenuScene {
         self.bg_pipeline.render(rpass);
     }
 
-    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
+    fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
         use winit::keyboard::ModifiersState;
 
         let modifiers = ModifiersState::default();
 
         if let Some(event) = iced_conversion::window_event(
             event.clone(),
-            target.iced_manager.viewport.scale_factor(),
+            ctx.iced_manager.viewport.scale_factor(),
             modifiers,
         ) {
             self.iced_state.queue_event(event.clone());
 
             match &event {
                 iced_core::event::Event::Mouse(event) => {
-                    if let Some(msg) = self.iced_state.program().mouse_input(event, target) {
+                    if let Some(msg) = self.iced_state.program().mouse_input(event, ctx) {
                         self.iced_state.queue_message(msg);
                     }
                 }
                 iced_core::event::Event::Keyboard(event) => {
-                    if let Some(msg) = self.iced_state.program().keyboard_input(event, target) {
+                    if let Some(msg) = self.iced_state.program().keyboard_input(event, ctx) {
                         self.iced_state.queue_message(msg);
                     }
                 }

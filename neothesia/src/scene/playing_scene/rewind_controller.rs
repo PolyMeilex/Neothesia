@@ -4,7 +4,7 @@ use winit::{
 };
 
 use super::MidiPlayer;
-use crate::{target::Target, utils::window::WindowState};
+use crate::{context::Context, utils::window::WindowState};
 
 pub enum RewindController {
     Keyboard { speed: i64, was_paused: bool },
@@ -50,11 +50,11 @@ impl RewindController {
         }
     }
 
-    pub fn update(&self, player: &mut MidiPlayer, target: &Target) {
+    pub fn update(&self, player: &mut MidiPlayer, ctx: &Context) {
         if let RewindController::Keyboard { speed, .. } = self {
-            if target.window_state.modifers_state.shift_key() {
+            if ctx.window_state.modifers_state.shift_key() {
                 player.rewind(*speed * 2);
-            } else if target.window_state.modifers_state.control_key() {
+            } else if ctx.window_state.modifers_state.control_key() {
                 player.rewind(*speed / 2);
             } else {
                 player.rewind(*speed);
@@ -64,7 +64,7 @@ impl RewindController {
 
     pub fn handle_window_event(
         &mut self,
-        target: &mut Target,
+        ctx: &mut Context,
         event: &WindowEvent,
         player: &mut MidiPlayer,
     ) {
@@ -73,7 +73,7 @@ impl RewindController {
                 self.handle_keyboard_input(player, event);
             }
             WindowEvent::CursorMoved { position, .. } => {
-                self.handle_cursor_moved(player, &target.window_state, position);
+                self.handle_cursor_moved(player, &ctx.window_state, position);
             }
             _ => {}
         }

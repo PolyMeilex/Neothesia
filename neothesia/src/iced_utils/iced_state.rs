@@ -6,7 +6,7 @@ use iced_runtime::Command;
 use iced_style::Theme;
 
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
-use crate::target::Target;
+use crate::context::Context;
 
 pub type Element<'a, M> = iced_core::Element<'a, M, Theme, iced_wgpu::Renderer>;
 
@@ -23,17 +23,17 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    fn update(&mut self, target: &mut Target, message: Self::Message) -> Command<Self::Message>;
+    fn update(&mut self, ctx: &mut Context, message: Self::Message) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self, target: &Target) -> Element<'_, Self::Message>;
+    fn view(&self, ctx: &Context) -> Element<'_, Self::Message>;
 
     fn mouse_input(
         &self,
         _event: &iced_core::mouse::Event,
-        _target: &Target,
+        _ctx: &Context,
     ) -> Option<Self::Message> {
         None
     }
@@ -41,7 +41,7 @@ pub trait Program: Sized {
     fn keyboard_input(
         &self,
         _event: &iced_core::keyboard::Event,
-        _target: &Target,
+        _ctx: &Context,
     ) -> Option<Self::Message> {
         None
     }
@@ -66,13 +66,9 @@ where
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
-    pub fn new(mut program: P, bounds: Size, target: &mut Target) -> Self {
-        let user_interface = build_user_interface(
-            &mut program,
-            user_interface::Cache::default(),
-            bounds,
-            target,
-        );
+    pub fn new(mut program: P, bounds: Size, ctx: &mut Context) -> Self {
+        let user_interface =
+            build_user_interface(&mut program, user_interface::Cache::default(), bounds, ctx);
 
         let cache = Some(user_interface.into_cache());
 
@@ -120,28 +116,24 @@ where
     ///
     /// Returns the [`Command`] obtained from [`Program`] after updating it,
     /// only if an update was necessary.
-    pub fn update(&mut self, target: &mut Target) -> Option<Command<P::Message>> {
+    pub fn update(&mut self, ctx: &mut Context) -> Option<Command<P::Message>> {
         let clipboard = &mut DummyClipboard {};
 
-        let bounds = target.iced_manager.viewport.logical_size();
+        let bounds = ctx.iced_manager.viewport.logical_size();
         let cursor_position = iced_conversion::cursor_position(
-            target.window_state.cursor_physical_position,
-            target.iced_manager.viewport.scale_factor(),
+            ctx.window_state.cursor_physical_position,
+            ctx.iced_manager.viewport.scale_factor(),
         );
 
-        let mut user_interface = build_user_interface(
-            &mut self.program,
-            self.cache.take().unwrap(),
-            bounds,
-            target,
-        );
+        let mut user_interface =
+            build_user_interface(&mut self.program, self.cache.take().unwrap(), bounds, ctx);
 
         let mut messages = Vec::new();
 
         let _ = user_interface.update(
             &self.queued_events,
             mouse::Cursor::Available(cursor_position),
-            &mut target.iced_manager.renderer,
+            &mut ctx.iced_manager.renderer,
             clipboard,
             &mut messages,
         );
@@ -151,7 +143,7 @@ where
 
         if messages.is_empty() {
             self.mouse_interaction = user_interface.draw(
-                &mut target.iced_manager.renderer,
+                &mut ctx.iced_manager.renderer,
                 &iced_style::Theme::Dark,
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
@@ -169,15 +161,15 @@ where
 
             let commands = messages
                 .into_iter()
-                .map(|message| self.program.update(target, message));
+                .map(|message| self.program.update(ctx, message));
 
             let commands = Command::batch(commands);
 
             let mut user_interface =
-                build_user_interface(&mut self.program, temp_cache, bounds, target);
+                build_user_interface(&mut self.program, temp_cache, bounds, ctx);
 
             self.mouse_interaction = user_interface.draw(
-                &mut target.iced_manager.renderer,
+                &mut ctx.iced_manager.renderer,
                 &iced_style::Theme::Dark,
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
@@ -196,8 +188,8 @@ fn build_user_interface<'a, P: Program>(
     program: &'a mut P,
     cache: user_interface::Cache,
     size: Size,
-    target: &mut Target,
+    ctx: &mut Context,
 ) -> UserInterface<'a, P::Message, Theme, iced_wgpu::Renderer> {
-    let view = program.view(target);
-    UserInterface::build(view, size, cache, &mut target.iced_manager.renderer)
+    let view = program.view(ctx);
+    UserInterface::build(view, size, cache, &mut ctx.iced_manager.renderer)
 }

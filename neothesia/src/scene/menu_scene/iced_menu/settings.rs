@@ -8,6 +8,7 @@ use iced_runtime::Command;
 use iced_widget::{button, column as col, container, pick_list, row, toggler};
 
 use crate::{
+    context::Context,
     iced_utils::iced_state::Element,
     output_manager::OutputDescriptor,
     scene::menu_scene::{
@@ -16,7 +17,6 @@ use crate::{
         neo_btn::NeoBtn,
         preferences_group, scroll_listener,
     },
-    target::Target,
 };
 
 use super::{centered_text, theme, Data, InputDescriptor, Message};
@@ -47,15 +47,10 @@ impl From<SettingsMessage> for Message {
     }
 }
 
-pub(super) fn update(
-    data: &mut Data,
-    msg: SettingsMessage,
-    target: &mut Target,
-) -> Command<Message> {
+pub(super) fn update(data: &mut Data, msg: SettingsMessage, ctx: &mut Context) -> Command<Message> {
     match msg {
         SettingsMessage::SelectOutput(output) => {
-            target
-                .config
+            ctx.config
                 .set_output(if let OutputDescriptor::DummyOutput = output {
                     None
                 } else {
@@ -64,14 +59,14 @@ pub(super) fn update(
             data.selected_output = Some(output);
         }
         SettingsMessage::SelectInput(input) => {
-            target.config.set_input(Some(&input));
+            ctx.config.set_input(Some(&input));
             data.selected_input = Some(input);
         }
         SettingsMessage::VerticalGuidelines(v) => {
-            target.config.vertical_guidelines = v;
+            ctx.config.vertical_guidelines = v;
         }
         SettingsMessage::HorizontalGuidelines(v) => {
-            target.config.horizontal_guidelines = v;
+            ctx.config.horizontal_guidelines = v;
         }
         SettingsMessage::OpenSoundFontPicker => {
             data.is_loading = true;
@@ -81,29 +76,29 @@ pub(super) fn update(
         }
         SettingsMessage::SoundFontFileLoaded(font) => {
             if let Some(font) = font {
-                target.config.soundfont_path = Some(font.clone());
+                ctx.config.soundfont_path = Some(font.clone());
             }
             data.is_loading = false;
         }
         SettingsMessage::RangeStart(kind) => match kind {
             RangeUpdateKind::Add => {
-                let v = (target.config.piano_range().start() + 1).min(127);
-                if v + 24 < *target.config.piano_range().end() {
-                    target.config.piano_range.0 = v;
+                let v = (ctx.config.piano_range().start() + 1).min(127);
+                if v + 24 < *ctx.config.piano_range().end() {
+                    ctx.config.piano_range.0 = v;
                 }
             }
             RangeUpdateKind::Sub => {
-                target.config.piano_range.0 = target.config.piano_range.0.saturating_sub(1);
+                ctx.config.piano_range.0 = ctx.config.piano_range.0.saturating_sub(1);
             }
         },
         SettingsMessage::RangeEnd(kind) => match kind {
             RangeUpdateKind::Add => {
-                target.config.piano_range.1 = (target.config.piano_range.1 + 1).min(127);
+                ctx.config.piano_range.1 = (ctx.config.piano_range.1 + 1).min(127);
             }
             RangeUpdateKind::Sub => {
-                let v = target.config.piano_range().end().saturating_sub(1);
-                if *target.config.piano_range().start() + 24 < v {
-                    target.config.piano_range.1 = v;
+                let v = ctx.config.piano_range().end().saturating_sub(1);
+                if *ctx.config.piano_range().start() + 24 < v {
+                    ctx.config.piano_range.1 = v;
                 }
             }
         },
@@ -112,7 +107,7 @@ pub(super) fn update(
     Command::none()
 }
 
-fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
+fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, SettingsMessage> {
     let output_settings = {
         let output_list = pick_list(
             data.outputs.as_ref(),
@@ -128,7 +123,7 @@ fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMess
 
     let is_synth = matches!(data.selected_output, Some(OutputDescriptor::Synth(_)));
     let synth_settings = is_synth.then(|| {
-        let subtitle = target
+        let subtitle = ctx
             .config
             .soundfont_path
             .as_ref()
@@ -157,7 +152,7 @@ fn output_group<'a>(data: &'a Data, target: &Target) -> Element<'a, SettingsMess
         .build()
 }
 
-fn input_group<'a>(data: &'a Data, _target: &Target) -> Element<'a, SettingsMessage> {
+fn input_group<'a>(data: &'a Data, _ctx: &Context) -> Element<'a, SettingsMessage> {
     let selected_input = data.selected_input.clone();
 
     let input_list = pick_list(
@@ -205,15 +200,12 @@ fn counter<'a>(
     .into()
 }
 
-fn note_range_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
+fn note_range_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, SettingsMessage> {
     let start = counter(
-        *target.config.piano_range().start(),
+        *ctx.config.piano_range().start(),
         SettingsMessage::RangeStart,
     );
-    let end = counter(
-        *target.config.piano_range().end(),
-        SettingsMessage::RangeEnd,
-    );
+    let end = counter(*ctx.config.piano_range().end(), SettingsMessage::RangeEnd);
 
     preferences_group::PreferencesGroup::new()
         .title("Note Range")
@@ -226,17 +218,17 @@ fn note_range_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Setting
         .build()
 }
 
-fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, SettingsMessage> {
+fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, SettingsMessage> {
     let vertical = toggler(
         None,
-        target.config.vertical_guidelines,
+        ctx.config.vertical_guidelines,
         SettingsMessage::VerticalGuidelines,
     )
     .style(theme::toggler());
 
     let horizontal = toggler(
         None,
-        target.config.horizontal_guidelines,
+        ctx.config.horizontal_guidelines,
         SettingsMessage::HorizontalGuidelines,
     )
     .style(theme::toggler());
@@ -258,12 +250,12 @@ fn guidelines_group<'a>(_data: &'a Data, target: &Target) -> Element<'a, Setting
         .build()
 }
 
-pub(super) fn view<'a>(data: &'a Data, target: &Target) -> Element<'a, Message> {
-    let output_group = output_group(data, target);
-    let input_group = input_group(data, target);
-    let note_range_group = note_range_group(data, target);
-    let guidelines_group = guidelines_group(data, target);
-    let range = super::super::piano_range::PianoRange(target.config.piano_range());
+pub(super) fn view<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Message> {
+    let output_group = output_group(data, ctx);
+    let input_group = input_group(data, ctx);
+    let note_range_group = note_range_group(data, ctx);
+    let guidelines_group = guidelines_group(data, ctx);
+    let range = super::super::piano_range::PianoRange(ctx.config.piano_range());
 
     let column = col![
         output_group,

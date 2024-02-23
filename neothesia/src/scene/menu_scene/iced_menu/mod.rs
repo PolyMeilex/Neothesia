@@ -14,10 +14,10 @@ use iced_style::Theme;
 use iced_widget::{column as col, container, image, row, text, vertical_space};
 
 use crate::{
+    context::Context,
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::neo_btn::neo_button,
-    target::Target,
     NeothesiaEvent,
 };
 
@@ -63,7 +63,7 @@ pub struct AppUi {
 }
 
 impl AppUi {
-    pub fn new(_target: &Target) -> Self {
+    pub fn new(_ctx: &Context) -> Self {
         Self {
             current: Step::Main,
             data: Data {
@@ -84,45 +84,44 @@ impl AppUi {
 impl Program for AppUi {
     type Message = Message;
 
-    fn update(&mut self, target: &mut Target, message: Message) -> Command<Self::Message> {
+    fn update(&mut self, ctx: &mut Context, message: Message) -> Command<Self::Message> {
         match message {
             Message::GoToPage(page) => {
                 self.current = page;
             }
             Message::Play => {
-                if let Some(song) = target.song.as_ref() {
+                if let Some(song) = ctx.song.as_ref() {
                     if let Some(out) = self.data.selected_output.clone() {
                         let out = match out {
                             #[cfg(feature = "synth")]
                             OutputDescriptor::Synth(_) => {
-                                OutputDescriptor::Synth(target.config.soundfont_path.clone())
+                                OutputDescriptor::Synth(ctx.config.soundfont_path.clone())
                             }
                             o => o,
                         };
 
-                        target.output_manager.connect(out)
+                        ctx.output_manager.connect(out)
                     }
 
                     if let Some(port) = self.data.selected_input.clone() {
-                        target.input_manager.connect_input(port);
+                        ctx.input_manager.connect_input(port);
                     }
 
-                    target
-                        .proxy
+                    ctx.proxy
                         .send_event(NeothesiaEvent::Play(song.clone()))
                         .ok();
                 }
             }
             Message::Tick => {
-                self.data.outputs = target.output_manager.outputs();
-                self.data.inputs = target.input_manager.inputs();
+                self.data.outputs = ctx.output_manager.outputs();
+                self.data.inputs = ctx.input_manager.inputs();
 
                 if self.data.selected_output.is_none() {
                     if let Some(out) = self
                         .data
                         .outputs
                         .iter()
-                        .find(|output| Some(output.to_string()) == target.config.output)
+                        .find(|output| Some(output.to_string()) == ctx.config.output)
                     {
                         self.data.selected_output = Some(out.clone());
                     } else {
@@ -135,7 +134,7 @@ impl Program for AppUi {
                         .data
                         .inputs
                         .iter()
-                        .find(|input| Some(input.to_string()) == target.config.input)
+                        .find(|input| Some(input.to_string()) == ctx.config.input)
                     {
                         self.data.selected_input = Some(input.clone());
                     } else {
@@ -144,23 +143,23 @@ impl Program for AppUi {
                 }
             }
             Message::Settings(msg) => {
-                return settings::update(&mut self.data, msg, target);
+                return settings::update(&mut self.data, msg, ctx);
             }
             Message::Tracks(msg) => {
-                return tracks::update(&mut self.data, msg, target);
+                return tracks::update(&mut self.data, msg, ctx);
             }
             Message::MidiFilePicker(msg) => {
-                return midi_file_picker::update(&mut self.data, msg, target);
+                return midi_file_picker::update(&mut self.data, msg, ctx);
             }
             Message::ExitApp => {
-                return exit::update(&mut self.data, (), target);
+                return exit::update(&mut self.data, (), ctx);
             }
         }
 
         Command::none()
     }
 
-    fn mouse_input(&self, event: &iced_core::mouse::Event, _target: &Target) -> Option<Message> {
+    fn mouse_input(&self, event: &iced_core::mouse::Event, _ctx: &Context) -> Option<Message> {
         if let iced_core::mouse::Event::ButtonPressed(iced_core::mouse::Button::Back) = event {
             Some(Message::GoToPage(self.current.previous_step()))
         } else {
@@ -171,7 +170,7 @@ impl Program for AppUi {
     fn keyboard_input(
         &self,
         event: &iced_runtime::keyboard::Event,
-        _target: &Target,
+        _ctx: &Context,
     ) -> Option<Message> {
         use iced_runtime::keyboard::{key::Named, Event, Key};
 
@@ -212,8 +211,8 @@ impl Program for AppUi {
         }
     }
 
-    fn view(&self, target: &Target) -> Element<Message> {
-        self.current.view(&self.data, target)
+    fn view(&self, ctx: &Context) -> Element<Message> {
+        self.current.view(&self.data, ctx)
     }
 }
 
@@ -235,16 +234,16 @@ impl<'a> Step {
         }
     }
 
-    fn view(&'a self, data: &'a Data, target: &Target) -> Element<Message> {
+    fn view(&'a self, data: &'a Data, ctx: &Context) -> Element<Message> {
         if data.is_loading {
             return Self::loading(data);
         }
 
         match self {
-            Self::Exit => exit::view(data, target),
-            Self::Main => Self::main(data, target),
-            Self::Settings => settings::view(data, target),
-            Self::TrackSelection => tracks::view(data, target),
+            Self::Exit => exit::view(data, ctx),
+            Self::Main => Self::main(data, ctx),
+            Self::Settings => settings::view(data, ctx),
+            Self::TrackSelection => tracks::view(data, ctx),
         }
     }
 
@@ -256,7 +255,7 @@ impl<'a> Step {
         center_x(top_padded(column)).into()
     }
 
-    fn main(data: &'a Data, target: &Target) -> Element<'a, Message> {
+    fn main(data: &'a Data, ctx: &Context) -> Element<'a, Message> {
         let buttons = col![
             neo_button("Select File")
                 .on_press(midi_file_picker::open().into())
@@ -280,7 +279,7 @@ impl<'a> Step {
 
         let mut layout = Layout::new().body(top_padded(column));
 
-        if let Some(song) = target.song.as_ref() {
+        if let Some(song) = ctx.song.as_ref() {
             let tracks = NeoBtn::new(
                 icons::note_list_icon()
                     .size(30.0)

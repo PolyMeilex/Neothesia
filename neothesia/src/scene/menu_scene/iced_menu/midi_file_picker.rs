@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use iced_runtime::Command;
 
-use crate::{song::Song, target::Target};
+use crate::{context::Context, song::Song};
 
 use super::{Data, Message};
 
@@ -21,7 +21,7 @@ impl From<MidiFilePickerMessage> for Message {
 pub(super) fn update(
     data: &mut Data,
     msg: MidiFilePickerMessage,
-    target: &mut Target,
+    ctx: &mut Context,
 ) -> Command<Message> {
     match msg {
         MidiFilePickerMessage::OpenMidiFilePicker => {
@@ -30,8 +30,8 @@ pub(super) fn update(
         }
         MidiFilePickerMessage::MidiFileLoaded(midi) => {
             if let Some((midi, path)) = midi {
-                target.config.last_opened_song = Some(path);
-                target.song = Some(Song::new(midi));
+                ctx.config.last_opened_song = Some(path);
+                ctx.song = Some(Song::new(midi));
             }
             data.is_loading = false;
         }

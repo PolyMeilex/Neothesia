@@ -2,9 +2,7 @@ use iced_core::{Font, Length};
 use iced_style::Theme;
 use iced_widget::{column, container, row, text};
 
-use crate::iced_utils::iced_state::Element;
-
-use super::Renderer;
+use super::{Element, Renderer};
 
 mod theme;
 
@@ -17,6 +15,12 @@ struct PreferencesGroupHeader {
 pub struct PreferencesGroup<'a, MSG> {
     header: Option<PreferencesGroupHeader>,
     items: Vec<Element<'a, MSG>>,
+}
+
+impl<'a, MSG: 'a> Default for PreferencesGroup<'a, MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a, MSG: 'a> PreferencesGroup<'a, MSG> {

@@ -6,17 +6,11 @@ use iced_core::{
 };
 use iced_runtime::Command;
 use iced_widget::{button, column as col, container, pick_list, row, toggler};
+use neothesia_iced_widgets::{ActionRow, BarLayout, Layout, NeoBtn, PreferencesGroup};
 
 use crate::{
-    context::Context,
-    iced_utils::iced_state::Element,
-    output_manager::OutputDescriptor,
-    scene::menu_scene::{
-        icons,
-        layout::{BarLayout, Layout},
-        neo_btn::NeoBtn,
-        preferences_group, scroll_listener,
-    },
+    context::Context, iced_utils::iced_state::Element, output_manager::OutputDescriptor,
+    scene::menu_scene::icons,
 };
 
 use super::{centered_text, theme, Data, InputDescriptor, Message};
@@ -116,9 +110,7 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, SettingsMessag
         )
         .style(theme::pick_list());
 
-        preferences_group::ActionRow::new()
-            .title("Output")
-            .suffix(output_list)
+        ActionRow::new().title("Output").suffix(output_list)
     };
 
     let is_synth = matches!(data.selected_output, Some(OutputDescriptor::Synth(_)));
@@ -130,13 +122,11 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, SettingsMessag
             .and_then(|path| path.file_name())
             .map(|name| name.to_string_lossy().to_string());
 
-        let mut row = preferences_group::ActionRow::new()
-            .title("SoundFont")
-            .suffix(
-                iced_widget::button(centered_text("Select File"))
-                    .style(theme::button())
-                    .on_press(SettingsMessage::OpenSoundFontPicker),
-            );
+        let mut row = ActionRow::new().title("SoundFont").suffix(
+            iced_widget::button(centered_text("Select File"))
+                .style(theme::button())
+                .on_press(SettingsMessage::OpenSoundFontPicker),
+        );
 
         if let Some(subtitle) = subtitle {
             row = row.subtitle(subtitle);
@@ -145,7 +135,7 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, SettingsMessag
         row
     });
 
-    preferences_group::PreferencesGroup::new()
+    PreferencesGroup::new()
         .title("Output")
         .push(output_settings)
         .push_maybe(synth_settings)
@@ -162,13 +152,9 @@ fn input_group<'a>(data: &'a Data, _ctx: &Context) -> Element<'a, SettingsMessag
     )
     .style(theme::pick_list());
 
-    preferences_group::PreferencesGroup::new()
+    PreferencesGroup::new()
         .title("Input")
-        .push(
-            preferences_group::ActionRow::new()
-                .title("Input")
-                .suffix(input_list),
-        )
+        .push(ActionRow::new().title("Input").suffix(input_list))
         .build()
 }
 
@@ -190,7 +176,7 @@ fn counter<'a>(
         .spacing(10)
         .align_items(Alignment::Center);
 
-    scroll_listener::ScrollListener::new(row, move |delta| {
+    neothesia_iced_widgets::ScrollListener::new(row, move |delta| {
         if delta.is_sign_positive() {
             msg(RangeUpdateKind::Add)
         } else {
@@ -207,14 +193,10 @@ fn note_range_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, SettingsM
     );
     let end = counter(*ctx.config.piano_range().end(), SettingsMessage::RangeEnd);
 
-    preferences_group::PreferencesGroup::new()
+    PreferencesGroup::new()
         .title("Note Range")
-        .push(
-            preferences_group::ActionRow::new()
-                .title("Start")
-                .suffix(start),
-        )
-        .push(preferences_group::ActionRow::new().title("End").suffix(end))
+        .push(ActionRow::new().title("Start").suffix(start))
+        .push(ActionRow::new().title("End").suffix(end))
         .build()
 }
 
@@ -233,16 +215,16 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, SettingsM
     )
     .style(theme::toggler());
 
-    preferences_group::PreferencesGroup::new()
+    PreferencesGroup::new()
         .title("Render")
         .push(
-            preferences_group::ActionRow::new()
+            ActionRow::new()
                 .title("Vertical Guidelines")
                 .subtitle("Display octave indicators")
                 .suffix(vertical),
         )
         .push(
-            preferences_group::ActionRow::new()
+            ActionRow::new()
                 .title("Horizontal Guidelines")
                 .subtitle("Display measure/bar indicators")
                 .suffix(horizontal),
@@ -255,7 +237,7 @@ pub(super) fn view<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Message> {
     let input_group = input_group(data, ctx);
     let note_range_group = note_range_group(data, ctx);
     let guidelines_group = guidelines_group(data, ctx);
-    let range = super::super::piano_range::PianoRange(ctx.config.piano_range());
+    let range = neothesia_iced_widgets::PianoRange(ctx.config.piano_range());
 
     let column = col![
         output_group,

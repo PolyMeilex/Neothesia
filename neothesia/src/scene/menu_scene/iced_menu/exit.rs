@@ -1,11 +1,9 @@
 use iced_core::{Alignment, Length};
 use iced_runtime::Command;
 use iced_widget::{column as col, row};
+use neothesia_iced_widgets::NeoBtn;
 
-use crate::{
-    context::Context, iced_utils::iced_state::Element, scene::menu_scene::neo_btn::neo_button,
-    NeothesiaEvent,
-};
+use crate::{context::Context, iced_utils::iced_state::Element, NeothesiaEvent};
 
 use super::{center_x, centered_text, Data, Message, Step};
 
@@ -18,10 +16,10 @@ pub(super) fn view<'a>(_data: &'a Data, _ctx: &Context) -> Element<'a, Message> 
     let output = centered_text("Do you want to exit?").size(30);
 
     let select_row = row![
-        neo_button("No")
+        NeoBtn::new_with_label("No")
             .width(Length::Fill)
             .on_press(Message::GoToPage(Step::Main)),
-        neo_button("Yes")
+        NeoBtn::new_with_label("Yes")
             .width(Length::Fill)
             .on_press(Message::ExitApp),
     ]

@@ -5,7 +5,7 @@ use iced_core::{
 };
 use iced_style::Theme;
 
-use crate::iced_utils::iced_state::Element;
+use super::Element;
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 

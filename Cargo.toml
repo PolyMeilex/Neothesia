@@ -1,12 +1,13 @@
 [workspace]
 members = [
-    "piano-math",
-    "wgpu-jumpstart",
-    "neothesia",
-    "neothesia-cli",
-    "neothesia-core",
-    "midi-file",
-    "midi-io",
+  "piano-math",
+  "wgpu-jumpstart",
+  "neothesia",
+  "neothesia-cli",
+  "neothesia-core",
+  "midi-file",
+  "midi-io",
+  "neothesia-iced-widgets",
 ]
 
 default-members = ["neothesia"]
@@ -22,6 +23,15 @@ futures = "0.3"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia = { path = "./neothesia", default-features = false }
 neothesia-core = { path = "./neothesia-core" }
+neothesia-iced-widgets = { path = "./neothesia-iced-widgets" }
+
 midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
 piano-math = { path = "./piano-math" }
+
+iced_style = "0.12"
+iced_graphics = "0.12"
+iced_core = "0.12"
+iced_runtime = "0.12"
+iced_wgpu = { version = "0.12", features = ["image"] }
+iced_widget = { version = "0.12", features = ["image"] }

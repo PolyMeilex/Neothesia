@@ -1,9 +1,4 @@
-use super::{
-    icons,
-    layout::{BarLayout, Layout},
-    neo_btn::NeoBtn,
-    Renderer,
-};
+use super::{icons, Renderer};
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
@@ -12,12 +7,12 @@ use iced_core::{
 use iced_runtime::Command;
 use iced_style::Theme;
 use iced_widget::{column as col, container, image, row, text, vertical_space};
+use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
 
 use crate::{
     context::Context,
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
-    scene::menu_scene::neo_btn::neo_button,
     NeothesiaEvent,
 };
 
@@ -257,15 +252,15 @@ impl<'a> Step {
 
     fn main(data: &'a Data, ctx: &Context) -> Element<'a, Message> {
         let buttons = col![
-            neo_button("Select File")
+            NeoBtn::new_with_label("Select File")
                 .on_press(midi_file_picker::open().into())
                 .width(Length::Fill)
                 .height(Length::Fixed(80.0)),
-            neo_button("Settings")
+            NeoBtn::new_with_label("Settings")
                 .on_press(Message::GoToPage(Step::Settings))
                 .width(Length::Fill)
                 .height(Length::Fixed(80.0)),
-            neo_button("Exit")
+            NeoBtn::new_with_label("Exit")
                 .on_press(Message::GoToPage(Step::Exit))
                 .width(Length::Fill)
                 .height(Length::Fixed(80.0)),

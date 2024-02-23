@@ -2300,6 +2300,7 @@ dependencies = [
  "midi-file",
  "midi-io",
  "neothesia-core",
+ "neothesia-iced-widgets",
  "oxisynth",
  "piano-math",
  "rfd",
@@ -2335,6 +2336,18 @@ dependencies = [
  "serde",
  "wgpu",
  "wgpu-jumpstart",
+]
+
+[[package]]
+name = "neothesia-iced-widgets"
+version = "0.1.0"
+dependencies = [
+ "iced_core",
+ "iced_graphics",
+ "iced_style",
+ "iced_wgpu",
+ "iced_widget",
+ "piano-math",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@ use iced_runtime::Command;
 use iced_widget::{button, column as col, container, row, vertical_space};
 
 use crate::{
+    context::Context,
     iced_utils::iced_state::Element,
     scene::menu_scene::{
         icons,
@@ -14,7 +15,6 @@ use crate::{
         segment_button, track_card,
     },
     song::PlayerConfig,
-    target::Target,
 };
 
 use super::{centered_text, theme, Data, Message};
@@ -32,26 +32,22 @@ impl From<TracksMessage> for Message {
     }
 }
 
-pub(super) fn update(
-    _data: &mut Data,
-    msg: TracksMessage,
-    target: &mut Target,
-) -> Command<Message> {
+pub(super) fn update(_data: &mut Data, msg: TracksMessage, ctx: &mut Context) -> Command<Message> {
     match msg {
         TracksMessage::AllTracksPlayer(config) => {
-            if let Some(song) = target.song.as_mut() {
+            if let Some(song) = ctx.song.as_mut() {
                 for track in song.config.tracks.iter_mut() {
                     track.player = config.clone();
                 }
             }
         }
         TracksMessage::TrackPlayer(track, config) => {
-            if let Some(song) = target.song.as_mut() {
+            if let Some(song) = ctx.song.as_mut() {
                 song.config.tracks[track].player = config;
             }
         }
         TracksMessage::TrackVisibility(track, visible) => {
-            if let Some(song) = target.song.as_mut() {
+            if let Some(song) = ctx.song.as_mut() {
                 song.config.tracks[track].visible = visible;
             }
         }
@@ -60,9 +56,9 @@ pub(super) fn update(
     Command::none()
 }
 
-pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message> {
+pub(super) fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Message> {
     let mut tracks = Vec::new();
-    if let Some(song) = target.song.as_ref() {
+    if let Some(song) = ctx.song.as_ref() {
         for track in song.file.tracks.iter().filter(|t| !t.notes.is_empty()) {
             let config = &song.config.tracks[track.track_id];
 
@@ -77,8 +73,8 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
             let color = if !visible {
                 iced_core::Color::from_rgb8(102, 102, 102)
             } else {
-                let color_id = track.track_color_id % target.config.color_schema.len();
-                let color = &target.config.color_schema[color_id].base;
+                let color_id = track.track_color_id % ctx.config.color_schema.len();
+                let color = &ctx.config.color_schema[color_id].base;
                 iced_core::Color::from_rgb8(color.0, color.1, color.2)
             };
 
@@ -149,7 +145,7 @@ pub(super) fn view<'a>(_data: &'a Data, target: &Target) -> Element<'a, Message>
         .min_width(80.0)
         .on_press(Message::Play);
 
-        if target.song.is_some() {
+        if ctx.song.is_some() {
             row![play]
         } else {
             row![]

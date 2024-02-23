@@ -12,7 +12,7 @@ use winit::event_loop::EventLoopProxy;
 use crate::iced_utils::IcedManager;
 use winit::window::Window;
 
-pub struct Target {
+pub struct Context {
     pub window: Arc<Window>,
     pub iced_manager: IcedManager,
 
@@ -31,7 +31,7 @@ pub struct Target {
     pub proxy: EventLoopProxy<NeothesiaEvent>,
 }
 
-impl Target {
+impl Context {
     pub fn new(
         window: Arc<Window>,
         window_state: WindowState,

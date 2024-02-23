@@ -5,7 +5,7 @@ use neothesia_core::{
 };
 use piano_math::KeyboardRange;
 
-use crate::{config::Config, render::KeyboardRenderer, song::SongConfig, target::Target};
+use crate::{config::Config, context::Context, render::KeyboardRenderer, song::SongConfig};
 
 pub struct Keyboard {
     renderer: KeyboardRenderer,
@@ -25,15 +25,15 @@ fn get_layout(
 }
 
 impl Keyboard {
-    pub fn new(target: &Target, song_config: SongConfig) -> Self {
+    pub fn new(ctx: &Context, song_config: SongConfig) -> Self {
         let layout = get_layout(
-            target.window_state.logical_size.width,
-            target.window_state.logical_size.height,
-            piano_math::KeyboardRange::new(target.config.piano_range()),
+            ctx.window_state.logical_size.width,
+            ctx.window_state.logical_size.height,
+            piano_math::KeyboardRange::new(ctx.config.piano_range()),
         );
 
         let mut renderer = KeyboardRenderer::new(layout);
-        renderer.position_on_bottom_of_parent(target.window_state.logical_size.height);
+        renderer.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
 
         Self {
             renderer,
@@ -61,15 +61,15 @@ impl Keyboard {
         self.renderer.position_on_bottom_of_parent(parent_height)
     }
 
-    pub fn resize(&mut self, target: &Target) {
+    pub fn resize(&mut self, ctx: &Context) {
         let keyboard_layout = get_layout(
-            target.window_state.logical_size.width,
-            target.window_state.logical_size.height,
+            ctx.window_state.logical_size.width,
+            ctx.window_state.logical_size.height,
             self.renderer.layout().range.clone(),
         );
 
         self.set_layout(keyboard_layout.clone());
-        self.position_on_bottom_of_parent(target.window_state.logical_size.height);
+        self.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
     }
 
     pub fn update(&mut self, quads: &mut QuadPipeline, brush: &mut TextRenderer) {

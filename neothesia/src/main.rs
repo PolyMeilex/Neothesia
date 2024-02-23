@@ -1,19 +1,19 @@
 #![allow(clippy::collapsible_match, clippy::single_match)]
 
+mod context;
 mod iced_utils;
 mod input_manager;
 mod output_manager;
 mod scene;
 mod song;
-mod target;
 mod utils;
 
 use std::sync::Arc;
 use std::time::Duration;
 
+use context::Context;
 use iced_core::Renderer;
 use scene::{menu_scene, playing_scene, Scene};
-use target::Target;
 use utils::window::WindowState;
 
 use midi_file::midly::MidiMessage;
@@ -41,7 +41,7 @@ pub enum NeothesiaEvent {
 }
 
 struct Neothesia {
-    target: Target,
+    context: Context,
     surface: Surface,
     game_scene: Box<dyn Scene>,
 
@@ -51,15 +51,15 @@ struct Neothesia {
 }
 
 impl Neothesia {
-    fn new(mut target: Target, surface: Surface) -> Self {
-        let mut game_scene = menu_scene::MenuScene::new(&mut target);
+    fn new(mut context: Context, surface: Surface) -> Self {
+        let mut game_scene = menu_scene::MenuScene::new(&mut context);
 
-        target.resize();
-        game_scene.resize(&mut target);
-        target.gpu.submit();
+        context.resize();
+        game_scene.resize(&mut context);
+        context.gpu.submit();
 
         Self {
-            target,
+            context,
             surface,
             game_scene: Box::new(game_scene),
 
@@ -74,25 +74,25 @@ impl Neothesia {
         event: &WindowEvent,
         event_loop: &winit::event_loop::EventLoopWindowTarget<NeothesiaEvent>,
     ) {
-        self.target.window_state.window_event(event);
+        self.context.window_state.window_event(event);
 
         match &event {
             WindowEvent::Resized(_) => {
                 self.surface.resize_swap_chain(
-                    &self.target.gpu.device,
-                    self.target.window_state.physical_size.width,
-                    self.target.window_state.physical_size.height,
+                    &self.context.gpu.device,
+                    self.context.window_state.physical_size.width,
+                    self.context.window_state.physical_size.height,
                 );
 
-                self.target.resize();
-                self.game_scene.resize(&mut self.target);
+                self.context.resize();
+                self.game_scene.resize(&mut self.context);
 
-                self.target.gpu.submit();
+                self.context.gpu.submit();
             }
             WindowEvent::ScaleFactorChanged { .. } => {
                 // TODO: Check if this update is needed;
-                self.target.resize();
-                self.game_scene.resize(&mut self.target);
+                self.context.resize();
+                self.game_scene.resize(&mut self.context);
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -104,16 +104,16 @@ impl Neothesia {
                 ..
             } => match logical_key {
                 winit::keyboard::Key::Character(c) if c.as_str() == "f" => {
-                    if self.target.window.fullscreen().is_some() {
-                        self.target.window.set_fullscreen(None);
+                    if self.context.window.fullscreen().is_some() {
+                        self.context.window.set_fullscreen(None);
                     } else {
-                        let monitor = self.target.window.current_monitor();
+                        let monitor = self.context.window.current_monitor();
                         if let Some(monitor) = monitor {
                             let f = winit::window::Fullscreen::Borderless(Some(monitor));
-                            self.target.window.set_fullscreen(Some(f));
+                            self.context.window.set_fullscreen(Some(f));
                         } else {
                             let f = winit::window::Fullscreen::Borderless(None);
-                            self.target.window.set_fullscreen(Some(f));
+                            self.context.window.set_fullscreen(Some(f));
                         }
                     }
                 }
@@ -132,7 +132,7 @@ impl Neothesia {
             _ => {}
         }
 
-        self.game_scene.window_event(&mut self.target, event);
+        self.game_scene.window_event(&mut self.context, event);
     }
 
     fn neothesia_event(
@@ -142,18 +142,18 @@ impl Neothesia {
     ) {
         match event {
             NeothesiaEvent::Play(song) => {
-                self.target.iced_manager.renderer.clear();
+                self.context.iced_manager.renderer.clear();
 
-                let to = playing_scene::PlayingScene::new(&self.target, song);
+                let to = playing_scene::PlayingScene::new(&self.context, song);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MainMenu => {
-                let to = menu_scene::MenuScene::new(&mut self.target);
+                let to = menu_scene::MenuScene::new(&mut self.context);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MidiInput { channel, message } => {
                 self.game_scene
-                    .midi_event(&mut self.target, channel, &message);
+                    .midi_event(&mut self.context, channel, &message);
             }
             NeothesiaEvent::Exit => {
                 event_loop.exit();
@@ -165,13 +165,13 @@ impl Neothesia {
         #[cfg(debug_assertions)]
         {
             self.fps_ticker.tick();
-            self.target.text_renderer.queue_fps(self.fps_ticker.avg());
+            self.context.text_renderer.queue_fps(self.fps_ticker.avg());
         }
 
-        self.game_scene.update(&mut self.target, delta);
-        self.target.text_renderer.update(
-            self.target.window_state.logical_size.into(),
-            &self.target.gpu,
+        self.game_scene.update(&mut self.context, delta);
+        self.context.text_renderer.update(
+            self.context.window_state.logical_size.into(),
+            &self.context.gpu,
         );
     }
 
@@ -189,10 +189,10 @@ impl Neothesia {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         {
-            let bg_color = self.target.config.background_color;
+            let bg_color = self.context.config.background_color;
             let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
             let mut rpass =
-                self.target
+                self.context
                     .gpu
                     .encoder
                     .begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -211,33 +211,33 @@ impl Neothesia {
                         occlusion_query_set: None,
                     });
 
-            self.game_scene.render(&self.target.transform, &mut rpass);
-            self.target.text_renderer.render(&mut rpass);
+            self.game_scene.render(&self.context.transform, &mut rpass);
+            self.context.text_renderer.render(&mut rpass);
         }
 
-        self.target
+        self.context
             .iced_manager
             .renderer
             .with_primitives(|backend, primitive| {
                 if !primitive.is_empty() {
                     backend.present(
-                        &self.target.gpu.device,
-                        &self.target.gpu.queue,
-                        &mut self.target.gpu.encoder,
+                        &self.context.gpu.device,
+                        &self.context.gpu.queue,
+                        &mut self.context.gpu.encoder,
                         None,
-                        self.target.gpu.texture_format,
+                        self.context.gpu.texture_format,
                         view,
                         primitive,
-                        &self.target.iced_manager.viewport,
-                        &self.target.iced_manager.debug.overlay(),
+                        &self.context.iced_manager.viewport,
+                        &self.context.iced_manager.debug.overlay(),
                     );
                 }
             });
 
-        self.target.gpu.submit();
+        self.context.gpu.submit();
         frame.present();
 
-        self.target.text_renderer.atlas().trim();
+        self.context.text_renderer.atlas().trim();
     }
 }
 
@@ -247,9 +247,9 @@ fn main() {
         height: 720.0,
     });
 
-    let (event_loop, target, surface) = init(builder);
+    let (event_loop, ctx, surface) = init(builder);
 
-    let mut app = Neothesia::new(target, surface);
+    let mut app = Neothesia::new(ctx, surface);
 
     // Investigate:
     // https://github.com/gfx-rs/wgpu-rs/pull/306
@@ -265,7 +265,7 @@ fn main() {
                     app.window_event(&event, event_loop);
                 }
                 Event::AboutToWait => {
-                    app.target.window.request_redraw();
+                    app.context.window.request_redraw();
                 }
                 _ => {}
             }
@@ -273,7 +273,7 @@ fn main() {
         .unwrap();
 }
 
-fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Target, Surface) {
+fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Context, Surface) {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
         .init();
 
@@ -314,9 +314,9 @@ fn init(builder: winit::window::WindowBuilder) -> (EventLoop<NeothesiaEvent>, Ta
     ))
     .unwrap();
 
-    let target = Target::new(window, window_state, proxy, gpu);
+    let ctx = Context::new(window, window_state, proxy, gpu);
 
-    (event_loop, target, surface)
+    (event_loop, ctx, surface)
 }
 
 fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {

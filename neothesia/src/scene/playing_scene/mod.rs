@@ -10,7 +10,7 @@ use winit::{
 use self::top_bar::TopBar;
 
 use super::Scene;
-use crate::{render::WaterfallRenderer, song::Song, target::Target, NeothesiaEvent};
+use crate::{context::Context, render::WaterfallRenderer, song::Song, NeothesiaEvent};
 
 mod keyboard;
 use keyboard::Keyboard;
@@ -45,16 +45,16 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(target: &Target, song: Song) -> Self {
-        let keyboard = Keyboard::new(target, song.config.clone());
+    pub fn new(ctx: &Context, song: Song) -> Self {
+        let keyboard = Keyboard::new(ctx, song.config.clone());
 
         let keyboard_layout = keyboard.layout();
 
         let guidelines = GuidelineRenderer::new(
             keyboard_layout.clone(),
             *keyboard.pos(),
-            target.config.vertical_guidelines,
-            target.config.horizontal_guidelines,
+            ctx.config.vertical_guidelines,
+            ctx.config.horizontal_guidelines,
             song.file.measures.clone(),
         );
 
@@ -67,20 +67,20 @@ impl PlayingScene {
             .collect();
 
         let mut waterfall = WaterfallRenderer::new(
-            &target.gpu,
+            &ctx.gpu,
             &song.file.tracks,
             &hidden_tracks,
-            &target.config,
-            &target.transform,
+            &ctx.config,
+            &ctx.transform,
             keyboard_layout.clone(),
         );
 
         let player = MidiPlayer::new(
-            target.output_manager.connection().clone(),
+            ctx.output_manager.connection().clone(),
             song,
             keyboard_layout.range.clone(),
         );
-        waterfall.update(&target.gpu.queue, player.time_without_lead_in());
+        waterfall.update(&ctx.gpu.queue, player.time_without_lead_in());
 
         Self {
             keyboard,
@@ -89,64 +89,58 @@ impl PlayingScene {
             waterfall,
             player,
             rewind_controler: RewindController::new(),
-            bg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
-            fg_quad_pipeline: QuadPipeline::new(&target.gpu, &target.transform),
+            bg_quad_pipeline: QuadPipeline::new(&ctx.gpu, &ctx.transform),
+            fg_quad_pipeline: QuadPipeline::new(&ctx.gpu, &ctx.transform),
             toast_manager: ToastManager::default(),
             top_bar: TopBar::new(),
         }
     }
 
-    fn update_midi_player(&mut self, target: &Target, delta: Duration) -> f32 {
+    fn update_midi_player(&mut self, ctx: &Context, delta: Duration) -> f32 {
         if self.top_bar.loop_active && self.player.time() > self.top_bar.loop_end {
             self.player.set_time(self.top_bar.loop_start);
             self.keyboard.reset_notes();
         }
 
         if self.player.play_along().are_required_keys_pressed() {
-            let delta = (delta / 10) * (target.config.speed_multiplier * 10.0) as u32;
+            let delta = (delta / 10) * (ctx.config.speed_multiplier * 10.0) as u32;
             let midi_events = self.player.update(delta);
-            self.keyboard.file_midi_events(&target.config, &midi_events);
+            self.keyboard.file_midi_events(&ctx.config, &midi_events);
         }
 
-        self.player.time_without_lead_in() + target.config.playback_offset
+        self.player.time_without_lead_in() + ctx.config.playback_offset
     }
 }
 
 impl Scene for PlayingScene {
-    fn resize(&mut self, target: &mut Target) {
-        self.keyboard.resize(target);
+    fn resize(&mut self, ctx: &mut Context) {
+        self.keyboard.resize(ctx);
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
 
-        self.waterfall.resize(
-            &target.gpu.queue,
-            &target.config,
-            self.keyboard.layout().clone(),
-        );
+        self.waterfall
+            .resize(&ctx.gpu.queue, &ctx.config, self.keyboard.layout().clone());
     }
 
-    fn update(&mut self, target: &mut Target, delta: Duration) {
+    fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.bg_quad_pipeline.clear();
         self.fg_quad_pipeline.clear();
 
-        self.rewind_controler.update(&mut self.player, target);
-        self.toast_manager.update(&mut target.text_renderer);
+        self.rewind_controler.update(&mut self.player, ctx);
+        self.toast_manager.update(&mut ctx.text_renderer);
 
-        let time = self.update_midi_player(target, delta);
-        self.waterfall.update(&target.gpu.queue, time);
-        self.guidelines.update(
-            &mut self.bg_quad_pipeline,
-            target.config.animation_speed,
-            time,
-        );
+        let time = self.update_midi_player(ctx, delta);
+        self.waterfall.update(&ctx.gpu.queue, time);
+        self.guidelines
+            .update(&mut self.bg_quad_pipeline, ctx.config.animation_speed, time);
         self.keyboard
-            .update(&mut self.fg_quad_pipeline, &mut target.text_renderer);
+            .update(&mut self.fg_quad_pipeline, &mut ctx.text_renderer);
 
-        TopBar::update(self, &target.window_state, &mut target.text_renderer);
+        TopBar::update(self, &ctx.window_state, &mut ctx.text_renderer);
 
-        self.bg_quad_pipeline.prepare(&target.gpu.queue);
-        self.fg_quad_pipeline.prepare(&target.gpu.queue);
+        self.bg_quad_pipeline.prepare(&ctx.gpu.queue);
+        self.fg_quad_pipeline.prepare(&ctx.gpu.queue);
     }
 
     fn render<'pass>(
@@ -159,24 +153,24 @@ impl Scene for PlayingScene {
         self.fg_quad_pipeline.render(transform, rpass);
     }
 
-    fn window_event(&mut self, target: &mut Target, event: &WindowEvent) {
-        if TopBar::handle_window_event(self, target, event) {
+    fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
+        if TopBar::handle_window_event(self, ctx, event) {
             return;
         }
 
         self.rewind_controler
-            .handle_window_event(target, event, &mut self.player);
+            .handle_window_event(ctx, event, &mut self.player);
 
         if self.rewind_controler.is_rewinding() {
             self.keyboard.reset_notes();
         }
 
-        handle_back_button(target, event);
+        handle_back_button(ctx, event);
         handle_pause_button(&mut self.player, event);
-        handle_settings_input(target, &mut self.toast_manager, &mut self.waterfall, event);
+        handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
     }
 
-    fn midi_event(&mut self, _target: &mut Target, _channel: u8, message: &MidiMessage) {
+    fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {
         self.player
             .play_along_mut()
             .midi_event(midi_player::MidiEventSource::User, message);
@@ -201,7 +195,7 @@ fn handle_pause_button(player: &mut MidiPlayer, event: &WindowEvent) {
     }
 }
 
-fn handle_back_button(target: &Target, event: &WindowEvent) {
+fn handle_back_button(ctx: &Context, event: &WindowEvent) {
     let mut is_back_event = matches!(
         event,
         WindowEvent::KeyboardInput {
@@ -224,12 +218,12 @@ fn handle_back_button(target: &Target, event: &WindowEvent) {
     );
 
     if is_back_event {
-        target.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+        ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
     }
 }
 
 fn handle_settings_input(
-    target: &mut Target,
+    ctx: &mut Context,
     toast_manager: &mut ToastManager,
     waterfall: &mut WaterfallRenderer,
     event: &WindowEvent,
@@ -244,63 +238,63 @@ fn handle_settings_input(
 
     match event.logical_key {
         Key::Named(key @ (NamedKey::ArrowUp | NamedKey::ArrowDown)) => {
-            let amount = if target.window_state.modifers_state.shift_key() {
+            let amount = if ctx.window_state.modifers_state.shift_key() {
                 0.5
             } else {
                 0.1
             };
 
             if key == NamedKey::ArrowUp {
-                target.config.speed_multiplier += amount;
+                ctx.config.speed_multiplier += amount;
             } else {
-                target.config.speed_multiplier -= amount;
-                target.config.speed_multiplier = target.config.speed_multiplier.max(0.0);
+                ctx.config.speed_multiplier -= amount;
+                ctx.config.speed_multiplier = ctx.config.speed_multiplier.max(0.0);
             }
 
-            toast_manager.speed_toast(target.config.speed_multiplier);
+            toast_manager.speed_toast(ctx.config.speed_multiplier);
         }
 
         Key::Named(key @ (NamedKey::PageUp | NamedKey::PageDown)) => {
-            let amount = if target.window_state.modifers_state.shift_key() {
+            let amount = if ctx.window_state.modifers_state.shift_key() {
                 500.0
             } else {
                 100.0
             };
 
             if key == NamedKey::PageUp {
-                target.config.animation_speed += amount;
+                ctx.config.animation_speed += amount;
                 // 0.0 is invalid speed, let's skip it and jump to positive
-                if target.config.animation_speed == 0.0 {
-                    target.config.animation_speed += amount;
+                if ctx.config.animation_speed == 0.0 {
+                    ctx.config.animation_speed += amount;
                 }
             } else {
-                target.config.animation_speed -= amount;
+                ctx.config.animation_speed -= amount;
                 // 0.0 is invalid speed, let's skip it and jump to negative
-                if target.config.animation_speed == 0.0 {
-                    target.config.animation_speed -= amount;
+                if ctx.config.animation_speed == 0.0 {
+                    ctx.config.animation_speed -= amount;
                 }
             }
 
             waterfall
                 .pipeline()
-                .set_speed(&target.gpu.queue, target.config.animation_speed);
-            toast_manager.animation_speed_toast(target.config.animation_speed);
+                .set_speed(&ctx.gpu.queue, ctx.config.animation_speed);
+            toast_manager.animation_speed_toast(ctx.config.animation_speed);
         }
 
         Key::Character(ref ch) if matches!(ch.as_str(), "_" | "-" | "+" | "=") => {
-            let amount = if target.window_state.modifers_state.shift_key() {
+            let amount = if ctx.window_state.modifers_state.shift_key() {
                 0.1
             } else {
                 0.01
             };
 
             if matches!(ch.as_str(), "-" | "_") {
-                target.config.playback_offset -= amount;
+                ctx.config.playback_offset -= amount;
             } else {
-                target.config.playback_offset += amount;
+                ctx.config.playback_offset += amount;
             }
 
-            toast_manager.offset_toast(target.config.playback_offset);
+            toast_manager.offset_toast(ctx.config.playback_offset);
         }
 
         _ => {}

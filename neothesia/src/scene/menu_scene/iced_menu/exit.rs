@@ -3,18 +3,18 @@ use iced_runtime::Command;
 use iced_widget::{column as col, row};
 
 use crate::{
-    iced_utils::iced_state::Element, scene::menu_scene::neo_btn::neo_button, target::Target,
+    context::Context, iced_utils::iced_state::Element, scene::menu_scene::neo_btn::neo_button,
     NeothesiaEvent,
 };
 
 use super::{center_x, centered_text, Data, Message, Step};
 
-pub(super) fn update(_data: &mut Data, _msg: (), target: &mut Target) -> Command<Message> {
-    target.proxy.send_event(NeothesiaEvent::Exit).ok();
+pub(super) fn update(_data: &mut Data, _msg: (), ctx: &mut Context) -> Command<Message> {
+    ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
     Command::none()
 }
 
-pub(super) fn view<'a>(_data: &'a Data, _target: &Target) -> Element<'a, Message> {
+pub(super) fn view<'a>(_data: &'a Data, _ctx: &Context) -> Element<'a, Message> {
     let output = centered_text("Do you want to exit?").size(30);
 
     let select_row = row![

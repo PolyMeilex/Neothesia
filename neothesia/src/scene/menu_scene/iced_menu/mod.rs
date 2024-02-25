@@ -1,3 +1,5 @@
+use self::{settings::SettingsPage, tracks::TracksPage};
+
 use super::{icons, Renderer};
 use iced_core::{
     alignment::{Horizontal, Vertical},
@@ -18,13 +20,14 @@ use crate::{
 
 mod exit;
 mod midi_file_picker;
+mod page;
 mod settings;
 mod theme;
 mod tracks;
 
+use exit::ExitPage;
 use midi_file_picker::MidiFilePickerMessage;
-use settings::SettingsMessage;
-use tracks::TracksMessage;
+use page::Page;
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -33,14 +36,16 @@ pub enum Message {
     Tick,
     Play,
     GoToPage(Step),
+    GoBack,
     ExitApp,
 
-    Settings(SettingsMessage),
-    Tracks(TracksMessage),
+    ExitPage(<ExitPage as Page>::Event),
+    SettingsPage(<SettingsPage as Page>::Event),
+    TracksPage(<TracksPage as Page>::Event),
     MidiFilePicker(MidiFilePickerMessage),
 }
 
-struct Data {
+pub struct Data {
     outputs: Vec<OutputDescriptor>,
     selected_output: Option<OutputDescriptor>,
 
@@ -83,6 +88,9 @@ impl Program for AppUi {
         match message {
             Message::GoToPage(page) => {
                 self.current = page;
+            }
+            Message::GoBack => {
+                return self.update(ctx, Message::GoToPage(self.current.previous_step()));
             }
             Message::Play => {
                 if let Some(song) = ctx.song.as_ref() {
@@ -137,17 +145,20 @@ impl Program for AppUi {
                     }
                 }
             }
-            Message::Settings(msg) => {
-                return settings::update(&mut self.data, msg, ctx);
+            Message::SettingsPage(msg) => {
+                return SettingsPage::update(&mut self.data, msg, ctx);
             }
-            Message::Tracks(msg) => {
-                return tracks::update(&mut self.data, msg, ctx);
+            Message::TracksPage(msg) => {
+                return TracksPage::update(&mut self.data, msg, ctx);
             }
             Message::MidiFilePicker(msg) => {
                 return midi_file_picker::update(&mut self.data, msg, ctx);
             }
+            Message::ExitPage(event) => {
+                return ExitPage::update(&mut self.data, event, ctx);
+            }
             Message::ExitApp => {
-                return exit::update(&mut self.data, (), ctx);
+                ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
             }
         }
 
@@ -156,7 +167,7 @@ impl Program for AppUi {
 
     fn mouse_input(&self, event: &iced_core::mouse::Event, _ctx: &Context) -> Option<Message> {
         if let iced_core::mouse::Event::ButtonPressed(iced_core::mouse::Button::Back) = event {
-            Some(Message::GoToPage(self.current.previous_step()))
+            Some(Message::GoBack)
         } else {
             None
         }
@@ -176,7 +187,9 @@ impl Program for AppUi {
             } => match key {
                 Named::Tab => match self.current {
                     Step::Main => Some(midi_file_picker::open().into()),
-                    Step::Settings => Some(Message::Settings(SettingsMessage::OpenSoundFontPicker)),
+                    Step::Settings => {
+                        Some(Message::SettingsPage(SettingsPage::open_sound_font_picker()))
+                    }
                     _ => None,
                 },
                 Named::Enter => match self.current {
@@ -185,7 +198,7 @@ impl Program for AppUi {
                     Step::TrackSelection => Some(Message::Play),
                     _ => None,
                 },
-                Named::Escape => Some(Message::GoToPage(self.current.previous_step())),
+                Named::Escape => Some(Message::GoBack),
                 _ => None,
             },
             Event::KeyPressed {
@@ -235,10 +248,10 @@ impl<'a> Step {
         }
 
         match self {
-            Self::Exit => exit::view(data, ctx),
+            Self::Exit => ExitPage::view(data, ctx).map(Message::ExitPage),
             Self::Main => Self::main(data, ctx),
-            Self::Settings => settings::view(data, ctx),
-            Self::TrackSelection => tracks::view(data, ctx),
+            Self::Settings => SettingsPage::view(data, ctx).map(Message::SettingsPage),
+            Self::TrackSelection => TracksPage::view(data, ctx).map(Message::TracksPage),
         }
     }
 

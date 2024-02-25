@@ -9,12 +9,10 @@ use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;
 
-use crate::iced_utils::IcedManager;
 use winit::window::Window;
 
 pub struct Context {
     pub window: Arc<Window>,
-    pub iced_manager: IcedManager,
 
     pub window_state: WindowState,
     pub gpu: Gpu,
@@ -46,17 +44,6 @@ impl Context {
 
         let text_renderer = TextRenderer::new(&gpu);
 
-        let iced_manager = IcedManager::new(
-            &gpu.device,
-            &gpu.queue,
-            gpu.texture_format,
-            (
-                window_state.physical_size.width,
-                window_state.physical_size.height,
-            ),
-            window_state.scale_factor,
-        );
-
         let config = Config::new();
         let args: Vec<String> = std::env::args().collect();
 
@@ -78,7 +65,6 @@ impl Context {
 
         Self {
             window,
-            iced_manager,
 
             window_state,
             gpu,
@@ -101,13 +87,5 @@ impl Context {
             self.window_state.scale_factor as f32,
         );
         self.transform.update(&self.gpu.queue);
-
-        self.iced_manager.resize(
-            (
-                self.window_state.physical_size.width,
-                self.window_state.physical_size.height,
-            ),
-            self.window_state.scale_factor,
-        );
     }
 }

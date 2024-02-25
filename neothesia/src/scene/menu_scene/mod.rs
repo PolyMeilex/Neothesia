@@ -2,7 +2,7 @@ mod iced_menu;
 
 mod icons;
 
-use std::time::Duration;
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use iced_menu::AppUi;
 use neothesia_core::render::BgPipeline;
@@ -15,6 +15,7 @@ use crate::{
     iced_utils::{
         iced_conversion,
         iced_state::{self, Program},
+        IcedManager,
     },
     scene::Scene,
 };
@@ -25,19 +26,22 @@ pub struct MenuScene {
     bg_pipeline: BgPipeline,
     iced_state: iced_state::State<AppUi>,
 
+    iced_manager: Rc<RefCell<IcedManager>>,
     context: std::task::Context<'static>,
     futures: Vec<futures::future::BoxFuture<'static, iced_menu::Message>>,
 }
 
 impl MenuScene {
-    pub fn new(ctx: &mut Context) -> Self {
+    pub fn new(ctx: &mut Context, iced_manager: Rc<RefCell<IcedManager>>) -> Self {
         let menu = AppUi::new(ctx);
+        let bounds = iced_manager.borrow().viewport.logical_size();
         let iced_state =
-            iced_state::State::new(menu, ctx.iced_manager.viewport.logical_size(), ctx);
+            iced_state::State::new(menu, bounds, ctx, &mut iced_manager.borrow_mut().renderer);
 
         Self {
             bg_pipeline: BgPipeline::new(&ctx.gpu),
             iced_state,
+            iced_manager,
 
             context: std::task::Context::from_waker(futures::task::noop_waker_ref()),
             futures: Vec::new(),
@@ -60,7 +64,10 @@ impl Scene for MenuScene {
             });
 
         if !self.iced_state.is_queue_empty() {
-            if let Some(command) = self.iced_state.update(ctx) {
+            if let Some(command) = self
+                .iced_state
+                .update(ctx, &mut self.iced_manager.borrow_mut())
+            {
                 for a in command.actions() {
                     match a {
                         iced_runtime::command::Action::Future(f) => {
@@ -86,11 +93,9 @@ impl Scene for MenuScene {
 
         let modifiers = ModifiersState::default();
 
-        if let Some(event) = iced_conversion::window_event(
-            event.clone(),
-            ctx.iced_manager.viewport.scale_factor(),
-            modifiers,
-        ) {
+        if let Some(event) =
+            iced_conversion::window_event(event.clone(), ctx.window_state.scale_factor, modifiers)
+        {
             self.iced_state.queue_event(event.clone());
 
             match &event {

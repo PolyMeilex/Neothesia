@@ -24,7 +24,6 @@ mod tracks;
 
 use midi_file_picker::MidiFilePickerMessage;
 use settings::SettingsMessage;
-use tracks::TracksMessage;
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -36,7 +35,6 @@ pub enum Message {
     ExitApp,
 
     Settings(SettingsMessage),
-    Tracks(TracksMessage),
     MidiFilePicker(MidiFilePickerMessage),
 }
 
@@ -140,14 +138,11 @@ impl Program for AppUi {
             Message::Settings(msg) => {
                 return settings::update(&mut self.data, msg, ctx);
             }
-            Message::Tracks(msg) => {
-                return tracks::update(&mut self.data, msg, ctx);
-            }
             Message::MidiFilePicker(msg) => {
                 return midi_file_picker::update(&mut self.data, msg, ctx);
             }
             Message::ExitApp => {
-                return exit::update(&mut self.data, (), ctx);
+                ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
             }
         }
 
@@ -206,7 +201,7 @@ impl Program for AppUi {
         }
     }
 
-    fn view(&self, ctx: &Context) -> Element<Message> {
+    fn view<'a>(&'a self, ctx: &'a mut Context) -> Element<'a, Message> {
         self.current.view(&self.data, ctx)
     }
 }
@@ -229,16 +224,22 @@ impl<'a> Step {
         }
     }
 
-    fn view(&'a self, data: &'a Data, ctx: &Context) -> Element<Message> {
+    fn view(&'a self, data: &'a Data, ctx: &'a mut Context) -> Element<'a, Message> {
         if data.is_loading {
             return Self::loading(data);
         }
 
         match self {
-            Self::Exit => exit::view(data, ctx),
+            Self::Exit => exit::ExitPage::new(ctx)
+                .on_back(|| Message::GoToPage(Step::Main))
+                .on_exit(|| Message::ExitApp)
+                .into(),
             Self::Main => Self::main(data, ctx),
             Self::Settings => settings::view(data, ctx),
-            Self::TrackSelection => tracks::view(data, ctx),
+            Self::TrackSelection => tracks::TracksPage::new(ctx)
+                .on_back(|| Message::GoToPage(Step::Main))
+                .on_play(|| Message::Play)
+                .into(),
         }
     }
 

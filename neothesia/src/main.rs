@@ -8,11 +8,14 @@ mod scene;
 mod song;
 mod utils;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 
 use context::Context;
 use iced_core::Renderer;
+use iced_utils::IcedManager;
 use scene::{menu_scene, playing_scene, Scene};
 use utils::window::WindowState;
 
@@ -41,6 +44,7 @@ pub enum NeothesiaEvent {
 }
 
 struct Neothesia {
+    iced_manager: Rc<RefCell<IcedManager>>,
     context: Context,
     surface: Surface,
     game_scene: Box<dyn Scene>,
@@ -52,12 +56,24 @@ struct Neothesia {
 
 impl Neothesia {
     fn new(mut context: Context, surface: Surface) -> Self {
-        let game_scene = menu_scene::MenuScene::new(&mut context);
+        let iced_manager = Rc::new(RefCell::new(IcedManager::new(
+            &context.gpu.device,
+            &context.gpu.queue,
+            context.gpu.texture_format,
+            (
+                context.window_state.physical_size.width,
+                context.window_state.physical_size.height,
+            ),
+            context.window_state.scale_factor,
+        )));
+
+        let game_scene = menu_scene::MenuScene::new(&mut context, iced_manager.clone());
 
         context.resize();
         context.gpu.submit();
 
         Self {
+            iced_manager,
             context,
             surface,
             game_scene: Box::new(game_scene),
@@ -84,6 +100,13 @@ impl Neothesia {
                 );
 
                 self.context.resize();
+                self.iced_manager.borrow_mut().resize(
+                    (
+                        self.context.window_state.physical_size.width,
+                        self.context.window_state.physical_size.height,
+                    ),
+                    self.context.window_state.scale_factor,
+                );
 
                 self.context.gpu.submit();
             }
@@ -139,13 +162,13 @@ impl Neothesia {
     ) {
         match event {
             NeothesiaEvent::Play(song) => {
-                self.context.iced_manager.renderer.clear();
+                self.iced_manager.borrow_mut().renderer.clear();
 
                 let to = playing_scene::PlayingScene::new(&self.context, song);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MainMenu => {
-                let to = menu_scene::MenuScene::new(&mut self.context);
+                let to = menu_scene::MenuScene::new(&mut self.context, self.iced_manager.clone());
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MidiInput { channel, message } => {
@@ -212,10 +235,9 @@ impl Neothesia {
             self.context.text_renderer.render(&mut rpass);
         }
 
-        self.context
-            .iced_manager
-            .renderer
-            .with_primitives(|backend, primitive| {
+        {
+            let iced_manager = &mut *self.iced_manager.borrow_mut();
+            iced_manager.renderer.with_primitives(|backend, primitive| {
                 if !primitive.is_empty() {
                     backend.present(
                         &self.context.gpu.device,
@@ -225,11 +247,12 @@ impl Neothesia {
                         self.context.gpu.texture_format,
                         view,
                         primitive,
-                        &self.context.iced_manager.viewport,
-                        &self.context.iced_manager.debug.overlay(),
+                        &iced_manager.viewport,
+                        &iced_manager.debug.overlay(),
                     );
                 }
             });
+        }
 
         self.context.gpu.submit();
         frame.present();

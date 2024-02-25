@@ -5,6 +5,7 @@ use iced_runtime::user_interface::{self, UserInterface};
 use iced_runtime::Command;
 use iced_style::Theme;
 
+use super::IcedManager;
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
 use crate::context::Context;
 
@@ -28,7 +29,7 @@ pub trait Program: Sized {
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self, ctx: &Context) -> Element<'_, Self::Message>;
+    fn view<'a>(&'a self, ctx: &'a mut Context) -> Element<'a, Self::Message>;
 
     fn mouse_input(
         &self,
@@ -66,9 +67,19 @@ where
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
-    pub fn new(mut program: P, bounds: Size, ctx: &mut Context) -> Self {
-        let user_interface =
-            build_user_interface(&mut program, user_interface::Cache::default(), bounds, ctx);
+    pub fn new(
+        mut program: P,
+        bounds: Size,
+        ctx: &mut Context,
+        renderer: &mut iced_wgpu::Renderer,
+    ) -> Self {
+        let user_interface = build_user_interface(
+            &mut program,
+            user_interface::Cache::default(),
+            bounds,
+            ctx,
+            renderer,
+        );
 
         let cache = Some(user_interface.into_cache());
 
@@ -116,24 +127,33 @@ where
     ///
     /// Returns the [`Command`] obtained from [`Program`] after updating it,
     /// only if an update was necessary.
-    pub fn update(&mut self, ctx: &mut Context) -> Option<Command<P::Message>> {
+    pub fn update(
+        &mut self,
+        ctx: &mut Context,
+        iced_manager: &mut IcedManager,
+    ) -> Option<Command<P::Message>> {
         let clipboard = &mut DummyClipboard {};
 
-        let bounds = ctx.iced_manager.viewport.logical_size();
+        let bounds = iced_manager.viewport.logical_size();
         let cursor_position = iced_conversion::cursor_position(
             ctx.window_state.cursor_physical_position,
-            ctx.iced_manager.viewport.scale_factor(),
+            iced_manager.viewport.scale_factor(),
         );
 
-        let mut user_interface =
-            build_user_interface(&mut self.program, self.cache.take().unwrap(), bounds, ctx);
+        let mut user_interface = build_user_interface(
+            &mut self.program,
+            self.cache.take().unwrap(),
+            bounds,
+            ctx,
+            &mut iced_manager.renderer,
+        );
 
         let mut messages = Vec::new();
 
         let _ = user_interface.update(
             &self.queued_events,
             mouse::Cursor::Available(cursor_position),
-            &mut ctx.iced_manager.renderer,
+            &mut iced_manager.renderer,
             clipboard,
             &mut messages,
         );
@@ -143,7 +163,7 @@ where
 
         if messages.is_empty() {
             self.mouse_interaction = user_interface.draw(
-                &mut ctx.iced_manager.renderer,
+                &mut iced_manager.renderer,
                 &iced_style::Theme::Dark,
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
@@ -165,11 +185,16 @@ where
 
             let commands = Command::batch(commands);
 
-            let mut user_interface =
-                build_user_interface(&mut self.program, temp_cache, bounds, ctx);
+            let mut user_interface = build_user_interface(
+                &mut self.program,
+                temp_cache,
+                bounds,
+                ctx,
+                &mut iced_manager.renderer,
+            );
 
             self.mouse_interaction = user_interface.draw(
-                &mut ctx.iced_manager.renderer,
+                &mut iced_manager.renderer,
                 &iced_style::Theme::Dark,
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
@@ -188,8 +213,9 @@ fn build_user_interface<'a, P: Program>(
     program: &'a mut P,
     cache: user_interface::Cache,
     size: Size,
-    ctx: &mut Context,
+    ctx: &'a mut Context,
+    renderer: &mut iced_wgpu::Renderer,
 ) -> UserInterface<'a, P::Message, Theme, iced_wgpu::Renderer> {
     let view = program.view(ctx);
-    UserInterface::build(view, size, cache, &mut ctx.iced_manager.renderer)
+    UserInterface::build(view, size, cache, renderer)
 }

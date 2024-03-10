@@ -1,9 +1,18 @@
+pub mod bbox;
 pub mod resources;
+
+pub use bbox::Bbox;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Point<T> {
     pub x: T,
     pub y: T,
+}
+
+impl<T> Point<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
 }
 
 impl<T> From<(T, T)> for Point<T> {
@@ -52,6 +61,12 @@ where
 pub struct Size<T> {
     pub w: T,
     pub h: T,
+}
+
+impl<T> Size<T> {
+    pub fn new(w: T, h: T) -> Self {
+        Self { w, h }
+    }
 }
 
 impl<T> From<(T, T)> for Size<T> {

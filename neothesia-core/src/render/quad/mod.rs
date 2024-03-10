@@ -79,6 +79,10 @@ impl<'a> QuadPipeline {
         &mut self.instances.data
     }
 
+    pub fn push(&mut self, quad: QuadInstance) {
+        self.instances.data.push(quad)
+    }
+
     pub fn prepare(&self, queue: &wgpu::Queue) {
         self.instances.update(queue);
     }

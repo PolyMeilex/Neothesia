@@ -1,36 +1,45 @@
+use std::ops::Add;
+
 use super::{Point, Size};
 
-#[derive(Default, Clone, Copy)]
-pub struct Bbox {
-    pub pos: Point<f32>,
-    pub size: Size<f32>,
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+pub struct Bbox<T = f32> {
+    pub pos: Point<T>,
+    pub size: Size<T>,
 }
 
-impl Bbox {
-    pub fn new(pos: Point<f32>, size: Size<f32>) -> Self {
+impl<T> Bbox<T> {
+    pub fn new(pos: Point<T>, size: Size<T>) -> Self {
         Self { pos, size }
     }
+}
 
-    pub fn contains(&self, px: f32, py: f32) -> bool {
+impl<T: Clone> Bbox<T> {
+    pub fn x(&self) -> T {
+        self.pos.x.clone()
+    }
+
+    pub fn y(&self) -> T {
+        self.pos.y.clone()
+    }
+
+    pub fn w(&self) -> T {
+        self.size.w.clone()
+    }
+
+    pub fn h(&self) -> T {
+        self.size.h.clone()
+    }
+}
+
+impl<T> Bbox<T>
+where
+    T: PartialEq + PartialOrd + Copy + Add<Output = T>,
+{
+    pub fn contains(&self, px: T, py: T) -> bool {
         let Point { x, y } = self.pos;
         let Size { w, h } = self.size;
 
         (x..(x + w)).contains(&px) && (y..(y + h)).contains(&py)
-    }
-
-    pub fn x(&self) -> f32 {
-        self.pos.x
-    }
-
-    pub fn y(&self) -> f32 {
-        self.pos.y
-    }
-
-    pub fn w(&self) -> f32 {
-        self.size.w
-    }
-
-    pub fn h(&self) -> f32 {
-        self.size.h
     }
 }

@@ -3,7 +3,7 @@ pub mod resources;
 
 pub use bbox::Bbox;
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Point<T> {
     pub x: T,
     pub y: T,
@@ -57,7 +57,7 @@ where
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size<T> {
     pub w: T,
     pub h: T,

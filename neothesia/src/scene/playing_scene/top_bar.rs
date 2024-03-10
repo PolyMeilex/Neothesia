@@ -233,29 +233,22 @@ impl TopBar {
     }
 
     pub fn update(scene: &mut PlayingScene, window_state: &WindowState, text: &mut TextRenderer) {
-        let top_bar = &mut scene.top_bar;
-        let quad_pipeline = &mut scene.fg_quad_pipeline;
-        let player = &scene.player;
-        let rewind_controller = &scene.rewind_controller;
+        let PlayingScene {
+            top_bar,
+            fg_quad_pipeline,
+            ref player,
+            ref rewind_controller,
+            ..
+        } = scene;
 
         let h = top_bar.height;
         let w = window_state.logical_size.width;
         let progress_x = w * player.percentage();
 
-        let mut is_hovered = if top_bar.is_fully_collapsed() {
-            window_state.cursor_logical_position.y < h
-        } else {
-            window_state.cursor_logical_position.y < h * 3.0
-        };
-        is_hovered |= rewind_controller.is_rewinding();
+        let mut is_hovered = window_state.cursor_logical_position.y < h * 1.2;
 
-        if !is_hovered {
-            quad_pipeline.instances().push(QuadInstance {
-                position: [0.0, 0.0],
-                size: [progress_x, 5.0],
-                color: BLUE.into_linear_rgba(),
-                ..Default::default()
-            });
+        if let RewindController::Mouse { .. } = rewind_controller {
+            is_hovered = true;
         }
 
         if is_hovered {
@@ -266,6 +259,15 @@ impl TopBar {
 
         top_bar.animation = top_bar.animation.min(1.0);
         top_bar.animation = top_bar.animation.max(0.0);
+
+        if !is_hovered {
+            fg_quad_pipeline.instances().push(QuadInstance {
+                position: [0.0, 0.0],
+                size: [progress_x, 5.0],
+                color: BLUE.into_linear_rgba(),
+                ..Default::default()
+            });
+        }
 
         if top_bar.is_fully_collapsed() {
             return;
@@ -279,7 +281,7 @@ impl TopBar {
 
         let y = -h + (bar_animation * h);
 
-        quad_pipeline.instances().push(QuadInstance {
+        fg_quad_pipeline.instances().push(QuadInstance {
             position: [0.0, y],
             size: [w, h],
             color: BAR_BG.into_linear_rgba(),
@@ -287,7 +289,7 @@ impl TopBar {
         });
 
         let progress_x = w * player.percentage();
-        quad_pipeline.instances().push(QuadInstance {
+        fg_quad_pipeline.instances().push(QuadInstance {
             position: [0.0, y + 30.0],
             size: [progress_x, h - 30.0],
             color: BLUE.into_linear_rgba(),
@@ -307,7 +309,7 @@ impl TopBar {
                 DARK_MEASURE
             };
 
-            quad_pipeline.instances().push(QuadInstance {
+            fg_quad_pipeline.instances().push(QuadInstance {
                 position: [x, y + 30.0],
                 size: [1.0, h - 30.0],
                 color: color.into_linear_rgba(),

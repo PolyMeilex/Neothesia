@@ -1,0 +1,23 @@
+name: Ubuntu
+description: Build ubuntu builds
+runs:
+  using: "composite"
+  steps:
+    - name: Install alsa
+      shell: bash
+      run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev
+    - uses: Swatinem/rust-cache@v1
+    - uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release 
+    - name: Chmod +x
+      shell: bash
+      run: chmod +x target/release/neothesia
+    - name: zip binary
+      shell: bash
+      run: zip -rj app.zip target/release/neothesia
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-artifact
+        path: app.zip

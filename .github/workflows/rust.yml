@@ -2,79 +2,33 @@ name: Rust
 
 on: [push, pull_request]
 
-env:
-  MACOSX_DEPLOYMENT_TARGET: 10.12
-
 jobs:
   build_ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install alsa
-        run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release 
-      - name: Chmod +x
-        run: chmod +x target/release/neothesia
-      - name: zip binary
-        run: zip -rj app.zip target/release/neothesia
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ubuntu-artifact
-          path: app.zip
-  build_windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: windows-artifact
-          path: target/release/neothesia.exe
-  build_macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release 
-      - name: copy binary
-        run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
-      - name: zip binary
-        run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
-      - uses: actions/upload-artifact@v2
-        with:
-          name: macos-artifact
-          path: .github/app/app.zip
+      - id: Build
+        uses: ./.github/actions/ubuntu
+      - name: ls
+        run: ls -l app.zip
 
   build_ubuntu_recorder:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install alsa
-        run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release -p neothesia-cli
-      - name: Chmod +x
-        run: chmod +x target/release/neothesia-cli
-      - name: zip binary
-        run: zip -rj app.zip target/release/neothesia-cli
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ubuntu-recorder-artifact
-          path: app.zip
+      - id: Build
+        uses: ./.github/actions/ubuntu-recorder
+      - name: ls
+        run: ls -l app.zip
+
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - id: Build
+        uses: ./.github/actions/windows
+      - name: ls
+        run: ls -l target/release/neothesia.exe
 
   build_windows_recorder:
     runs-on: windows-latest
@@ -84,24 +38,21 @@ jobs:
       
     steps:
       - uses: actions/checkout@v2
+      - id: Build
+        uses: ./.github/actions/windows-recorder
+      - name: ls
+        run: ls -l target/release/neothesia-cli.exe
 
-      - name: Install dependencies
-        run: |
-          $VCINSTALLDIR = $(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)
-          Add-Content $env:GITHUB_ENV "LIBCLANG_PATH=${VCINSTALLDIR}\VC\Tools\LLVM\x64\bin`n"
-          Invoke-WebRequest "${env:FFMPEG_DOWNLOAD_URL}" -OutFile ffmpeg-release-full-shared.7z
-          7z x ffmpeg-release-full-shared.7z
-          mkdir ffmpeg
-          mv ffmpeg-*/* ffmpeg/
-          Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
-          Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
+  build_macos:
+    runs-on: macos-latest
 
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release -p neothesia-cli
-      - uses: actions/upload-artifact@v2
-        with:
-          name: windows-recorder-artifact
-          path: target/release/neothesia-cli.exe
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.12
+
+    steps:
+      - uses: actions/checkout@v2
+      - id: Build
+        uses: ./.github/actions/macos
+      - name: ls
+        run: ls -l .github/app/app.zip
+

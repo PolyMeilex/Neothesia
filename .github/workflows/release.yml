@@ -17,10 +17,9 @@ jobs:
       - name: Rename
         run: mv app.zip neothesia-ubuntu.zip
       - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: neothesia-ubuntu.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{github.ref_name}} neothesia-ubuntu.zip
 
   build_ubuntu_recorder:
     runs-on: ubuntu-latest
@@ -33,10 +32,9 @@ jobs:
       - name: Rename
         run: mv app.zip neothesia-cli-ubuntu.zip
       - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: neothesia-cli-ubuntu.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{github.ref_name}} neothesia-cli-ubuntu.zip
 
   build_windows:
     runs-on: windows-latest
@@ -49,10 +47,9 @@ jobs:
       - name: Rename
         run: Move-Item -Path target/release/neothesia.exe -Destination neothesia.exe
       - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: neothesia.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{github.ref_name}} neothesia.exe
 
   build_windows_recorder:
     runs-on: windows-latest
@@ -69,10 +66,9 @@ jobs:
       - name: Rename
         run: Move-Item -Path target/release/neothesia-cli.exe -Destination neothesia-cli.exe
       - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: neothesia-cli.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{github.ref_name}} neothesia-cli.exe
 
   build_macos:
     runs-on: macos-latest
@@ -93,4 +89,8 @@ jobs:
         with:
           draft: true
           files: neothesia-macos.zip
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{github.ref_name}} neothesia-macos.zip
 

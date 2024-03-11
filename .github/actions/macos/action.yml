@@ -1,0 +1,20 @@
+name: macOS
+description: Build macOS builds
+runs:
+  using: "composite"
+  steps:
+    - uses: Swatinem/rust-cache@v1
+    - uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release 
+    - name: copy binary
+      shell: bash
+      run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
+    - name: zip binary
+      shell: bash
+      run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
+    - uses: actions/upload-artifact@v2
+      with:
+        name: macos-artifact
+        path: .github/app/app.zip

@@ -1,6 +1,9 @@
-name: Rust
+name: Publish
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build_ubuntu:
@@ -11,6 +14,13 @@ jobs:
         uses: ./.github/actions/ubuntu
       - name: ls
         run: ls -l app.zip
+      - name: Rename
+        run: mv app.zip neothesia-ubuntu.zip
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: neothesia-ubuntu.zip
 
   build_ubuntu_recorder:
     runs-on: ubuntu-latest
@@ -20,6 +30,13 @@ jobs:
         uses: ./.github/actions/ubuntu-recorder
       - name: ls
         run: ls -l app.zip
+      - name: Rename
+        run: mv app.zip neothesia-cli-ubuntu.zip
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: neothesia-cli-ubuntu.zip
 
   build_windows:
     runs-on: windows-latest
@@ -29,6 +46,13 @@ jobs:
         uses: ./.github/actions/windows
       - name: ls
         run: ls -l target/release/neothesia.exe
+      - name: Rename
+        run: Move-Item -Path target/release/neothesia.exe -Destination neothesia.exe
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: neothesia.exe
 
   build_windows_recorder:
     runs-on: windows-latest
@@ -42,6 +66,13 @@ jobs:
         uses: ./.github/actions/windows-recorder
       - name: ls
         run: ls -l target/release/neothesia-cli.exe
+      - name: Rename
+        run: Move-Item -Path target/release/neothesia-cli.exe -Destination neothesia-cli.exe
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: neothesia-cli.exe
 
   build_macos:
     runs-on: macos-latest
@@ -55,4 +86,11 @@ jobs:
         uses: ./.github/actions/macos
       - name: ls
         run: ls -l .github/app/app.zip
+      - name: Rename
+        run: mv .github/app/app.zip neothesia-macos.zip
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: neothesia-macos.zip
 

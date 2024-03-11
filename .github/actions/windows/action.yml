@@ -1,0 +1,14 @@
+name: Windows
+description: Build Windows builds
+runs:
+  using: "composite"
+  steps:
+    - uses: Swatinem/rust-cache@v1
+    - uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: windows-artifact
+        path: target/release/neothesia.exe

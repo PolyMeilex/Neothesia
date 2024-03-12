@@ -169,6 +169,22 @@ impl Page for SettingsPage {
             .bottom(BarLayout::new().left(left))
             .into()
     }
+
+    fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {
+        use iced_runtime::keyboard::{key::Named, Event, Key};
+
+        match event {
+            Event::KeyPressed {
+                key: Key::Named(key),
+                ..
+            } => match key {
+                Named::Tab => Some(Message::SettingsPage(SettingsPage::open_sound_font_picker())),
+                Named::Escape => Some(Message::GoBack),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
 }
 
 fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {

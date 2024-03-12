@@ -47,4 +47,20 @@ impl Page for ExitPage {
 
         center_x(controls).center_y().into()
     }
+
+    fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {
+        use iced_runtime::keyboard::{key::Named, Event, Key};
+
+        match event {
+            Event::KeyPressed {
+                key: Key::Named(key),
+                ..
+            } => match key {
+                Named::Enter => Some(Message::ExitApp),
+                Named::Escape => Some(Message::GoBack),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
 }

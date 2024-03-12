@@ -9,4 +9,5 @@ pub trait Page {
     type Event;
     fn update(data: &mut Data, msg: Self::Event, ctx: &mut Context) -> Command<Message>;
     fn view<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Self::Event>;
+    fn keyboard_input(event: &iced_runtime::keyboard::Event, ctx: &Context) -> Option<Message>;
 }

@@ -85,11 +85,6 @@ jobs:
       - name: Rename
         run: mv .github/app/app.zip neothesia-macos.zip
       - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: neothesia-macos.zip
-      - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{github.ref_name}} neothesia-macos.zip

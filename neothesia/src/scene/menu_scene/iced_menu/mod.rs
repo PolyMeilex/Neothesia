@@ -1,33 +1,32 @@
-use self::{settings::SettingsPage, tracks::TracksPage};
-
-use super::{icons, Renderer};
+use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
-    Alignment, Length, Padding,
+    Alignment, Length,
 };
 use iced_runtime::Command;
 use iced_style::Theme;
-use iced_widget::{column as col, container, image, row, text, vertical_space};
-use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
+use iced_widget::{column as col, container, image, text, vertical_space};
 
 use crate::{
     context::Context,
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
+    scene::menu_scene::iced_menu::main::MainPage,
     NeothesiaEvent,
 };
 
 mod exit;
-mod midi_file_picker;
+mod main;
 mod page;
 mod settings;
 mod theme;
 mod tracks;
 
 use exit::ExitPage;
-use midi_file_picker::MidiFilePickerMessage;
 use page::Page;
+use settings::SettingsPage;
+use tracks::TracksPage;
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -39,10 +38,10 @@ pub enum Message {
     GoBack,
     ExitApp,
 
+    MainPage(<MainPage as Page>::Event),
     ExitPage(<ExitPage as Page>::Event),
     SettingsPage(<SettingsPage as Page>::Event),
     TracksPage(<TracksPage as Page>::Event),
-    MidiFilePicker(MidiFilePickerMessage),
 }
 
 pub struct Data {
@@ -145,14 +144,14 @@ impl Program for AppUi {
                     }
                 }
             }
+            Message::MainPage(msg) => {
+                return MainPage::update(&mut self.data, msg, ctx);
+            }
             Message::SettingsPage(msg) => {
                 return SettingsPage::update(&mut self.data, msg, ctx);
             }
             Message::TracksPage(msg) => {
                 return TracksPage::update(&mut self.data, msg, ctx);
-            }
-            Message::MidiFilePicker(msg) => {
-                return midi_file_picker::update(&mut self.data, msg, ctx);
             }
             Message::ExitPage(event) => {
                 return ExitPage::update(&mut self.data, event, ctx);
@@ -176,51 +175,27 @@ impl Program for AppUi {
     fn keyboard_input(
         &self,
         event: &iced_runtime::keyboard::Event,
-        _ctx: &Context,
+        ctx: &Context,
     ) -> Option<Message> {
-        use iced_runtime::keyboard::{key::Named, Event, Key};
-
-        match event {
-            Event::KeyPressed {
-                key: Key::Named(key),
-                ..
-            } => match key {
-                Named::Tab => match self.current {
-                    Step::Main => Some(midi_file_picker::open().into()),
-                    Step::Settings => {
-                        Some(Message::SettingsPage(SettingsPage::open_sound_font_picker()))
-                    }
-                    _ => None,
-                },
-                Named::Enter => match self.current {
-                    Step::Exit => Some(Message::ExitApp),
-                    Step::Main => Some(Message::Play),
-                    Step::TrackSelection => Some(Message::Play),
-                    _ => None,
-                },
-                Named::Escape => Some(Message::GoBack),
-                _ => None,
-            },
-            Event::KeyPressed {
-                key: Key::Character(ch),
-                ..
-            } => match ch.as_ref() {
-                "s" => match self.current {
-                    Step::Main => Some(Message::GoToPage(Step::Settings)),
-                    _ => None,
-                },
-                "t" => match self.current {
-                    Step::Main => Some(Message::GoToPage(Step::TrackSelection)),
-                    _ => None,
-                },
-                _ => None,
-            },
-            _ => None,
+        match self.current {
+            Step::Exit => ExitPage::keyboard_input(event, ctx),
+            Step::Main => MainPage::keyboard_input(event, ctx),
+            Step::Settings => SettingsPage::keyboard_input(event, ctx),
+            Step::TrackSelection => TracksPage::keyboard_input(event, ctx),
         }
     }
 
     fn view(&self, ctx: &Context) -> Element<Message> {
-        self.current.view(&self.data, ctx)
+        if self.data.is_loading {
+            return Step::loading(&self.data);
+        }
+
+        match self.current {
+            Step::Exit => ExitPage::view(&self.data, ctx).map(Message::ExitPage),
+            Step::Main => MainPage::view(&self.data, ctx).map(Message::MainPage),
+            Step::Settings => SettingsPage::view(&self.data, ctx).map(Message::SettingsPage),
+            Step::TrackSelection => TracksPage::view(&self.data, ctx).map(Message::TracksPage),
+        }
     }
 }
 
@@ -242,99 +217,12 @@ impl<'a> Step {
         }
     }
 
-    fn view(&'a self, data: &'a Data, ctx: &Context) -> Element<Message> {
-        if data.is_loading {
-            return Self::loading(data);
-        }
-
-        match self {
-            Self::Exit => ExitPage::view(data, ctx).map(Message::ExitPage),
-            Self::Main => Self::main(data, ctx),
-            Self::Settings => SettingsPage::view(data, ctx).map(Message::SettingsPage),
-            Self::TrackSelection => TracksPage::view(data, ctx).map(Message::TracksPage),
-        }
-    }
-
     fn loading(data: &'a Data) -> Element<'a, Message> {
         let column = col![image(data.logo_handle.clone()), text("Loading...").size(30)]
             .spacing(40)
             .align_items(Alignment::Center);
 
         center_x(top_padded(column)).into()
-    }
-
-    fn main(data: &'a Data, ctx: &Context) -> Element<'a, Message> {
-        let buttons = col![
-            NeoBtn::new_with_label("Select File")
-                .on_press(midi_file_picker::open().into())
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-            NeoBtn::new_with_label("Settings")
-                .on_press(Message::GoToPage(Step::Settings))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-            NeoBtn::new_with_label("Exit")
-                .on_press(Message::GoToPage(Step::Exit))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-        ]
-        .width(Length::Fixed(450.0))
-        .spacing(10);
-
-        let column = col![image(data.logo_handle.clone()), buttons]
-            .spacing(40)
-            .align_items(Alignment::Center);
-
-        let mut layout = Layout::new().body(top_padded(column));
-
-        if let Some(song) = ctx.song.as_ref() {
-            let tracks = NeoBtn::new(
-                icons::note_list_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Message::GoToPage(Step::TrackSelection));
-
-            let play = NeoBtn::new(
-                icons::play_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Message::Play);
-
-            let row = row![tracks, play]
-                .spacing(10)
-                .align_items(Alignment::Center);
-
-            let container = container(row)
-                .width(Length::Fill)
-                .align_x(Horizontal::Right)
-                .padding(Padding {
-                    top: 0.0,
-                    right: 10.0,
-                    bottom: 10.0,
-                    left: 0.0,
-                });
-
-            layout = layout.bottom(
-                BarLayout::new()
-                    .center(
-                        text(&song.file.name)
-                            .width(Length::Fill)
-                            .vertical_alignment(Vertical::Center)
-                            .horizontal_alignment(Horizontal::Center),
-                    )
-                    .right(container),
-            );
-        }
-
-        layout.into()
     }
 }
 

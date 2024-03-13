@@ -219,4 +219,20 @@ impl Page for TracksPage {
             .bottom(BarLayout::new().left(left).center(center).right(right))
             .into()
     }
+
+    fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {
+        use iced_runtime::keyboard::{key::Named, Event, Key};
+
+        match event {
+            Event::KeyPressed {
+                key: Key::Named(key),
+                ..
+            } => match key {
+                Named::Enter => Some(Message::Play),
+                Named::Escape => Some(Message::GoBack),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
 }

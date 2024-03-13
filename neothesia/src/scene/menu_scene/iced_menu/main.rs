@@ -25,13 +25,19 @@ impl Page for MainPage {
     type Event = Event;
 
     fn update(data: &mut Data, msg: Self::Event, ctx: &mut Context) -> Command<Message> {
-        let msg = match msg {
-            Event::Play => Message::Play,
-            Event::GoToPage(step) => Message::GoToPage(step),
-            Event::MidiFilePicker(msg) => return midi_file_picker_update(data, msg, ctx),
+        match msg {
+            Event::Play => {
+                super::play(data, ctx);
+            }
+            Event::GoToPage(step) => {
+                return Command::perform(async {}, move |_| Message::GoToPage(step));
+            }
+            Event::MidiFilePicker(msg) => {
+                return midi_file_picker_update(data, msg, ctx);
+            }
         };
 
-        Command::perform(async {}, move |_| msg)
+        Command::none()
     }
 
     fn view<'a>(data: &'a Data, ctx: &Context) -> neothesia_iced_widgets::Element<'a, Self::Event> {
@@ -117,7 +123,7 @@ impl Page for MainPage {
                 ..
             } => match key {
                 Named::Tab => Some(MidiFilePickerMessage::open().into()),
-                Named::Enter => Some(Message::Play),
+                Named::Enter => Some(Message::MainPage(self::Event::Play)),
                 Named::Escape => Some(Message::GoBack),
                 _ => None,
             },

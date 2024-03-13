@@ -24,7 +24,7 @@ pub struct TracksPage;
 impl Page for TracksPage {
     type Event = Event;
 
-    fn update(_data: &mut Data, event: Event, ctx: &mut Context) -> Command<Message> {
+    fn update(data: &mut Data, event: Event, ctx: &mut Context) -> Command<Message> {
         match event {
             Event::AllTracksPlayer(config) => {
                 if let Some(song) = ctx.song.as_mut() {
@@ -47,7 +47,7 @@ impl Page for TracksPage {
                 return Command::perform(async {}, |_| Message::GoBack);
             }
             Event::Play => {
-                return Command::perform(async {}, |_| Message::Play);
+                super::play(data, ctx);
             }
         }
 
@@ -228,7 +228,7 @@ impl Page for TracksPage {
                 key: Key::Named(key),
                 ..
             } => match key {
-                Named::Enter => Some(Message::Play),
+                Named::Enter => Some(Message::TracksPage(self::Event::Play)),
                 Named::Escape => Some(Message::GoBack),
                 _ => None,
             },

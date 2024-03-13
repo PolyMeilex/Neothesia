@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
@@ -32,11 +34,8 @@ type InputDescriptor = midi_io::MidiInputPort;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Tick,
-    Play,
     GoToPage(Step),
     GoBack,
-    ExitApp,
 
     MainPage(<MainPage as Page>::Event),
     ExitPage(<ExitPage as Page>::Event),
@@ -58,13 +57,16 @@ pub struct Data {
 
 pub struct AppUi {
     data: Data,
-    current: Step,
+    page_stack: VecDeque<Step>,
 }
 
 impl AppUi {
     pub fn new(_ctx: &Context) -> Self {
+        let mut page_stack = VecDeque::new();
+        page_stack.push_front(Step::Main);
+
         Self {
-            current: Step::Main,
+            page_stack,
             data: Data {
                 outputs: Vec::new(),
                 selected_output: None,
@@ -78,6 +80,26 @@ impl AppUi {
             },
         }
     }
+
+    pub fn current(&self) -> &Step {
+        self.page_stack.front().unwrap()
+    }
+
+    pub fn go_to(&mut self, page: Step) {
+        self.page_stack.push_front(page);
+    }
+
+    pub fn go_back(&mut self) {
+        match self.page_stack.len() {
+            1 => {
+                // Last page in the stack, let's go to exit page
+                self.page_stack.push_front(Step::Exit);
+            }
+            _ => {
+                self.page_stack.pop_front();
+            }
+        }
+    }
 }
 
 impl Program for AppUi {
@@ -86,63 +108,10 @@ impl Program for AppUi {
     fn update(&mut self, ctx: &mut Context, message: Message) -> Command<Self::Message> {
         match message {
             Message::GoToPage(page) => {
-                self.current = page;
+                self.go_to(page);
             }
             Message::GoBack => {
-                return self.update(ctx, Message::GoToPage(self.current.previous_step()));
-            }
-            Message::Play => {
-                if let Some(song) = ctx.song.as_ref() {
-                    if let Some(out) = self.data.selected_output.clone() {
-                        let out = match out {
-                            #[cfg(feature = "synth")]
-                            OutputDescriptor::Synth(_) => {
-                                OutputDescriptor::Synth(ctx.config.soundfont_path.clone())
-                            }
-                            o => o,
-                        };
-
-                        ctx.output_manager.connect(out)
-                    }
-
-                    if let Some(port) = self.data.selected_input.clone() {
-                        ctx.input_manager.connect_input(port);
-                    }
-
-                    ctx.proxy
-                        .send_event(NeothesiaEvent::Play(song.clone()))
-                        .ok();
-                }
-            }
-            Message::Tick => {
-                self.data.outputs = ctx.output_manager.outputs();
-                self.data.inputs = ctx.input_manager.inputs();
-
-                if self.data.selected_output.is_none() {
-                    if let Some(out) = self
-                        .data
-                        .outputs
-                        .iter()
-                        .find(|output| Some(output.to_string()) == ctx.config.output)
-                    {
-                        self.data.selected_output = Some(out.clone());
-                    } else {
-                        self.data.selected_output = self.data.outputs.first().cloned();
-                    }
-                }
-
-                if self.data.selected_input.is_none() {
-                    if let Some(input) = self
-                        .data
-                        .inputs
-                        .iter()
-                        .find(|input| Some(input.to_string()) == ctx.config.input)
-                    {
-                        self.data.selected_input = Some(input.clone());
-                    } else {
-                        self.data.selected_input = self.data.inputs.first().cloned();
-                    }
-                }
+                self.go_back();
             }
             Message::MainPage(msg) => {
                 return MainPage::update(&mut self.data, msg, ctx);
@@ -153,11 +122,8 @@ impl Program for AppUi {
             Message::TracksPage(msg) => {
                 return TracksPage::update(&mut self.data, msg, ctx);
             }
-            Message::ExitPage(event) => {
-                return ExitPage::update(&mut self.data, event, ctx);
-            }
-            Message::ExitApp => {
-                ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
+            Message::ExitPage(msg) => {
+                return ExitPage::update(&mut self.data, msg, ctx);
             }
         }
 
@@ -177,7 +143,7 @@ impl Program for AppUi {
         event: &iced_runtime::keyboard::Event,
         ctx: &Context,
     ) -> Option<Message> {
-        match self.current {
+        match self.current() {
             Step::Exit => ExitPage::keyboard_input(event, ctx),
             Step::Main => MainPage::keyboard_input(event, ctx),
             Step::Settings => SettingsPage::keyboard_input(event, ctx),
@@ -187,14 +153,45 @@ impl Program for AppUi {
 
     fn view(&self, ctx: &Context) -> Element<Message> {
         if self.data.is_loading {
-            return Step::loading(&self.data);
+            return loading(&self.data);
         }
 
-        match self.current {
+        match self.current() {
             Step::Exit => ExitPage::view(&self.data, ctx).map(Message::ExitPage),
             Step::Main => MainPage::view(&self.data, ctx).map(Message::MainPage),
             Step::Settings => SettingsPage::view(&self.data, ctx).map(Message::SettingsPage),
             Step::TrackSelection => TracksPage::view(&self.data, ctx).map(Message::TracksPage),
+        }
+    }
+
+    fn tick(&mut self, ctx: &mut Context) {
+        self.data.outputs = ctx.output_manager.outputs();
+        self.data.inputs = ctx.input_manager.inputs();
+
+        if self.data.selected_output.is_none() {
+            if let Some(out) = self
+                .data
+                .outputs
+                .iter()
+                .find(|output| Some(output.to_string()) == ctx.config.output)
+            {
+                self.data.selected_output = Some(out.clone());
+            } else {
+                self.data.selected_output = self.data.outputs.first().cloned();
+            }
+        }
+
+        if self.data.selected_input.is_none() {
+            if let Some(input) = self
+                .data
+                .inputs
+                .iter()
+                .find(|input| Some(input.to_string()) == ctx.config.input)
+            {
+                self.data.selected_input = Some(input.clone());
+            } else {
+                self.data.selected_input = self.data.inputs.first().cloned();
+            }
         }
     }
 }
@@ -207,23 +204,38 @@ pub enum Step {
     TrackSelection,
 }
 
-impl<'a> Step {
-    fn previous_step(&self) -> Self {
-        match self {
-            Step::Exit => Step::Main,
-            Step::Main => Step::Exit,
-            Step::Settings => Step::Main,
-            Step::TrackSelection => Step::Main,
-        }
+fn play(data: &Data, ctx: &mut Context) {
+    let Some(song) = ctx.song.as_ref() else {
+        return;
+    };
+
+    if let Some(out) = data.selected_output.clone() {
+        let out = match out {
+            #[cfg(feature = "synth")]
+            OutputDescriptor::Synth(_) => {
+                OutputDescriptor::Synth(ctx.config.soundfont_path.clone())
+            }
+            o => o,
+        };
+
+        ctx.output_manager.connect(out)
     }
 
-    fn loading(data: &'a Data) -> Element<'a, Message> {
-        let column = col![image(data.logo_handle.clone()), text("Loading...").size(30)]
-            .spacing(40)
-            .align_items(Alignment::Center);
-
-        center_x(top_padded(column)).into()
+    if let Some(port) = data.selected_input.clone() {
+        ctx.input_manager.connect_input(port);
     }
+
+    ctx.proxy
+        .send_event(NeothesiaEvent::Play(song.clone()))
+        .ok();
+}
+
+fn loading(data: &Data) -> Element<'_, Message> {
+    let column = col![image(data.logo_handle.clone()), text("Loading...").size(30)]
+        .spacing(40)
+        .align_items(Alignment::Center);
+
+    center_x(top_padded(column)).into()
 }
 
 fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Theme, Renderer> {

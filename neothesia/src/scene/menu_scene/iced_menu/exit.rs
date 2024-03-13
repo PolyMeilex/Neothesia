@@ -3,7 +3,7 @@ use iced_runtime::Command;
 use iced_widget::{column as col, row};
 use neothesia_iced_widgets::{Element, NeoBtn};
 
-use crate::context::Context;
+use crate::{context::Context, NeothesiaEvent};
 
 use super::{center_x, centered_text, Data, Message, Page};
 
@@ -18,12 +18,17 @@ pub enum Event {
 impl Page for ExitPage {
     type Event = Event;
 
-    fn update(_data: &mut Data, event: Event, _ctx: &mut Context) -> Command<Message> {
-        let msg = match event {
-            Event::GoBack => Message::GoBack,
-            Event::Exit => Message::ExitApp,
-        };
-        Command::perform(async {}, |_| msg)
+    fn update(_data: &mut Data, event: Event, ctx: &mut Context) -> Command<Message> {
+        match event {
+            Event::GoBack => {
+                return Command::perform(async {}, |_| Message::GoBack);
+            }
+            Event::Exit => {
+                ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
+            }
+        }
+
+        Command::none()
     }
 
     fn view<'a>(_data: &'a Data, _ctx: &Context) -> Element<'a, Event> {
@@ -56,7 +61,7 @@ impl Page for ExitPage {
                 key: Key::Named(key),
                 ..
             } => match key {
-                Named::Enter => Some(Message::ExitApp),
+                Named::Enter => Some(Message::ExitPage(self::Event::Exit)),
                 Named::Escape => Some(Message::GoBack),
                 _ => None,
             },

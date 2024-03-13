@@ -48,7 +48,7 @@ impl MenuScene {
 impl Scene for MenuScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.bg_pipeline.update_time(&mut ctx.gpu, delta);
-        self.iced_state.queue_message(iced_menu::Message::Tick);
+        self.iced_state.tick(ctx);
 
         self.futures
             .retain_mut(|f| match f.as_mut().poll(&mut self.context) {
@@ -59,15 +59,18 @@ impl Scene for MenuScene {
                 std::task::Poll::Pending => true,
             });
 
-        if !self.iced_state.is_queue_empty() {
-            if let Some(command) = self.iced_state.update(ctx) {
-                for a in command.actions() {
-                    match a {
-                        iced_runtime::command::Action::Future(f) => {
-                            self.futures.push(f);
-                        }
-                        _ => {}
+        // Let's skip for now, as we need the tick update every frame anyway
+        // if self.iced_state.is_queue_empty() {
+        //     return;
+        // }
+
+        if let Some(command) = self.iced_state.update(ctx) {
+            for a in command.actions() {
+                match a {
+                    iced_runtime::command::Action::Future(f) => {
+                        self.futures.push(f);
                     }
+                    _ => {}
                 }
             }
         }

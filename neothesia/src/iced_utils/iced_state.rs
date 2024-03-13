@@ -45,6 +45,8 @@ pub trait Program: Sized {
     ) -> Option<Self::Message> {
         None
     }
+
+    fn tick(&mut self, ctx: &mut Context);
 }
 
 /// The execution state of a [`Program`]. It leverages caching, event
@@ -109,6 +111,10 @@ where
     #[allow(dead_code)]
     pub fn mouse_interaction(&self) -> mouse::Interaction {
         self.mouse_interaction
+    }
+
+    pub fn tick(&mut self, ctx: &mut Context) {
+        self.program.tick(ctx);
     }
 
     /// Processes all the queued events and messages, rebuilding and redrawing

@@ -10,7 +10,10 @@ use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
 
 use crate::{context::Context, scene::menu_scene::icons, song::Song};
 
-use super::{page::Page, top_padded, Data, Message, Step};
+use super::{
+    page::{Page, PageMessage},
+    top_padded, Data, Message, Step,
+};
 
 #[derive(Debug, Clone)]
 pub enum Event {
@@ -24,20 +27,24 @@ pub struct MainPage;
 impl Page for MainPage {
     type Event = Event;
 
-    fn update(data: &mut Data, msg: Self::Event, ctx: &mut Context) -> Command<Message> {
+    fn update(data: &mut Data, msg: Self::Event, ctx: &mut Context) -> PageMessage {
         match msg {
             Event::Play => {
                 super::play(data, ctx);
             }
             Event::GoToPage(step) => {
-                return Command::perform(async {}, move |_| Message::GoToPage(step));
+                return PageMessage::go_to_page(step);
             }
             Event::MidiFilePicker(msg) => {
-                return midi_file_picker_update(data, msg, ctx);
+                return PageMessage::Command(
+                    midi_file_picker_update(data, msg, ctx)
+                        .map(Event::MidiFilePicker)
+                        .map(Message::MainPage),
+                );
             }
         };
 
-        Command::none()
+        PageMessage::None
     }
 
     fn view<'a>(data: &'a Data, ctx: &Context) -> neothesia_iced_widgets::Element<'a, Self::Event> {
@@ -154,7 +161,7 @@ impl MidiFilePickerMessage {
 
 impl From<MidiFilePickerMessage> for Message {
     fn from(msg: MidiFilePickerMessage) -> Self {
-        Message::MainPage(super::main::Event::MidiFilePicker(msg))
+        Message::MainPage(Event::MidiFilePicker(msg))
     }
 }
 
@@ -162,11 +169,15 @@ fn midi_file_picker_update(
     data: &mut Data,
     msg: MidiFilePickerMessage,
     ctx: &mut Context,
-) -> Command<Message> {
+) -> Command<MidiFilePickerMessage> {
     match msg {
         MidiFilePickerMessage::OpenMidiFilePicker => {
             data.is_loading = true;
-            return open_midi_file_picker(|v| MidiFilePickerMessage::MidiFileLoaded(v).into());
+
+            return Command::perform(
+                open_midi_file_picker(),
+                MidiFilePickerMessage::MidiFileLoaded,
+            );
         }
         MidiFilePickerMessage::MidiFileLoaded(midi) => {
             if let Some((midi, path)) = midi {
@@ -180,41 +191,34 @@ fn midi_file_picker_update(
     Command::none()
 }
 
-fn open_midi_file_picker(
-    f: impl FnOnce(Option<(midi_file::MidiFile, PathBuf)>) -> Message + 'static + Send,
-) -> Command<Message> {
-    Command::perform(
-        async {
-            let file = rfd::AsyncFileDialog::new()
-                .add_filter("midi", &["mid", "midi"])
-                .pick_file()
-                .await;
+async fn open_midi_file_picker() -> Option<(midi_file::MidiFile, PathBuf)> {
+    let file = rfd::AsyncFileDialog::new()
+        .add_filter("midi", &["mid", "midi"])
+        .pick_file()
+        .await;
 
-            if let Some(file) = file {
-                log::info!("File path = {:?}", file.path());
+    if let Some(file) = file {
+        log::info!("File path = {:?}", file.path());
 
-                let thread = async_thread::Builder::new()
-                    .name("midi-loader".into())
-                    .spawn(move || {
-                        let midi = midi_file::MidiFile::new(file.path());
+        let thread = async_thread::Builder::new()
+            .name("midi-loader".into())
+            .spawn(move || {
+                let midi = midi_file::MidiFile::new(file.path());
 
-                        if let Err(e) = &midi {
-                            log::error!("{}", e);
-                        }
-
-                        midi.map(|midi| (midi, file.path().to_path_buf())).ok()
-                    });
-
-                if let Ok(thread) = thread {
-                    thread.join().await.ok().flatten()
-                } else {
-                    None
+                if let Err(e) = &midi {
+                    log::error!("{}", e);
                 }
-            } else {
-                log::info!("User canceled dialog");
-                None
-            }
-        },
-        f,
-    )
+
+                midi.map(|midi| (midi, file.path().to_path_buf())).ok()
+            });
+
+        if let Ok(thread) = thread {
+            thread.join().await.ok().flatten()
+        } else {
+            None
+        }
+    } else {
+        log::info!("User canceled dialog");
+        None
+    }
 }

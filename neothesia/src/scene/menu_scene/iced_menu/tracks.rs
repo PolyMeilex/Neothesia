@@ -2,13 +2,16 @@ use iced_core::{
     alignment::{Horizontal, Vertical},
     Alignment, Length, Padding,
 };
-use iced_runtime::Command;
 use iced_widget::{button, column as col, container, row, vertical_space};
 
 use crate::{context::Context, scene::menu_scene::icons, song::PlayerConfig};
 use neothesia_iced_widgets::{BarLayout, Element, Layout, NeoBtn};
 
-use super::{centered_text, page::Page, theme, Data, Message};
+use super::{
+    centered_text,
+    page::{Page, PageMessage},
+    theme, Data, Message,
+};
 
 #[derive(Debug, Clone)]
 pub enum Event {
@@ -24,7 +27,7 @@ pub struct TracksPage;
 impl Page for TracksPage {
     type Event = Event;
 
-    fn update(data: &mut Data, event: Event, ctx: &mut Context) -> Command<Message> {
+    fn update(data: &mut Data, event: Event, ctx: &mut Context) -> PageMessage {
         match event {
             Event::AllTracksPlayer(config) => {
                 if let Some(song) = ctx.song.as_mut() {
@@ -44,14 +47,14 @@ impl Page for TracksPage {
                 }
             }
             Event::GoBack => {
-                return Command::perform(async {}, |_| Message::GoBack);
+                return PageMessage::go_back();
             }
             Event::Play => {
                 super::play(data, ctx);
             }
         }
 
-        Command::none()
+        PageMessage::none()
     }
 
     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {

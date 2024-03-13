@@ -103,6 +103,7 @@ where
     }
 
     /// Returns whether the event queue of the [`State`] is empty or not.
+    #[allow(dead_code)]
     pub fn is_queue_empty(&self) -> bool {
         self.queued_events.is_empty() && self.queued_messages.is_empty()
     }

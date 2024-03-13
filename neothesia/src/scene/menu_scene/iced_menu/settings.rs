@@ -10,7 +10,11 @@ use neothesia_iced_widgets::{ActionRow, BarLayout, Element, Layout, NeoBtn, Pref
 
 use crate::{context::Context, output_manager::OutputDescriptor, scene::menu_scene::icons};
 
-use super::{centered_text, page::Page, theme, Data, InputDescriptor, Message};
+use super::{
+    centered_text,
+    page::{Page, PageMessage},
+    theme, Data, InputDescriptor, Message,
+};
 
 #[derive(Debug, Clone)]
 pub enum RangeUpdateKind {
@@ -44,7 +48,7 @@ impl SettingsPage {
 impl Page for SettingsPage {
     type Event = Event;
 
-    fn update(data: &mut Data, msg: Event, ctx: &mut Context) -> Command<Message> {
+    fn update(data: &mut Data, msg: Event, ctx: &mut Context) -> PageMessage {
         match msg {
             Event::SelectOutput(output) => {
                 ctx.config
@@ -67,9 +71,10 @@ impl Page for SettingsPage {
             }
             Event::OpenSoundFontPicker => {
                 data.is_loading = true;
-                return open_sound_font_picker(|res| {
-                    Message::SettingsPage(Event::SoundFontFileLoaded(res))
-                });
+
+                let cmd = Command::perform(open_sound_font_picker(), Event::SoundFontFileLoaded)
+                    .map(Message::SettingsPage);
+                return PageMessage::Command(cmd);
             }
             Event::SoundFontFileLoaded(font) => {
                 if let Some(font) = font {
@@ -100,11 +105,11 @@ impl Page for SettingsPage {
                 }
             },
             Event::GoBack => {
-                return Command::perform(async {}, |_| Message::GoBack);
+                return PageMessage::go_back();
             }
         }
 
-        Command::none()
+        PageMessage::none()
     }
 
     fn view<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
@@ -308,24 +313,17 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         .build()
 }
 
-fn open_sound_font_picker(
-    f: impl FnOnce(Option<PathBuf>) -> Message + 'static + Send,
-) -> Command<Message> {
-    Command::perform(
-        async {
-            let file = rfd::AsyncFileDialog::new()
-                .add_filter("SoundFont2", &["sf2"])
-                .pick_file()
-                .await;
+async fn open_sound_font_picker() -> Option<PathBuf> {
+    let file = rfd::AsyncFileDialog::new()
+        .add_filter("SoundFont2", &["sf2"])
+        .pick_file()
+        .await;
 
-            if let Some(file) = file.as_ref() {
-                log::info!("Font path = {:?}", file.path());
-            } else {
-                log::info!("User canceled dialog");
-            }
+    if let Some(file) = file.as_ref() {
+        log::info!("Font path = {:?}", file.path());
+    } else {
+        log::info!("User canceled dialog");
+    }
 
-            file.map(|f| f.path().to_owned())
-        },
-        f,
-    )
+    file.map(|f| f.path().to_owned())
 }

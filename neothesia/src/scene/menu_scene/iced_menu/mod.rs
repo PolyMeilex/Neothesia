@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use self::page::PageMessage;
+
 use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
@@ -100,6 +102,14 @@ impl AppUi {
             }
         }
     }
+
+    fn handle_page_msg(&mut self, ctx: &mut Context, msg: PageMessage) -> Command<Message> {
+        match msg {
+            PageMessage::Message(msg) => self.update(ctx, msg),
+            PageMessage::Command(cmd) => cmd,
+            PageMessage::None => Command::none(),
+        }
+    }
 }
 
 impl Program for AppUi {
@@ -114,16 +124,20 @@ impl Program for AppUi {
                 self.go_back();
             }
             Message::MainPage(msg) => {
-                return MainPage::update(&mut self.data, msg, ctx);
+                let msg = MainPage::update(&mut self.data, msg, ctx);
+                return self.handle_page_msg(ctx, msg);
             }
             Message::SettingsPage(msg) => {
-                return SettingsPage::update(&mut self.data, msg, ctx);
+                let msg = SettingsPage::update(&mut self.data, msg, ctx);
+                return self.handle_page_msg(ctx, msg);
             }
             Message::TracksPage(msg) => {
-                return TracksPage::update(&mut self.data, msg, ctx);
+                let msg = TracksPage::update(&mut self.data, msg, ctx);
+                return self.handle_page_msg(ctx, msg);
             }
             Message::ExitPage(msg) => {
-                return ExitPage::update(&mut self.data, msg, ctx);
+                let msg = ExitPage::update(&mut self.data, msg, ctx);
+                return self.handle_page_msg(ctx, msg);
             }
         }
 

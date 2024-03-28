@@ -314,8 +314,9 @@ fn file_midi_events(
             _ => continue,
         };
 
+        let range_start = keyboard.range().start() as usize;
         if keyboard.range().contains(key) && e.channel != 9 {
-            let id = key as usize - 21;
+            let id = key as usize - range_start;
             let key = &mut keyboard.key_states_mut()[id];
 
             if is_on {

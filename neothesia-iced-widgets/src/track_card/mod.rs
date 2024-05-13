@@ -6,6 +6,7 @@ mod theme;
 pub struct TrackCard<'a, MSG> {
     title: String,
     subtitle: String,
+    hand_info: String,
     body: Option<Element<'a, MSG>>,
     track_color: Color,
     on_icon_press: Option<MSG>,
@@ -22,6 +23,7 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
         Self {
             title: String::new(),
             subtitle: String::new(),
+            hand_info: String::new(),
             body: None,
             track_color: Color::from_rgba8(210, 89, 222, 1.0),
             on_icon_press: None,
@@ -30,6 +32,11 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
 
     pub fn title(mut self, text: impl ToString) -> Self {
         self.title = text.to_string();
+        self
+    }
+
+    pub fn hand_info(mut self, text: impl ToString) -> Self {
+        self.hand_info = text.to_string();
         self
     }
 
@@ -65,6 +72,7 @@ impl<'a, M: Clone + 'a> From<TrackCard<'a, M>> for Element<'a, M> {
                     .on_press_maybe(card.on_icon_press),
                 iced_widget::column(vec![
                     iced_widget::text(card.title).size(16).into(),
+                    iced_widget::text(card.hand_info).size(16).into(),
                     iced_widget::text(card.subtitle).size(14).into(),
                 ])
                 .spacing(4)

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wgpu_jumpstart::{wgpu, Gpu, RenderPipelineBuilder, Shape, Uniform};
+use wgpu_jumpstart::{wgpu, Gpu, Shape, Uniform};
 
 use bytemuck::{Pod, Zeroable};
 
@@ -39,16 +39,16 @@ impl BgPipeline {
 
         let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
 
-        let render_pipeline = wgpu::RenderPipelineDescriptor::builder(
-            render_pipeline_layout,
-            wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[Shape::layout()],
-            },
-        )
-        .fragment("fs_main", &shader, &[Some(target)])
-        .create_render_pipeline(&gpu.device);
+        let render_pipeline = gpu
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                layout: Some(render_pipeline_layout),
+                fragment: Some(wgpu_jumpstart::default_fragment(&shader, &[Some(target)])),
+                ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
+                    &shader,
+                    &[Shape::layout()],
+                ))
+            });
 
         let fullscreen_quad = Shape::new_fullscreen_quad(&gpu.device);
 

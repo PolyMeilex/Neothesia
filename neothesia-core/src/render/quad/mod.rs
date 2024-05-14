@@ -1,9 +1,7 @@
 mod instance_data;
 pub use instance_data::QuadInstance;
 
-use wgpu_jumpstart::{
-    wgpu, Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform,
-};
+use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
 
 pub struct QuadPipeline {
     render_pipeline: wgpu::RenderPipeline,
@@ -34,16 +32,16 @@ impl<'a> QuadPipeline {
 
         let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
 
-        let render_pipeline = wgpu::RenderPipelineDescriptor::builder(
-            &render_pipeline_layout,
-            wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[Shape::layout(), QuadInstance::layout(&ri_attrs)],
-            },
-        )
-        .fragment("fs_main", &shader, &[Some(target)])
-        .create_render_pipeline(&gpu.device);
+        let render_pipeline = gpu
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                layout: Some(&render_pipeline_layout),
+                fragment: Some(wgpu_jumpstart::default_fragment(&shader, &[Some(target)])),
+                ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
+                    &shader,
+                    &[Shape::layout(), QuadInstance::layout(&ri_attrs)],
+                ))
+            });
 
         let quad = Shape::new_quad(&gpu.device);
         let instances = Instances::new(&gpu.device, 100_000);

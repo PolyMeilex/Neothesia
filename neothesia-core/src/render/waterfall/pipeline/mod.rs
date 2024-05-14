@@ -2,9 +2,7 @@ mod instance_data;
 
 pub use instance_data::NoteInstance;
 
-use wgpu_jumpstart::{
-    wgpu, Gpu, Instances, RenderPipelineBuilder, Shape, TransformUniform, Uniform,
-};
+use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
 
 use bytemuck::{Pod, Zeroable};
 
@@ -39,7 +37,7 @@ impl<'a> WaterfallPipeline {
         );
 
         let render_pipeline_layout =
-            &gpu.device
+            gpu.device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
                     bind_group_layouts: &[
@@ -53,16 +51,16 @@ impl<'a> WaterfallPipeline {
 
         let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
 
-        let render_pipeline = wgpu::RenderPipelineDescriptor::builder(
-            render_pipeline_layout,
-            wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[Shape::layout(), NoteInstance::layout(&ni_attrs)],
-            },
-        )
-        .fragment("fs_main", &shader, &[Some(target)])
-        .create_render_pipeline(&gpu.device);
+        let render_pipeline = gpu
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                layout: Some(&render_pipeline_layout),
+                fragment: Some(wgpu_jumpstart::default_fragment(&shader, &[Some(target)])),
+                ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
+                    &shader,
+                    &[Shape::layout(), NoteInstance::layout(&ni_attrs)],
+                ))
+            });
 
         let quad = Shape::new_quad(&gpu.device);
 

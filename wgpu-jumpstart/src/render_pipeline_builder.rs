@@ -17,50 +17,37 @@ pub fn default_color_target_state(texture_format: wgpu::TextureFormat) -> wgpu::
     }
 }
 
-pub trait RenderPipelineBuilder<'a> {
-    fn builder(layout: &'a wgpu::PipelineLayout, vertex: wgpu::VertexState<'a>) -> Self;
-    fn fragment(
-        self,
-        entry_point: &'a str,
-        fragment_module: &'a wgpu::ShaderModule,
-        targets: &'a [Option<wgpu::ColorTargetState>],
-    ) -> Self;
-    fn create_render_pipeline(&self, device: &wgpu::Device) -> wgpu::RenderPipeline;
+pub fn default_fragment<'a>(
+    module: &'a wgpu::ShaderModule,
+    targets: &'a [Option<wgpu::ColorTargetState>],
+) -> wgpu::FragmentState<'a> {
+    wgpu::FragmentState {
+        module,
+        entry_point: "fs_main",
+        targets,
+    }
 }
 
-impl<'a> RenderPipelineBuilder<'a> for wgpu::RenderPipelineDescriptor<'a> {
-    fn builder(layout: &'a wgpu::PipelineLayout, vertex: wgpu::VertexState<'a>) -> Self {
-        wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: Some(layout),
-            vertex,
-            fragment: None,
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-        }
+pub fn default_vertex<'a>(
+    module: &'a wgpu::ShaderModule,
+    buffers: &'a [wgpu::VertexBufferLayout<'a>],
+) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+        module,
+        entry_point: "vs_main",
+        buffers,
     }
+}
 
-    fn fragment(
-        mut self,
-        entry_point: &'a str,
-        fragment_module: &'a wgpu::ShaderModule,
-        targets: &'a [Option<wgpu::ColorTargetState>],
-    ) -> Self {
-        self.fragment = Some(wgpu::FragmentState {
-            module: fragment_module,
-            entry_point,
-            targets,
-        });
-        self
-    }
-
-    fn create_render_pipeline(&self, device: &wgpu::Device) -> wgpu::RenderPipeline {
-        device.create_render_pipeline(self)
+pub fn default_render_pipeline(vertex: wgpu::VertexState) -> wgpu::RenderPipelineDescriptor {
+    wgpu::RenderPipelineDescriptor {
+        label: None,
+        layout: None,
+        vertex,
+        fragment: None,
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
     }
 }

@@ -97,12 +97,12 @@ impl Page for TracksPage {
                     midi_file::INSTRUMENT_NAMES[instrument_id]
                 };
 
-                // Check if the instrument is Grand Piano (id 0, 1, or 2)
-                let hand_info = if instrument_id <= 2 {
+                // Check if the instrument is a Piano (id 0, 1, or 2)
+                let hand_info = if instrument_id <= 2 && name != "Percussion" {
                     // Increment the piano counter
                     piano_count += 1;
 
-                    // Determine if it's the first or second occurrence of Grand Piano
+                    // Determine if it's the first or second occurrence of Piano
                     if piano_count % 2 == 0 {
                         "Right Hand"
                     } else {

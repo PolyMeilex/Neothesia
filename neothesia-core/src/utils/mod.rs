@@ -21,6 +21,12 @@ impl<T> From<(T, T)> for Point<T> {
     }
 }
 
+impl<T> From<[T; 2]> for Point<T> {
+    fn from([x, y]: [T; 2]) -> Self {
+        Self { x, y }
+    }
+}
+
 impl<T> From<Point<T>> for [T; 2] {
     fn from(p: Point<T>) -> Self {
         [p.x, p.y]
@@ -71,6 +77,12 @@ impl<T> Size<T> {
 
 impl<T> From<(T, T)> for Size<T> {
     fn from((w, h): (T, T)) -> Self {
+        Self { w, h }
+    }
+}
+
+impl<T> From<[T; 2]> for Size<T> {
+    fn from([w, h]: [T; 2]) -> Self {
         Self { w, h }
     }
 }

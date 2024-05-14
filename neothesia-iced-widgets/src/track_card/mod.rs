@@ -60,26 +60,29 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
         self
     }
 }
-
 impl<'a, M: Clone + 'a> From<TrackCard<'a, M>> for Element<'a, M> {
     fn from(card: TrackCard<'a, M>) -> Self {
-        let header = {
-            iced_widget::row![
-                iced_widget::button(iced_widget::text(""))
-                    .width(40)
-                    .height(40)
-                    .style(theme::track_icon_button(card.track_color))
-                    .on_press_maybe(card.on_icon_press),
-                iced_widget::column(vec![
-                    iced_widget::text(card.title).size(16).into(),
-                    iced_widget::text(card.hand_info).size(16).into(),
-                    iced_widget::text(card.subtitle).size(14).into(),
-                ])
+        let mut header_content = vec![
+            iced_widget::text(card.title).size(16).into(),
+            iced_widget::text(card.subtitle).size(14).into(),
+        ];
+
+        // Only add hand_info if it's not empty
+        if !card.hand_info.is_empty() {
+            header_content.insert(1, iced_widget::text(card.hand_info).size(16).into());
+        }
+
+        let header = iced_widget::row![
+            iced_widget::button(iced_widget::text(""))
+                .width(40)
+                .height(40)
+                .style(theme::track_icon_button(card.track_color))
+                .on_press_maybe(card.on_icon_press),
+            iced_widget::column(header_content)
                 .spacing(4)
                 .align_items(Alignment::Start),
-            ]
-            .spacing(16)
-        };
+        ]
+        .spacing(16);
 
         let mut children = vec![header.into()];
         if let Some(body) = card.body {

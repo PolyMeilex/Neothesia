@@ -223,7 +223,7 @@ impl PlayAlong {
     fn update(&mut self) {
         let now = Instant::now();
         let threshold = Duration::from_millis(500);
-    
+
         // Retain only the items that are within the threshold
         self.user_pressed_recently.retain(|item| {
             let elapsed = now - item.timestamp;
@@ -235,18 +235,24 @@ impl PlayAlong {
         if active {
             let timestamp = Instant::now();
             // Check if note_id already exists in the collection
-            if let Some(item) = self.user_pressed_recently.iter_mut().find(|item| item.note_id == note_id) {
+            if let Some(item) = self
+                .user_pressed_recently
+                .iter_mut()
+                .find(|item| item.note_id == note_id)
+            {
                 // Update the timestamp for existing note_id
                 item.timestamp = timestamp;
             } else {
                 // Push a new UserPress
-                self.user_pressed_recently.push_back(UserPress { timestamp, note_id });
+                self.user_pressed_recently
+                    .push_back(UserPress { timestamp, note_id });
             }
-    
+
             // Check if note_id is in required_notes
             if self.required_notes.contains(&note_id) {
                 // If it's in required_notes, remove it from presed_recently to avoid skips/repeated count
-                self.user_pressed_recently.retain(|item| item.note_id != note_id);
+                self.user_pressed_recently
+                    .retain(|item| item.note_id != note_id);
             }
             self.required_notes.remove(&note_id);
         }
@@ -265,10 +271,9 @@ impl PlayAlong {
                 self.required_notes.insert(note_id);
             }
         } else {
-            self.required_notes.remove(&note_id); 
+            self.required_notes.remove(&note_id);
         }
     }
-    
 
     fn press_key(&mut self, src: MidiEventSource, note_id: u8, active: bool) {
         if !self.user_keyboard_range.contains(note_id) {

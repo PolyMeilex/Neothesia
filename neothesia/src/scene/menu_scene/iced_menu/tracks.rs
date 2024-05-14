@@ -57,7 +57,7 @@ impl Page for TracksPage {
         PageMessage::none()
     }
 
-     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
+    fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut tracks = Vec::new();
         if let Some(song) = ctx.song.as_ref() {
             let mut piano_count = 0;
@@ -96,14 +96,12 @@ impl Page for TracksPage {
                 } else {
                     midi_file::INSTRUMENT_NAMES[instrument_id]
                 };
-                
-   
 
                 // Check if the instrument is Grand Piano (id 0, 1, or 2)
                 let hand_info = if instrument_id <= 2 {
                     // Increment the piano counter
                     piano_count += 1;
-                    
+
                     // Determine if it's the first or second occurrence of Grand Piano
                     if piano_count % 2 == 0 {
                         "Right Hand"

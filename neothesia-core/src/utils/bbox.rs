@@ -9,8 +9,11 @@ pub struct Bbox<T = f32> {
 }
 
 impl<T> Bbox<T> {
-    pub fn new(pos: Point<T>, size: Size<T>) -> Self {
-        Self { pos, size }
+    pub fn new(pos: impl Into<Point<T>>, size: impl Into<Size<T>>) -> Self {
+        Self {
+            pos: pos.into(),
+            size: size.into(),
+        }
     }
 }
 

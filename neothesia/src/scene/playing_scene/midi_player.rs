@@ -5,7 +5,8 @@ use crate::{
     song::{PlayerConfig, Song},
 };
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::HashMap,
+    collections::VecDeque,
     time::{Duration, Instant},
 };
 
@@ -50,6 +51,9 @@ impl MidiPlayer {
     pub fn update(&mut self, delta: Duration) -> Vec<&midi_file::MidiEvent> {
         self.play_along.update();
 
+        let playback_time = self.playback.time();
+        let playback_length = self.playback.length();
+
         let events = self.playback.update(delta);
 
         events.iter().for_each(|event| {
@@ -61,9 +65,6 @@ impl MidiPlayer {
                         .midi_event(u4::new(event.channel), event.message);
                 }
                 PlayerConfig::Human => {
-                    // Let's play the sound, in case the user does not want it they can just set
-                    // no-output output in settings
-                    // TODO: Perhaps play on midi-in instead
                     self.output
                         .midi_event(u4::new(event.channel), event.message);
                     self.play_along
@@ -72,6 +73,11 @@ impl MidiPlayer {
                 PlayerConfig::Mute => {}
             }
         });
+
+        // Check if the song has finished based on the playback time
+        if playback_time >= playback_length {
+            self.play_along.finished();
+        }
 
         events
     }
@@ -198,17 +204,55 @@ pub enum MidiEventSource {
 struct UserPress {
     timestamp: Instant,
     note_id: u8,
+    time_key_up: Instant,
+    occurrence: usize,
+}
+#[derive(Debug)]
+pub struct NoteStats {
+    notes_missed: usize,
+    notes_hit: usize,
+    wrong_notes: i32,
+    note_durations: Vec<NoteDurations>,
+}
+#[derive(Debug)]
+pub struct NoteDurations {
+    user_note_dur: usize,
+    file_note_dur: usize,
+}
+impl Default for NoteStats {
+    fn default() -> Self {
+        NoteStats {
+            notes_missed: 0,
+            notes_hit: 0,
+            wrong_notes: 0,
+            note_durations: Vec::new(),
+        }
+    }
+}
+
+impl Default for NoteDurations {
+    fn default() -> Self {
+        NoteDurations {
+            user_note_dur: 0,
+            file_note_dur: 0,
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct PlayAlong {
     user_keyboard_range: piano_math::KeyboardRange,
 
-    required_notes: HashSet<u8>,
-
+    required_notes: VecDeque<UserPress>,
+    finished: bool,
     // List of user key press events that happened in last 500ms,
     // used for play along leeway logic
     user_pressed_recently: VecDeque<UserPress>,
+    user_stats: NoteStats, // struct to finalize the stats log
+
+    user_notes: VecDeque<UserPress>, // log all user notes to get durrations
+    file_notes: VecDeque<UserPress>, // log all file notes to compare against user
+    occurrence: HashMap<u8, usize>,  // Keeping user to file log incremental pointer rewind immune
 }
 
 impl PlayAlong {
@@ -217,6 +261,12 @@ impl PlayAlong {
             user_keyboard_range,
             required_notes: Default::default(),
             user_pressed_recently: Default::default(),
+            user_stats: Default::default(),
+            occurrence: HashMap::new(),
+            finished: Default::default(),
+
+            user_notes: Default::default(),
+            file_notes: Default::default(),
         }
     }
 
@@ -224,54 +274,171 @@ impl PlayAlong {
         let now = Instant::now();
         let threshold = Duration::from_millis(500);
 
+        // Track the count of items before retain
+        let count_before = self.user_pressed_recently.len();
+
         // Retain only the items that are within the threshold
         self.user_pressed_recently.retain(|item| {
             let elapsed = now - item.timestamp;
             elapsed <= threshold
         });
+
+        // Calculate the count of deleted items
+        let count_deleted = count_before - self.user_pressed_recently.len();
+        if count_deleted > 0 {
+            self.user_stats.wrong_notes += count_deleted as i32;
+            // println!("Update() Sum mistakes: {}", count_deleted);
+        }
     }
 
     fn user_press_key(&mut self, note_id: u8, active: bool) {
-        if active {
-            let timestamp = Instant::now();
-            // Check if note_id already exists in the collection
-            if let Some(item) = self
-                .user_pressed_recently
-                .iter_mut()
-                .find(|item| item.note_id == note_id)
-            {
-                // Update the timestamp for existing note_id
-                item.timestamp = timestamp;
-            } else {
-                // Push a new UserPress
-                self.user_pressed_recently
-                    .push_back(UserPress { timestamp, note_id });
-            }
+        let timestamp = Instant::now();
+        let occurrence = self.occurrence.entry(note_id).or_insert(0);
 
-            // Check if note_id is in required_notes
-            if self.required_notes.contains(&note_id) {
-                // If it's in required_notes, remove it from presed_recently to avoid skips/repeated count
-                self.user_pressed_recently
-                    .retain(|item| item.note_id != note_id);
+        if active {
+            // Check if note_id has reached required_notes, then remove it now
+            if let Some(index) = self
+                .required_notes
+                .iter()
+                .position(|item| item.note_id == note_id)
+            {
+                if let None = self
+                    .user_pressed_recently
+                    .iter_mut()
+                    .find(|item| item.note_id == note_id)
+                {
+                    // println!("{}", "One wrong note, turned out to be correct note");
+                    // Remove/take back. -1 a count_deleted (WRONG NOTE) added by update() if reached file_press_key(); ///
+                    self.user_stats.wrong_notes -= 1;
+                }
+
+                if timestamp
+                    .duration_since(self.required_notes[index].timestamp)
+                    .as_millis()
+                    > 160
+                {
+                    //160 to forgive touching the bottom
+
+                    // println!("{}", "Note miss detected");
+                    self.user_stats.notes_missed += 1;
+                } else {
+                    // println!("{}", "Note hit detected");
+                    self.user_stats.notes_hit += 1;
+                }
+                self.required_notes.remove(index);
+
+                self.user_notes.push_back(UserPress {
+                    timestamp: timestamp,
+                    note_id,
+                    occurrence: *occurrence,
+                    time_key_up: timestamp,
+                });
+            } else {
+                // Haven't reached required_notes yet, place a possible later validation in 'user_pressed_recently' / file_press_key()
+                if let Some(item) = self
+                    .user_pressed_recently
+                    .iter_mut()
+                    .find(|item| item.note_id == note_id)
+                {
+                    // already exists, update timestamp
+                    item.timestamp = timestamp;
+                    // println!("{}", " 'EXTRA NOTE', 'NOTE MISS' or 'WRONG NOTE'");
+                    self.user_stats.wrong_notes += 1;
+                } else {
+                    // Not found, push a new UserPress
+                    self.user_pressed_recently.push_back(UserPress {
+                        timestamp,
+                        note_id,
+                        occurrence: *occurrence,
+                        time_key_up: timestamp,
+                    });
+                }
             }
-            self.required_notes.remove(&note_id);
+        } else {
+            // Update user_notes log time_key_up
+            if let Some(item) = self
+                .user_notes
+                .iter_mut()
+                .rev()
+                .find(|item| item.note_id == note_id && item.occurrence == *occurrence)
+            {
+                item.time_key_up = Instant::now();
+            }
         }
     }
 
     fn file_press_key(&mut self, note_id: u8, active: bool) {
+        let occurrence = self.occurrence.entry(note_id).or_insert(0);
+        let timestamp = Instant::now();
         if active {
-            if let Some((id, _)) = self
+            *occurrence += 1;
+
+            // Check if note got pressed earlier 500ms (user_pressed_recently)
+            if let Some((_id, item)) = self
                 .user_pressed_recently
                 .iter()
                 .enumerate()
                 .find(|(_, item)| item.note_id == note_id)
             {
-                self.user_pressed_recently.remove(id);
+                // Note was pressed earlier, remove it from user_pressed_recently
+                // println!("{}", "Note hit detected");
+                self.user_stats.notes_hit += 1;
+
+                // log user_note by user_pressed_recently.timestamp as keydown value, update occurence
+                self.user_notes.push_back(UserPress {
+                    timestamp: item.timestamp,
+                    note_id,
+                    occurrence: *occurrence,
+                    time_key_up: item.time_key_up,
+                });
+                self.user_pressed_recently
+                    .retain(|item| item.note_id != note_id);
             } else {
-                self.required_notes.insert(note_id);
+                // Player never pressed that note, let it reach required_notes, check if note_id already exists in required_notes,  update timestamp else push.
+
+                // Catch possible clone-note velocity overlay, update the new occurence and exit the function
+                if let Some((_id, item)) =
+                    self.file_notes.iter_mut().enumerate().find(|(_, item)| {
+                        item.note_id == note_id && item.time_key_up == item.timestamp
+                    })
+                {
+                    item.occurrence = *occurrence;
+                    return; //  Everything bellow already done before by its clone
+                }
+                if let Some(user_press) = self
+                    .required_notes
+                    .iter_mut()
+                    .find(|item| item.note_id == note_id)
+                {
+                    // Update the timestamp of the existing note
+                    user_press.timestamp = timestamp;
+                } else {
+                    self.required_notes.push_back(UserPress {
+                        timestamp: timestamp,
+                        note_id,
+                        occurrence: *occurrence,
+                        time_key_up: timestamp,
+                    });
+                }
             }
+
+            // Log the note
+            self.file_notes.push_back(UserPress {
+                timestamp: timestamp,
+                note_id,
+                occurrence: *occurrence, // Set the occurrence count
+                time_key_up: timestamp,
+            });
         } else {
-            self.required_notes.remove(&note_id);
+            // update time_key_up
+            if let Some(item) = self
+                .file_notes
+                .iter_mut()
+                .rev()
+                .find(|item| item.note_id == note_id && item.occurrence == *occurrence)
+            {
+                item.time_key_up = timestamp;
+            }
         }
     }
 
@@ -295,9 +462,73 @@ impl PlayAlong {
     }
 
     pub fn clear(&mut self) {
-        self.required_notes.clear()
+        self.required_notes.clear();
+        self.file_notes
+            .retain(|item| item.time_key_up != item.timestamp);
+        self.user_pressed_recently.clear();
     }
 
+    pub fn finished(&mut self) {
+        if !self.finished {
+            println!("The song has finished");
+            // TO-DO: Move to a stats screen, somehow save songname date and stats, a button restart song, etc
+            // Loop through user_notes and file_notes and match entries with the same occurrence[note] = num
+            for user_note in &self.user_notes {
+                for file_note in &self.file_notes {
+                    if user_note.occurrence == file_note.occurrence
+                        && user_note.note_id == file_note.note_id
+                    {
+                        // Subtract timestamp from time_key_up to get total seconds
+                        let user_note_dur = user_note
+                            .time_key_up
+                            .duration_since(user_note.timestamp)
+                            .as_secs();
+                        let file_note_dur = file_note
+                            .time_key_up
+                            .duration_since(file_note.timestamp)
+                            .as_secs();
+
+                        // Add this information to user_stats.note_durations
+                        let note_duration = NoteDurations {
+                            user_note_dur: user_note_dur as usize,
+                            file_note_dur: file_note_dur as usize,
+                        };
+                        self.user_stats.note_durations.push(note_duration);
+                    }
+                }
+            }
+            //  Clean negative self.user_stats.wrong_notes
+            if self.user_stats.wrong_notes < 0 {
+                self.user_stats.wrong_notes = 0;
+            }
+            //  Loop through user_stats.note_durations items, compare user_note_dur to file_note_dur
+            let mut correct_note_times = 0;
+            let mut wrong_note_times = 0;
+            for duration in &self.user_stats.note_durations {
+                // Compare user_note_dur to file_note_dur
+                let duration_difference =
+                    (duration.user_note_dur as f64 - duration.file_note_dur as f64).abs();
+                let percentage_difference =
+                    duration_difference / duration.user_note_dur as f64 * 100.0;
+
+                //  Increment correctNoteTimes if it is close to 90%, otherwise increment wrongNoteTimes
+                if percentage_difference <= 10.0 {
+                    correct_note_times += 1;
+                } else {
+                    wrong_note_times += 1;
+                }
+            }
+
+            println!("Correct Note Timing: {}", correct_note_times);
+            println!("Wrong Note Timing: {}", wrong_note_times);
+            println!("Notes Missed: {}", self.user_stats.notes_missed);
+            println!("Notes Hit: {}", self.user_stats.notes_hit);
+            println!("Wrong Notes: {}", self.user_stats.wrong_notes);
+            // Maybe cook everything together for a total score
+
+            self.finished = true;
+        }
+    }
     pub fn are_required_keys_pressed(&self) -> bool {
         self.required_notes.is_empty()
     }

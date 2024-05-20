@@ -1,9 +1,10 @@
-use midi_file::midly::{num::u4, MidiMessage};
-
 use crate::{
     output_manager::OutputConnection,
     song::{PlayerConfig, Song},
 };
+use midi_file::midly::{num::u4, MidiMessage};
+use neothesia_core::gamesave::{SavedStats, SongStats};
+use std::time::SystemTime;
 use std::{
     collections::HashMap,
     collections::VecDeque,
@@ -17,19 +18,61 @@ pub struct MidiPlayer {
     play_along: PlayAlong,
 }
 
+pub struct NoteStats {
+    song_name: String,
+    notes_missed: usize,
+    notes_hit: usize,
+    wrong_notes: i32,
+    note_durations: Vec<NoteDurations>,
+}
+#[derive(Debug)]
+pub struct NoteDurations {
+    user_note_dur: usize,
+    file_note_dur: usize,
+}
+impl Default for NoteStats {
+    fn default() -> Self {
+        NoteStats {
+            song_name: String::new(),
+            notes_missed: 0,
+            notes_hit: 0,
+            wrong_notes: 0,
+            note_durations: Vec::new(),
+        }
+    }
+}
+
+impl Default for NoteDurations {
+    fn default() -> Self {
+        NoteDurations {
+            user_note_dur: 0,
+            file_note_dur: 0,
+        }
+    }
+}
+
 impl MidiPlayer {
     pub fn new(
         output: OutputConnection,
         song: Song,
         user_keyboard_range: piano_math::KeyboardRange,
     ) -> Self {
+        let mut user_stats = NoteStats::default();
+        if let Some(song_name) = song.file.name.to_lowercase().strip_suffix(".mid") {
+            user_stats.song_name = song_name.to_string();
+        } else if let Some(song_name) = song.file.name.to_lowercase().strip_suffix(".midi") {
+            user_stats.song_name = song_name.to_string();
+        } else {
+            user_stats.song_name = song.file.name.clone();
+        }
+
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
                 Duration::from_secs(3),
                 song.file.tracks.clone(),
             ),
             output,
-            play_along: PlayAlong::new(user_keyboard_range),
+            play_along: PlayAlong::new(user_keyboard_range, user_stats),
             song,
         };
         // Let's reset programs,
@@ -40,7 +83,12 @@ impl MidiPlayer {
 
         player
     }
-
+    pub fn on_finish<F>(&mut self, callback: F)
+    where
+        F: Fn() + 'static,
+    {
+        self.play_along.set_on_finish(callback);
+    }
     pub fn song(&self) -> &Song {
         &self.song
     }
@@ -207,39 +255,7 @@ struct UserPress {
     time_key_up: Instant,
     occurrence: usize,
 }
-#[derive(Debug)]
-pub struct NoteStats {
-    notes_missed: usize,
-    notes_hit: usize,
-    wrong_notes: i32,
-    note_durations: Vec<NoteDurations>,
-}
-#[derive(Debug)]
-pub struct NoteDurations {
-    user_note_dur: usize,
-    file_note_dur: usize,
-}
-impl Default for NoteStats {
-    fn default() -> Self {
-        NoteStats {
-            notes_missed: 0,
-            notes_hit: 0,
-            wrong_notes: 0,
-            note_durations: Vec::new(),
-        }
-    }
-}
 
-impl Default for NoteDurations {
-    fn default() -> Self {
-        NoteDurations {
-            user_note_dur: 0,
-            file_note_dur: 0,
-        }
-    }
-}
-
-#[derive(Debug)]
 pub struct PlayAlong {
     user_keyboard_range: piano_math::KeyboardRange,
 
@@ -253,21 +269,30 @@ pub struct PlayAlong {
     user_notes: VecDeque<UserPress>, // log all user notes to get durrations
     file_notes: VecDeque<UserPress>, // log all file notes to compare against user
     occurrence: HashMap<u8, usize>,  // Keeping user to file log incremental pointer rewind immune
+    on_finish: Option<Box<dyn Fn()>>,
 }
 
 impl PlayAlong {
-    fn new(user_keyboard_range: piano_math::KeyboardRange) -> Self {
+    fn new(user_keyboard_range: piano_math::KeyboardRange, user_stats: NoteStats) -> Self {
         Self {
             user_keyboard_range,
             required_notes: Default::default(),
             user_pressed_recently: Default::default(),
-            user_stats: Default::default(),
+
             occurrence: HashMap::new(),
             finished: Default::default(),
 
             user_notes: Default::default(),
             file_notes: Default::default(),
+            on_finish: None,
+            user_stats,
         }
+    }
+    pub fn set_on_finish<F>(&mut self, callback: F)
+    where
+        F: Fn() + 'static,
+    {
+        self.on_finish = Some(Box::new(callback));
     }
 
     fn update(&mut self) {
@@ -470,8 +495,6 @@ impl PlayAlong {
 
     pub fn finished(&mut self) {
         if !self.finished {
-            println!("The song has finished");
-            // TO-DO: Move to a stats screen, somehow save songname date and stats, a button restart song, etc
             // Loop through user_notes and file_notes and match entries with the same occurrence[note] = num
             for user_note in &self.user_notes {
                 for file_note in &self.file_notes {
@@ -497,7 +520,7 @@ impl PlayAlong {
                     }
                 }
             }
-            //  Clean negative self.user_stats.wrong_notes
+            //  Clear negative self.user_stats.wrong_notes
             if self.user_stats.wrong_notes < 0 {
                 self.user_stats.wrong_notes = 0;
             }
@@ -519,13 +542,30 @@ impl PlayAlong {
                 }
             }
 
-            println!("Correct Note Timing: {}", correct_note_times);
-            println!("Wrong Note Timing: {}", wrong_note_times);
-            println!("Notes Missed: {}", self.user_stats.notes_missed);
-            println!("Notes Hit: {}", self.user_stats.notes_hit);
-            println!("Wrong Notes: {}", self.user_stats.wrong_notes);
-            // Maybe cook everything together for a total score
+            let mut saved_stats = SavedStats::load().unwrap_or_default();
 
+            // Create the new stats object
+            let new_stats = SongStats {
+                song_name: self.user_stats.song_name.clone(),
+                correct_note_times,
+                wrong_note_times,
+                notes_missed: self.user_stats.notes_missed as u32,
+                notes_hit: self.user_stats.notes_hit as u32,
+                wrong_notes: self.user_stats.wrong_notes as u32,
+                date: SystemTime::now(),
+            };
+
+            // Push the new stats object to the existing SavedStats
+            saved_stats.songs.push(new_stats);
+
+            // Save the modified SavedStats object
+            saved_stats.save();
+            // better save right here keeping things simple, since stats could be loaded from song list when select folder for a file list is implemented
+
+            // Maybe cook everything together for a total score
+            if let Some(callback) = &self.on_finish {
+                callback(); // Call on finish callback
+            }
             self.finished = true;
         }
     }

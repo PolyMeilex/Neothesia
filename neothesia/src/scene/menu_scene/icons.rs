@@ -15,3 +15,6 @@ pub fn note_list_icon<'a>() -> iced_widget::Text<'a, Theme, Renderer> {
 pub fn left_arrow_icon<'a>() -> iced_widget::Text<'a, Theme, Renderer> {
     iced_widget::text('\u{f12f}').font(ICONS)
 }
+pub fn folder_icon<'a>() -> iced_widget::Text<'a, Theme, Renderer> {
+    iced_widget::text('\u{F3D1}').font(ICONS)
+}

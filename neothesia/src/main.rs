@@ -16,6 +16,7 @@ use iced_core::Renderer;
 use scene::{menu_scene, playing_scene, Scene};
 use utils::window::WindowState;
 
+use menu_scene::Step;
 use midi_file::midly::MidiMessage;
 use neothesia_core::{config, render};
 use wgpu_jumpstart::Surface;
@@ -30,7 +31,9 @@ pub enum NeothesiaEvent {
     /// Go to playing scene
     Play(song::Song),
     /// Go to main menu scene
-    MainMenu,
+    MainMenu {
+        page: Step,
+    },
     MidiInput {
         /// The MIDI channel that this message is associated with.
         channel: u8,
@@ -52,7 +55,7 @@ struct Neothesia {
 
 impl Neothesia {
     fn new(mut context: Context, surface: Surface) -> Self {
-        let game_scene = menu_scene::MenuScene::new(&mut context);
+        let game_scene = menu_scene::MenuScene::new(&mut context, Step::Main);
 
         context.resize();
         context.gpu.submit();
@@ -144,10 +147,11 @@ impl Neothesia {
                 let to = playing_scene::PlayingScene::new(&self.context, song);
                 self.game_scene = Box::new(to);
             }
-            NeothesiaEvent::MainMenu => {
-                let to = menu_scene::MenuScene::new(&mut self.context);
+            NeothesiaEvent::MainMenu { page } => {
+                let to = menu_scene::MenuScene::new(&mut self.context, page);
                 self.game_scene = Box::new(to);
             }
+
             NeothesiaEvent::MidiInput { channel, message } => {
                 self.game_scene
                     .midi_event(&mut self.context, channel, &message);

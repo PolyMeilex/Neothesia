@@ -23,13 +23,17 @@ use crate::{
 mod exit;
 mod main;
 mod page;
+mod selectsong;
 mod settings;
+pub mod stats;
 mod theme;
 mod tracks;
 
 use exit::ExitPage;
 use page::Page;
+use selectsong::SelectsongPage;
 use settings::SettingsPage;
+use stats::StatsPage;
 use tracks::TracksPage;
 
 type InputDescriptor = midi_io::MidiInputPort;
@@ -43,6 +47,8 @@ pub enum Message {
     ExitPage(<ExitPage as Page>::Event),
     SettingsPage(<SettingsPage as Page>::Event),
     TracksPage(<TracksPage as Page>::Event),
+    StatsPage(<StatsPage as Page>::Event),
+    SelectsongPage(<SelectsongPage as Page>::Event),
 }
 
 pub struct Data {
@@ -63,9 +69,9 @@ pub struct AppUi {
 }
 
 impl AppUi {
-    pub fn new(_ctx: &Context) -> Self {
+    pub fn new(_ctx: &Context, goto: Step) -> Self {
         let mut page_stack = VecDeque::new();
-        page_stack.push_front(Step::Main);
+        page_stack.push_front(goto);
 
         Self {
             page_stack,
@@ -135,6 +141,14 @@ impl Program for AppUi {
                 let msg = TracksPage::update(&mut self.data, msg, ctx);
                 return self.handle_page_msg(ctx, msg);
             }
+            Message::StatsPage(msg) => {
+                let msg = StatsPage::update(&mut self.data, msg, ctx);
+                return self.handle_page_msg(ctx, msg);
+            }
+            Message::SelectsongPage(msg) => {
+                let msg = SelectsongPage::update(&mut self.data, msg, ctx);
+                return self.handle_page_msg(ctx, msg);
+            }
             Message::ExitPage(msg) => {
                 let msg = ExitPage::update(&mut self.data, msg, ctx);
                 return self.handle_page_msg(ctx, msg);
@@ -162,6 +176,8 @@ impl Program for AppUi {
             Step::Main => MainPage::keyboard_input(event, ctx),
             Step::Settings => SettingsPage::keyboard_input(event, ctx),
             Step::TrackSelection => TracksPage::keyboard_input(event, ctx),
+            Step::SelectsongPage => SelectsongPage::keyboard_input(event, ctx),
+            Step::Stats => StatsPage::keyboard_input(event, ctx),
         }
     }
 
@@ -175,6 +191,10 @@ impl Program for AppUi {
             Step::Main => MainPage::view(&self.data, ctx).map(Message::MainPage),
             Step::Settings => SettingsPage::view(&self.data, ctx).map(Message::SettingsPage),
             Step::TrackSelection => TracksPage::view(&self.data, ctx).map(Message::TracksPage),
+            Step::SelectsongPage => {
+                SelectsongPage::view(&self.data, ctx).map(Message::SelectsongPage)
+            }
+            Step::Stats => StatsPage::view(&self.data, ctx).map(Message::StatsPage),
         }
     }
 
@@ -215,7 +235,9 @@ pub enum Step {
     Exit,
     Main,
     Settings,
+    Stats,
     TrackSelection,
+    SelectsongPage,
 }
 
 fn play(data: &Data, ctx: &mut Context) {

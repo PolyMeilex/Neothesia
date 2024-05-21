@@ -80,21 +80,24 @@ impl Page for StatsPage {
                 let score_b = b.wrong_notes + b.notes_missed - b.notes_hit;
                 score_a.cmp(&score_b)
             });
+            
 
             // Populate data into tracks
             for (index, stats) in sorted_stats.iter().enumerate() {
+
+               let scores = stats.notes_hit + stats.correct_note_times * 10 - (stats.notes_missed + stats.wrong_note_times + stats.notes_missed); // There are many ways to cook
                 let datetime: DateTime<Local> = stats.date.into();
                 let score = (index + 1) as u32;
-                let trophy_image = if score <= 2 { score } else { 0 };
+                let trophy_image = if score <= 3 { score } else { 0 };
                 let card = neothesia_iced_widgets::StatsContainer::new()
                     .image(trophy_image)
                     .date(datetime.format("%d/%m/%y %H:%M:%S").to_string())
                     .place(&(index + 1).to_string()) // Index starts from 1
-                    .score(&(stats.notes_hit * 10).to_string()) // Example scoring logic
+                    .score(scores) // Example scoring logic
                     .notes_hits(stats.notes_hit)
                     .notes_missed(stats.notes_missed)
                     .wrong_notes(stats.wrong_notes)
-                    .correct_notes_duration(&format!("{}", stats.correct_note_times)); // Assuming this is a time duration
+                    .correct_notes_duration( stats.correct_note_times);  
                 songhistory.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(card));
             }
         }

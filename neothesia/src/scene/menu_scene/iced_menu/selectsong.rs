@@ -107,7 +107,6 @@ impl Page for SelectsongPage {
             }
         }
 
-
         let mut elements = Vec::new();
         if let Ok(entries) = fs::read_dir(&dir_path) {
             for entry in entries {
@@ -121,11 +120,11 @@ impl Page for SelectsongPage {
                                     } else {
                                         file_name.to_string()
                                     };
-                                    let button_color = if song_file_name == song_name {
-                                        iced_core::Color::from_rgb8(106, 0, 163) 
-                                    } else {
-                                        iced_core::Color::from_rgb8(54, 0, 107) 
-                                    };
+                                let button_color = if song_file_name == song_name {
+                                    iced_core::Color::from_rgb8(106, 0, 163)
+                                } else {
+                                    iced_core::Color::from_rgb8(54, 0, 107)
+                                };
                                 // Create a button with the song name
                                 let button = button(centered_text(&song_name))
                                     .on_press(Event::SetSongPath {
@@ -143,18 +142,19 @@ impl Page for SelectsongPage {
         }
 
         // Add the list into another scrollable for a responsive UI
-        let inner_scrollable =  iced_widget::Scrollable::new(
+        let inner_scrollable = iced_widget::Scrollable::new(
             iced_widget::Column::with_children(elements)
                 .spacing(5)
                 .align_items(Alignment::Start),
-        ) .height(ctx.window_state.logical_size.height  as  u16 - 400).width(ctx.window_state.logical_size.width  as  u16 - 421);
+        )
+        .height(ctx.window_state.logical_size.height as u16 - 400)
+        .width(ctx.window_state.logical_size.width as u16 - 421);
 
         let inner_scrollable_element: Element<'_, Event> = inner_scrollable.into();
 
-        
         let column = iced_widget::scrollable(iced_widget::column(vec![inner_scrollable_element]));
 
-       let mut elements = Vec::new();
+        let mut elements = Vec::new();
 
         let center_text = centered_text("Song list")
             .size(20)
@@ -172,7 +172,7 @@ impl Page for SelectsongPage {
                 left: 0.0,
             });
         elements.push(center_text_container.into());
- 
+
         let center_text = centered_text(format!("Selected song: {}", song_file_name))
             .size(12)
             .width(Length::Fill)

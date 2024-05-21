@@ -247,11 +247,11 @@ impl iced_style::button::StyleSheet for FilelistButton {
             text_color: Color::WHITE,
             border: Border {
                 width: 0.0, //
- 
+
                 radius: Radius::from(0.0),
-                color:  Color::TRANSPARENT,
+                color: Color::TRANSPARENT,
             },
-            
+
             background: Some(iced_core::Background::Color(self.color)),
             ..Default::default()
         }

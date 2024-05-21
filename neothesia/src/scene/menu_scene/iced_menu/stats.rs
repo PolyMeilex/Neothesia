@@ -77,7 +77,7 @@ impl Page for StatsPage {
                     .image(trophy_image)
                     .date(datetime.format("%d/%m/%y %H:%M:%S").to_string())
                     .place(&(index + 1).to_string()) // Index starts from 1
-                    .score(scores)  
+                    .score(scores)
                     .notes_hits(stats.notes_hit)
                     .notes_missed(stats.notes_missed)
                     .wrong_notes(stats.wrong_notes)
@@ -96,10 +96,9 @@ impl Page for StatsPage {
         let scrollable = iced_widget::Scrollable::new(
             iced_widget::Column::with_children(all_elements)
                 .spacing(10)
-                .align_items(Alignment::Start),  
+                .align_items(Alignment::Start),
         )
-        .height(ctx.window_state.logical_size.height  as  u16 - 400);
-      
+        .height(ctx.window_state.logical_size.height as u16 - 400);
 
         let mut elements = Vec::new();
         let scrollable_element: Element<'_, Event> = scrollable.into();
@@ -119,12 +118,12 @@ impl Page for StatsPage {
         songhistory_header.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(
             first_place_card,
         ));
-     
+
         for children in songhistory_header {
             elements.extend(children);
         }
         elements.push(scrollable_element.into());
-   
+
         let column = iced_widget::scrollable(iced_widget::column(elements));
 
         let mut elements = Vec::new();

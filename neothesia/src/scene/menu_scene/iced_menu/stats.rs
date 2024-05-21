@@ -49,21 +49,6 @@ impl Page for StatsPage {
             }
         }
 
-        // Add header
-        let first_place_card = neothesia_iced_widgets::StatsContainer::new()
-            .image(0)
-            .date("Date")
-            .place("Place")
-            .score("Score")
-            .notes_hits("Hits")
-            .notes_missed("Misses")
-            .wrong_notes("Mistakes")
-            .correct_notes_duration("Durations")
-            .header(true);
-        songhistory.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(
-            first_place_card,
-        ));
-
         // Load saved stats and filter stats for the current song
         if let Some(saved_stats) = SavedStats::load() {
             // Filter stats for the current song
@@ -80,12 +65,11 @@ impl Page for StatsPage {
                 let score_b = b.wrong_notes + b.notes_missed - b.notes_hit;
                 score_a.cmp(&score_b)
             });
-            
 
             // Populate data into tracks
             for (index, stats) in sorted_stats.iter().enumerate() {
-
-               let scores = stats.notes_hit + stats.correct_note_times * 10 - (stats.notes_missed + stats.wrong_note_times + stats.notes_missed); // There are many ways to cook
+                let scores = stats.notes_hit + stats.correct_note_times * 10
+                    - (stats.notes_missed + stats.wrong_note_times + stats.notes_missed); // There are many ways to cook
                 let datetime: DateTime<Local> = stats.date.into();
                 let score = (index + 1) as u32;
                 let trophy_image = if score <= 3 { score } else { 0 };
@@ -93,21 +77,54 @@ impl Page for StatsPage {
                     .image(trophy_image)
                     .date(datetime.format("%d/%m/%y %H:%M:%S").to_string())
                     .place(&(index + 1).to_string()) // Index starts from 1
-                    .score(scores) // Example scoring logic
+                    .score(scores)  
                     .notes_hits(stats.notes_hit)
                     .notes_missed(stats.notes_missed)
                     .wrong_notes(stats.wrong_notes)
-                    .correct_notes_duration( stats.correct_note_times);  
+                    .correct_notes_duration(stats.correct_note_times);
                 songhistory.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(card));
             }
         }
 
-        let mut elements = Vec::new();
+        //   Collect all elements from songhistory into a single Vec
+        let mut all_elements = Vec::new();
         for children in songhistory {
-            elements.extend(children);
+            all_elements.extend(children);
         }
 
-        // Now add the final container
+        // Create a Scrollable widget with the collected elements
+        let scrollable = iced_widget::Scrollable::new(
+            iced_widget::Column::with_children(all_elements)
+                .spacing(10)
+                .align_items(Alignment::Start),  
+        )
+        .height(ctx.window_state.logical_size.height  as  u16 - 400);
+      
+
+        let mut elements = Vec::new();
+        let scrollable_element: Element<'_, Event> = scrollable.into();
+
+        // Insert the header of the "List" and the Scrollable element "items" into the elements vector for a more list-like responsive UI
+        let mut songhistory_header = Vec::new();
+        let first_place_card = neothesia_iced_widgets::StatsContainer::new()
+            .image(0)
+            .date("Date")
+            .place("Place")
+            .score("Score")
+            .notes_hits("Hits")
+            .notes_missed("Misses")
+            .wrong_notes("Mistakes")
+            .correct_notes_duration("Durations")
+            .header(true);
+        songhistory_header.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(
+            first_place_card,
+        ));
+     
+        for children in songhistory_header {
+            elements.extend(children);
+        }
+        elements.push(scrollable_element.into());
+   
         let column = iced_widget::scrollable(iced_widget::column(elements));
 
         let mut elements = Vec::new();

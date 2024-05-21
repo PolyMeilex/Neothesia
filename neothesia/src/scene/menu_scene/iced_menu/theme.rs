@@ -225,11 +225,19 @@ impl iced_style::toggler::StyleSheet for TogglerStyle {
     }
 }
 
-pub fn filelist_button() -> iced_style::theme::Button {
-    iced_style::theme::Button::Custom(Box::new(FilelistButton))
+pub fn filelist_button(color: Color) -> iced_style::theme::Button {
+    iced_style::theme::Button::Custom(Box::new(FilelistButton::new(color)))
 }
 
-struct FilelistButton;
+struct FilelistButton {
+    color: Color,
+}
+
+impl FilelistButton {
+    pub fn new(color: Color) -> Self {
+        Self { color }
+    }
+}
 
 impl iced_style::button::StyleSheet for FilelistButton {
     type Style = iced_style::Theme;
@@ -238,13 +246,13 @@ impl iced_style::button::StyleSheet for FilelistButton {
         button::Appearance {
             text_color: Color::WHITE,
             border: Border {
-                width: 1.0, //
+                width: 0.0, //
+ 
                 radius: Radius::from(0.0),
-                color: Color::from_rgba8(40, 10, 60, 1.0), // Very dark purple background
+                color:  Color::TRANSPARENT,
             },
-            background: Some(iced_core::Background::Color(Color::from_rgba8(
-                30, 0, 50, 1.0, // Very very dark purple background
-            ))),
+            
+            background: Some(iced_core::Background::Color(self.color)),
             ..Default::default()
         }
     }

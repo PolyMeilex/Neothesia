@@ -91,6 +91,23 @@ impl Page for SelectsongPage {
                 path
             }
         };
+
+        let mut song_file_name = String::new();
+
+        if let Some(path_buf) = &ctx.config.last_opened_song {
+            if let Some(file_name) = path_buf.file_name() {
+                if let Some(name) = file_name.to_str() {
+                    if let Some(stripped_name) = name.strip_suffix(".mid") {
+                        song_file_name = stripped_name.to_string();
+                    } else {
+                        // If the file name doesn't end with ".mid", use the original file name
+                        song_file_name = name.to_string();
+                    }
+                }
+            }
+        }
+
+
         let mut elements = Vec::new();
         if let Ok(entries) = fs::read_dir(&dir_path) {
             for entry in entries {
@@ -104,13 +121,17 @@ impl Page for SelectsongPage {
                                     } else {
                                         file_name.to_string()
                                     };
-
+                                    let button_color = if song_file_name == song_name {
+                                        iced_core::Color::from_rgb8(106, 0, 163) 
+                                    } else {
+                                        iced_core::Color::from_rgb8(54, 0, 107) 
+                                    };
                                 // Create a button with the song name
                                 let button = button(centered_text(&song_name))
                                     .on_press(Event::SetSongPath {
                                         last_opened_song: Some(entry.path().clone()),
                                     })
-                                    .style(theme::filelist_button())
+                                    .style(theme::filelist_button(button_color))
                                     .width(10000);
 
                                 elements.push(button.into());
@@ -121,10 +142,19 @@ impl Page for SelectsongPage {
             }
         }
 
-        // Now add the final container
-        let column = iced_widget::scrollable(iced_widget::column(elements));
+        // Add the list into another scrollable for a responsive UI
+        let inner_scrollable =  iced_widget::Scrollable::new(
+            iced_widget::Column::with_children(elements)
+                .spacing(5)
+                .align_items(Alignment::Start),
+        ) .height(ctx.window_state.logical_size.height  as  u16 - 400).width(ctx.window_state.logical_size.width  as  u16 - 421);
 
-        let mut elements = Vec::new();
+        let inner_scrollable_element: Element<'_, Event> = inner_scrollable.into();
+
+        
+        let column = iced_widget::scrollable(iced_widget::column(vec![inner_scrollable_element]));
+
+       let mut elements = Vec::new();
 
         let center_text = centered_text("Song list")
             .size(20)
@@ -142,20 +172,7 @@ impl Page for SelectsongPage {
                 left: 0.0,
             });
         elements.push(center_text_container.into());
-        let mut song_file_name = String::new();
-
-        if let Some(path_buf) = &ctx.config.last_opened_song {
-            if let Some(file_name) = path_buf.file_name() {
-                if let Some(name) = file_name.to_str() {
-                    if let Some(stripped_name) = name.strip_suffix(".mid") {
-                        song_file_name = stripped_name.to_string();
-                    } else {
-                        // If the file name doesn't end with ".mid", use the original file name
-                        song_file_name = name.to_string();
-                    }
-                }
-            }
-        }
+ 
         let center_text = centered_text(format!("Selected song: {}", song_file_name))
             .size(12)
             .width(Length::Fill)

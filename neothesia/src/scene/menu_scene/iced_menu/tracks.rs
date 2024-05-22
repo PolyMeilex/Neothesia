@@ -59,6 +59,7 @@ impl Page for TracksPage {
 
     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut tracks = Vec::new();
+
         if let Some(song) = ctx.song.as_ref() {
             let mut piano_count = 0;
             for track in song
@@ -90,23 +91,25 @@ impl Page for TracksPage {
                     .last()
                     .map(|p| p.program as usize)
                     .unwrap_or(0);
-
+                let mut instrument_card_id = instrument_id;
                 let name = if track.has_drums && !track.has_other_than_drums {
+                    instrument_card_id = 797979;
                     "Percussion"
                 } else {
                     midi_file::INSTRUMENT_NAMES[instrument_id]
                 };
 
                 // Check if the instrument is a Piano (id 0, 1, or 2)
-                let hand_info = if instrument_id <= 2 && name != "Percussion" {
+                let hand_info = if instrument_id <= 7 && name != "Percussion" {
                     // Increment the piano counter
                     piano_count += 1;
 
                     // Determine if it's the first or second occurrence of Piano
                     if piano_count % 2 == 0 {
-                        "Right Hand"
+                        instrument_card_id = 696969;
+                        "/ Right Hand"
                     } else {
-                        "Left Hand"
+                        "/ Left Hand"
                     }
                 } else {
                     // For other instruments, no hand information
@@ -131,9 +134,9 @@ impl Page for TracksPage {
 
                 let card = neothesia_iced_widgets::TrackCard::new()
                     .title(name)
-                    .subtitle(format!("{} Notes", track.notes.len()))
+                    .subtitle(format!("{} Notes {}", track.notes.len(), hand_info))
                     .track_color(color)
-                    .hand_info(hand_info) // Use hand_info field
+                    .instrument_id(instrument_card_id)
                     .body(body);
 
                 let card = if track.has_drums && !track.has_other_than_drums {

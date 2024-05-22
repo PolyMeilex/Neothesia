@@ -88,6 +88,7 @@ impl Page for StatsPage {
 
         //   Collect all elements from songhistory into a single Vec
         let mut all_elements = Vec::new();
+
         for children in songhistory {
             all_elements.extend(children);
         }

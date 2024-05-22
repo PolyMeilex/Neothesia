@@ -1,15 +1,162 @@
+use std::usize;
+
 use super::Element;
-use iced_core::{Alignment, Color};
+use iced_core::{image::Handle as ImageHandle, Alignment, Color};
 
 mod theme;
+
+fn get_instrument_icon(index: usize) -> ImageHandle {
+    match index {
+        797979 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/percussions.png"
+            ))
+            .to_vec(),
+        ), // Percussions
+        696969 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/piano-right.png"
+            ))
+            .to_vec(),
+        ), // Pianos Right hand mark
+        0..=7 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/piano-left.png"
+            ))
+            .to_vec(),
+        ), // Pianos, default will be left hand
+        8..=15 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/xylophones.png"
+            ))
+            .to_vec(),
+        ), // Chromatic Percussion
+        16..=23 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/brasses.png"
+            ))
+            .to_vec(),
+        ), // Organs
+        24..=31 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/guitars.png"
+            ))
+            .to_vec(),
+        ), // Guitars
+        32..=39 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/guitars.png"
+            ))
+            .to_vec(),
+        ), // Basses
+        40..=47 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/violins.png"
+            ))
+            .to_vec(),
+        ), // Strings
+        48..=51 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/uncategorized.png"
+            ))
+            .to_vec(),
+        ), // Ensemble
+        52..=55 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/choirs.png"
+            ))
+            .to_vec(),
+        ), // choirs
+        56..=63 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/brasses.png"
+            ))
+            .to_vec(),
+        ), // Brass
+        64..=71 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/flutes.png"
+            ))
+            .to_vec(),
+        ), // Reeds
+        72..=79 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/flutes.png"
+            ))
+            .to_vec(),
+        ), // Pipes
+        80..=87 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/uncategorized.png"
+            ))
+            .to_vec(),
+        ), // Synth Leads
+        88..=95 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/uncategorized.png"
+            ))
+            .to_vec(),
+        ), // Synth Pads
+        96..=103 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/uncategorized.png"
+            ))
+            .to_vec(),
+        ), // Synth Effects
+        104..=111 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/percussions.png"
+            ))
+            .to_vec(),
+        ), // Ethnic
+        112..=119 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/percussions.png"
+            ))
+            .to_vec(),
+        ), // Percussive
+        120..=127 => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/uncategorized.png"
+            ))
+            .to_vec(),
+        ), // Sound effects
+        _ => ImageHandle::from_memory(
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/uncategorized.png"
+            ))
+            .to_vec(),
+        ), // Default to Uncategorized
+    }
+}
 
 pub struct TrackCard<'a, MSG> {
     title: String,
     subtitle: String,
-    hand_info: String,
     body: Option<Element<'a, MSG>>,
     track_color: Color,
     on_icon_press: Option<MSG>,
+    instrument_id: usize,
 }
 
 impl<'a, MSG: 'a + Clone> Default for TrackCard<'a, MSG> {
@@ -23,8 +170,9 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
         Self {
             title: String::new(),
             subtitle: String::new(),
-            hand_info: String::new(),
             body: None,
+            instrument_id: 0,
+
             track_color: Color::from_rgba8(210, 89, 222, 1.0),
             on_icon_press: None,
         }
@@ -35,13 +183,13 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
         self
     }
 
-    pub fn hand_info(mut self, text: impl ToString) -> Self {
-        self.hand_info = text.to_string();
+    pub fn subtitle(mut self, text: impl ToString) -> Self {
+        self.subtitle = text.to_string();
         self
     }
 
-    pub fn subtitle(mut self, text: impl ToString) -> Self {
-        self.subtitle = text.to_string();
+    pub fn instrument_id(mut self, instrument_id: usize) -> Self {
+        self.instrument_id = instrument_id;
         self
     }
 
@@ -62,27 +210,48 @@ impl<'a, MSG: 'a + Clone> TrackCard<'a, MSG> {
 }
 impl<'a, M: Clone + 'a> From<TrackCard<'a, M>> for Element<'a, M> {
     fn from(card: TrackCard<'a, M>) -> Self {
-        let mut header_content = vec![
-            iced_widget::text(card.title).size(16).into(),
+        let header_content = vec![
+            iced_widget::text(card.title).size(16).width(187).into(),
             iced_widget::text(card.subtitle).size(14).into(),
         ];
 
-        // Only add hand_info if it's not empty
-        if !card.hand_info.is_empty() {
-            header_content.insert(1, iced_widget::text(card.hand_info).size(16).into());
-        }
+        let img = get_instrument_icon(card.instrument_id);
+
+        let img_toggle = if card.track_color == iced_core::Color::from_rgb8(102, 102, 102) {
+            ImageHandle::from_memory(include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/toggle_off.png"
+            )))
+        } else {
+            ImageHandle::from_memory(include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/track_card/img/toggle_on.png"
+            )))
+        };
+
+        let on_press_clone = card.on_icon_press.clone();
+
+        let button1 = iced_widget::button(iced_widget::image(img).width(55))
+            .width(55)
+            .height(55)
+            .style(theme::track_icon_button(iced_core::Color::TRANSPARENT))
+            .on_press_maybe(card.on_icon_press);
+
+        let button2 = iced_widget::button(iced_widget::image(img_toggle).width(40).height(15))
+            .width(55)
+            .height(15)
+            .padding(0)
+            .style(theme::toggle_button(iced_core::Color::TRANSPARENT))
+            .on_press_maybe(on_press_clone);
 
         let header = iced_widget::row![
-            iced_widget::button(iced_widget::text(""))
-                .width(40)
-                .height(40)
-                .style(theme::track_icon_button(card.track_color))
-                .on_press_maybe(card.on_icon_press),
+            button1,
             iced_widget::column(header_content)
-                .spacing(4)
+                .spacing(0)
                 .align_items(Alignment::Start),
+            button2,
         ]
-        .spacing(16);
+        .spacing(8);
 
         let mut children = vec![header.into()];
         if let Some(body) = card.body {

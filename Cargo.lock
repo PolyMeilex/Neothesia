@@ -2353,7 +2353,7 @@ dependencies = [
 
 [[package]]
 name = "neothesia"
-version = "0.1.0"
+version = "0.1.8"
 dependencies = [
  "async-thread",
  "chrono",
@@ -2415,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "neothesia-iced-widgets"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "iced_core",
  "iced_graphics",

@@ -123,13 +123,13 @@ impl<'a, MSG: 'a + Clone> StatsContainer<'a, MSG> {
 impl<'a, M: Clone + 'a> From<StatsContainer<'a, M>> for Vec<Element<'a, M>> {
     fn from(card: StatsContainer<'a, M>) -> Self {
         let columns = vec![
-            (card.place, 40),
-            (card.date, 80),
-            (card.score, 40),
-            (card.notes_hits, 30),
-            (card.notes_missed, 45),
-            (card.wrong_notes, 60),
-            (card.correct_notes_duration, 55),
+            (card.place, 90),
+            (card.date, 90),
+            (card.score, 90),
+            (card.notes_hits, 90),
+            (card.notes_missed, 90),
+            (card.wrong_notes, 90),
+            (card.correct_notes_duration, 90),
         ];
 
         let header_row = columns
@@ -145,7 +145,7 @@ impl<'a, M: Clone + 'a> From<StatsContainer<'a, M>> for Vec<Element<'a, M>> {
             .collect::<Vec<_>>();
 
         let header = iced_widget::row(header_row)
-            .spacing(3)
+            .spacing(0)
             .align_items(Alignment::Start);
 
         let image_container = if let Some(image) = card.image {
@@ -173,7 +173,7 @@ impl<'a, M: Clone + 'a> From<StatsContainer<'a, M>> for Vec<Element<'a, M>> {
                 .into();
             children.push(centered_with_style);
         } else {
-            children.push(centered_container.padding(10).into());
+            children.push(centered_container.padding(8).into());
         }
 
         children

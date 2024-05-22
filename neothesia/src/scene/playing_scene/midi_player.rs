@@ -312,7 +312,6 @@ impl PlayAlong {
         let count_deleted = count_before - self.user_pressed_recently.len();
         if count_deleted > 0 {
             self.user_stats.wrong_notes += count_deleted as i32;
-            // println!("Update() Sum mistakes: {}", count_deleted);
         }
     }
 
@@ -332,7 +331,6 @@ impl PlayAlong {
                     .iter_mut()
                     .find(|item| item.note_id == note_id)
                 {
-                    // println!("{}", "One wrong note, turned out to be correct note");
                     // Remove/take back. -1 a count_deleted (WRONG NOTE) added by update() if reached file_press_key(); ///
                     self.user_stats.wrong_notes -= 1;
                 }
@@ -344,10 +342,8 @@ impl PlayAlong {
                 {
                     //160 to forgive touching the bottom
 
-                    // println!("{}", "Note miss detected");
                     self.user_stats.notes_missed += 1;
                 } else {
-                    // println!("{}", "Note hit detected");
                     self.user_stats.notes_hit += 1;
                 }
                 self.required_notes.remove(index);
@@ -367,7 +363,6 @@ impl PlayAlong {
                 {
                     // already exists, update timestamp
                     item.timestamp = timestamp;
-                    // println!("{}", " 'EXTRA NOTE', 'NOTE MISS' or 'WRONG NOTE'");
                     self.user_stats.wrong_notes += 1;
                 } else {
                     // Not found, push a new UserPress
@@ -406,7 +401,6 @@ impl PlayAlong {
                 .find(|(_, item)| item.note_id == note_id)
             {
                 // Note was pressed earlier, remove it from user_pressed_recently
-                // println!("{}", "Note hit detected");
                 self.user_stats.notes_hit += 1;
 
                 // log user_note by user_pressed_recently.timestamp as keydown value, update occurence
@@ -420,7 +414,6 @@ impl PlayAlong {
                     .retain(|item| item.note_id != note_id);
             } else {
                 // Player never pressed that note, let it reach required_notes, check if note_id already exists in required_notes,  update timestamp else push.
-
                 // Catch possible clone-note velocity overlay, update the new occurence and exit the function
                 if let Some((_id, item)) =
                     self.file_notes.iter_mut().enumerate().find(|(_, item)| {
@@ -560,9 +553,9 @@ impl PlayAlong {
 
             // Save the modified SavedStats object
             saved_stats.save();
+            
             // better save right here keeping things simple, since stats could be loaded from song list when select folder for a file list is implemented
 
-            // Maybe cook everything together for a total score
             if let Some(callback) = &self.on_finish {
                 callback(); // Call on finish callback
             }

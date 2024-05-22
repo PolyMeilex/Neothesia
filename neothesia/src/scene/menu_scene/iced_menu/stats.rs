@@ -112,9 +112,9 @@ impl Page for StatsPage {
             .place("Place")
             .score("Score")
             .notes_hits("Hits")
-            .notes_missed("Misses")
-            .wrong_notes("Mistakes")
-            .correct_notes_duration("Durations")
+            .notes_missed("Missed notes")
+            .wrong_notes("Wrong notes")
+            .correct_notes_duration("Good Durations")
             .header(true);
         songhistory_header.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(
             first_place_card,

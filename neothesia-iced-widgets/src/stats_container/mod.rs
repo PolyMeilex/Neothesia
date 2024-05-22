@@ -124,12 +124,12 @@ impl<'a, M: Clone + 'a> From<StatsContainer<'a, M>> for Vec<Element<'a, M>> {
     fn from(card: StatsContainer<'a, M>) -> Self {
         let columns = vec![
             (card.place, 90),
-            (card.date, 90),
+            (card.date, 190),
             (card.score, 90),
             (card.notes_hits, 90),
-            (card.notes_missed, 90),
+            (card.notes_missed, 100),
             (card.wrong_notes, 90),
-            (card.correct_notes_duration, 90),
+            (card.correct_notes_duration, 120),
         ];
 
         let header_row = columns

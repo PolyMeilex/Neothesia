@@ -109,7 +109,6 @@ impl<'a, MSG: 'a + Clone> StatsContainer<'a, MSG> {
         self
     }
 
- 
     pub fn header(mut self, header: bool) -> Self {
         self.header = header;
         self

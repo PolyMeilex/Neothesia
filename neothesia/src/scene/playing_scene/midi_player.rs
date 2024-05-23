@@ -553,7 +553,7 @@ impl PlayAlong {
 
             // Save the modified SavedStats object
             saved_stats.save();
-            
+
             // better save right here keeping things simple, since stats could be loaded from song list when select folder for a file list is implemented
 
             if let Some(callback) = &self.on_finish {

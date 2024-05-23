@@ -24,9 +24,12 @@ pub enum Event {
 
 pub struct TracksPage;
 
+
+ 
+
 impl Page for TracksPage {
     type Event = Event;
-
+ 
     fn update(data: &mut Data, event: Event, ctx: &mut Context) -> PageMessage {
         match event {
             Event::AllTracksPlayer(config) => {
@@ -59,7 +62,7 @@ impl Page for TracksPage {
 
     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut tracks = Vec::new();
-
+      
         if let Some(song) = ctx.song.as_ref() {
             let mut piano_count = 0;
             for track in song
@@ -146,8 +149,10 @@ impl Page for TracksPage {
                 };
 
                 tracks.push(card.into());
+              
             }
         }
+ 
 
         let column = neothesia_iced_widgets::Wrap::with_elements(tracks)
             .spacing(14.0)
@@ -243,8 +248,10 @@ impl Page for TracksPage {
                 bottom: 10.0,
                 left: 0.0,
             });
-
-        Layout::new()
+          
+ 
+     
+        Layout::new() 
             .body(column)
             .bottom(BarLayout::new().left(left).center(center).right(right))
             .into()

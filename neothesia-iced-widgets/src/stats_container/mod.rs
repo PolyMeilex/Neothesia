@@ -12,8 +12,7 @@ pub struct StatsContainer<'a, MSG> {
     notes_missed: String,
     wrong_notes: String,
     correct_notes_duration: String,
-    body: Option<Element<'a, MSG>>,
-
+    _marker: std::marker::PhantomData<&'a MSG>, // PhantomData to indicate usage of Msg
     header: bool,
 }
 
@@ -34,7 +33,7 @@ impl<'a, MSG: 'a + Clone> StatsContainer<'a, MSG> {
             notes_missed: String::new(),
             wrong_notes: String::new(),
             correct_notes_duration: String::new(),
-            body: None,
+            _marker: std::marker::PhantomData,
 
             header: false,
         }
@@ -110,10 +109,7 @@ impl<'a, MSG: 'a + Clone> StatsContainer<'a, MSG> {
         self
     }
 
-    pub fn body(mut self, body: impl Into<Element<'a, MSG>>) -> Self {
-        self.body = Some(body.into());
-        self
-    }
+ 
     pub fn header(mut self, header: bool) -> Self {
         self.header = header;
         self

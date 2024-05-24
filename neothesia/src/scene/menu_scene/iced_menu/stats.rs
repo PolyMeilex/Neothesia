@@ -68,8 +68,20 @@ impl Page for StatsPage {
 
             // Populate data into tracks
             for (index, stats) in sorted_stats.iter().enumerate() {
-                let scores = stats.notes_hit + stats.correct_note_times * 10
-                    - (stats.notes_missed + stats.wrong_note_times + stats.notes_missed); // There are many ways to cook
+                let mut scores = stats.notes_hit + stats.correct_note_times * 10; // There are many ways to cook
+               
+
+                // Apply penalties 
+                if stats.notes_missed > 0 {
+                    scores = scores.saturating_sub(stats.notes_missed);
+                } 
+                if stats.wrong_notes > 0 {
+                    scores = scores.saturating_sub(stats.wrong_notes);
+                }
+            
+                // Final bonus addition
+                scores += stats.correct_note_times;
+
                 let datetime: DateTime<Local> = stats.date.into();
                 let score = (index + 1) as u32;
                 let trophy_image = if score <= 3 { score } else { 0 };
@@ -99,7 +111,7 @@ impl Page for StatsPage {
                 .spacing(10)
                 .align_items(Alignment::Start),
         )
-        .height(ctx.window_state.logical_size.height as u16 - 400);
+        .height(ctx.window_state.logical_size.height as u16 - 250);
 
         let mut elements = Vec::new();
         let scrollable_element: Element<'_, Event> = scrollable.into();
@@ -111,8 +123,8 @@ impl Page for StatsPage {
             .date("Date")
             .place("Place")
             .score("Score")
-            .notes_hits("Hits")
-            .notes_missed("Missed notes")
+            .notes_hits("Good Hits")
+            .notes_missed("Slow Hits")
             .wrong_notes("Wrong notes")
             .correct_notes_duration("Good Durations")
             .header(true);

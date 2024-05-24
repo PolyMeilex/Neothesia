@@ -326,7 +326,7 @@ impl PlayAlong {
                 .iter()
                 .position(|item| item.note_id == note_id)
             {
-                if let None = self
+                /*  if let None = self
                     .user_pressed_recently
                     .iter_mut()
                     .find(|item| item.note_id == note_id)
@@ -334,6 +334,8 @@ impl PlayAlong {
                     // Remove/take back. -1 a count_deleted (WRONG NOTE) added by update() if reached file_press_key(); ///
                     self.user_stats.wrong_notes -= 1;
                 }
+
+                */
 
                 if timestamp
                     .duration_since(self.required_notes[index].timestamp)
@@ -520,15 +522,16 @@ impl PlayAlong {
             //  Loop through user_stats.note_durations items, compare user_note_dur to file_note_dur
             let mut correct_note_times = 0;
             let mut wrong_note_times = 0;
+            // make it relaxed, Lower Bound: 83% of the file's note duration, Upper Bound: 112% of the file's note duration.
             for duration in &self.user_stats.note_durations {
-                // Compare user_note_dur to file_note_dur
-                let duration_difference =
-                    (duration.user_note_dur as f64 - duration.file_note_dur as f64).abs();
-                let percentage_difference =
-                    duration_difference / duration.user_note_dur as f64 * 100.0;
+                // Calculate the lower and upper bounds for a "correct" duration
+                let lower_bound = duration.file_note_dur as f64 * 0.83;
+                let upper_bound = duration.file_note_dur as f64 * 1.12;
 
-                //  Increment correctNoteTimes if it is close to 90%, otherwise increment wrongNoteTimes
-                if percentage_difference <= 10.0 {
+                // Increment correctNoteTimes if it is within the bounds, otherwise increment wrongNoteTimes
+                if (duration.user_note_dur as f64) >= lower_bound
+                    && (duration.user_note_dur as f64) <= upper_bound
+                {
                     correct_note_times += 1;
                 } else {
                     wrong_note_times += 1;

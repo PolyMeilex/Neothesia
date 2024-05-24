@@ -69,16 +69,15 @@ impl Page for StatsPage {
             // Populate data into tracks
             for (index, stats) in sorted_stats.iter().enumerate() {
                 let mut scores = stats.notes_hit + stats.correct_note_times * 10; // There are many ways to cook
-               
 
-                // Apply penalties 
+                // Apply penalties
                 if stats.notes_missed > 0 {
                     scores = scores.saturating_sub(stats.notes_missed);
-                } 
+                }
                 if stats.wrong_notes > 0 {
                     scores = scores.saturating_sub(stats.wrong_notes);
                 }
-            
+
                 // Final bonus addition
                 scores += stats.correct_note_times;
 

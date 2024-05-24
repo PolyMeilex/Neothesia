@@ -326,17 +326,6 @@ impl PlayAlong {
                 .iter()
                 .position(|item| item.note_id == note_id)
             {
-                /*  if let None = self
-                    .user_pressed_recently
-                    .iter_mut()
-                    .find(|item| item.note_id == note_id)
-                {
-                    // Remove/take back. -1 a count_deleted (WRONG NOTE) added by update() if reached file_press_key(); ///
-                    self.user_stats.wrong_notes -= 1;
-                }
-
-                */
-
                 if timestamp
                     .duration_since(self.required_notes[index].timestamp)
                     .as_millis()

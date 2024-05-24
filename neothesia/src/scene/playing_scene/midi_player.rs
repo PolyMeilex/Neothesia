@@ -5,7 +5,7 @@ use crate::{
     song::{PlayerConfig, Song},
 };
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     time::{Duration, Instant},
 };
 
@@ -194,21 +194,24 @@ pub enum MidiEventSource {
     User,
 }
 
+type NoteId = u8;
+
 #[derive(Debug)]
-struct UserPress {
+struct NotePress {
     timestamp: Instant,
-    note_id: u8,
 }
 
 #[derive(Debug)]
 pub struct PlayAlong {
     user_keyboard_range: piano_math::KeyboardRange,
 
-    required_notes: HashSet<u8>,
-
-    // List of user key press events that happened in last 500ms,
-    // used for play along leeway logic
-    user_pressed_recently: VecDeque<UserPress>,
+    /// Notes required to proggres further in the song
+    required_notes: HashMap<NoteId, NotePress>,
+    /// List of user key press events that happened in last 500ms,
+    /// used for play along leeway logic
+    user_pressed_recently: HashMap<NoteId, NotePress>,
+    /// File notes that had NoteOn event, but no NoteOff yet
+    in_proggres_file_notes: HashSet<NoteId>,
 }
 
 impl PlayAlong {
@@ -217,61 +220,51 @@ impl PlayAlong {
             user_keyboard_range,
             required_notes: Default::default(),
             user_pressed_recently: Default::default(),
+            in_proggres_file_notes: Default::default(),
         }
     }
 
     fn update(&mut self) {
+        // Instead of calling .elapsed() per item let's fetch `now` once, and subtract it ourselves
         let now = Instant::now();
         let threshold = Duration::from_millis(500);
 
         // Retain only the items that are within the threshold
-        self.user_pressed_recently.retain(|item| {
-            let elapsed = now - item.timestamp;
-            elapsed <= threshold
-        });
+        self.user_pressed_recently
+            .retain(|_, item| now.duration_since(item.timestamp) <= threshold);
     }
 
     fn user_press_key(&mut self, note_id: u8, active: bool) {
-        if active {
-            let timestamp = Instant::now();
-            // Check if note_id already exists in the collection
-            if let Some(item) = self
-                .user_pressed_recently
-                .iter_mut()
-                .find(|item| item.note_id == note_id)
-            {
-                // Update the timestamp for existing note_id
-                item.timestamp = timestamp;
-            } else {
-                // Push a new UserPress
-                self.user_pressed_recently
-                    .push_back(UserPress { timestamp, note_id });
-            }
+        let timestamp = Instant::now();
 
-            // Check if note_id is in required_notes
-            if self.required_notes.contains(&note_id) {
-                // If it's in required_notes, remove it from presed_recently to avoid skips/repeated count
+        if active {
+            // Check if note has already been played by a file
+            if self.required_notes.remove(&note_id).is_none() {
+                // This note was not played by file yet, place it in recents
                 self.user_pressed_recently
-                    .retain(|item| item.note_id != note_id);
+                    .insert(note_id, NotePress { timestamp });
             }
-            self.required_notes.remove(&note_id);
         }
     }
 
     fn file_press_key(&mut self, note_id: u8, active: bool) {
+        let timestamp = Instant::now();
         if active {
-            if let Some((id, _)) = self
-                .user_pressed_recently
-                .iter()
-                .enumerate()
-                .find(|(_, item)| item.note_id == note_id)
-            {
-                self.user_pressed_recently.remove(id);
-            } else {
-                self.required_notes.insert(note_id);
+            // Check if note got pressed earlier 500ms (user_pressed_recently)
+            if self.user_pressed_recently.remove(&note_id).is_none() {
+                // Player never pressed that note, let it reach required_notes
+
+                // Ignore overlapping notes
+                if self.in_proggres_file_notes.contains(&note_id) {
+                    return;
+                }
+
+                self.required_notes.insert(note_id, NotePress { timestamp });
             }
+
+            self.in_proggres_file_notes.insert(note_id);
         } else {
-            self.required_notes.remove(&note_id);
+            self.in_proggres_file_notes.remove(&note_id);
         }
     }
 
@@ -295,7 +288,9 @@ impl PlayAlong {
     }
 
     pub fn clear(&mut self) {
-        self.required_notes.clear()
+        self.required_notes.clear();
+        self.user_pressed_recently.clear();
+        self.in_proggres_file_notes.clear();
     }
 
     pub fn are_required_keys_pressed(&self) -> bool {

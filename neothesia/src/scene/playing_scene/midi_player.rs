@@ -385,11 +385,10 @@ impl PlayAlong {
             *occurrence += 1;
 
             // Check if note got pressed earlier 500ms (user_pressed_recently)
-            if let Some((_id, item)) = self
+            if let Some(item) = self
                 .user_pressed_recently
                 .iter()
-                .enumerate()
-                .find(|(_, item)| item.note_id == note_id)
+                .find(|item| item.note_id == note_id)
             {
                 // Note was pressed earlier, remove it from user_pressed_recently
                 self.user_stats.notes_hit += 1;

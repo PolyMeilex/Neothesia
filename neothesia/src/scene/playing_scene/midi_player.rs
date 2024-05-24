@@ -7,7 +7,6 @@ use neothesia_core::gamesave::{SavedStats, SongStats};
 use std::time::SystemTime;
 use std::{
     collections::HashMap,
-    collections::VecDeque,
     time::{Duration, Instant},
 };
 
@@ -259,16 +258,16 @@ struct UserPress {
 pub struct PlayAlong {
     user_keyboard_range: piano_math::KeyboardRange,
 
-    required_notes: VecDeque<UserPress>,
+    required_notes: Vec<UserPress>,
     finished: bool,
     // List of user key press events that happened in last 500ms,
     // used for play along leeway logic
-    user_pressed_recently: VecDeque<UserPress>,
+    user_pressed_recently: Vec<UserPress>,
     user_stats: NoteStats, // struct to finalize the stats log
 
-    user_notes: VecDeque<UserPress>, // log all user notes to get durrations
-    file_notes: VecDeque<UserPress>, // log all file notes to compare against user
-    occurrence: HashMap<u8, usize>,  // Keeping user to file log incremental pointer rewind immune
+    user_notes: Vec<UserPress>,     // log all user notes to get durrations
+    file_notes: Vec<UserPress>,     // log all file notes to compare against user
+    occurrence: HashMap<u8, usize>, // Keeping user to file log incremental pointer rewind immune
     on_finish: Option<Box<dyn Fn()>>,
 }
 
@@ -339,8 +338,8 @@ impl PlayAlong {
                 }
                 self.required_notes.remove(index);
 
-                self.user_notes.push_back(UserPress {
-                    timestamp: timestamp,
+                self.user_notes.push(UserPress {
+                    timestamp,
                     note_id,
                     occurrence: *occurrence,
                     time_key_up: timestamp,
@@ -357,7 +356,7 @@ impl PlayAlong {
                     self.user_stats.wrong_notes += 1;
                 } else {
                     // Not found, push a new UserPress
-                    self.user_pressed_recently.push_back(UserPress {
+                    self.user_pressed_recently.push(UserPress {
                         timestamp,
                         note_id,
                         occurrence: *occurrence,
@@ -394,7 +393,7 @@ impl PlayAlong {
                 self.user_stats.notes_hit += 1;
 
                 // log user_note by user_pressed_recently.timestamp as keydown value, update occurence
-                self.user_notes.push_back(UserPress {
+                self.user_notes.push(UserPress {
                     timestamp: item.timestamp,
                     note_id,
                     occurrence: *occurrence,
@@ -405,10 +404,11 @@ impl PlayAlong {
             } else {
                 // Player never pressed that note, let it reach required_notes, check if note_id already exists in required_notes,  update timestamp else push.
                 // Catch possible clone-note velocity overlay, update the new occurence and exit the function
-                if let Some((_id, item)) =
-                    self.file_notes.iter_mut().enumerate().find(|(_, item)| {
-                        item.note_id == note_id && item.time_key_up == item.timestamp
-                    })
+
+                if let Some(item) = self
+                    .file_notes
+                    .iter_mut()
+                    .find(|item| item.note_id == note_id && item.time_key_up == item.timestamp)
                 {
                     item.occurrence = *occurrence;
                     return; //  Everything bellow already done before by its clone
@@ -421,8 +421,8 @@ impl PlayAlong {
                     // Update the timestamp of the existing note
                     user_press.timestamp = timestamp;
                 } else {
-                    self.required_notes.push_back(UserPress {
-                        timestamp: timestamp,
+                    self.required_notes.push(UserPress {
+                        timestamp,
                         note_id,
                         occurrence: *occurrence,
                         time_key_up: timestamp,
@@ -431,8 +431,8 @@ impl PlayAlong {
             }
 
             // Log the note
-            self.file_notes.push_back(UserPress {
-                timestamp: timestamp,
+            self.file_notes.push(UserPress {
+                timestamp,
                 note_id,
                 occurrence: *occurrence, // Set the occurrence count
                 time_key_up: timestamp,
@@ -471,6 +471,7 @@ impl PlayAlong {
 
     pub fn clear(&mut self) {
         self.required_notes.clear();
+        // Remove from the file log, notes that left pressed down with no key up yet (rewinding a non-played part)
         self.file_notes
             .retain(|item| item.time_key_up != item.timestamp);
         self.user_pressed_recently.clear();

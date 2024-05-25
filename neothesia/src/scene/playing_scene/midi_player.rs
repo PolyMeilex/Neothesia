@@ -197,10 +197,41 @@ pub enum MidiEventSource {
 type NoteId = u8;
 
 #[derive(Debug, Default)]
-struct NoteStats {
-    notes_missed: usize,
-    notes_hit: usize,
+struct PlayerStats {
+    /// User notes that expired, or were simply wrong
     wrong_notes: usize,
+    /// List of deltas of notes played early
+    played_early: Vec<Duration>,
+    /// List of deltas of notes played late
+    played_late: Vec<Duration>,
+}
+
+impl PlayerStats {
+    #[allow(unused)]
+    fn timing_acurracy(&self) -> f64 {
+        let all = self.played_early.len() + self.played_late.len();
+        let early_count = self.count_too_early();
+        let late_count = self.count_too_late();
+        (early_count + late_count) as f64 / all as f64
+    }
+
+    fn count_too_early(&self) -> usize {
+        // 500 is the same as expire time, so this does not make much sense, but we can chooses
+        // better threshold later down the line
+        Self::count_with_threshold(&self.played_early, Duration::from_millis(500))
+    }
+
+    fn count_too_late(&self) -> usize {
+        // 160 to forgive touching the bottom
+        Self::count_with_threshold(&self.played_late, Duration::from_millis(160))
+    }
+
+    fn count_with_threshold(events: &[Duration], threshold: Duration) -> usize {
+        events
+            .iter()
+            .filter(|delta| **delta > threshold)
+            .fold(0, |n, _| n + 1)
+    }
 }
 
 #[derive(Debug)]
@@ -220,7 +251,7 @@ pub struct PlayAlong {
     /// File notes that had NoteOn event, but no NoteOff yet
     in_proggres_file_notes: HashSet<NoteId>,
 
-    stats: NoteStats,
+    stats: PlayerStats,
 }
 
 impl PlayAlong {
@@ -230,7 +261,7 @@ impl PlayAlong {
             required_notes: Default::default(),
             user_pressed_recently: Default::default(),
             in_proggres_file_notes: Default::default(),
-            stats: NoteStats::default(),
+            stats: PlayerStats::default(),
         }
     }
 
@@ -255,14 +286,9 @@ impl PlayAlong {
         if active {
             // Check if note has already been played by a file
             if let Some(required_press) = self.required_notes.remove(&note_id) {
-                // 160 to forgive touching the bottom
-                let threshold = Duration::from_millis(160);
-
-                if timestamp.duration_since(required_press.timestamp) > threshold {
-                    self.stats.notes_missed += 1
-                } else {
-                    self.stats.notes_hit += 1
-                }
+                self.stats
+                    .played_late
+                    .push(timestamp.duration_since(required_press.timestamp));
             } else {
                 // This note was not played by file yet, place it in recents
                 let got_replaced = self
@@ -281,8 +307,10 @@ impl PlayAlong {
         let timestamp = Instant::now();
         if active {
             // Check if note got pressed earlier 500ms (user_pressed_recently)
-            if self.user_pressed_recently.remove(&note_id).is_some() {
-                self.stats.notes_hit += 1
+            if let Some(press) = self.user_pressed_recently.remove(&note_id) {
+                self.stats
+                    .played_early
+                    .push(timestamp.duration_since(press.timestamp));
             } else {
                 // Player never pressed that note, let it reach required_notes
 

@@ -251,7 +251,7 @@ pub enum MidiEventSource {
 struct UserPress {
     timestamp: Instant,
     note_id: u8,
-    time_key_up: Instant,
+    time_key_up: Option<Instant>,
     occurrence: usize,
 }
 
@@ -342,7 +342,7 @@ impl PlayAlong {
                     timestamp,
                     note_id,
                     occurrence: *occurrence,
-                    time_key_up: timestamp,
+                    time_key_up: None,
                 });
             } else {
                 // Haven't reached required_notes yet, place a possible later validation in 'user_pressed_recently' / file_press_key()
@@ -360,7 +360,7 @@ impl PlayAlong {
                         timestamp,
                         note_id,
                         occurrence: *occurrence,
-                        time_key_up: timestamp,
+                        time_key_up: None,
                     });
                 }
             }
@@ -372,7 +372,7 @@ impl PlayAlong {
                 .rev()
                 .find(|item| item.note_id == note_id && item.occurrence == *occurrence)
             {
-                item.time_key_up = Instant::now();
+                item.time_key_up = Some(Instant::now());
             }
         }
     }
@@ -408,7 +408,7 @@ impl PlayAlong {
                 if let Some(item) = self
                     .file_notes
                     .iter_mut()
-                    .find(|item| item.note_id == note_id && item.time_key_up == item.timestamp)
+                    .find(|item| item.note_id == note_id && item.time_key_up.is_none())
                 {
                     item.occurrence = *occurrence;
                     return; //  Everything bellow already done before by its clone
@@ -425,7 +425,7 @@ impl PlayAlong {
                         timestamp,
                         note_id,
                         occurrence: *occurrence,
-                        time_key_up: timestamp,
+                        time_key_up: None,
                     });
                 }
             }
@@ -435,7 +435,7 @@ impl PlayAlong {
                 timestamp,
                 note_id,
                 occurrence: *occurrence, // Set the occurrence count
-                time_key_up: timestamp,
+                time_key_up: None,
             });
         } else {
             // update time_key_up
@@ -445,7 +445,7 @@ impl PlayAlong {
                 .rev()
                 .find(|item| item.note_id == note_id && item.occurrence == *occurrence)
             {
-                item.time_key_up = timestamp;
+                item.time_key_up = Some(timestamp);
             }
         }
     }
@@ -472,8 +472,7 @@ impl PlayAlong {
     pub fn clear(&mut self) {
         self.required_notes.clear();
         // Remove from the file log, notes that left pressed down with no key up yet (rewinding a non-played part)
-        self.file_notes
-            .retain(|item| item.time_key_up != item.timestamp);
+        self.file_notes.retain(|item| item.time_key_up.is_some());
         self.user_pressed_recently.clear();
     }
 
@@ -486,14 +485,14 @@ impl PlayAlong {
                         && user_note.note_id == file_note.note_id
                     {
                         // Subtract timestamp from time_key_up to get total seconds
-                        let user_note_dur = user_note
-                            .time_key_up
-                            .duration_since(user_note.timestamp)
-                            .as_secs();
-                        let file_note_dur = file_note
-                            .time_key_up
-                            .duration_since(file_note.timestamp)
-                            .as_secs();
+                        let user_note_dur = match (user_note.timestamp, user_note.time_key_up) {
+                            (start, Some(end)) => end.duration_since(start).as_secs(),
+                            _ => 0,
+                        };
+                        let file_note_dur = match (file_note.timestamp, file_note.time_key_up) {
+                            (start, Some(end)) => end.duration_since(start).as_secs(),
+                            _ => 0,
+                        };
 
                         // Add this information to user_stats.note_durations
                         let note_duration = NoteDurations {
@@ -511,11 +510,11 @@ impl PlayAlong {
             //  Loop through user_stats.note_durations items, compare user_note_dur to file_note_dur
             let mut correct_note_times = 0;
             let mut wrong_note_times = 0;
-            // make it relaxed, Lower Bound: 83% of the file's note duration, Upper Bound: 112% of the file's note duration.
+            // make it relaxed, Lower Bound: 87% of the file's note duration, Upper Bound: 108% of the file's note duration.
             for duration in &self.user_stats.note_durations {
                 // Calculate the lower and upper bounds for a "correct" duration
-                let lower_bound = duration.file_note_dur as f64 * 0.83;
-                let upper_bound = duration.file_note_dur as f64 * 1.12;
+                let lower_bound = duration.file_note_dur as f64 * 0.87;
+                let upper_bound = duration.file_note_dur as f64 * 1.08;
 
                 // Increment correctNoteTimes if it is within the bounds, otherwise increment wrongNoteTimes
                 if (duration.user_note_dur as f64) >= lower_bound

@@ -141,6 +141,10 @@ impl Scene for PlayingScene {
 
         self.bg_quad_pipeline.prepare(&ctx.gpu.queue);
         self.fg_quad_pipeline.prepare(&ctx.gpu.queue);
+
+        if self.player.is_finished() {
+            ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+        }
     }
 
     fn render<'pass>(

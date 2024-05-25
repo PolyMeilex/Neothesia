@@ -166,6 +166,10 @@ impl MidiPlayer {
         self.playback.percentage()
     }
 
+    pub fn is_finished(&self) -> bool {
+        self.playback.is_finished()
+    }
+
     pub fn time(&self) -> Duration {
         self.playback.time()
     }

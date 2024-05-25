@@ -89,6 +89,10 @@ impl PlaybackState {
         self.running = time;
     }
 
+    pub fn is_finished(&self) -> bool {
+        self.time() >= self.length()
+    }
+
     pub fn percentage(&self) -> f32 {
         self.running.as_secs_f32() / self.length().as_secs_f32()
     }

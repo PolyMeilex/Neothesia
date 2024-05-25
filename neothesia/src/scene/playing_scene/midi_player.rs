@@ -196,6 +196,13 @@ pub enum MidiEventSource {
 
 type NoteId = u8;
 
+#[derive(Debug, Default)]
+struct NoteStats {
+    notes_missed: usize,
+    notes_hit: usize,
+    wrong_notes: usize,
+}
+
 #[derive(Debug)]
 struct NotePress {
     timestamp: Instant,
@@ -212,6 +219,8 @@ pub struct PlayAlong {
     user_pressed_recently: HashMap<NoteId, NotePress>,
     /// File notes that had NoteOn event, but no NoteOff yet
     in_proggres_file_notes: HashSet<NoteId>,
+
+    stats: NoteStats,
 }
 
 impl PlayAlong {
@@ -221,6 +230,7 @@ impl PlayAlong {
             required_notes: Default::default(),
             user_pressed_recently: Default::default(),
             in_proggres_file_notes: Default::default(),
+            stats: NoteStats::default(),
         }
     }
 
@@ -229,9 +239,14 @@ impl PlayAlong {
         let now = Instant::now();
         let threshold = Duration::from_millis(500);
 
+        // Track the count of items before retain
+        let count_before = self.user_pressed_recently.len();
+
         // Retain only the items that are within the threshold
         self.user_pressed_recently
             .retain(|_, item| now.duration_since(item.timestamp) <= threshold);
+
+        self.stats.wrong_notes += count_before - self.user_pressed_recently.len();
     }
 
     fn user_press_key(&mut self, note_id: u8, active: bool) {
@@ -239,10 +254,25 @@ impl PlayAlong {
 
         if active {
             // Check if note has already been played by a file
-            if self.required_notes.remove(&note_id).is_none() {
+            if let Some(required_press) = self.required_notes.remove(&note_id) {
+                // 160 to forgive touching the bottom
+                let threshold = Duration::from_millis(160);
+
+                if timestamp.duration_since(required_press.timestamp) > threshold {
+                    self.stats.notes_missed += 1
+                } else {
+                    self.stats.notes_hit += 1
+                }
+            } else {
                 // This note was not played by file yet, place it in recents
-                self.user_pressed_recently
-                    .insert(note_id, NotePress { timestamp });
+                let got_replaced = self
+                    .user_pressed_recently
+                    .insert(note_id, NotePress { timestamp })
+                    .is_some();
+
+                if got_replaced {
+                    self.stats.wrong_notes += 1
+                }
             }
         }
     }
@@ -251,7 +281,9 @@ impl PlayAlong {
         let timestamp = Instant::now();
         if active {
             // Check if note got pressed earlier 500ms (user_pressed_recently)
-            if self.user_pressed_recently.remove(&note_id).is_none() {
+            if self.user_pressed_recently.remove(&note_id).is_some() {
+                self.stats.notes_hit += 1
+            } else {
                 // Player never pressed that note, let it reach required_notes
 
                 // Ignore overlapping notes

@@ -21,7 +21,7 @@ pub struct NoteStats {
     song_name: String,
     notes_missed: usize,
     notes_hit: usize,
-    wrong_notes: i32,
+    wrong_notes: usize,
     note_durations: Vec<NoteDurations>,
 }
 #[derive(Debug)]
@@ -307,10 +307,11 @@ impl PlayAlong {
             elapsed <= threshold
         });
 
-        // Calculate the count of deleted items
+        // Calculate the count of deleted items,
+        // Either pressed extremely too earlier than should have, or a wrong note, both cases is wrong note, we don't sub these.
         let count_deleted = count_before - self.user_pressed_recently.len();
         if count_deleted > 0 {
-            self.user_stats.wrong_notes += count_deleted as i32;
+            self.user_stats.wrong_notes += count_deleted;
         }
     }
 
@@ -319,7 +320,8 @@ impl PlayAlong {
         let occurrence = self.occurrence.entry(note_id).or_insert(0);
 
         if active {
-            // Check if note_id has reached required_notes, then remove it now
+            // Check if note_id has reached required_notes, then remove it now,
+
             if let Some(index) = self
                 .required_notes
                 .iter()
@@ -503,10 +505,7 @@ impl PlayAlong {
                     }
                 }
             }
-            //  Clear negative self.user_stats.wrong_notes
-            if self.user_stats.wrong_notes < 0 {
-                self.user_stats.wrong_notes = 0;
-            }
+
             //  Loop through user_stats.note_durations items, compare user_note_dur to file_note_dur
             let mut correct_note_times = 0;
             let mut wrong_note_times = 0;

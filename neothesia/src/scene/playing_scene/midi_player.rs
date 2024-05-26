@@ -525,6 +525,10 @@ impl PlayAlong {
                 }
             }
 
+             // Save only if the user pressed something, it wasn't a full rewind OR [AUTO]
+
+             if  self.user_stats.notes_hit +  self.user_stats.notes_missed + self.user_stats.wrong_notes > 0 {
+
             let mut saved_stats = SavedStats::load().unwrap_or_default();
 
             // Create the new stats object
@@ -537,12 +541,14 @@ impl PlayAlong {
                 wrong_notes: self.user_stats.wrong_notes as u32,
                 date: SystemTime::now(),
             };
-
+            // 
             // Push the new stats object to the existing SavedStats
             saved_stats.songs.push(new_stats);
 
+            
             // Save the modified SavedStats object
             saved_stats.save();
+            }
 
             // better save right here keeping things simple, since stats could be loaded from song list when select folder for a file list is implemented
 

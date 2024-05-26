@@ -58,13 +58,50 @@ impl Page for StatsPage {
                 .filter(|stats| stats.song_name == songname)
                 .collect();
 
-            // Sort stats by fewer wrong_notes, fewer notes_missed, and max note_hits
-            let mut sorted_stats = filtered_stats.clone();
-            sorted_stats.sort_by(|a, b| {
-                let score_a = a.wrong_notes + a.notes_missed - a.notes_hit;
-                let score_b = b.wrong_notes + b.notes_missed - b.notes_hit;
-                score_a.cmp(&score_b)
+         
+             // Sort stats as whatever is the cooking logic: hits + correct timing * 10 subtract from sum the missed and wrong notes 
+             let mut sorted_stats = filtered_stats.clone();
+             
+             sorted_stats.sort_by(|a, b| {
+                let score_a = {
+                    let mut score = a.notes_hit + a.correct_note_times * 10;
+            
+                    // Apply penalties
+                    if a.notes_missed > 0 {
+                        score = score.saturating_sub(a.notes_missed);
+                    }
+                    if a.wrong_notes > 0 {
+                        score = score.saturating_sub(a.wrong_notes);
+                    }
+            
+                    // Final bonus addition
+                    score += a.correct_note_times;
+            
+                    score
+                };
+            
+                let score_b = {
+                    let mut score = b.notes_hit + b.correct_note_times * 10;
+            
+                    // Apply penalties
+                    if b.notes_missed > 0 {
+                        score = score.saturating_sub(b.notes_missed);
+                    }
+                    if b.wrong_notes > 0 {
+                        score = score.saturating_sub(b.wrong_notes);
+                    }
+            
+                    // Final bonus addition
+                    score += b.correct_note_times;
+            
+                    score
+                };
+            
+                score_b.cmp(&score_a)  
             });
+
+           
+     
 
             // Populate data into tracks
             for (index, stats) in sorted_stats.iter().enumerate() {
@@ -80,6 +117,10 @@ impl Page for StatsPage {
 
                 // Final bonus addition
                 scores += stats.correct_note_times;
+
+
+                //Sort by score, higher score first
+                
 
                 let datetime: DateTime<Local> = stats.date.into();
                 let score = (index + 1) as u32;

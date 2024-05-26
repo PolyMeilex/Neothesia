@@ -50,10 +50,12 @@ impl Song {
         Self { file, config }
     }
     pub fn get_clean_songname(filename: String) -> String {
-        if let Some(stripped) = filename.strip_suffix(".midi") {
-            stripped.to_string()
-        } else if let Some(stripped) = filename.strip_suffix(".mid") {
-            stripped.to_string()
+        let lower_filename = filename.to_lowercase();
+
+        if lower_filename.ends_with(".midi") {
+            filename[..filename.len() - 5].to_string()
+        } else if lower_filename.ends_with(".mid") {
+            filename[..filename.len() - 4].to_string()
         } else {
             filename.to_string()
         }

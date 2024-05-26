@@ -26,6 +26,7 @@ use toast_manager::ToastManager;
 
 mod animation;
 mod top_bar;
+use crate::menu_scene::Step;
 
 const EVENT_CAPTURED: bool = true;
 const EVENT_IGNORED: bool = false;
@@ -75,11 +76,17 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let player = MidiPlayer::new(
+        let mut player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
             song,
             keyboard_layout.range.clone(),
         );
+        let weak_ctx = ctx.proxy.clone();
+        player.on_finish(move || {
+            weak_ctx
+                .send_event(NeothesiaEvent::MainMenu { page: Step::Stats })
+                .ok();
+        });
         waterfall.update(&ctx.gpu.queue, player.time_without_lead_in());
 
         Self {
@@ -222,7 +229,9 @@ fn handle_back_button(ctx: &Context, event: &WindowEvent) {
     );
 
     if is_back_event {
-        ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+        ctx.proxy
+            .send_event(NeothesiaEvent::MainMenu { page: Step::Main })
+            .ok();
     }
 }
 

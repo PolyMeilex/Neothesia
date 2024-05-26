@@ -4,6 +4,7 @@ pub mod piano_range;
 pub mod preferences_group;
 pub mod scroll_listener;
 pub mod segment_button;
+pub mod stats_container;
 pub mod track_card;
 pub mod wrap;
 
@@ -13,6 +14,7 @@ pub use piano_range::PianoRange;
 pub use preferences_group::{ActionRow, PreferencesGroup};
 pub use scroll_listener::ScrollListener;
 pub use segment_button::SegmentButton;
+pub use stats_container::StatsContainer;
 pub use track_card::TrackCard;
 pub use wrap::Wrap;
 

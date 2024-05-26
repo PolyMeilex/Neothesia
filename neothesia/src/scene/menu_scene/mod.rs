@@ -18,6 +18,7 @@ use crate::{
     },
     scene::Scene,
 };
+pub use iced_menu::Step;
 
 type Renderer = iced_wgpu::Renderer;
 
@@ -30,8 +31,9 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub fn new(ctx: &mut Context) -> Self {
-        let menu = AppUi::new(ctx);
+    pub fn new(ctx: &mut Context, goto: Step) -> Self {
+        let menu = AppUi::new(ctx, goto);
+
         let iced_state =
             iced_state::State::new(menu, ctx.iced_manager.viewport.logical_size(), ctx);
 

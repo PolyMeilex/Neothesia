@@ -59,8 +59,16 @@ impl Page for TracksPage {
 
     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut tracks = Vec::new();
+
         if let Some(song) = ctx.song.as_ref() {
-            for track in song.file.tracks.iter().filter(|t| !t.notes.is_empty()) {
+            let mut piano_count = 0;
+            for track in song
+                .file
+                .tracks
+                .iter()
+                .filter(|t| !t.notes.is_empty())
+                .rev()
+            {
                 let config = &song.config.tracks[track.track_id];
 
                 let visible = config.visible;
@@ -78,16 +86,34 @@ impl Page for TracksPage {
                     let color = &ctx.config.color_schema[color_id].base;
                     iced_core::Color::from_rgb8(color.0, color.1, color.2)
                 };
-
+                let instrument_id = track
+                    .programs
+                    .last()
+                    .map(|p| p.program as usize)
+                    .unwrap_or(0);
+                let mut instrument_card_id = instrument_id;
                 let name = if track.has_drums && !track.has_other_than_drums {
+                    instrument_card_id = 797979;
                     "Percussion"
                 } else {
-                    let instrument_id = track
-                        .programs
-                        .last()
-                        .map(|p| p.program as usize)
-                        .unwrap_or(0);
                     midi_file::INSTRUMENT_NAMES[instrument_id]
+                };
+
+                // Check if the instrument is a Piano (id 0, 1, or 2)
+                let hand_info = if instrument_id <= 7 && name != "Percussion" {
+                    // Increment the piano counter
+                    piano_count += 1;
+
+                    // Determine if it's the first or second occurrence of Piano
+                    if piano_count % 2 == 0 {
+                        instrument_card_id = 696969;
+                        "/ Right Hand"
+                    } else {
+                        "/ Left Hand"
+                    }
+                } else {
+                    // For other instruments, no hand information
+                    ""
                 };
 
                 let body = neothesia_iced_widgets::SegmentButton::new()
@@ -108,8 +134,9 @@ impl Page for TracksPage {
 
                 let card = neothesia_iced_widgets::TrackCard::new()
                     .title(name)
-                    .subtitle(format!("{} Notes", track.notes.len()))
+                    .subtitle(format!("{} Notes {}", track.notes.len(), hand_info))
                     .track_color(color)
+                    .instrument_id(instrument_card_id)
                     .body(body);
 
                 let card = if track.has_drums && !track.has_other_than_drums {

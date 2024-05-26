@@ -49,8 +49,8 @@ impl Page for MainPage {
 
     fn view<'a>(data: &'a Data, ctx: &Context) -> neothesia_iced_widgets::Element<'a, Self::Event> {
         let buttons = column![
-            NeoBtn::new_with_label("Select File")
-                .on_press(Event::MidiFilePicker(MidiFilePickerMessage::open()))
+            NeoBtn::new_with_label("Select Song")
+                .on_press(Event::GoToPage(Step::SelectsongPage))
                 .width(Length::Fill)
                 .height(Length::Fixed(80.0)),
             NeoBtn::new_with_label("Settings")
@@ -106,10 +106,12 @@ impl Page for MainPage {
                     left: 0.0,
                 });
 
+            let song_name = Song::get_clean_songname(song.file.name.clone());
+
             layout = layout.bottom(
                 BarLayout::new()
                     .center(
-                        text(&song.file.name)
+                        text(song_name)
                             .width(Length::Fill)
                             .vertical_alignment(Vertical::Center)
                             .horizontal_alignment(Horizontal::Center),

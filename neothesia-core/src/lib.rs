@@ -3,5 +3,6 @@
 pub use wgpu_jumpstart::{Color, Gpu, TransformUniform, Uniform};
 
 pub mod config;
+pub mod gamesave;
 pub mod render;
 pub mod utils;

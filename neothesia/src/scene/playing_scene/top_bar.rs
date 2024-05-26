@@ -18,8 +18,8 @@ use super::{
 };
 
 mod button;
+use crate::menu_scene::Step;
 use button::Button;
-
 #[derive(Default, Clone, Copy)]
 enum Element {
     StartTick,
@@ -171,7 +171,9 @@ impl TopBar {
                     scene.top_bar.settings_active = !scene.top_bar.settings_active;
                 }
                 Element::BackButton => {
-                    ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+                    ctx.proxy
+                        .send_event(NeothesiaEvent::MainMenu { page: Step::Main })
+                        .ok();
                     return EVENT_CAPTURED;
                 }
                 Element::StartTick | Element::EndTick => {

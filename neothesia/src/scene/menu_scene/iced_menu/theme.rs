@@ -139,7 +139,7 @@ impl iced_style::button::StyleSheet for RoundButtonStyle {
 pub fn _checkbox() -> iced_style::theme::Checkbox {
     iced_style::theme::Checkbox::Custom(Box::new(CheckboxStyle))
 }
-
+#[allow(dead_code)]
 struct CheckboxStyle;
 
 impl iced_style::checkbox::StyleSheet for CheckboxStyle {
@@ -222,5 +222,50 @@ impl iced_style::toggler::StyleSheet for TogglerStyle {
                 is_active,
             )
         }
+    }
+}
+
+pub fn filelist_button(color: Color) -> iced_style::theme::Button {
+    iced_style::theme::Button::Custom(Box::new(FilelistButton::new(color)))
+}
+
+struct FilelistButton {
+    color: Color,
+}
+
+impl FilelistButton {
+    pub fn new(color: Color) -> Self {
+        Self { color }
+    }
+}
+
+impl iced_style::button::StyleSheet for FilelistButton {
+    type Style = iced_style::Theme;
+
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            text_color: Color::WHITE,
+            border: Border {
+                width: 0.0, //
+
+                radius: Radius::from(0.0),
+                color: Color::TRANSPARENT,
+            },
+
+            background: Some(iced_core::Background::Color(self.color)),
+            ..Default::default()
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        let mut active = self.active(style);
+
+        if let Some(iced_core::Background::Color(ref mut color)) = active.background {
+            color.r = (color.r + 0.05).min(1.0); // Slightly lighter on hover
+            color.g = (color.g + 0.05).min(1.0);
+            color.b = (color.b + 0.05).min(1.0);
+        }
+
+        active
     }
 }

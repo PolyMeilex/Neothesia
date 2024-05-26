@@ -123,7 +123,7 @@ impl std::fmt::Display for MidiInputPort {
         write!(f, "{}", self.0)
     }
 }
-
+#[allow(dead_code)]
 pub struct MidiInputConnection(midir::MidiInputConnection<()>);
 pub struct MidiOutputConnection(midir::MidiOutputConnection);
 

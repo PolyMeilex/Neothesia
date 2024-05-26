@@ -49,4 +49,15 @@ impl Song {
         let config = SongConfig::new(&file.tracks);
         Self { file, config }
     }
+    pub fn get_clean_songname(filename: String) -> String {
+        let lower_filename = filename.to_lowercase();
+
+        if lower_filename.ends_with(".midi") {
+            filename[..filename.len() - 5].to_string()
+        } else if lower_filename.ends_with(".mid") {
+            filename[..filename.len() - 4].to_string()
+        } else {
+            filename.to_string()
+        }
+    }
 }

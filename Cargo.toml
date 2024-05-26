@@ -34,4 +34,4 @@ iced_graphics = "0.12"
 iced_core = "0.12"
 iced_runtime = "0.12"
 iced_wgpu = { version = "0.12", features = ["image"] }
-iced_widget = { version = "0.12", features = ["image"] }
+iced_widget = { version = "0.12", features = ["image"]  }

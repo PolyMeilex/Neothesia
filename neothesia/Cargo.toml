@@ -1,6 +1,6 @@
 [package]
 name = "neothesia"
-version = "0.1.0"
+version = "0.1.8"
 authors = ["Poly <marynczak.bartlomiej@gmail.com>"]
 edition = "2021"
 default-run = "neothesia"
@@ -23,6 +23,7 @@ neothesia-iced-widgets.workspace = true
 piano-math.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
+dirs = "3.0"
 
 iced_style.workspace = true
 iced_graphics.workspace = true
@@ -35,7 +36,7 @@ fps_ticker = "1"
 winit = { version = "0.29", features = ["rwh_05"] }
 rfd = "0.14"
 async-thread = "0.1"
-
+chrono = "0.4.19"
 cpal = { version = "0.15", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }
 oxisynth = { version = "0.0.5", optional = true }

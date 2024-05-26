@@ -56,3 +56,36 @@ impl iced_style::button::StyleSheet for TrackIconButtonStyle {
         active
     }
 }
+pub fn toggle_button(color: iced_core::Color) -> iced_style::theme::Button {
+    iced_style::theme::Button::Custom(Box::new(ToggleButtonStyle(color)))
+}
+
+struct ToggleButtonStyle(iced_core::Color);
+
+impl iced_style::button::StyleSheet for ToggleButtonStyle {
+    type Style = iced_style::Theme;
+
+    fn active(&self, _style: &Self::Style) -> iced_style::button::Appearance {
+        iced_style::button::Appearance {
+            background: Some(iced_core::Background::Color(self.0)),
+            border: Border {
+                radius: Radius::from(255.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    /// Produces the hovered [`Appearance`] of a button.
+    fn hovered(&self, style: &Self::Style) -> iced_style::button::Appearance {
+        let mut active = self.active(style);
+
+        if let Some(iced_core::Background::Color(ref mut color)) = active.background {
+            color.r = (color.r + 0.05).min(1.0);
+            color.g = (color.g + 0.05).min(1.0);
+            color.b = (color.b + 0.05).min(1.0);
+        }
+
+        active
+    }
+}

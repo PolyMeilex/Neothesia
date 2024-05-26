@@ -37,6 +37,7 @@ pub struct Config {
 
     pub soundfont_path: Option<PathBuf>,
     pub last_opened_song: Option<PathBuf>,
+    pub song_directory: Option<PathBuf>,
 
     #[serde(default = "default_piano_range")]
     pub piano_range: (u8, u8),
@@ -78,6 +79,7 @@ impl Config {
             input: None,
             soundfont_path: None,
             last_opened_song: None,
+            song_directory: None,
             piano_range: default_piano_range(),
         })
     }

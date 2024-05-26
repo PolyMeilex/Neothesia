@@ -23,6 +23,15 @@ pub enum Event {
 use crate::menu_scene::Step;
 pub struct StatsPage;
 
+
+fn score_cooking(stats: &SongStats) -> u32 {
+    
+    let mut score = stats.notes_hit + stats.correct_note_times * 10;
+    // Apply penalties then give the bonus
+    score = score.saturating_sub(stats.notes_missed + stats.wrong_notes) + stats.correct_note_times;
+
+    score
+}
 impl Page for StatsPage {
     type Event = Event;
 
@@ -36,6 +45,7 @@ impl Page for StatsPage {
 
         PageMessage::none()
     }
+  
 
     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut songhistory = Vec::new();
@@ -63,37 +73,13 @@ impl Page for StatsPage {
 
             sorted_stats.sort_by(|a, b| {
                 let score_a = {
-                    let mut score = a.notes_hit + a.correct_note_times * 10;
-
-                    // Apply penalties
-                    if a.notes_missed > 0 {
-                        score = score.saturating_sub(a.notes_missed);
-                    }
-                    if a.wrong_notes > 0 {
-                        score = score.saturating_sub(a.wrong_notes);
-                    }
-
-                    // Final bonus addition
-                    score += a.correct_note_times;
-
-                    score
+                    // initial score
+                    score_cooking(a)
                 };
 
                 let score_b = {
-                    let mut score = b.notes_hit + b.correct_note_times * 10;
-
-                    // Apply penalties
-                    if b.notes_missed > 0 {
-                        score = score.saturating_sub(b.notes_missed);
-                    }
-                    if b.wrong_notes > 0 {
-                        score = score.saturating_sub(b.wrong_notes);
-                    }
-
-                    // Final bonus addition
-                    score += b.correct_note_times;
-
-                    score
+                    // initial score
+                    score_cooking(b)
                 };
 
                 score_b.cmp(&score_a)
@@ -101,18 +87,7 @@ impl Page for StatsPage {
 
             // Populate data into tracks
             for (index, stats) in sorted_stats.iter().enumerate() {
-                let mut scores = stats.notes_hit + stats.correct_note_times * 10; // There are many ways to cook
-
-                // Apply penalties
-                if stats.notes_missed > 0 {
-                    scores = scores.saturating_sub(stats.notes_missed);
-                }
-                if stats.wrong_notes > 0 {
-                    scores = scores.saturating_sub(stats.wrong_notes);
-                }
-
-                // Final bonus addition
-                scores += stats.correct_note_times;
+                let scores = score_cooking(stats);
 
                 //Sort by score, higher score first
 
@@ -298,4 +273,5 @@ impl Page for StatsPage {
             _ => None,
         }
     }
+ 
 }

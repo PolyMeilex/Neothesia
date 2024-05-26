@@ -49,4 +49,13 @@ impl Song {
         let config = SongConfig::new(&file.tracks);
         Self { file, config }
     }
+    pub fn get_clean_songname(filename: String) -> String {
+        if let Some(stripped) = filename.strip_suffix(".midi") {
+            stripped.to_string()
+        } else if let Some(stripped) = filename.strip_suffix(".mid") {
+            stripped.to_string()
+        } else {
+            filename.to_string()
+        }
+    }
 }

@@ -97,12 +97,7 @@ impl Page for SelectsongPage {
         if let Some(path_buf) = &ctx.config.last_opened_song {
             if let Some(file_name) = path_buf.file_name() {
                 if let Some(name) = file_name.to_str() {
-                    if let Some(stripped_name) = name.strip_suffix(".mid") {
-                        song_file_name = stripped_name.to_string();
-                    } else {
-                        // If the file name doesn't end with ".mid", use the original file name
-                        song_file_name = name.to_string();
-                    }
+                    song_file_name = Song::get_clean_songname(name.to_string());
                 }
             }
         }
@@ -114,12 +109,7 @@ impl Page for SelectsongPage {
                     if let Some(file_name) = entry.file_name().to_str() {
                         if let Some(extension) = Path::new(file_name).extension() {
                             if extension == "mid" || extension == "midi" {
-                                let song_name =
-                                    if let Some(stripped_name) = file_name.strip_suffix(".mid") {
-                                        stripped_name.to_string()
-                                    } else {
-                                        file_name.to_string()
-                                    };
+                                let song_name = Song::get_clean_songname(file_name.to_string());
                                 let button_color = if song_file_name == song_name {
                                     iced_core::Color::from_rgb8(106, 0, 163)
                                 } else {

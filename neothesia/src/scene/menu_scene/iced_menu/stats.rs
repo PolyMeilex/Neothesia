@@ -1,11 +1,11 @@
-use crate::{context::Context, scene::menu_scene::icons};
+use crate::{context::Context, scene::menu_scene::icons, song::Song};
 use chrono::{DateTime, Local};
 use iced_core::{
     alignment::{Horizontal, Vertical},
     Alignment, Length, Padding,
 };
 use iced_widget::{column as col, container, row, vertical_space};
-use neothesia_core::gamesave::{SavedStats, SongStats};
+use neothesia_core::gamesave::SavedStats;
 use neothesia_iced_widgets::{BarLayout, Element, Layout, NeoBtn};
 
 use super::{
@@ -23,13 +23,6 @@ pub enum Event {
 use crate::menu_scene::Step;
 pub struct StatsPage;
 
-fn score_cooking(stats: &SongStats) -> u32 {
-    let mut score = stats.notes_hit + stats.correct_note_times * 10;
-    // Apply penalties then give the bonus
-    score = score.saturating_sub(stats.notes_missed + stats.wrong_notes) + stats.correct_note_times;
-
-    score
-}
 impl Page for StatsPage {
     type Event = Event;
 
@@ -49,59 +42,31 @@ impl Page for StatsPage {
 
         let mut songname = String::new();
         if let Some(song) = ctx.song.as_ref() {
-            songname = song.file.name.clone();
-            // Clear out .ext
-            if let Some(stripped_name) = songname.to_lowercase().strip_suffix(".mid") {
-                songname = stripped_name.to_string();
-            }
+            songname = Song::get_clean_songname(song.file.name.clone())
         }
 
-        // Load saved stats and filter stats for the current song
-        if let Some(saved_stats) = SavedStats::load() {
-            // Filter stats for the current song
-            let filtered_stats: Vec<&SongStats> = saved_stats
-                .songs
-                .iter()
-                .filter(|stats| stats.song_name == songname)
-                .collect();
+        // Load saved stats for the current song
+        let sorted_stats = SavedStats::load_for_song(songname.clone());
 
-            // Sort stats as whatever is the cooking logic: hits + correct timing * 10 subtract from sum the missed and wrong notes
-            let mut sorted_stats = filtered_stats.clone();
+        // Populate data into tracks
+        for (index, stats) in sorted_stats.iter().enumerate() {
+            let scores = SavedStats::score_cooking(stats);
 
-            sorted_stats.sort_by(|a, b| {
-                let score_a = {
-                    // initial score
-                    score_cooking(a)
-                };
+            //Sort by score, higher score first
 
-                let score_b = {
-                    // initial score
-                    score_cooking(b)
-                };
-
-                score_b.cmp(&score_a)
-            });
-
-            // Populate data into tracks
-            for (index, stats) in sorted_stats.iter().enumerate() {
-                let scores = score_cooking(stats);
-
-                //Sort by score, higher score first
-
-                let datetime: DateTime<Local> = stats.date.into();
-                let score = (index + 1) as u32;
-                let trophy_image = if score <= 3 { score } else { 0 };
-                let card = neothesia_iced_widgets::StatsContainer::new()
-                    .image(trophy_image)
-                    .date(datetime.format("%d/%m/%y %H:%M:%S").to_string())
-                    .place(&(index + 1).to_string()) // Index starts from 1
-                    .score(scores)
-                    .notes_hits(stats.notes_hit)
-                    .notes_missed(stats.notes_missed)
-                    .wrong_notes(stats.wrong_notes)
-                    .correct_notes_duration(stats.correct_note_times);
-                songhistory.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(card));
-            }
+            let datetime: DateTime<Local> = stats.date.into();
+            let score = (index + 1) as u32;
+            let trophy_image = if score <= 3 { score } else { 0 };
+            let card = neothesia_iced_widgets::StatsContainer::new()
+                .image(trophy_image)
+                .date(datetime.format("%d/%m/%y %H:%M:%S").to_string())
+                .place(&(index + 1).to_string()) // Index starts from 1
+                .score(scores)
+                .notes_hits(stats.notes_hit)
+                .notes_missed(stats.notes_missed)
+                .wrong_notes(stats.wrong_notes)
+                .correct_notes_duration(stats.correct_note_times);
+            songhistory.push(Vec::<neothesia_iced_widgets::Element<Event>>::from(card));
         }
 
         //   Collect all elements from songhistory into a single Vec

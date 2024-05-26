@@ -57,13 +57,8 @@ impl MidiPlayer {
         user_keyboard_range: piano_math::KeyboardRange,
     ) -> Self {
         let mut user_stats = NoteStats::default();
-        if let Some(song_name) = song.file.name.to_lowercase().strip_suffix(".mid") {
-            user_stats.song_name = song_name.to_string();
-        } else if let Some(song_name) = song.file.name.to_lowercase().strip_suffix(".midi") {
-            user_stats.song_name = song_name.to_string();
-        } else {
-            user_stats.song_name = song.file.name.clone();
-        }
+
+        user_stats.song_name = Song::get_clean_songname(song.file.name.clone());
 
         let mut player = Self {
             playback: midi_file::PlaybackState::new(

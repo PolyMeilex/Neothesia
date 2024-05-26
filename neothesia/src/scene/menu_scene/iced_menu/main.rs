@@ -105,16 +105,8 @@ impl Page for MainPage {
                     bottom: 10.0,
                     left: 0.0,
                 });
-            //
-            let song_name = if let Some(song_name) =
-                song.file.name.to_lowercase().strip_suffix(".mid")
-            {
-                song_name.to_string()
-            } else if let Some(song_name) = song.file.name.to_lowercase().strip_suffix(".midi") {
-                song_name.to_string()
-            } else {
-                song.file.name.clone()
-            };
+
+            let song_name = Song::get_clean_songname(song.file.name.clone());
 
             layout = layout.bottom(
                 BarLayout::new()

@@ -23,9 +23,7 @@ pub enum Event {
 use crate::menu_scene::Step;
 pub struct StatsPage;
 
-
 fn score_cooking(stats: &SongStats) -> u32 {
-    
     let mut score = stats.notes_hit + stats.correct_note_times * 10;
     // Apply penalties then give the bonus
     score = score.saturating_sub(stats.notes_missed + stats.wrong_notes) + stats.correct_note_times;
@@ -45,7 +43,6 @@ impl Page for StatsPage {
 
         PageMessage::none()
     }
-  
 
     fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut songhistory = Vec::new();
@@ -273,5 +270,4 @@ impl Page for StatsPage {
             _ => None,
         }
     }
- 
 }

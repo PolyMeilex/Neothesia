@@ -20,10 +20,9 @@ use midi_file::midly::MidiMessage;
 use neothesia_core::{config, render};
 use wgpu_jumpstart::Surface;
 use wgpu_jumpstart::{Gpu, TransformUniform};
-use winit::{
-    event::WindowEvent,
-    event_loop::{EventLoop, EventLoopBuilder},
-};
+use winit::application::ApplicationHandler;
+use winit::event_loop::EventLoopProxy;
+use winit::{event::WindowEvent, event_loop::EventLoop};
 
 #[derive(Debug)]
 pub enum NeothesiaEvent {
@@ -70,10 +69,11 @@ impl Neothesia {
 
     fn window_event(
         &mut self,
-        event: &WindowEvent,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<NeothesiaEvent>,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        event: WindowEvent,
     ) {
-        self.context.window_state.window_event(event);
+        self.context.window_state.window_event(&event);
 
         match &event {
             WindowEvent::Resized(_) => {
@@ -129,13 +129,13 @@ impl Neothesia {
             _ => {}
         }
 
-        self.game_scene.window_event(&mut self.context, event);
+        self.game_scene.window_event(&mut self.context, &event);
     }
 
-    fn neothesia_event(
+    fn user_event(
         &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
         event: NeothesiaEvent,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<NeothesiaEvent>,
     ) {
         match event {
             NeothesiaEvent::Play(song) => {
@@ -156,6 +156,10 @@ impl Neothesia {
                 event_loop.exit();
             }
         }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
+        self.context.window.request_redraw();
     }
 
     fn update(&mut self, delta: Duration) {
@@ -238,63 +242,79 @@ impl Neothesia {
     }
 }
 
+// This is so stupid, but winit holds us at gunpoint with create_window deprecation
+struct NeothesiaBootstrap(Option<Neothesia>, EventLoopProxy<NeothesiaEvent>);
+
+impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
+    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        if self.0.is_some() {
+            return;
+        }
+
+        let attributes = winit::window::Window::default_attributes()
+            .with_inner_size(winit::dpi::LogicalSize {
+                width: 1080.0,
+                height: 720.0,
+            })
+            .with_title("Neothesia")
+            .with_theme(Some(winit::window::Theme::Dark));
+
+        let window = event_loop.create_window(attributes).unwrap();
+
+        if let Err(err) = set_window_icon(&window) {
+            log::error!("Failed to load window icon: {}", err);
+        }
+
+        let window_state = WindowState::new(&window);
+        let size = window.inner_size();
+        let window = Arc::new(window);
+        let (gpu, surface) =
+            futures::executor::block_on(Gpu::for_window(window.clone(), size.width, size.height))
+                .unwrap();
+
+        let ctx = Context::new(window, window_state, self.1.clone(), gpu);
+
+        let app = Neothesia::new(ctx, surface);
+        self.0 = Some(app);
+    }
+
+    fn user_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        event: NeothesiaEvent,
+    ) {
+        if let Some(app) = self.0.as_mut() {
+            app.user_event(event_loop, event);
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        window_id: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
+        if let Some(app) = self.0.as_mut() {
+            app.window_event(event_loop, window_id, event)
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        if let Some(app) = self.0.as_mut() {
+            app.about_to_wait(event_loop)
+        }
+    }
+}
+
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
         .init();
 
-    let event_loop: EventLoop<NeothesiaEvent> =
-        EventLoopBuilder::with_user_event().build().unwrap();
-
-    let builder = winit::window::WindowBuilder::new()
-        .with_inner_size(winit::dpi::LogicalSize {
-            width: 1080.0,
-            height: 720.0,
-        })
-        .with_title("Neothesia")
-        .with_theme(Some(winit::window::Theme::Dark));
-
-    // TODO: This can be removed now
-    #[cfg(target_os = "windows")]
-    let builder = {
-        use winit::platform::windows::WindowBuilderExtWindows;
-        builder.with_drag_and_drop(false)
-    };
-    let window = builder.build(&event_loop).unwrap();
-
-    if let Err(err) = set_window_icon(&window) {
-        log::error!("Failed to load window icon: {}", err);
-    }
-
-    let window_state = WindowState::new(&window);
-    let size = window.inner_size();
-    let window = Arc::new(window);
-    let (gpu, surface) =
-        futures::executor::block_on(Gpu::for_window(window.clone(), size.width, size.height))
-            .unwrap();
-
-    let ctx = Context::new(window, window_state, event_loop.create_proxy(), gpu);
-
-    let mut app = Neothesia::new(ctx, surface);
-
-    // Investigate:
-    // https://github.com/gfx-rs/wgpu-rs/pull/306
+    let event_loop: EventLoop<NeothesiaEvent> = EventLoop::with_user_event().build().unwrap();
+    let proxy = event_loop.create_proxy();
 
     event_loop
-        .run(move |event, event_loop| {
-            use winit::event::Event;
-            match event {
-                Event::UserEvent(event) => {
-                    app.neothesia_event(event, event_loop);
-                }
-                Event::WindowEvent { event, .. } => {
-                    app.window_event(&event, event_loop);
-                }
-                Event::AboutToWait => {
-                    app.context.window.request_redraw();
-                }
-                _ => {}
-            }
-        })
+        .run_app(&mut NeothesiaBootstrap(None, proxy))
         .unwrap();
 }
 

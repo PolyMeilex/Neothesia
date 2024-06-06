@@ -6,7 +6,7 @@ use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
 pub struct QuadPipeline {
     render_pipeline: wgpu::RenderPipeline,
     quad: Shape,
-    instances: Instances<QuadInstance>,
+    instances: Vec<Instances<QuadInstance>>,
 }
 
 impl<'a> QuadPipeline {
@@ -44,58 +44,77 @@ impl<'a> QuadPipeline {
             });
 
         let quad = Shape::new_quad(&gpu.device);
-        let instances = Instances::new(&gpu.device, 100_000);
 
         Self {
             render_pipeline,
             quad,
-            instances,
+            instances: Vec::new(),
         }
+    }
+
+    pub fn init_layer(&mut self, gpu: &Gpu, size: usize) {
+        self.instances.push(Instances::new(&gpu.device, size));
     }
 
     pub fn render(
         &'a self,
+        batch_id: usize,
         transform_uniform: &'a Uniform<TransformUniform>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
+        let instances = &self.instances[batch_id];
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &transform_uniform.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));
+        render_pass.set_vertex_buffer(1, instances.buffer.slice(..));
 
         render_pass.set_index_buffer(self.quad.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
+        render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..instances.len());
     }
 
     pub fn clear(&mut self) {
-        self.instances.data.clear();
+        for instances in self.instances.iter_mut() {
+            instances.data.clear();
+        }
     }
 
-    pub fn instances(&mut self) -> &mut Vec<QuadInstance> {
-        &mut self.instances.data
+    pub fn instances(&mut self, batch_id: usize) -> &mut Vec<QuadInstance> {
+        &mut self.instances[batch_id].data
     }
 
-    pub fn push(&mut self, quad: QuadInstance) {
-        self.instances.data.push(quad)
+    pub fn push(&mut self, batch_id: usize, quad: QuadInstance) {
+        self.instances[batch_id].data.push(quad)
     }
 
-    pub fn prepare(&self, queue: &wgpu::Queue) {
-        self.instances.update(queue);
+    pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        for instances in self.instances.iter_mut() {
+            instances.update(device, queue);
+        }
     }
 
-    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: Vec<QuadInstance>) {
-        self.instances.data = instances;
-        self.instances.update(queue);
+    pub fn update_instance_buffer(
+        &mut self,
+        batch_id: usize,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        instances: Vec<QuadInstance>,
+    ) {
+        let batch = &mut self.instances[batch_id];
+        batch.data = instances;
+        batch.update(device, queue);
     }
 
     pub fn with_instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(
         &mut self,
+        batch_id: usize,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         cb: F,
     ) {
-        cb(&mut self.instances.data);
-        self.instances.update(queue);
+        let batch = &mut self.instances[batch_id];
+        cb(&mut batch.data);
+        batch.update(device, queue);
     }
 }

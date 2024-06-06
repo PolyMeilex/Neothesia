@@ -14,7 +14,7 @@ use crate::{context::Context, utils::window::WindowState, NeothesiaEvent};
 
 use super::{
     animation::Animation, rewind_controller::RewindController, PlayingScene, EVENT_CAPTURED,
-    EVENT_IGNORED,
+    EVENT_IGNORED, LAYER_FG,
 };
 
 mod button;
@@ -247,7 +247,7 @@ impl TopBar {
     pub fn update(scene: &mut PlayingScene, window_state: &WindowState, text: &mut TextRenderer) {
         let PlayingScene {
             top_bar,
-            fg_quad_pipeline,
+            quad_pipeline,
             ref player,
             ref rewind_controller,
             ..
@@ -268,7 +268,7 @@ impl TopBar {
         if !top_bar.is_expanded {
             let progress_x = top_bar.bbox.w() * player.percentage();
             draw_rect(
-                fg_quad_pipeline,
+                quad_pipeline,
                 &Bbox::new([0.0, 0.0], [progress_x, 5.0]),
                 &BLUE,
             );
@@ -282,7 +282,7 @@ impl TopBar {
 
         top_bar.bbox.pos.y = -h + (bar_animation * h);
 
-        draw_rect(fg_quad_pipeline, &top_bar.bbox, &BAR_BG);
+        draw_rect(quad_pipeline, &top_bar.bbox, &BAR_BG);
 
         for f in [
             update_proggress_bar,
@@ -298,7 +298,7 @@ impl TopBar {
 fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     let PlayingScene {
         top_bar,
-        fg_quad_pipeline,
+        quad_pipeline,
         player,
         ..
     } = scene;
@@ -308,11 +308,7 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     let w = top_bar.bbox.w();
 
     let progress_x = w * player.percentage();
-    draw_rect(
-        fg_quad_pipeline,
-        &Bbox::new([0.0, y], [progress_x, h]),
-        &BLUE,
-    );
+    draw_rect(quad_pipeline, &Bbox::new([0.0, y], [progress_x, h]), &BLUE);
 
     for m in player.song().file.measures.iter() {
         let length = player.length().as_secs_f32();
@@ -327,14 +323,14 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer) {
             DARK_MEASURE
         };
 
-        draw_rect(fg_quad_pipeline, &Bbox::new([x, y], [1.0, h]), &color);
+        draw_rect(quad_pipeline, &Bbox::new([x, y], [1.0, h]), &color);
     }
 }
 
 fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
     let PlayingScene {
         top_bar,
-        fg_quad_pipeline,
+        quad_pipeline,
         ..
     } = scene;
 
@@ -346,7 +342,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
         .set_pos((0.0, y))
         .set_hovered(matches!(top_bar.hovered, Element::BackButton))
         .set_icon(left_arrow_icon())
-        .draw(fg_quad_pipeline, text);
+        .draw(quad_pipeline, text);
 
     let mut x = w;
 
@@ -360,7 +356,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
         } else {
             gear_icon()
         })
-        .draw(fg_quad_pipeline, text);
+        .draw(quad_pipeline, text);
 
     x -= 30.0;
     top_bar
@@ -368,7 +364,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
         .set_pos((x, y))
         .set_hovered(matches!(top_bar.hovered, Element::RepeatButton))
         .set_icon(repeat_icon())
-        .draw(fg_quad_pipeline, text);
+        .draw(quad_pipeline, text);
 
     x -= 30.0;
     top_bar
@@ -380,13 +376,13 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
         } else {
             pause_icon()
         })
-        .draw(fg_quad_pipeline, text);
+        .draw(quad_pipeline, text);
 }
 
 fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     let PlayingScene {
         top_bar,
-        fg_quad_pipeline,
+        quad_pipeline,
         ref player,
         ..
     } = scene;
@@ -424,15 +420,15 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     let mut bg_box = top_bar.loop_start_tick;
     bg_box.size.w = length;
 
-    draw_rect(fg_quad_pipeline, &bg_box, &color);
-    draw_rect(fg_quad_pipeline, &top_bar.loop_start_tick, &start_color);
-    draw_rect(fg_quad_pipeline, &top_bar.loop_end_tick, &end_color);
+    draw_rect(quad_pipeline, &bg_box, &color);
+    draw_rect(quad_pipeline, &top_bar.loop_start_tick, &start_color);
+    draw_rect(quad_pipeline, &top_bar.loop_end_tick, &end_color);
 }
 
 fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     let PlayingScene {
         top_bar,
-        fg_quad_pipeline,
+        quad_pipeline,
         ..
     } = scene;
 
@@ -446,20 +442,26 @@ fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer) {
         let card_w = 300.0;
         let card_x = card_w - (settings_animation * card_w);
 
-        fg_quad_pipeline.push(QuadInstance {
-            position: [card_x + w - card_w, y + h + 1.0],
-            size: [card_w, 100.0],
-            color: BAR_BG.into_linear_rgba(),
-            border_radius: [10.0, 0.0, 10.0, 0.0],
-        });
+        quad_pipeline.push(
+            LAYER_FG,
+            QuadInstance {
+                position: [card_x + w - card_w, y + h + 1.0],
+                size: [card_w, 100.0],
+                color: BAR_BG.into_linear_rgba(),
+                border_radius: [10.0, 0.0, 10.0, 0.0],
+            },
+        );
     }
 }
 
 fn draw_rect(quad_pipeline: &mut QuadPipeline, bbox: &Bbox, color: &Color) {
-    quad_pipeline.push(QuadInstance {
-        position: bbox.pos.into(),
-        size: bbox.size.into(),
-        color: color.into_linear_rgba(),
-        ..Default::default()
-    });
+    quad_pipeline.push(
+        LAYER_FG,
+        QuadInstance {
+            position: bbox.pos.into(),
+            size: bbox.size.into(),
+            color: color.into_linear_rgba(),
+            ..Default::default()
+        },
+    );
 }

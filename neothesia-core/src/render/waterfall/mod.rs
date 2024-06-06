@@ -39,7 +39,7 @@ impl WaterfallRenderer {
         notes
             .notes_pipeline
             .set_speed(&gpu.queue, config.animation_speed);
-        notes.resize(&gpu.queue, config, layout);
+        notes.resize(&gpu.device, &gpu.queue, config, layout);
         notes
     }
 
@@ -49,6 +49,7 @@ impl WaterfallRenderer {
 
     pub fn resize(
         &mut self,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &Config,
         layout: piano_math::KeyboardLayout,
@@ -96,7 +97,7 @@ impl WaterfallRenderer {
             );
         }
 
-        self.notes_pipeline.prepare(queue);
+        self.notes_pipeline.prepare(device, queue);
     }
 
     pub fn update(&mut self, queue: &wgpu::Queue, time: f32) {

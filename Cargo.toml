@@ -18,7 +18,7 @@ wgpu = "0.19"
 glyphon = "0.5"
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
-env_logger = "0.10"
+env_logger = "0.11"
 futures = "0.3"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia = { path = "./neothesia", default-features = false }

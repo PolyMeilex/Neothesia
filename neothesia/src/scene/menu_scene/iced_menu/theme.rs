@@ -140,6 +140,7 @@ pub fn _checkbox() -> iced_style::theme::Checkbox {
     iced_style::theme::Checkbox::Custom(Box::new(CheckboxStyle))
 }
 
+#[allow(unused)]
 struct CheckboxStyle;
 
 impl iced_style::checkbox::StyleSheet for CheckboxStyle {

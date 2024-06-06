@@ -124,6 +124,7 @@ impl std::fmt::Display for MidiInputPort {
     }
 }
 
+#[allow(unused)]
 pub struct MidiInputConnection(midir::MidiInputConnection<()>);
 pub struct MidiOutputConnection(midir::MidiOutputConnection);
 

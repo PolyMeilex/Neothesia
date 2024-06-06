@@ -99,8 +99,8 @@ impl<'a> WaterfallPipeline {
         &mut self.instances.data
     }
 
-    pub fn prepare(&self, queue: &wgpu::Queue) {
-        self.instances.update(queue);
+    pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.instances.update(device, queue);
     }
 
     pub fn speed(&self) -> f32 {

@@ -6,27 +6,40 @@ where
 {
     pub data: Vec<I>,
     pub buffer: wgpu::Buffer,
+    capacity: usize,
 }
 impl<I> Instances<I>
 where
     I: Pod,
 {
-    pub fn new(device: &wgpu::Device, max_size: usize) -> Self {
-        let instance_size = std::mem::size_of::<I>();
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: (instance_size * max_size) as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
+    pub fn new(device: &wgpu::Device, size_hint: usize) -> Self {
         Self {
             data: Vec::new(),
-            buffer,
+            buffer: Self::create_buffer(device, size_hint),
+            capacity: size_hint,
         }
     }
 
-    pub fn update(&self, queue: &wgpu::Queue) {
+    fn create_buffer(device: &wgpu::Device, len: usize) -> wgpu::Buffer {
+        let instance_size = std::mem::size_of::<I>();
+        device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: (instance_size * len) as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        })
+    }
+
+    pub fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        if self.capacity < self.data.len() {
+            log::warn!(
+                "Dynamically growing instances buffer from {} to {}",
+                self.capacity,
+                self.data.len()
+            );
+            self.buffer = Self::create_buffer(device, self.data.len());
+            self.capacity = self.data.len();
+        }
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.data));
     }
 

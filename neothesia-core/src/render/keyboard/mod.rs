@@ -116,13 +116,13 @@ impl KeyboardRenderer {
         }
     }
 
-    pub fn update(&mut self, quads: &mut QuadPipeline, text: &mut TextRenderer) {
+    pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, text: &mut TextRenderer) {
         if self.cache.is_empty() {
             self.reupload();
         }
 
         for quad in self.cache.iter() {
-            quads.instances().push(*quad);
+            quads.instances(layer).push(*quad);
         }
 
         let range_start = self.layout.range.start() as usize;

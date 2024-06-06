@@ -30,6 +30,9 @@ mod top_bar;
 const EVENT_CAPTURED: bool = true;
 const EVENT_IGNORED: bool = false;
 
+const LAYER_BG: usize = 0;
+const LAYER_FG: usize = 1;
+
 pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
@@ -37,8 +40,7 @@ pub struct PlayingScene {
 
     player: MidiPlayer,
     rewind_controller: RewindController,
-    bg_quad_pipeline: QuadPipeline,
-    fg_quad_pipeline: QuadPipeline,
+    quad_pipeline: QuadPipeline,
     toast_manager: ToastManager,
 
     top_bar: TopBar,
@@ -82,6 +84,10 @@ impl PlayingScene {
         );
         waterfall.update(&ctx.gpu.queue, player.time_without_lead_in());
 
+        let mut quad_pipeline = QuadPipeline::new(&ctx.gpu, &ctx.transform);
+        quad_pipeline.init_layer(&ctx.gpu, 50); // BG
+        quad_pipeline.init_layer(&ctx.gpu, 150); // FG
+
         Self {
             keyboard,
             guidelines,
@@ -89,8 +95,7 @@ impl PlayingScene {
             waterfall,
             player,
             rewind_controller: RewindController::new(),
-            bg_quad_pipeline: QuadPipeline::new(&ctx.gpu, &ctx.transform),
-            fg_quad_pipeline: QuadPipeline::new(&ctx.gpu, &ctx.transform),
+            quad_pipeline,
             toast_manager: ToastManager::default(),
             top_bar: TopBar::new(),
         }
@@ -117,30 +122,36 @@ impl PlayingScene {
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
 
-        self.waterfall
-            .resize(&ctx.gpu.queue, &ctx.config, self.keyboard.layout().clone());
+        self.waterfall.resize(
+            &ctx.gpu.device,
+            &ctx.gpu.queue,
+            &ctx.config,
+            self.keyboard.layout().clone(),
+        );
     }
 }
 
 impl Scene for PlayingScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
-        self.bg_quad_pipeline.clear();
-        self.fg_quad_pipeline.clear();
+        self.quad_pipeline.clear();
 
         self.rewind_controller.update(&mut self.player, ctx);
         self.toast_manager.update(&mut ctx.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);
         self.waterfall.update(&ctx.gpu.queue, time);
-        self.guidelines
-            .update(&mut self.bg_quad_pipeline, ctx.config.animation_speed, time);
+        self.guidelines.update(
+            &mut self.quad_pipeline,
+            LAYER_BG,
+            ctx.config.animation_speed,
+            time,
+        );
         self.keyboard
-            .update(&mut self.fg_quad_pipeline, &mut ctx.text_renderer);
+            .update(&mut self.quad_pipeline, LAYER_FG, &mut ctx.text_renderer);
 
         TopBar::update(self, &ctx.window_state, &mut ctx.text_renderer);
 
-        self.bg_quad_pipeline.prepare(&ctx.gpu.queue);
-        self.fg_quad_pipeline.prepare(&ctx.gpu.queue);
+        self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
 
         if self.player.is_finished() {
             ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
@@ -152,9 +163,9 @@ impl Scene for PlayingScene {
         transform: &'pass Uniform<TransformUniform>,
         rpass: &mut wgpu::RenderPass<'pass>,
     ) {
-        self.bg_quad_pipeline.render(transform, rpass);
+        self.quad_pipeline.render(LAYER_BG, transform, rpass);
         self.waterfall.render(transform, rpass);
-        self.fg_quad_pipeline.render(transform, rpass);
+        self.quad_pipeline.render(LAYER_FG, transform, rpass);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

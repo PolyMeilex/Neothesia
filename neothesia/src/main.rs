@@ -307,8 +307,10 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
 }
 
 fn main() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
-        .init();
+    env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("warn, wgpu_hal=error, oxisynth=error"),
+    )
+    .init();
 
     let event_loop: EventLoop<NeothesiaEvent> = EventLoop::with_user_event().build().unwrap();
     let proxy = event_loop.create_proxy();

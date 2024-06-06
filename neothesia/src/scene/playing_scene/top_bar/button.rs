@@ -4,6 +4,8 @@ use neothesia_core::{
     Color,
 };
 
+use crate::scene::playing_scene::LAYER_FG;
+
 pub struct Button {
     bbox: Bbox,
     is_hovered: bool,
@@ -80,12 +82,15 @@ impl Button {
         }
         .into_linear_rgba();
 
-        quad_pipeline.push(QuadInstance {
-            position: self.bbox.pos.into(),
-            size: self.bbox.size.into(),
-            color,
-            border_radius: [5.0; 4],
-        });
+        quad_pipeline.push(
+            LAYER_FG,
+            QuadInstance {
+                position: self.bbox.pos.into(),
+                size: self.bbox.size.into(),
+                color,
+                border_radius: [5.0; 4],
+            },
+        );
 
         let icon_size = 20.0;
         text.queue_icon(

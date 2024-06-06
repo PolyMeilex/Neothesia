@@ -80,6 +80,7 @@ impl GuidelineRenderer {
     fn update_horizontal_guidelines(
         &mut self,
         quads: &mut QuadPipeline,
+        layer: usize,
         animation_speed: f32,
         time: f32,
     ) {
@@ -98,7 +99,7 @@ impl GuidelineRenderer {
                 break;
             }
 
-            quads.instances().push(QuadInstance {
+            quads.instances(layer).push(QuadInstance {
                 position: [x, y],
                 size: [w, h],
                 color: [0.05, 0.05, 0.05, 1.0],
@@ -107,17 +108,23 @@ impl GuidelineRenderer {
         }
     }
 
-    pub fn update(&mut self, quads: &mut QuadPipeline, animation_speed: f32, time: f32) {
+    pub fn update(
+        &mut self,
+        quads: &mut QuadPipeline,
+        layer: usize,
+        animation_speed: f32,
+        time: f32,
+    ) {
         if self.cache.is_empty() {
             self.reupload();
         }
 
         if self.horizontal_guidelines {
-            self.update_horizontal_guidelines(quads, animation_speed, time);
+            self.update_horizontal_guidelines(quads, layer, animation_speed, time);
         }
 
         for quad in self.cache.iter() {
-            quads.instances().push(*quad);
+            quads.instances(layer).push(*quad);
         }
     }
 }

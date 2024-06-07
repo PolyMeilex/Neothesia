@@ -31,9 +31,13 @@ piano-math = { path = "./piano-math" }
 
 profiling = "1.0"
 
-iced_style = "0.12"
-iced_graphics = "0.12"
-iced_core = "0.12"
-iced_runtime = "0.12"
-iced_wgpu = { version = "0.12", features = ["image"] }
-iced_widget = { version = "0.12", features = ["image"] }
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "e2b00f98a0fab96da6502610b135a4c86fbd63b5" }
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "e2b00f98a0fab96da6502610b135a4c86fbd63b5" }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "e2b00f98a0fab96da6502610b135a4c86fbd63b5" }
+iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "e2b00f98a0fab96da6502610b135a4c86fbd63b5" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "e2b00f98a0fab96da6502610b135a4c86fbd63b5", features = [
+  "image",
+] }
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "e2b00f98a0fab96da6502610b135a4c86fbd63b5", features = [
+  "image",
+] }

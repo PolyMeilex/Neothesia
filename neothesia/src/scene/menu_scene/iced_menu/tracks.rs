@@ -194,11 +194,11 @@ impl Page for TracksPage {
         let center = {
             let listen = button(centered_text("Listen Only"))
                 .on_press(Event::AllTracksPlayer(PlayerConfig::Auto))
-                .style(theme::button());
+                .style(theme::button);
 
             let play_along = button(centered_text("Play Along"))
                 .on_press(Event::AllTracksPlayer(PlayerConfig::Human))
-                .style(theme::button());
+                .style(theme::button);
 
             row![listen, play_along]
                 .width(Length::Shrink)

@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-iced_style.workspace = true
 iced_graphics.workspace = true
 iced_core.workspace = true
 iced_wgpu.workspace = true

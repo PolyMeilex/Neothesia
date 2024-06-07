@@ -219,26 +219,24 @@ impl Neothesia {
             self.context.text_renderer.render(&mut rpass);
         }
 
+        self.context.iced_manager.renderer.present(
+            &mut self.context.iced_manager.engine,
+            &self.context.gpu.device,
+            &self.context.gpu.queue,
+            &mut self.context.gpu.encoder,
+            None,
+            self.context.gpu.texture_format,
+            view,
+            &self.context.iced_manager.viewport,
+            &self.context.iced_manager.debug.overlay(),
+        );
+
+        let encoder = self.context.gpu.take();
         self.context
             .iced_manager
-            .renderer
-            .with_primitives(|backend, primitive| {
-                if !primitive.is_empty() {
-                    backend.present(
-                        &self.context.gpu.device,
-                        &self.context.gpu.queue,
-                        &mut self.context.gpu.encoder,
-                        None,
-                        self.context.gpu.texture_format,
-                        view,
-                        primitive,
-                        &self.context.iced_manager.viewport,
-                        &self.context.iced_manager.debug.overlay(),
-                    );
-                }
-            });
-
-        self.context.gpu.submit();
+            .engine
+            .submit(&self.context.gpu.queue, encoder);
+        // self.context.gpu.submit();
         frame.present();
 
         self.context.text_renderer.atlas().trim();

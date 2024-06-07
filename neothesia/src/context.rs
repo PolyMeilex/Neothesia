@@ -47,6 +47,7 @@ impl Context {
         let text_renderer = TextRenderer::new(&gpu);
 
         let iced_manager = IcedManager::new(
+            &gpu.adapter,
             &gpu.device,
             &gpu.queue,
             gpu.texture_format,

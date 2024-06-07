@@ -49,7 +49,7 @@ impl Page for ExitPage {
             .width(Length::Fixed(650.0))
             .spacing(30);
 
-        center_x(controls).center_y().into()
+        center_x(controls).center_y(Length::Fill).into()
     }
 
     fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {

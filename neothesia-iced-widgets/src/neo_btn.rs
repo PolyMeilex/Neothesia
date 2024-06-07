@@ -6,10 +6,8 @@ use iced_core::{
     renderer::Style,
     widget::{tree, Tree},
     Background, Border, Clipboard, Color, Element, Event, Layout, Length, Padding, Rectangle,
-    Shell, Size, Widget,
+    Shell, Size, Theme, Widget,
 };
-use iced_graphics::Primitive;
-use iced_style::Theme;
 use iced_widget::text;
 
 pub struct NeoBtn<'a, Message> {
@@ -25,7 +23,7 @@ pub struct NeoBtn<'a, Message> {
 }
 
 impl<'a, Message: Clone> NeoBtn<'a, Message> {
-    pub fn new_with_label(label: &str) -> Self {
+    pub fn new_with_label(label: &'a str) -> Self {
         Self::new(
             text(label)
                 .size(30)
@@ -201,7 +199,7 @@ impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         _style: &Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -226,42 +224,44 @@ impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message
             )
         };
 
-        let bg = Primitive::Quad {
-            bounds: Rectangle {
-                y: bounds.y,
-                ..bounds
-            },
-            background: Background::Color(colors.0),
-            border: Border {
-                radius: Radius::from(self.border_radius),
-                width: 0.0,
-                color: Color::TRANSPARENT,
-            },
-            shadow: iced_core::Shadow::default(),
-        };
-        renderer.draw_primitive(bg);
-
-        let btn_bar = Primitive::Clip {
-            bounds: Rectangle {
-                y: bounds.y + bounds.height - self.border_radius,
-                height: self.border_radius,
-                ..bounds
-            },
-            content: Box::new(Primitive::Quad {
+        use iced_core::renderer::Renderer;
+        renderer.fill_quad(
+            iced_core::renderer::Quad {
                 bounds: Rectangle {
                     y: bounds.y,
                     ..bounds
                 },
-                background: Background::Color(colors.1),
                 border: Border {
                     radius: Radius::from(self.border_radius),
                     width: 0.0,
                     color: Color::TRANSPARENT,
                 },
                 shadow: iced_core::Shadow::default(),
-            }),
-        };
-        renderer.draw_primitive(btn_bar);
+            },
+            Background::Color(colors.0),
+        );
+
+        renderer.start_layer(Rectangle {
+            y: bounds.y + bounds.height - self.border_radius,
+            height: self.border_radius,
+            ..bounds
+        });
+        renderer.fill_quad(
+            iced_core::renderer::Quad {
+                bounds: Rectangle {
+                    y: bounds.y,
+                    ..bounds
+                },
+                border: Border {
+                    radius: Radius::from(self.border_radius),
+                    width: 0.0,
+                    color: Color::TRANSPARENT,
+                },
+                shadow: iced_core::Shadow::default(),
+            },
+            Background::Color(colors.1),
+        );
+        renderer.end_layer();
 
         if is_mouse_over {
             mouse::Interaction::Pointer

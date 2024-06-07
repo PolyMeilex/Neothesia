@@ -1,7 +1,6 @@
 //! A widget that displays its children in multiple horizontal or vertical runs.
 //!
 //! *This API requires the following crate features to be activated: `wrap`*
-use iced_style::Theme;
 use iced_widget::core::{
     self, event,
     layout::{Limits, Node},
@@ -9,7 +8,7 @@ use iced_widget::core::{
     renderer,
     widget::{Operation, Tree},
     Alignment, Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle, Shell, Size,
-    Widget,
+    Theme, Widget,
 };
 
 use core::Vector;

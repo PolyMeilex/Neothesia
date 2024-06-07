@@ -61,7 +61,10 @@ impl<'a, M: Clone + 'a> From<TrackCard<'a, M>> for Element<'a, M> {
                 iced_widget::button(iced_widget::text(""))
                     .width(40)
                     .height(40)
-                    .style(theme::track_icon_button(card.track_color))
+                    .style({
+                        let color = card.track_color;
+                        move |theme, status| theme::track_icon_button(color, theme, status)
+                    })
                     .on_press_maybe(card.on_icon_press),
                 iced_widget::column(vec![
                     iced_widget::text(card.title).size(16).into(),
@@ -80,7 +83,7 @@ impl<'a, M: Clone + 'a> From<TrackCard<'a, M>> for Element<'a, M> {
 
         iced_widget::container(iced_widget::column(children).width(312).spacing(12))
             .padding(16)
-            .style(theme::card())
+            .style(theme::card)
             .into()
     }
 }

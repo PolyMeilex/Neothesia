@@ -1,4 +1,4 @@
-use iced_style::Theme;
+use iced_core::Theme;
 
 use super::Renderer;
 

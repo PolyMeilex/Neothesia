@@ -1,9 +1,8 @@
 use iced_core::{
     border::{Border, Radius},
     renderer::Quad,
-    Background, Color, Length, Rectangle, Size, Vector, Widget,
+    Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
 };
-use iced_style::Theme;
 
 use super::Element;
 

@@ -1,9 +1,7 @@
-use iced_core::mouse;
-use iced_core::{Event, Size};
+use iced_core::{mouse, Event, Size, Theme};
 use iced_graphics::core::Color;
 use iced_runtime::user_interface::{self, UserInterface};
 use iced_runtime::Command;
-use iced_style::Theme;
 
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
 use crate::context::Context;
@@ -151,7 +149,7 @@ where
         if messages.is_empty() {
             self.mouse_interaction = user_interface.draw(
                 &mut ctx.iced_manager.renderer,
-                &iced_style::Theme::Dark,
+                &Theme::Dark,
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
                 },
@@ -177,7 +175,7 @@ where
 
             self.mouse_interaction = user_interface.draw(
                 &mut ctx.iced_manager.renderer,
-                &iced_style::Theme::Dark,
+                &Theme::Dark,
                 &iced_core::renderer::Style {
                     text_color: Color::WHITE,
                 },

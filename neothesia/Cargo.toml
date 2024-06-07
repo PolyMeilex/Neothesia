@@ -25,12 +25,12 @@ piano-math.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
 
-iced_style.workspace = true
 iced_graphics.workspace = true
 iced_core.workspace = true
 iced_runtime.workspace = true
 iced_wgpu.workspace = true
 iced_widget.workspace = true
+iced_renderer = { workspace = true, features = ["wgpu"]}
 
 fps_ticker = "1"
 winit = { version = "0.30", features = ["rwh_05"] }

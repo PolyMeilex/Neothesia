@@ -251,7 +251,7 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
             return;
         }
 
-        let attributes = winit::window::Window::default_attributes()
+        let mut attributes = winit::window::Window::default_attributes()
             .with_inner_size(winit::dpi::LogicalSize {
                 width: 1080.0,
                 height: 720.0,
@@ -260,9 +260,20 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
             .with_theme(Some(winit::window::Theme::Dark));
 
         #[cfg(all(unix, not(apple)))]
-        let attributes = {
-            use winit::platform::wayland::WindowAttributesExtWayland;
-            attributes.with_name("com.github.polymeilex.neothesia", "main")
+        {
+            use winit::platform::{
+                startup_notify::{
+                    self, EventLoopExtStartupNotify, WindowAttributesExtStartupNotify,
+                },
+                wayland::WindowAttributesExtWayland,
+            };
+
+            if let Some(token) = event_loop.read_token_from_env() {
+                startup_notify::reset_activation_token_env();
+                attributes = attributes.with_activation_token(token);
+            }
+
+            attributes = attributes.with_name("com.github.polymeilex.neothesia", "main");
         };
 
         let window = event_loop.create_window(attributes).unwrap();

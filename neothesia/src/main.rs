@@ -259,6 +259,12 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
             .with_title("Neothesia")
             .with_theme(Some(winit::window::Theme::Dark));
 
+        #[cfg(all(unix, not(apple)))]
+        let attributes = {
+            use winit::platform::wayland::WindowAttributesExtWayland;
+            attributes.with_name("com.github.polymeilex.neothesia", "main")
+        };
+
         let window = event_loop.create_window(attributes).unwrap();
 
         if let Err(err) = set_window_icon(&window) {

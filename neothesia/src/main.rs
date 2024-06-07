@@ -259,7 +259,7 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
             .with_title("Neothesia")
             .with_theme(Some(winit::window::Theme::Dark));
 
-        #[cfg(all(unix, not(apple)))]
+        #[cfg(all(unix, not(target_os = "macos")))]
         {
             use winit::platform::{
                 startup_notify::{

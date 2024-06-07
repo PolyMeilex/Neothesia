@@ -180,7 +180,7 @@ impl Page for SettingsPage {
             .width(Length::Fill)
             .align_items(Alignment::Center);
 
-        let column = iced_widget::scrollable(body);
+        let column = iced_widget::scrollable(body).style(theme::scrollable());
 
         Layout::new()
             .body(column)

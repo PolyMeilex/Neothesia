@@ -225,3 +225,42 @@ impl iced_style::toggler::StyleSheet for TogglerStyle {
         }
     }
 }
+
+pub fn scrollable() -> iced_style::theme::Scrollable {
+    iced_style::theme::Scrollable::Custom(Box::new(ScrollableStyle))
+}
+
+struct ScrollableStyle;
+
+impl iced_style::scrollable::StyleSheet for ScrollableStyle {
+    type Style = iced_style::Theme;
+
+    fn active(&self, style: &Self::Style) -> iced_style::scrollable::Appearance {
+        self.hovered(style, true)
+    }
+
+    fn hovered(
+        &self,
+        _style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> iced_style::scrollable::Appearance {
+        iced_style::scrollable::Appearance {
+            container: iced_style::container::Appearance::default(),
+            scrollbar: iced_style::scrollable::Scrollbar {
+                background: Some(iced_core::Background::Color(Color::from_rgba8(
+                    37, 35, 42, 1.0,
+                ))),
+                border: Border::with_radius(10.0),
+                scroller: iced_style::scrollable::Scroller {
+                    color: if is_mouse_over_scrollbar {
+                        Color::from_rgba8(87, 81, 101, 1.0)
+                    } else {
+                        Color::from_rgba8(74, 68, 88, 1.0)
+                    },
+                    border: Border::with_radius(10.0),
+                },
+            },
+            gap: None,
+        }
+    }
+}

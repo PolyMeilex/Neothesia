@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
-use crate::output_manager::{OutputConnectionProxy, OutputDescriptor};
+use crate::output_manager::OutputDescriptor;
 
 use midi_file::midly::{
     self,
@@ -62,8 +62,8 @@ impl MidiBackend {
     }
 }
 
-impl OutputConnectionProxy for MidiOutputConnection {
-    fn midi_event(&self, channel: u4, message: midly::MidiMessage) {
+impl MidiOutputConnection {
+    pub fn midi_event(&self, channel: u4, message: midly::MidiMessage) {
         let inner = &mut *self.inner.borrow_mut();
         match message {
             midly::MidiMessage::NoteOff { key, .. } => {
@@ -82,7 +82,7 @@ impl OutputConnectionProxy for MidiOutputConnection {
         inner.conn.send(&inner.buf).ok();
     }
 
-    fn stop_all(&self) {
+    pub fn stop_all(&self) {
         let inner = &mut *self.inner.borrow_mut();
         for note in std::mem::take(&mut inner.active_notes).iter() {
             inner.buf.clear();

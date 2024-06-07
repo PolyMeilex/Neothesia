@@ -232,7 +232,10 @@ fn play(data: &Data, ctx: &mut Context) {
             o => o,
         };
 
-        ctx.output_manager.connect(out)
+        ctx.output_manager.connect(out);
+        ctx.output_manager
+            .connection()
+            .set_gain(ctx.config.audio_gain);
     }
 
     if let Some(port) = data.selected_input.clone() {

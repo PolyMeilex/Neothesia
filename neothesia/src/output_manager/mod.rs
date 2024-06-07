@@ -33,11 +33,6 @@ impl Display for OutputDescriptor {
     }
 }
 
-trait OutputConnectionProxy {
-    fn midi_event(&self, channel: u4, msg: MidiMessage);
-    fn stop_all(&self);
-}
-
 #[derive(Clone)]
 pub enum OutputConnection {
     Midi(midi_backend::MidiOutputConnection),
@@ -53,6 +48,13 @@ impl OutputConnection {
             #[cfg(feature = "synth")]
             OutputConnection::Synth(b) => b.midi_event(channel, msg),
             OutputConnection::DummyOutput => {}
+        }
+    }
+    pub fn set_gain(&self, gain: f32) {
+        match self {
+            #[cfg(feature = "synth")]
+            OutputConnection::Synth(b) => b.set_gain(gain),
+            _ => {}
         }
     }
     pub fn stop_all(&self) {

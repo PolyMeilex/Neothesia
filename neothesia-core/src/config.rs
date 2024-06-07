@@ -19,6 +19,9 @@ pub struct Config {
     #[serde(default = "default_playback_offset")]
     pub playback_offset: f32,
 
+    #[serde(default = "default_audio_gain")]
+    pub audio_gain: f32,
+
     #[serde(default = "default_vertical_guidelines")]
     pub vertical_guidelines: bool,
 
@@ -70,6 +73,7 @@ impl Config {
             speed_multiplier: default_speed_multiplier(),
             animation_speed: default_animation_speed(),
             playback_offset: default_playback_offset(),
+            audio_gain: default_audio_gain(),
             vertical_guidelines: default_vertical_guidelines(),
             horizontal_guidelines: default_horizontal_guidelines(),
             color_schema: default_color_schema(),
@@ -120,6 +124,10 @@ fn default_animation_speed() -> f32 {
 
 fn default_playback_offset() -> f32 {
     0.0
+}
+
+fn default_audio_gain() -> f32 {
+    0.2
 }
 
 fn default_vertical_guidelines() -> bool {

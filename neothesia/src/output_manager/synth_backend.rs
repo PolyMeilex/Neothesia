@@ -1,6 +1,6 @@
 use std::{error::Error, path::Path, rc::Rc, sync::mpsc::Receiver};
 
-use crate::output_manager::{OutputConnectionProxy, OutputDescriptor};
+use crate::output_manager::OutputDescriptor;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use midi_file::midly::{self, num::u4};
@@ -14,6 +14,7 @@ pub struct SynthBackend {
 
     stream_config: cpal::StreamConfig,
     sample_format: cpal::SampleFormat,
+    gain: f32,
 }
 
 impl SynthBackend {
@@ -35,19 +36,20 @@ impl SynthBackend {
 
             stream_config,
             sample_format,
+            gain: 0.2,
         })
     }
 
     fn run<T: cpal::SizedSample + cpal::FromSample<f32>>(
         &self,
-        rx: Receiver<oxisynth::MidiEvent>,
+        rx: Receiver<SynthEvent>,
         path: &Path,
     ) -> cpal::Stream {
         #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
         let mut next_value = fluidsynth_adapter(self, rx, path);
 
         #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
-        let mut next_value = oxisynth_adapter(self, rx, path);
+        let mut next_value = oxisynth_adapter(self, rx, path, self.gain);
 
         let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
@@ -81,7 +83,7 @@ impl SynthBackend {
     }
 
     pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
-        let (tx, rx) = std::sync::mpsc::channel::<oxisynth::MidiEvent>();
+        let (tx, rx) = std::sync::mpsc::channel::<SynthEvent>();
         let stream = match self.sample_format {
             cpal::SampleFormat::I8 => self.run::<i8>(rx, path),
             cpal::SampleFormat::I16 => self.run::<i16>(rx, path),
@@ -109,25 +111,38 @@ impl SynthBackend {
     }
 }
 
+enum SynthEvent {
+    SetGain(f32),
+    Midi(oxisynth::MidiEvent),
+}
+
 #[derive(Clone)]
 pub struct SynthOutputConnection {
     _stream: Rc<cpal::Stream>,
-    tx: std::sync::mpsc::Sender<oxisynth::MidiEvent>,
+    tx: std::sync::mpsc::Sender<SynthEvent>,
 }
 
-impl OutputConnectionProxy for SynthOutputConnection {
-    fn midi_event(&self, channel: u4, msg: midly::MidiMessage) {
+impl SynthOutputConnection {
+    pub fn midi_event(&self, channel: u4, msg: midly::MidiMessage) {
         let event = libmidi_to_oxisynth_event(channel, msg);
-        self.tx.send(event).ok();
+        self.tx.send(SynthEvent::Midi(event)).ok();
     }
 
-    fn stop_all(&self) {
+    pub fn set_gain(&self, gain: f32) {
+        self.tx.send(SynthEvent::SetGain(gain)).ok();
+    }
+
+    pub fn stop_all(&self) {
         for channel in 0..16 {
             self.tx
-                .send(oxisynth::MidiEvent::AllNotesOff { channel })
+                .send(SynthEvent::Midi(oxisynth::MidiEvent::AllNotesOff {
+                    channel,
+                }))
                 .ok();
             self.tx
-                .send(oxisynth::MidiEvent::AllSoundOff { channel })
+                .send(SynthEvent::Midi(oxisynth::MidiEvent::AllSoundOff {
+                    channel,
+                }))
                 .ok();
         }
     }
@@ -175,13 +190,15 @@ fn libmidi_to_oxisynth_event(channel: u4, message: midly::MidiMessage) -> oxisyn
 #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
 fn oxisynth_adapter(
     this: &SynthBackend,
-    rx: Receiver<oxisynth::MidiEvent>,
+    rx: Receiver<SynthEvent>,
     path: &Path,
+    gain: f32,
 ) -> impl FnMut() -> (f32, f32) {
     let sample_rate = this.stream_config.sample_rate.0 as f32;
 
     let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
         sample_rate,
+        gain,
         ..Default::default()
     })
     .unwrap();
@@ -196,7 +213,14 @@ fn oxisynth_adapter(
         let (l, r) = synth.read_next();
 
         if let Ok(event) = rx.try_recv() {
-            synth.send_event(event).ok();
+            match event {
+                SynthEvent::SetGain(gain) => {
+                    synth.set_gain(gain);
+                }
+                SynthEvent::Midi(event) => {
+                    synth.send_event(event).ok();
+                }
+            }
         }
 
         (l, r)
@@ -206,7 +230,7 @@ fn oxisynth_adapter(
 #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 fn fluidsynth_adapter(
     this: &SynthBackend,
-    rx: Receiver<oxisynth::MidiEvent>,
+    rx: Receiver<SynthEvent>,
     path: &Path,
 ) -> impl FnMut() -> (f32, f32) {
     use fluidlite::{IsSettings, Settings};
@@ -242,46 +266,51 @@ fn fluidsynth_adapter(
 
         if let Ok(e) = rx.try_recv() {
             match e {
-                oxisynth::MidiEvent::NoteOn { channel, key, vel } => {
-                    synth.note_on(channel as u32, key as u32, vel as u32).ok();
+                SynthEvent::SetGain(_g) => {
+                    // TODO
                 }
-                oxisynth::MidiEvent::NoteOff { channel, key } => {
-                    synth.note_off(channel as u32, key as u32).ok();
-                }
-                oxisynth::MidiEvent::PitchBend { channel, value } => {
-                    synth.pitch_bend(channel as u32, value as u32).ok();
-                }
-                oxisynth::MidiEvent::ProgramChange {
-                    channel,
-                    program_id,
-                } => {
-                    synth.program_change(channel as u32, program_id as u32).ok();
-                }
-                oxisynth::MidiEvent::ChannelPressure { channel, value } => {
-                    synth.channel_pressure(channel as u32, value as u32).ok();
-                }
-                oxisynth::MidiEvent::PolyphonicKeyPressure {
-                    channel,
-                    key,
-                    value,
-                } => {
-                    synth
-                        .key_pressure(channel as u32, key as u32, value as u32)
-                        .ok();
-                }
-                oxisynth::MidiEvent::SystemReset => {
-                    synth.system_reset().ok();
-                }
-                oxisynth::MidiEvent::ControlChange {
-                    channel,
-                    ctrl,
-                    value,
-                } => {
-                    synth.cc(channel as u32, ctrl as u32, value as u32).ok();
-                }
-                // TODO: Where are those for fluidsynth?
-                oxisynth::MidiEvent::AllNotesOff { .. } => {}
-                oxisynth::MidiEvent::AllSoundOff { .. } => {}
+                SynthEvent::Midi(e) => match e {
+                    oxisynth::MidiEvent::NoteOn { channel, key, vel } => {
+                        synth.note_on(channel as u32, key as u32, vel as u32).ok();
+                    }
+                    oxisynth::MidiEvent::NoteOff { channel, key } => {
+                        synth.note_off(channel as u32, key as u32).ok();
+                    }
+                    oxisynth::MidiEvent::PitchBend { channel, value } => {
+                        synth.pitch_bend(channel as u32, value as u32).ok();
+                    }
+                    oxisynth::MidiEvent::ProgramChange {
+                        channel,
+                        program_id,
+                    } => {
+                        synth.program_change(channel as u32, program_id as u32).ok();
+                    }
+                    oxisynth::MidiEvent::ChannelPressure { channel, value } => {
+                        synth.channel_pressure(channel as u32, value as u32).ok();
+                    }
+                    oxisynth::MidiEvent::PolyphonicKeyPressure {
+                        channel,
+                        key,
+                        value,
+                    } => {
+                        synth
+                            .key_pressure(channel as u32, key as u32, value as u32)
+                            .ok();
+                    }
+                    oxisynth::MidiEvent::SystemReset => {
+                        synth.system_reset().ok();
+                    }
+                    oxisynth::MidiEvent::ControlChange {
+                        channel,
+                        ctrl,
+                        value,
+                    } => {
+                        synth.cc(channel as u32, ctrl as u32, value as u32).ok();
+                    }
+                    // TODO: Where are those for fluidsynth?
+                    oxisynth::MidiEvent::AllNotesOff { .. } => {}
+                    oxisynth::MidiEvent::AllSoundOff { .. } => {}
+                },
             }
         }
 

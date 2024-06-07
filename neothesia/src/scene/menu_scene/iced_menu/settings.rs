@@ -34,6 +34,7 @@ pub enum Event {
 
     RangeStart(RangeUpdateKind),
     RangeEnd(RangeUpdateKind),
+    AudioGain(RangeUpdateKind),
     GoBack,
 }
 
@@ -104,6 +105,18 @@ impl Page for SettingsPage {
                     }
                 }
             },
+            Event::AudioGain(kind) => {
+                match kind {
+                    RangeUpdateKind::Add => {
+                        ctx.config.audio_gain += 0.1;
+                    }
+                    RangeUpdateKind::Sub => {
+                        ctx.config.audio_gain = (ctx.config.audio_gain - 0.1).max(0.0);
+                    }
+                }
+
+                ctx.config.audio_gain = (ctx.config.audio_gain * 10.0).round() / 10.0;
+            }
             Event::GoBack => {
                 return PageMessage::go_back();
             }
@@ -225,11 +238,17 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
 
         row
     });
+    let synth_gain_settings = is_synth.then(|| {
+        ActionRow::new()
+            .title("Audio Gain")
+            .suffix(counter(ctx.config.audio_gain, Event::AudioGain))
+    });
 
     PreferencesGroup::new()
         .title("Output")
         .push(output_settings)
         .push_maybe(synth_settings)
+        .push_maybe(synth_gain_settings)
         .build()
 }
 
@@ -245,7 +264,7 @@ fn input_group<'a>(data: &'a Data, _ctx: &Context) -> Element<'a, Event> {
         .build()
 }
 
-fn counter<'a>(value: u8, msg: fn(RangeUpdateKind) -> Event) -> Element<'a, Event> {
+fn counter<'a>(value: impl ToString, msg: fn(RangeUpdateKind) -> Event) -> Element<'a, Event> {
     let label = centered_text(value);
     let sub = button(centered_text("-").width(30).height(30))
         .padding(0)

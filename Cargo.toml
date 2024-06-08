@@ -8,6 +8,7 @@ members = [
   "midi-file",
   "midi-io",
   "neothesia-iced-widgets",
+  "nuon",
 ]
 
 default-members = ["neothesia"]
@@ -28,6 +29,7 @@ neothesia-iced-widgets = { path = "./neothesia-iced-widgets" }
 midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
 piano-math = { path = "./piano-math" }
+nuon = { path = "./nuon" }
 
 profiling = "1.0"
 

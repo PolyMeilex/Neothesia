@@ -7,6 +7,7 @@ use neothesia_core::{
 use crate::scene::playing_scene::LAYER_FG;
 
 pub struct Button {
+    id: nuon::ElementId,
     bbox: Bbox,
     is_hovered: bool,
     icon: &'static str,
@@ -14,21 +15,20 @@ pub struct Button {
     hover_color: Color,
 }
 
-impl Default for Button {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Button {
-    pub fn new() -> Self {
+    pub fn new(id: nuon::ElementId) -> Self {
         Self {
+            id,
             bbox: Bbox::new(Point::new(0.0, 0.0), Size::new(30.0, 30.0)),
             is_hovered: false,
             icon: "",
             color: super::BAR_BG,
             hover_color: super::BUTTON_HOVER,
         }
+    }
+
+    pub fn id(&self) -> nuon::ElementId {
+        self.id
     }
 
     #[allow(dead_code)]
@@ -60,8 +60,8 @@ impl Button {
         self
     }
 
-    pub fn set_hovered(&mut self, hovered: bool) -> &mut Self {
-        self.is_hovered = hovered;
+    pub fn set_hovered(&mut self, hovered: Option<nuon::ElementId>) -> &mut Self {
+        self.is_hovered = hovered == Some(self.id());
         self
     }
 

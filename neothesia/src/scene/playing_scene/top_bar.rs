@@ -21,19 +21,25 @@ use super::{
 mod button;
 use button::Button;
 
-#[derive(Default, Clone, Copy)]
-enum Element {
-    StartTick,
-    EndTick,
-    RepeatButton,
-    BackButton,
-    PlayButton,
-    SettingsButton,
-    #[default]
-    None,
+#[derive(Debug, Clone)]
+enum Msg {
+    GoBack,
+    PlayResume,
+    LooperToggle,
+    SettingsToggle,
+    LoopTickDrag(LooperDrag),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum LooperDrag {
+    Start,
+    End,
 }
 
 pub struct TopBar {
+    elements: nuon::ElementsMap<Msg>,
+
+    last_frame_bbox: Bbox<f32>,
     bbox: Bbox<f32>,
     loop_tick_height: f32,
 
@@ -41,18 +47,24 @@ pub struct TopBar {
     is_expanded: bool,
 
     settings_animation: Animation,
-    drag: Element,
-    hovered: Element,
+    drag: Option<LooperDrag>,
 
     pub loop_start: Duration,
     pub loop_end: Duration,
+
+    bar_start: nuon::RowLayout,
+    bar_end: nuon::RowLayout,
 
     back_button: Button,
     play_button: Button,
     loop_button: Button,
     settings_button: Button,
+
     loop_start_tick: Bbox,
+    loop_start_tick_id: nuon::ElementId,
+
     loop_end_tick: Bbox,
+    loop_end_tick_id: nuon::ElementId,
 
     pub loop_active: bool,
     pub settings_active: bool,
@@ -98,15 +110,58 @@ fn left_arrow_icon() -> &'static str {
 
 impl TopBar {
     pub fn new() -> Self {
+        let mut elements = nuon::ElementsMap::new();
+
+        let back_button = elements.insert(
+            "BackButton",
+            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
+            Some(Msg::GoBack),
+        );
+
+        let play_button = elements.insert(
+            "PlayButton",
+            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
+            Some(Msg::PlayResume),
+        );
+
+        let loop_button = elements.insert(
+            "LoopButton",
+            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
+            Some(Msg::LooperToggle),
+        );
+
+        let settings_button = elements.insert(
+            "SettingsButton",
+            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
+            Some(Msg::SettingsToggle),
+        );
+
+        let loop_start_tick_id = elements.insert(
+            "LoopStartTick",
+            nuon::Rect::default(),
+            Some(Msg::LoopTickDrag(LooperDrag::Start)),
+        );
+        let loop_end_tick_id = elements.insert(
+            "LoopEndTick",
+            nuon::Rect::default(),
+            Some(Msg::LoopTickDrag(LooperDrag::End)),
+        );
+
+        let bbox = Bbox::new([0.0, 0.0], [0.0, 45.0 + 30.0]);
+
         Self {
-            bbox: Bbox::new([0.0, 0.0], [0.0, 45.0 + 30.0]),
+            elements,
+
+            last_frame_bbox: bbox,
+            bbox,
             loop_tick_height: 45.0 + 10.0,
-            loop_button: Button::new(),
-            back_button: Button::new(),
-            play_button: Button::new(),
-            settings_button: Button::new(),
-            drag: Element::None,
-            hovered: Element::None,
+            bar_start: nuon::RowLayout::new(),
+            bar_end: nuon::RowLayout::new(),
+            loop_button: Button::new(loop_button),
+            back_button: Button::new(back_button),
+            play_button: Button::new(play_button),
+            settings_button: Button::new(settings_button),
+            drag: None,
             loop_start: Duration::ZERO,
             loop_end: Duration::ZERO,
             loop_active: false,
@@ -117,24 +172,35 @@ impl TopBar {
             is_expanded: false,
             settings_animation: Animation::new(),
             loop_start_tick: Bbox::default(),
+            loop_end_tick_id,
             loop_end_tick: Bbox::default(),
+            loop_start_tick_id,
             settings_active: false,
         }
     }
 
-    fn hovered(&self, x: f32, y: f32) -> Element {
-        [
-            (self.settings_button.bbox(), Element::SettingsButton),
-            (self.loop_button.bbox(), Element::RepeatButton),
-            (self.back_button.bbox(), Element::BackButton),
-            (self.play_button.bbox(), Element::PlayButton),
-            (&self.loop_start_tick, Element::StartTick),
-            (&self.loop_end_tick, Element::EndTick),
-        ]
-        .into_iter()
-        .find(|(e, _)| e.contains(x, y))
-        .map(|e| e.1)
-        .unwrap_or(Element::None)
+    fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: Msg) {
+        match msg {
+            Msg::GoBack => {
+                ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+            }
+            Msg::PlayResume => {
+                scene.player.pause_resume();
+            }
+            Msg::LooperToggle => {
+                scene.top_bar.loop_active = !scene.top_bar.loop_active;
+                if scene.top_bar.loop_active {
+                    scene.top_bar.loop_start = scene.player.time();
+                    scene.top_bar.loop_end = scene.top_bar.loop_start + Duration::from_secs(3);
+                };
+            }
+            Msg::SettingsToggle => {
+                scene.top_bar.settings_active = !scene.top_bar.settings_active;
+            }
+            Msg::LoopTickDrag(side) => {
+                scene.top_bar.drag = Some(side);
+            }
+        }
     }
 
     pub fn handle_window_event(
@@ -149,6 +215,10 @@ impl TopBar {
             WindowEvent::CursorMoved { position, .. } => {
                 Self::handle_cursor_moved(scene, ctx, position);
             }
+            WindowEvent::Resized(_) => {
+                scene.top_bar.bar_start.invalidate();
+                scene.top_bar.bar_end.invalidate();
+            }
             _ => {}
         }
 
@@ -162,50 +232,39 @@ impl TopBar {
         button: &MouseButton,
     ) -> bool {
         match (state, button) {
-            (ElementState::Pressed, MouseButton::Left) => match scene.top_bar.hovered {
-                Element::RepeatButton => {
-                    Self::toggle_loop(scene);
+            (ElementState::Pressed, MouseButton::Left) => {
+                if let Some(msg) = scene
+                    .top_bar
+                    .elements
+                    .hovered_element()
+                    .and_then(|(_, e)| e.on_click())
+                {
+                    Self::on_msg(scene, ctx, msg.clone());
                     return EVENT_CAPTURED;
                 }
-                Element::PlayButton => {
-                    scene.player.pause_resume();
-                    return EVENT_CAPTURED;
-                }
-                Element::SettingsButton => {
-                    scene.top_bar.settings_active = !scene.top_bar.settings_active;
-                }
-                Element::BackButton => {
-                    ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
-                    return EVENT_CAPTURED;
-                }
-                Element::StartTick | Element::EndTick => {
-                    scene.top_bar.drag = scene.top_bar.hovered;
-                    return EVENT_CAPTURED;
-                }
-                _ => {
-                    let pos = &ctx.window_state.cursor_logical_position;
 
-                    if pos.y > 30.0
-                        && pos.y < scene.top_bar.bbox.h()
-                        && !scene.rewind_controller.is_rewinding()
-                    {
-                        scene
-                            .rewind_controller
-                            .start_mouse_rewind(&mut scene.player);
+                let pos = &ctx.window_state.cursor_logical_position;
 
-                        let x = ctx.window_state.cursor_logical_position.x;
-                        let w = ctx.window_state.logical_size.width;
+                if pos.y > 30.0
+                    && pos.y < scene.top_bar.bbox.h()
+                    && !scene.rewind_controller.is_rewinding()
+                {
+                    scene
+                        .rewind_controller
+                        .start_mouse_rewind(&mut scene.player);
 
-                        let p = x / w;
-                        log::debug!("Progressbar: x:{},p:{}", x, p);
-                        scene.player.set_percentage_time(p);
-                        scene.keyboard.reset_notes();
-                        return EVENT_CAPTURED;
-                    }
+                    let x = ctx.window_state.cursor_logical_position.x;
+                    let w = ctx.window_state.logical_size.width;
+
+                    let p = x / w;
+                    log::debug!("Progressbar: x:{},p:{}", x, p);
+                    scene.player.set_percentage_time(p);
+                    scene.keyboard.reset_notes();
+                    return EVENT_CAPTURED;
                 }
-            },
+            }
             (ElementState::Released, MouseButton::Left) => {
-                scene.top_bar.drag = Element::None;
+                scene.top_bar.drag = None;
 
                 if let RewindController::Mouse { .. } = scene.rewind_controller {
                     scene.rewind_controller.stop_rewind(&mut scene.player);
@@ -226,25 +285,16 @@ impl TopBar {
         let y = position.to_logical::<f32>(ctx.window_state.scale_factor).y;
         let w = ctx.window_state.logical_size.width;
 
-        scene.top_bar.hovered = scene.top_bar.hovered(x, y);
+        scene.top_bar.elements.update_cursor_pos((x, y).into());
 
         match scene.top_bar.drag {
-            Element::StartTick => {
+            Some(LooperDrag::Start) => {
                 scene.top_bar.loop_start = scene.player.percentage_to_time(x / w);
             }
-            Element::EndTick => {
+            Some(LooperDrag::End) => {
                 scene.top_bar.loop_end = scene.player.percentage_to_time(x / w);
             }
-            Element::RepeatButton => {}
-            _ => {}
-        }
-    }
-
-    fn toggle_loop(scene: &mut PlayingScene) {
-        scene.top_bar.loop_active = !scene.top_bar.loop_active;
-        if scene.top_bar.loop_active {
-            scene.top_bar.loop_start = scene.player.time();
-            scene.top_bar.loop_end = scene.top_bar.loop_start + Duration::from_secs(3);
+            None => {}
         }
     }
 
@@ -257,6 +307,8 @@ impl TopBar {
             ref rewind_controller,
             ..
         } = scene;
+
+        top_bar.last_frame_bbox = top_bar.bbox;
 
         top_bar.bbox.size.w = window_state.logical_size.width;
 
@@ -345,20 +397,42 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
     let y = top_bar.bbox.y();
     let w = top_bar.bbox.w();
 
+    let (back_id,) = top_bar.bar_start.once(|row| {
+        (
+            row.push(30.0),
+            //
+        )
+    });
+
+    top_bar.bar_start.resolve_left(0.0);
+
+    let start_row = top_bar.bar_start.items();
+
+    let end_row = &mut top_bar.bar_end;
+    let (settings_id, loop_id, play_id) = end_row.once(|row| {
+        (
+            row.push(30.0),
+            row.push(30.0),
+            row.push(30.0),
+            //
+        )
+    });
+    end_row.resolve_right(w);
+    let end_row = end_row.items();
+
+    let hovered_element = top_bar.elements.hovered_element_id();
+
     top_bar
         .back_button
-        .set_pos((0.0, y))
-        .set_hovered(matches!(top_bar.hovered, Element::BackButton))
+        .set_pos((start_row[back_id].x, y))
+        .set_hovered(hovered_element)
         .set_icon(left_arrow_icon())
         .draw(quad_pipeline, text);
 
-    let mut x = w;
-
-    x -= 30.0;
     top_bar
         .settings_button
-        .set_pos((x, y))
-        .set_hovered(matches!(top_bar.hovered, Element::SettingsButton))
+        .set_pos((end_row[settings_id].x, y))
+        .set_hovered(hovered_element)
         .set_icon(if top_bar.settings_active {
             gear_fill_icon()
         } else {
@@ -366,25 +440,40 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
         })
         .draw(quad_pipeline, text);
 
-    x -= 30.0;
     top_bar
         .loop_button
-        .set_pos((x, y))
-        .set_hovered(matches!(top_bar.hovered, Element::RepeatButton))
+        .set_pos((end_row[loop_id].x, y))
+        .set_hovered(hovered_element)
         .set_icon(repeat_icon())
         .draw(quad_pipeline, text);
 
-    x -= 30.0;
     top_bar
         .play_button
-        .set_pos((x, y))
-        .set_hovered(matches!(top_bar.hovered, Element::PlayButton))
+        .set_pos((end_row[play_id].x, y))
+        .set_hovered(hovered_element)
         .set_icon(if scene.player.is_paused() {
             play_icon()
         } else {
             pause_icon()
         })
         .draw(quad_pipeline, text);
+
+    if top_bar.last_frame_bbox != top_bar.bbox {
+        update_button_element(&mut top_bar.elements, &top_bar.back_button);
+        update_button_element(&mut top_bar.elements, &top_bar.settings_button);
+        update_button_element(&mut top_bar.elements, &top_bar.loop_button);
+        update_button_element(&mut top_bar.elements, &top_bar.play_button);
+    }
+}
+
+fn update_button_element<M>(elements: &mut nuon::ElementsMap<M>, button: &Button) {
+    elements.update(
+        button.id(),
+        nuon::Rect::new(
+            (button.bbox().x(), button.bbox().y()).into(),
+            (button.bbox().w(), button.bbox().h()).into(),
+        ),
+    )
 }
 
 fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Instant) {
@@ -396,6 +485,12 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Insta
     } = scene;
 
     if !top_bar.loop_active {
+        top_bar
+            .elements
+            .update(top_bar.loop_start_tick_id, nuon::Rect::zero());
+        top_bar
+            .elements
+            .update(top_bar.loop_end_tick_id, nuon::Rect::zero());
         return;
     }
 
@@ -416,11 +511,22 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Insta
     top_bar.loop_start_tick = Bbox::new(tick_pos(&top_bar.loop_start), tick_size);
     top_bar.loop_end_tick = Bbox::new(tick_pos(&top_bar.loop_end), tick_size);
 
-    let (mut start_color, mut end_color) = match (top_bar.hovered, top_bar.drag) {
-        (Element::StartTick, _) | (_, Element::StartTick) => (WHITE, LOOPER),
-        (Element::EndTick, _) | (_, Element::EndTick) => (LOOPER, WHITE),
-        _ => (LOOPER, LOOPER),
-    };
+    let start_hovered = top_bar
+        .elements
+        .get(top_bar.loop_start_tick_id)
+        .map(|e| e.hovered())
+        .unwrap_or(false)
+        || top_bar.drag == Some(LooperDrag::Start);
+    let end_hovered = top_bar
+        .elements
+        .get(top_bar.loop_end_tick_id)
+        .map(|e| e.hovered())
+        .unwrap_or(false)
+        || top_bar.drag == Some(LooperDrag::End);
+
+    let mut start_color = if start_hovered { WHITE } else { LOOPER };
+    let mut end_color = if end_hovered { WHITE } else { LOOPER };
+
     start_color.a *= alpha;
     end_color.a *= alpha;
 
@@ -437,6 +543,21 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Insta
     draw_rect(quad_pipeline, &bg_box, &color);
     draw_rect(quad_pipeline, &top_bar.loop_start_tick, &start_color);
     draw_rect(quad_pipeline, &top_bar.loop_end_tick, &end_color);
+
+    top_bar.elements.update(
+        top_bar.loop_start_tick_id,
+        nuon::Rect::new(
+            (top_bar.loop_start_tick.x(), top_bar.loop_start_tick.y()).into(),
+            (top_bar.loop_start_tick.w(), top_bar.loop_start_tick.h()).into(),
+        ),
+    );
+    top_bar.elements.update(
+        top_bar.loop_end_tick_id,
+        nuon::Rect::new(
+            (top_bar.loop_end_tick.x(), top_bar.loop_end_tick.y()).into(),
+            (top_bar.loop_end_tick.w(), top_bar.loop_end_tick.h()).into(),
+        ),
+    );
 }
 
 fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {

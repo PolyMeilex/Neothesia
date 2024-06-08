@@ -2276,6 +2276,7 @@ dependencies = [
  "midi-io",
  "neothesia-core",
  "neothesia-iced-widgets",
+ "nuon",
  "oxisynth",
  "piano-math",
  "profiling",
@@ -2400,6 +2401,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.66",
+]
+
+[[package]]
+name = "nuon"
+version = "0.1.0"
+dependencies = [
+ "euclid",
+ "smallvec",
+ "thunderdome",
 ]
 
 [[package]]
@@ -3527,6 +3537,12 @@ dependencies = [
  "quote",
  "syn 2.0.66",
 ]
+
+[[package]]
+name = "thunderdome"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92e170f93360bf9ae6fe3c31116bbf27adb1d054cedd6bc3d7857e34f2d98d0b"
 
 [[package]]
 name = "tiff"

@@ -122,6 +122,7 @@ impl Neothesia {
 
                 self.update(delta);
                 self.render();
+                profiling::finish_frame!();
             }
             WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -162,6 +163,7 @@ impl Neothesia {
         self.context.window.request_redraw();
     }
 
+    #[profiling::function]
     fn update(&mut self, delta: Duration) {
         #[cfg(debug_assertions)]
         {
@@ -176,6 +178,7 @@ impl Neothesia {
         );
     }
 
+    #[profiling::function]
     fn render(&mut self) {
         let frame = loop {
             let swap_chain_output = self.surface.get_current_texture();
@@ -328,6 +331,9 @@ fn main() {
         env_logger::Env::default().default_filter_or("warn, wgpu_hal=error, oxisynth=error"),
     )
     .init();
+
+    puffin::set_scopes_on(true); // tell puffin to collect data
+    let _server = puffin_http::Server::new("127.0.0.1:8585").ok();
 
     let event_loop: EventLoop<NeothesiaEvent> = EventLoop::with_user_event().build().unwrap();
     let proxy = event_loop.create_proxy();

@@ -77,6 +77,7 @@ impl GuidelineRenderer {
         }
     }
 
+    #[profiling::function]
     fn update_horizontal_guidelines(
         &mut self,
         quads: &mut QuadPipeline,
@@ -108,6 +109,7 @@ impl GuidelineRenderer {
         }
     }
 
+    #[profiling::function]
     pub fn update(
         &mut self,
         quads: &mut QuadPipeline,

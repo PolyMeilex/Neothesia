@@ -104,6 +104,7 @@ impl WaterfallRenderer {
         self.notes_pipeline.update_time(queue, time);
     }
 
+    #[profiling::function]
     pub fn render<'rpass>(
         &'rpass mut self,
         transform_uniform: &'rpass Uniform<TransformUniform>,

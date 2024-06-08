@@ -29,6 +29,8 @@ midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
 piano-math = { path = "./piano-math" }
 
+profiling = "1.0"
+
 iced_style = "0.12"
 iced_graphics = "0.12"
 iced_core = "0.12"

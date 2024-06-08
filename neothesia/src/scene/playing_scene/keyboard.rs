@@ -61,6 +61,7 @@ impl Keyboard {
         self.renderer.position_on_bottom_of_parent(parent_height)
     }
 
+    #[profiling::function]
     pub fn resize(&mut self, ctx: &Context) {
         let keyboard_layout = get_layout(
             ctx.window_state.logical_size.width,

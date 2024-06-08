@@ -101,6 +101,7 @@ impl PlayingScene {
         }
     }
 
+    #[profiling::function]
     fn update_midi_player(&mut self, ctx: &Context, delta: Duration) -> f32 {
         if self.top_bar.loop_active && self.player.time() > self.top_bar.loop_end {
             self.player.set_time(self.top_bar.loop_start);
@@ -116,6 +117,7 @@ impl PlayingScene {
         self.player.time_without_lead_in() + ctx.config.playback_offset
     }
 
+    #[profiling::function]
     fn resize(&mut self, ctx: &mut Context) {
         self.keyboard.resize(ctx);
 
@@ -132,6 +134,7 @@ impl PlayingScene {
 }
 
 impl Scene for PlayingScene {
+    #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_pipeline.clear();
 
@@ -158,6 +161,7 @@ impl Scene for PlayingScene {
         }
     }
 
+    #[profiling::function]
     fn render<'pass>(
         &'pass mut self,
         transform: &'pass Uniform<TransformUniform>,

@@ -139,6 +139,7 @@ impl TextRenderer {
         });
     }
 
+    #[profiling::function]
     pub fn update(&mut self, logical_size: (u32, u32), gpu: &Gpu) {
         let elements = self.queue.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,

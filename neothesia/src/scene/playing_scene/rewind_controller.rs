@@ -50,6 +50,7 @@ impl RewindController {
         }
     }
 
+    #[profiling::function]
     pub fn update(&self, player: &mut MidiPlayer, ctx: &Context) {
         if let RewindController::Keyboard { speed, .. } = self {
             if ctx.window_state.modifiers_state.shift_key() {

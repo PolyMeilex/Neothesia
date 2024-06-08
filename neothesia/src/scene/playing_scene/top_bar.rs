@@ -244,6 +244,7 @@ impl TopBar {
         }
     }
 
+    #[profiling::function]
     pub fn update(scene: &mut PlayingScene, window_state: &WindowState, text: &mut TextRenderer) {
         let PlayingScene {
             top_bar,

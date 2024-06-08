@@ -40,6 +40,10 @@ cpal = { version = "0.15", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }
 oxisynth = { version = "0.0.5", optional = true }
 
+profiling = { workspace = true, features = ["profile-with-puffin"] }
+puffin = "0.19"
+puffin_http = "0.16"
+
 [[bin]]
 name = "neothesia"
 

@@ -56,6 +56,7 @@ impl<'a> QuadPipeline {
         self.instances.push(Instances::new(&gpu.device, size));
     }
 
+    #[profiling::function]
     pub fn render(
         &'a self,
         batch_id: usize,
@@ -88,6 +89,7 @@ impl<'a> QuadPipeline {
         self.instances[batch_id].data.push(quad)
     }
 
+    #[profiling::function]
     pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         for instances in self.instances.iter_mut() {
             instances.update(device, queue);

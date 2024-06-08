@@ -85,6 +85,7 @@ impl KeyboardRenderer {
     }
 
     /// Reupload instances to GPU
+    #[profiling::function]
     fn reupload(&mut self) {
         let instances = &mut self.cache;
 
@@ -116,15 +117,20 @@ impl KeyboardRenderer {
         }
     }
 
+    #[profiling::function]
     pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, text: &mut TextRenderer) {
         if self.cache.is_empty() {
             self.reupload();
         }
 
-        for quad in self.cache.iter() {
-            quads.instances(layer).push(*quad);
+        {
+            profiling::scope!("push from cache");
+            for quad in self.cache.iter() {
+                quads.instances(layer).push(*quad);
+            }
         }
 
+        profiling::scope!("push text");
         let range_start = self.layout.range.start() as usize;
         for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
             let x = self.pos.x + key.x();

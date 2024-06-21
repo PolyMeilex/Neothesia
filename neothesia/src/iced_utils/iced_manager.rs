@@ -18,19 +18,22 @@ impl IcedManager {
 
         let engine = iced_wgpu::Engine::new(adapter, device, queue, texture_format, None);
 
+        for bytes in [
+            include_bytes!("./bootstrap-icons.ttf").as_slice(),
+            include_bytes!("../../../neothesia-core/src/render/text/Roboto-Regular.ttf").as_slice(),
+        ] {
+            iced_graphics::text::font_system()
+                .write()
+                .expect("Write to font system")
+                .load_font(std::borrow::Cow::Borrowed(bytes));
+        }
+
         let renderer = iced_wgpu::Renderer::new(
             device,
             &engine,
-            iced_core::Font::default(),
+            iced_core::Font::with_name("Roboto"),
             iced_core::Pixels(16.0),
         );
-
-        iced_graphics::text::font_system()
-            .write()
-            .expect("Write to font system")
-            .load_font(std::borrow::Cow::Borrowed(include_bytes!(
-                "./bootstrap-icons.ttf"
-            )));
 
         let viewport = iced_wgpu::graphics::Viewport::with_physical_size(
             iced_core::Size::new(physical_size.0, physical_size.1),

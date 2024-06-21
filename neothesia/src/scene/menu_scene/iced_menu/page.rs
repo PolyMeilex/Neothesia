@@ -1,4 +1,4 @@
-use iced_runtime::Command;
+use iced_runtime::Task;
 use neothesia_iced_widgets::Element;
 
 use crate::context::Context;
@@ -7,7 +7,7 @@ use super::{Data, Message, Step};
 
 pub enum PageMessage {
     Message(Message),
-    Command(Command<Message>),
+    Command(Task<Message>),
     None,
 }
 

@@ -5,6 +5,7 @@ mod icons;
 use std::time::Duration;
 
 use iced_menu::AppUi;
+use iced_runtime::Action;
 use neothesia_core::render::BgPipeline;
 
 use wgpu_jumpstart::{TransformUniform, Uniform};
@@ -26,7 +27,7 @@ pub struct MenuScene {
     iced_state: iced_state::State<AppUi>,
 
     context: std::task::Context<'static>,
-    futures: Vec<futures::future::BoxFuture<'static, iced_menu::Message>>,
+    futures: Vec<futures::stream::BoxStream<'static, Action<iced_menu::Message>>>,
 }
 
 impl MenuScene {
@@ -52,11 +53,15 @@ impl Scene for MenuScene {
         self.iced_state.tick(ctx);
 
         self.futures
-            .retain_mut(|f| match f.as_mut().poll(&mut self.context) {
-                std::task::Poll::Ready(msg) => {
-                    self.iced_state.queue_message(msg);
-                    false
-                }
+            .retain_mut(|f| match f.as_mut().poll_next(&mut self.context) {
+                std::task::Poll::Ready(a) => match a {
+                    Some(Action::Output(msg)) => {
+                        self.iced_state.queue_message(msg);
+                        true
+                    }
+                    Some(_) => true,
+                    None => false,
+                },
                 std::task::Poll::Pending => true,
             });
 
@@ -65,14 +70,9 @@ impl Scene for MenuScene {
         //     return;
         // }
 
-        if let Some(command) = self.iced_state.update(ctx) {
-            for a in command.actions() {
-                match a {
-                    iced_runtime::command::Action::Future(f) => {
-                        self.futures.push(f);
-                    }
-                    _ => {}
-                }
+        if let Some(task) = self.iced_state.update(ctx) {
+            if let Some(fut) = task.into_stream() {
+                self.futures.push(fut);
             }
         }
     }

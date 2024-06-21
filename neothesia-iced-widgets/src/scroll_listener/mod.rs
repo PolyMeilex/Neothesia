@@ -66,7 +66,7 @@ impl<'a, M> Widget<M, Theme, super::Renderer> for ScrollListener<'a, M> {
         state: &mut iced_core::widget::Tree,
         layout: iced_core::Layout<'_>,
         renderer: &super::Renderer,
-        operation: &mut dyn iced_core::widget::Operation<M>,
+        operation: &mut dyn iced_core::widget::Operation<()>,
     ) {
         self.content
             .as_widget()

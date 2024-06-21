@@ -31,13 +31,13 @@ piano-math = { path = "./piano-math" }
 
 profiling = "1.0"
 
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "4e7cbbf98ab745351e2fb13a7c85d4ad560c21ee" }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "4e7cbbf98ab745351e2fb13a7c85d4ad560c21ee" }
-iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "4e7cbbf98ab745351e2fb13a7c85d4ad560c21ee" }
-iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "4e7cbbf98ab745351e2fb13a7c85d4ad560c21ee" }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "4e7cbbf98ab745351e2fb13a7c85d4ad560c21ee", features = [
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
+iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a", features = [
   "image",
 ] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "4e7cbbf98ab745351e2fb13a7c85d4ad560c21ee", features = [
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a", features = [
   "image",
 ] }

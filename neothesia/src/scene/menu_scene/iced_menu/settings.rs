@@ -4,7 +4,7 @@ use iced_core::{
     alignment::{Horizontal, Vertical},
     Alignment, Length, Padding,
 };
-use iced_runtime::Command;
+use iced_runtime::Task;
 use iced_widget::{button, column as col, container, pick_list, row, toggler};
 use neothesia_iced_widgets::{ActionRow, BarLayout, Element, Layout, NeoBtn, PreferencesGroup};
 
@@ -73,7 +73,7 @@ impl Page for SettingsPage {
             Event::OpenSoundFontPicker => {
                 data.is_loading = true;
 
-                let cmd = Command::perform(open_sound_font_picker(), Event::SoundFontFileLoaded)
+                let cmd = Task::perform(open_sound_font_picker(), Event::SoundFontFileLoaded)
                     .map(Message::SettingsPage);
                 return PageMessage::Command(cmd);
             }

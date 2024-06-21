@@ -4,7 +4,7 @@ use iced_core::{
     alignment::{Horizontal, Vertical},
     Alignment, Length, Padding,
 };
-use iced_runtime::Command;
+use iced_runtime::Task;
 use iced_widget::{column, container, image, row, text};
 use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
 
@@ -169,12 +169,12 @@ fn midi_file_picker_update(
     data: &mut Data,
     msg: MidiFilePickerMessage,
     ctx: &mut Context,
-) -> Command<MidiFilePickerMessage> {
+) -> Task<MidiFilePickerMessage> {
     match msg {
         MidiFilePickerMessage::OpenMidiFilePicker => {
             data.is_loading = true;
 
-            return Command::perform(
+            return Task::perform(
                 open_midi_file_picker(),
                 MidiFilePickerMessage::MidiFileLoaded,
             );
@@ -188,7 +188,7 @@ fn midi_file_picker_update(
         }
     }
 
-    Command::none()
+    Task::none()
 }
 
 async fn open_midi_file_picker() -> Option<(midi_file::MidiFile, PathBuf)> {

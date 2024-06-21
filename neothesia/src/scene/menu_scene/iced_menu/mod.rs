@@ -8,7 +8,7 @@ use iced_core::{
     image::Handle as ImageHandle,
     Alignment, Length, Theme,
 };
-use iced_runtime::Command;
+use iced_runtime::Task;
 use iced_widget::{column as col, container, image, text, vertical_space};
 
 use crate::{
@@ -102,11 +102,11 @@ impl AppUi {
         }
     }
 
-    fn handle_page_msg(&mut self, ctx: &mut Context, msg: PageMessage) -> Command<Message> {
+    fn handle_page_msg(&mut self, ctx: &mut Context, msg: PageMessage) -> Task<Message> {
         match msg {
             PageMessage::Message(msg) => self.update(ctx, msg),
             PageMessage::Command(cmd) => cmd,
-            PageMessage::None => Command::none(),
+            PageMessage::None => Task::none(),
         }
     }
 }
@@ -114,7 +114,7 @@ impl AppUi {
 impl Program for AppUi {
     type Message = Message;
 
-    fn update(&mut self, ctx: &mut Context, message: Message) -> Command<Self::Message> {
+    fn update(&mut self, ctx: &mut Context, message: Message) -> Task<Self::Message> {
         match message {
             Message::GoToPage(page) => {
                 self.go_to(page);
@@ -140,7 +140,7 @@ impl Program for AppUi {
             }
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn mouse_input(&self, event: &iced_core::mouse::Event, _ctx: &Context) -> Option<Message> {

@@ -1,7 +1,7 @@
 use iced_core::{mouse, Event, Size, Theme};
 use iced_graphics::core::Color;
 use iced_runtime::user_interface::{self, UserInterface};
-use iced_runtime::Command;
+use iced_runtime::Task;
 
 use super::{iced_clipboard::DummyClipboard, iced_conversion};
 use crate::context::Context;
@@ -21,7 +21,7 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    fn update(&mut self, ctx: &mut Context, message: Self::Message) -> Command<Self::Message>;
+    fn update(&mut self, ctx: &mut Context, message: Self::Message) -> Task<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///
@@ -121,7 +121,7 @@ where
     ///
     /// Returns the [`Command`] obtained from [`Program`] after updating it,
     /// only if an update was necessary.
-    pub fn update(&mut self, ctx: &mut Context) -> Option<Command<P::Message>> {
+    pub fn update(&mut self, ctx: &mut Context) -> Option<Task<P::Message>> {
         let clipboard = &mut DummyClipboard {};
 
         let bounds = ctx.iced_manager.viewport.logical_size();
@@ -168,7 +168,7 @@ where
                 .into_iter()
                 .map(|message| self.program.update(ctx, message));
 
-            let commands = Command::batch(commands);
+            let commands = Task::batch(commands);
 
             let mut user_interface =
                 build_user_interface(&mut self.program, temp_cache, bounds, ctx);

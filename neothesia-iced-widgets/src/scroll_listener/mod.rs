@@ -1,5 +1,4 @@
-use iced_core::{mouse::ScrollDelta, Length, Size, Widget};
-use iced_style::Theme;
+use iced_core::{mouse::ScrollDelta, Length, Size, Theme, Widget};
 
 use super::Element;
 

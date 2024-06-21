@@ -109,7 +109,7 @@ impl Page for MainPage {
             layout = layout.bottom(
                 BarLayout::new()
                     .center(
-                        text(&song.file.name)
+                        text(song.file.name.to_string())
                             .width(Length::Fill)
                             .vertical_alignment(Vertical::Center)
                             .horizontal_alignment(Horizontal::Center),

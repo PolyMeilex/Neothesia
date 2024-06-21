@@ -17,4 +17,4 @@ pub use track_card::TrackCard;
 pub use wrap::Wrap;
 
 type Renderer = iced_wgpu::Renderer;
-pub type Element<'a, M> = iced_core::Element<'a, M, iced_style::Theme, iced_wgpu::Renderer>;
+pub type Element<'a, M> = iced_core::Element<'a, M, iced_core::Theme, iced_wgpu::Renderer>;

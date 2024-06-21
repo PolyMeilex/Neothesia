@@ -116,15 +116,18 @@ impl Gpu {
         });
     }
 
-    pub fn submit(&mut self) {
+    pub fn take(&mut self) -> wgpu::CommandEncoder {
         let new_encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         // We swap the current decoder by a new one here, so we can finish the
         // current frame
-        let encoder = std::mem::replace(&mut self.encoder, new_encoder);
+        std::mem::replace(&mut self.encoder, new_encoder)
+    }
 
+    pub fn submit(&mut self) {
+        let encoder = self.take();
         self.queue.submit(Some(encoder.finish()));
     }
 }

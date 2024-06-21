@@ -1,13 +1,13 @@
-use iced_core::text::Renderer;
-
 pub struct IcedManager {
     pub renderer: iced_wgpu::Renderer,
     pub viewport: iced_wgpu::graphics::Viewport,
     pub debug: iced_runtime::Debug,
+    pub engine: iced_wgpu::Engine,
 }
 
 impl IcedManager {
     pub fn new(
+        adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_format: wgpu::TextureFormat,
@@ -16,16 +16,21 @@ impl IcedManager {
     ) -> Self {
         let debug = iced_runtime::Debug::new();
 
-        let settings = iced_wgpu::Settings::default();
+        let engine = iced_wgpu::Engine::new(adapter, device, queue, texture_format, None);
 
-        let mut renderer = iced_wgpu::Renderer::new(
-            iced_wgpu::Backend::new(device, queue, settings, texture_format),
+        let renderer = iced_wgpu::Renderer::new(
+            device,
+            &engine,
             iced_core::Font::default(),
             iced_core::Pixels(16.0),
         );
-        renderer.load_font(std::borrow::Cow::Borrowed(include_bytes!(
-            "./bootstrap-icons.ttf"
-        )));
+
+        iced_graphics::text::font_system()
+            .write()
+            .expect("Write to font system")
+            .load_font(std::borrow::Cow::Borrowed(include_bytes!(
+                "./bootstrap-icons.ttf"
+            )));
 
         let viewport = iced_wgpu::graphics::Viewport::with_physical_size(
             iced_core::Size::new(physical_size.0, physical_size.1),
@@ -36,6 +41,7 @@ impl IcedManager {
             renderer,
             viewport,
             debug,
+            engine,
         }
     }
 

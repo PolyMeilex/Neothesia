@@ -180,7 +180,7 @@ impl Page for SettingsPage {
             .width(Length::Fill)
             .align_items(Alignment::Center);
 
-        let column = iced_widget::scrollable(body).style(theme::scrollable());
+        let column = iced_widget::scrollable(body).style(theme::scrollable);
 
         Layout::new()
             .body(column)
@@ -212,7 +212,8 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
             data.selected_output.clone(),
             Event::SelectOutput,
         )
-        .style(theme::pick_list());
+        .style(theme::pick_list)
+        .menu_style(theme::pick_list_menu);
 
         ActionRow::new().title("Output").suffix(output_list)
     };
@@ -228,7 +229,7 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
 
         let mut row = ActionRow::new().title("SoundFont").suffix(
             iced_widget::button(centered_text("Select File"))
-                .style(theme::button())
+                .style(theme::button)
                 .on_press(Event::OpenSoundFontPicker),
         );
 
@@ -256,7 +257,8 @@ fn input_group<'a>(data: &'a Data, _ctx: &Context) -> Element<'a, Event> {
     let selected_input = data.selected_input.clone();
 
     let input_list = pick_list(data.inputs.as_ref(), selected_input, Event::SelectInput)
-        .style(theme::pick_list());
+        .style(theme::pick_list)
+        .menu_style(theme::pick_list_menu);
 
     PreferencesGroup::new()
         .title("Input")
@@ -268,11 +270,11 @@ fn counter<'a>(value: impl ToString, msg: fn(RangeUpdateKind) -> Event) -> Eleme
     let label = centered_text(value);
     let sub = button(centered_text("-").width(30).height(30))
         .padding(0)
-        .style(theme::round_button())
+        .style(theme::round_button)
         .on_press(msg(RangeUpdateKind::Sub));
     let add = button(centered_text("+").width(30).height(30))
         .padding(0)
-        .style(theme::round_button())
+        .style(theme::round_button)
         .on_press(msg(RangeUpdateKind::Add));
 
     let row = row![label, sub, add]
@@ -306,14 +308,14 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         ctx.config.vertical_guidelines,
         Event::VerticalGuidelines,
     )
-    .style(theme::toggler());
+    .style(theme::toggler);
 
     let horizontal = toggler(
         None,
         ctx.config.horizontal_guidelines,
         Event::HorizontalGuidelines,
     )
-    .style(theme::toggler());
+    .style(theme::toggler);
 
     PreferencesGroup::new()
         .title("Render")

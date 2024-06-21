@@ -6,10 +6,9 @@ use super::Renderer;
 use iced_core::{
     alignment::{Horizontal, Vertical},
     image::Handle as ImageHandle,
-    Alignment, Length,
+    Alignment, Length, Theme,
 };
 use iced_runtime::Command;
-use iced_style::Theme;
 use iced_widget::{column as col, container, image, text, vertical_space};
 
 use crate::{
@@ -78,7 +77,7 @@ impl AppUi {
 
                 is_loading: false,
 
-                logo_handle: ImageHandle::from_memory(include_bytes!("../img/banner.png").to_vec()),
+                logo_handle: ImageHandle::from_bytes(include_bytes!("../img/banner.png").to_vec()),
             },
         }
     }
@@ -256,7 +255,7 @@ fn loading(data: &Data) -> Element<'_, Message> {
 }
 
 fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Theme, Renderer> {
-    text(label)
+    text(label.to_string())
         .horizontal_alignment(Horizontal::Center)
         .vertical_alignment(Vertical::Center)
 }
@@ -267,7 +266,7 @@ fn top_padded<'a, MSG: 'a>(
     let spacer = vertical_space().height(Length::FillPortion(1));
     let content = container(content)
         .height(Length::FillPortion(4))
-        .center_x()
+        .center_x(Length::Fill)
         .max_width(650);
 
     col![spacer, content]
@@ -282,5 +281,5 @@ fn center_x<'a, MSG: 'a>(
     container(content)
         .width(Length::Fill)
         .height(Length::Fill)
-        .center_x()
+        .center_x(Length::Fill)
 }

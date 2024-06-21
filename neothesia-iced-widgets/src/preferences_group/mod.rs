@@ -1,5 +1,4 @@
-use iced_core::{Font, Length};
-use iced_style::Theme;
+use iced_core::{Font, Length, Theme};
 use iced_widget::{column, container, row, text};
 
 use super::{Element, Renderer};
@@ -76,7 +75,7 @@ fn group_body<'a, M: 'a>(items: Vec<Element<'a, M>>) -> Element<'a, M> {
             let separator = container(row![])
                 .width(Length::Fill)
                 .height(1)
-                .style(theme::separator());
+                .style(theme::separator);
             coll = coll.push(separator);
         } else {
             needs_sep = true;
@@ -88,7 +87,7 @@ fn group_body<'a, M: 'a>(items: Vec<Element<'a, M>>) -> Element<'a, M> {
         }
     }
 
-    container(coll).style(theme::card()).into()
+    container(coll).style(theme::card).into()
 }
 
 fn triple_split<'a, T: 'a>(
@@ -116,7 +115,7 @@ fn group_header<'a, T: 'a>(data: PreferencesGroupHeader) -> Element<'a, T> {
     });
     let subtitle = data
         .subtitle
-        .map(|title| text(title).style(theme::subtitle()).size(12.2));
+        .map(|title| text(title).style(theme::subtitle).size(12.2));
 
     let header = column![].push_maybe(title).push_maybe(subtitle);
 
@@ -129,7 +128,7 @@ fn title<'a, T: 'a>(
 ) -> iced_widget::Column<'a, T, Theme, Renderer> {
     column![]
         .push_maybe(title.map(|title| text(title).size(14.6)))
-        .push_maybe(subtitle.map(|subtitle| text(subtitle).size(12.2).style(theme::subtitle())))
+        .push_maybe(subtitle.map(|subtitle| text(subtitle).size(12.2).style(theme::subtitle)))
 }
 
 pub struct ActionRow<'a, MSG> {

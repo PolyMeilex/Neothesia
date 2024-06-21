@@ -1,9 +1,8 @@
 use super::{Element, Renderer};
 use iced_core::{
     alignment::{Horizontal, Vertical},
-    Color, Length,
+    Color, Length, Theme,
 };
-use iced_style::Theme;
 
 mod theme;
 
@@ -46,7 +45,7 @@ impl<MSG> SegmentButton<MSG> {
 
 fn segment<'a, MSG: 'a>(label: &str) -> iced_widget::Button<'a, MSG, Theme, Renderer> {
     iced_widget::button(
-        iced_widget::text(label)
+        iced_widget::text(label.to_string())
             .horizontal_alignment(Horizontal::Center)
             .vertical_alignment(Vertical::Center)
             .width(Length::Fill)
@@ -65,20 +64,36 @@ impl<'a, M: Clone + 'a> From<SegmentButton<M>> for Element<'a, M> {
 
         let first = btn.buttons.remove(0);
         let first = segment(&first.0)
-            .style(theme::segment_button(
-                theme::ButtonSegmentKind::Start,
-                btn.active == 0,
-                btn.active_color,
-            ))
+            .style({
+                let active = btn.active == 0;
+                let active_color = btn.active_color;
+                move |theme, status| {
+                    theme::segment_button(
+                        theme::ButtonSegmentKind::Start,
+                        active,
+                        active_color,
+                        theme,
+                        status,
+                    )
+                }
+            })
             .on_press(first.1);
 
         let last = btn.buttons.pop().unwrap();
         let last = segment(&last.0)
-            .style(theme::segment_button(
-                theme::ButtonSegmentKind::End,
-                btn.active == last_id,
-                btn.active_color,
-            ))
+            .style({
+                let active = btn.active == last_id;
+                let active_color = btn.active_color;
+                move |theme, status| {
+                    theme::segment_button(
+                        theme::ButtonSegmentKind::End,
+                        active,
+                        active_color,
+                        theme,
+                        status,
+                    )
+                }
+            })
             .on_press(last.1);
 
         new.push(first);
@@ -86,11 +101,19 @@ impl<'a, M: Clone + 'a> From<SegmentButton<M>> for Element<'a, M> {
             let id = id + 1;
             new.push(
                 segment(&label)
-                    .style(theme::segment_button(
-                        theme::ButtonSegmentKind::Center,
-                        btn.active == id,
-                        btn.active_color,
-                    ))
+                    .style({
+                        let active = btn.active == id;
+                        let active_color = btn.active_color;
+                        move |theme, status| {
+                            theme::segment_button(
+                                theme::ButtonSegmentKind::Center,
+                                active,
+                                active_color,
+                                theme,
+                                status,
+                            )
+                        }
+                    })
                     .on_press(msg),
             );
         }

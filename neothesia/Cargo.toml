@@ -24,6 +24,7 @@ neothesia-iced-widgets.workspace = true
 piano-math.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
+nuon.workspace = true
 
 iced_graphics.workspace = true
 iced_core.workspace = true

@@ -1,6 +1,6 @@
 use neothesia_core::{
     render::{QuadInstance, QuadPipeline, TextRenderer},
-    utils::{Bbox, Point, Size},
+    utils::{Point, Rect, Size},
     Color,
 };
 
@@ -8,7 +8,7 @@ use crate::scene::playing_scene::LAYER_FG;
 
 pub struct Button {
     id: nuon::ElementId,
-    bbox: Bbox,
+    bbox: Rect,
     is_hovered: bool,
     icon: &'static str,
     color: Color,
@@ -19,7 +19,7 @@ impl Button {
     pub fn new(id: nuon::ElementId) -> Self {
         Self {
             id,
-            bbox: Bbox::new(Point::new(0.0, 0.0), Size::new(30.0, 30.0)),
+            bbox: Rect::new(Point::new(0.0, 0.0), Size::new(30.0, 30.0)),
             is_hovered: false,
             icon: "",
             color: super::BAR_BG,
@@ -44,19 +44,19 @@ impl Button {
     }
 
     pub fn set_pos(&mut self, pos: impl Into<Point<f32>>) -> &mut Self {
-        self.bbox.pos = pos.into();
+        self.bbox.origin = pos.into();
         self
     }
 
     #[allow(dead_code)]
     pub fn set_x(&mut self, x: f32) -> &mut Self {
-        self.bbox.pos.x = x;
+        self.bbox.origin.x = x;
         self
     }
 
     #[allow(dead_code)]
     pub fn set_y(&mut self, y: f32) -> &mut Self {
-        self.bbox.pos.y = y;
+        self.bbox.origin.y = y;
         self
     }
 
@@ -70,7 +70,7 @@ impl Button {
         self
     }
 
-    pub fn bbox(&self) -> &Bbox {
+    pub fn bbox(&self) -> &Rect {
         &self.bbox
     }
 
@@ -85,7 +85,7 @@ impl Button {
         quad_pipeline.push(
             LAYER_FG,
             QuadInstance {
-                position: self.bbox.pos.into(),
+                position: self.bbox.origin.into(),
                 size: self.bbox.size.into(),
                 color,
                 border_radius: [5.0; 4],
@@ -94,8 +94,8 @@ impl Button {
 
         let icon_size = 20.0;
         text.queue_icon(
-            self.bbox.x() + (self.bbox.w() - icon_size) / 2.0,
-            self.bbox.y() + (self.bbox.h() - icon_size) / 2.0,
+            self.bbox.origin.x + (self.bbox.size.width - icon_size) / 2.0,
+            self.bbox.origin.y + (self.bbox.size.height - icon_size) / 2.0,
             icon_size,
             self.icon,
         );

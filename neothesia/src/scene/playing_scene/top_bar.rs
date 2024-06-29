@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use neothesia_core::{
     render::{QuadInstance, QuadPipeline, TextRenderer},
-    utils::{Bbox, Point, Size},
+    utils::{Point, Rect, Size},
 };
 use wgpu_jumpstart::Color;
 use winit::{
@@ -40,8 +40,8 @@ enum LooperDrag {
 pub struct TopBar {
     elements: nuon::ElementsMap<Msg>,
 
-    last_frame_bbox: Bbox<f32>,
-    bbox: Bbox<f32>,
+    last_frame_bbox: Rect<f32>,
+    bbox: Rect<f32>,
     loop_tick_height: f32,
 
     animation: Animated<bool, Instant>,
@@ -63,10 +63,10 @@ pub struct TopBar {
     progress_bar_bbox: nuon::Rect,
     progress_bar: nuon::ElementId,
 
-    loop_start_tick: Bbox,
+    loop_start_tick: Rect,
     loop_start_tick_id: nuon::ElementId,
 
-    loop_end_tick: Bbox,
+    loop_end_tick: Rect,
     loop_end_tick_id: nuon::ElementId,
 
     pub loop_active: bool,
@@ -157,7 +157,7 @@ impl TopBar {
                 .on_click(Msg::LoopTickDrag(LooperDrag::End)),
         );
 
-        let bbox = Bbox::new([0.0, 0.0], [0.0, 45.0 + 30.0]);
+        let bbox = Rect::new((0.0, 0.0).into(), (0.0, 45.0 + 30.0).into());
 
         Self {
             elements,
@@ -182,9 +182,9 @@ impl TopBar {
             settings_animation: Animation::new(),
             progress_bar_bbox: nuon::Rect::zero(),
             progress_bar,
-            loop_start_tick: Bbox::default(),
+            loop_start_tick: Rect::default(),
             loop_end_tick_id,
-            loop_end_tick: Bbox::default(),
+            loop_end_tick: Rect::default(),
             loop_start_tick_id,
             settings_active: false,
         }
@@ -314,9 +314,9 @@ impl TopBar {
 
         top_bar.last_frame_bbox = top_bar.bbox;
 
-        top_bar.bbox.size.w = window_state.logical_size.width;
+        top_bar.bbox.size.width = window_state.logical_size.width;
 
-        let h = top_bar.bbox.h();
+        let h = top_bar.bbox.size.height;
         let is_hovered = window_state.cursor_logical_position.y < h * 1.7;
 
         top_bar.is_expanded = is_hovered;
@@ -332,17 +332,17 @@ impl TopBar {
         top_bar.settings_animation.update(top_bar.settings_active);
 
         if !top_bar.is_expanded {
-            let progress_x = top_bar.bbox.w() * player.percentage();
+            let progress_x = top_bar.bbox.size.width * player.percentage();
             draw_rect(
                 quad_pipeline,
-                &Bbox::new([0.0, 0.0], [progress_x, 5.0]),
+                &Rect::new((0.0, 0.0).into(), (progress_x, 5.0).into()),
                 &BLUE,
             );
         }
 
-        top_bar.bbox.pos.y = top_bar.animation.animate(-h, 0.0, now);
+        top_bar.bbox.origin.y = top_bar.animation.animate(-h, 0.0, now);
 
-        if top_bar.bbox.y() == -top_bar.bbox.h() {
+        if top_bar.bbox.origin.y == -top_bar.bbox.size.height {
             return;
         }
 
@@ -367,9 +367,9 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
         ..
     } = scene;
 
-    let y = top_bar.bbox.y() + 30.0;
-    let h = top_bar.bbox.h() - 30.0;
-    let w = top_bar.bbox.w();
+    let y = top_bar.bbox.origin.y + 30.0;
+    let h = top_bar.bbox.size.height - 30.0;
+    let w = top_bar.bbox.size.width;
 
     let progress_x = w * player.percentage();
 
@@ -384,12 +384,9 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
 
     draw_rect(
         quad_pipeline,
-        &Bbox::new(
-            [
-                top_bar.progress_bar_bbox.origin.x,
-                top_bar.progress_bar_bbox.origin.y,
-            ],
-            [progress_x, top_bar.progress_bar_bbox.size.height],
+        &Rect::new(
+            top_bar.progress_bar_bbox.origin,
+            (progress_x, top_bar.progress_bar_bbox.size.height).into(),
         ),
         &BLUE,
     );
@@ -407,7 +404,11 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
             DARK_MEASURE
         };
 
-        draw_rect(quad_pipeline, &Bbox::new([x, y], [1.0, h]), &color);
+        draw_rect(
+            quad_pipeline,
+            &Rect::new((x, y).into(), (1.0, h).into()),
+            &color,
+        );
     }
 }
 
@@ -418,8 +419,8 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
         ..
     } = scene;
 
-    let y = top_bar.bbox.y();
-    let w = top_bar.bbox.w();
+    let y = top_bar.bbox.origin.y;
+    let w = top_bar.bbox.size.width;
 
     let (back_id,) = top_bar.bar_layout.start.once(|row| {
         (
@@ -492,13 +493,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
 }
 
 fn update_button_element<M>(elements: &mut nuon::ElementsMap<M>, button: &Button) {
-    elements.update(
-        button.id(),
-        nuon::Rect::new(
-            (button.bbox().x(), button.bbox().y()).into(),
-            (button.bbox().w(), button.bbox().h()).into(),
-        ),
-    )
+    elements.update(button.id(), *button.bbox())
 }
 
 fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Instant) {
@@ -521,20 +516,17 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Insta
 
     let y = top_bar
         .animation
-        .animate(-top_bar.bbox.h() - 30.0, 30.0, *now);
+        .animate(-top_bar.bbox.size.height - 30.0, 30.0, *now);
     let alpha = top_bar.animation.animate(0.0, 1.0, *now);
 
     let h = top_bar.loop_tick_height;
-    let w = top_bar.bbox.w();
+    let w = top_bar.bbox.size.width;
 
     let tick_size = Size::new(5.0, h);
-    let tick_pos = |start: &Duration| Point {
-        x: player.time_to_percentage(start) * w,
-        y,
-    };
+    let tick_pos = |start: &Duration| Point::new(player.time_to_percentage(start) * w, y);
 
-    top_bar.loop_start_tick = Bbox::new(tick_pos(&top_bar.loop_start), tick_size);
-    top_bar.loop_end_tick = Bbox::new(tick_pos(&top_bar.loop_end), tick_size);
+    top_bar.loop_start_tick = Rect::new(tick_pos(&top_bar.loop_start), tick_size);
+    top_bar.loop_end_tick = Rect::new(tick_pos(&top_bar.loop_end), tick_size);
 
     let start_hovered = top_bar
         .elements
@@ -560,29 +552,21 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Insta
         ..LOOPER
     };
 
-    let length = top_bar.loop_end_tick.x() - top_bar.loop_start_tick.x();
+    let length = top_bar.loop_end_tick.origin.x - top_bar.loop_start_tick.origin.x;
 
     let mut bg_box = top_bar.loop_start_tick;
-    bg_box.size.w = length;
+    bg_box.size.width = length;
 
     draw_rect(quad_pipeline, &bg_box, &color);
     draw_rect(quad_pipeline, &top_bar.loop_start_tick, &start_color);
     draw_rect(quad_pipeline, &top_bar.loop_end_tick, &end_color);
 
-    top_bar.elements.update(
-        top_bar.loop_start_tick_id,
-        nuon::Rect::new(
-            (top_bar.loop_start_tick.x(), top_bar.loop_start_tick.y()).into(),
-            (top_bar.loop_start_tick.w(), top_bar.loop_start_tick.h()).into(),
-        ),
-    );
-    top_bar.elements.update(
-        top_bar.loop_end_tick_id,
-        nuon::Rect::new(
-            (top_bar.loop_end_tick.x(), top_bar.loop_end_tick.y()).into(),
-            (top_bar.loop_end_tick.w(), top_bar.loop_end_tick.h()).into(),
-        ),
-    );
+    top_bar
+        .elements
+        .update(top_bar.loop_start_tick_id, top_bar.loop_start_tick);
+    top_bar
+        .elements
+        .update(top_bar.loop_end_tick_id, top_bar.loop_end_tick);
 }
 
 fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {
@@ -594,9 +578,9 @@ fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
 
     let settings_animation = top_bar.settings_animation.expo_out(top_bar.settings_active);
 
-    let y = top_bar.bbox.y();
-    let h = top_bar.bbox.h();
-    let w = top_bar.bbox.w();
+    let y = top_bar.bbox.origin.y;
+    let h = top_bar.bbox.size.height;
+    let w = top_bar.bbox.size.width;
 
     if !top_bar.settings_animation.is_done() {
         let card_w = 300.0;
@@ -614,11 +598,11 @@ fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
     }
 }
 
-fn draw_rect(quad_pipeline: &mut QuadPipeline, bbox: &Bbox, color: &Color) {
+fn draw_rect(quad_pipeline: &mut QuadPipeline, bbox: &Rect, color: &Color) {
     quad_pipeline.push(
         LAYER_FG,
         QuadInstance {
-            position: bbox.pos.into(),
+            position: bbox.origin.into(),
             size: bbox.size.into(),
             color: color.into_linear_rgba(),
             ..Default::default()

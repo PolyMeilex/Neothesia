@@ -69,10 +69,10 @@ pub fn to_quad(key: &piano_math::Key, color: Color, origin: Point<f32>) -> QuadI
     let mut size: Size<f32> = key.size().into();
 
     if let piano_math::KeyKind::Neutral = key.kind() {
-        size.w -= 1.0;
+        size.width -= 1.0;
     }
 
-    let r = border_radius(size.w, false);
+    let r = border_radius(size.width, false);
 
     QuadInstance {
         position,

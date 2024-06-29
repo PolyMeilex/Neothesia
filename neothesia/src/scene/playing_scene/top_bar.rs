@@ -53,8 +53,7 @@ pub struct TopBar {
     pub loop_start: Duration,
     pub loop_end: Duration,
 
-    bar_start: nuon::RowLayout,
-    bar_end: nuon::RowLayout,
+    bar_layout: nuon::TriRowLayout,
 
     back_button: Button,
     play_button: Button,
@@ -166,8 +165,7 @@ impl TopBar {
             last_frame_bbox: bbox,
             bbox,
             loop_tick_height: 45.0 + 10.0,
-            bar_start: nuon::RowLayout::new(),
-            bar_end: nuon::RowLayout::new(),
+            bar_layout: nuon::TriRowLayout::new(),
             loop_button: Button::new(loop_button),
             back_button: Button::new(back_button),
             play_button: Button::new(play_button),
@@ -243,8 +241,7 @@ impl TopBar {
                 Self::handle_cursor_moved(scene, ctx, position);
             }
             WindowEvent::Resized(_) => {
-                scene.top_bar.bar_start.invalidate();
-                scene.top_bar.bar_end.invalidate();
+                scene.top_bar.bar_layout.invalidate();
             }
             _ => {}
         }
@@ -424,19 +421,16 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
     let y = top_bar.bbox.y();
     let w = top_bar.bbox.w();
 
-    let (back_id,) = top_bar.bar_start.once(|row| {
+    let (back_id,) = top_bar.bar_layout.start.once(|row| {
         (
             row.push(30.0),
             //
         )
     });
 
-    top_bar.bar_start.resolve_left(0.0);
+    top_bar.bar_layout.center.once(|_row| {});
 
-    let start_row = top_bar.bar_start.items();
-
-    let end_row = &mut top_bar.bar_end;
-    let (settings_id, loop_id, play_id) = end_row.once(|row| {
+    let (play_id, loop_id, settings_id) = top_bar.bar_layout.end.once(|row| {
         (
             row.push(30.0),
             row.push(30.0),
@@ -444,8 +438,12 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
             //
         )
     });
-    end_row.resolve_right(w);
-    let end_row = end_row.items();
+
+    top_bar.bar_layout.resolve(0.0, w);
+
+    let start_row = top_bar.bar_layout.start.items();
+    let _center_row = top_bar.bar_layout.center.items();
+    let end_row = top_bar.bar_layout.end.items();
 
     let hovered_element = top_bar.elements.hovered_element_id();
 

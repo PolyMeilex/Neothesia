@@ -167,8 +167,8 @@ mod elements_map {
     }
 }
 
-pub use layout::{RowItem, RowLayout};
-mod layout {
+pub use row_layout::{RowItem, RowLayout};
+mod row_layout {
     use std::any::Any;
 
     use smallvec::SmallVec;
@@ -228,7 +228,7 @@ mod layout {
             id
         }
 
-        pub fn width(&self) -> f32 {
+        fn width(&self) -> f32 {
             self.width
         }
 
@@ -236,13 +236,13 @@ mod layout {
             &self.items
         }
 
-        pub fn resolve_left(&mut self, origin: f32) {
+        pub fn resolve_left(&mut self, x: f32) {
             if !self.dirty {
                 return;
             }
             self.dirty = false;
 
-            let mut x = origin;
+            let mut x = x;
 
             for item in self.items.iter_mut() {
                 item.x = x;
@@ -252,19 +252,27 @@ mod layout {
             self.width = self
                 .items
                 .last()
-                .map(|i| (i.x - origin) + i.width)
+                .map(|i| (i.x - x) + i.width)
                 .unwrap_or(0.0);
         }
 
-        pub fn resolve_right(&mut self, origin: f32) {
+        pub fn resolve_center(&mut self, x: f32, width: f32) {
+            self.resolve_left(x);
+            let center_x = width / 2.0 - self.width() / 2.0;
+            for item in self.items.iter_mut() {
+                item.x += center_x;
+            }
+        }
+
+        pub fn resolve_right(&mut self, width: f32) {
             if !self.dirty {
                 return;
             }
             self.dirty = false;
 
-            let mut x = origin;
+            let mut x = width;
 
-            for item in self.items.iter_mut() {
+            for item in self.items.iter_mut().rev() {
                 x -= item.width;
                 item.x = x;
                 x -= self.gap;
@@ -273,9 +281,49 @@ mod layout {
             self.width = self
                 .items
                 .last()
-                .map(|i| (i.x - origin) - i.width)
+                .map(|i| (i.x - width) - i.width)
                 .unwrap_or(0.0)
                 .abs();
+        }
+    }
+}
+
+pub use tri_row_layout::TriRowLayout;
+mod tri_row_layout {
+    use crate::RowLayout;
+
+    #[derive(Debug)]
+    pub struct TriRowLayout {
+        pub start: RowLayout,
+        pub center: RowLayout,
+        pub end: RowLayout,
+    }
+
+    impl Default for TriRowLayout {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl TriRowLayout {
+        pub fn new() -> Self {
+            Self {
+                start: RowLayout::new(),
+                center: RowLayout::new(),
+                end: RowLayout::new(),
+            }
+        }
+
+        pub fn invalidate(&mut self) {
+            self.start.invalidate();
+            self.center.invalidate();
+            self.end.invalidate();
+        }
+
+        pub fn resolve(&mut self, x: f32, width: f32) {
+            self.start.resolve_left(x);
+            self.center.resolve_center(x, width);
+            self.end.resolve_right(width);
         }
     }
 }

@@ -5,24 +5,80 @@ pub type Size = euclid::default::Size2D<f32>;
 pub type Box2D = euclid::default::Box2D<f32>;
 pub type Rect = euclid::default::Rect<f32>;
 
-pub use elements_map::{Element, ElementId, ElementsMap};
+pub use elements_map::{Element, ElementBuilder, ElementId, ElementsMap};
 mod elements_map {
-    use crate::{Point, Rect};
+    use crate::{Point, Rect, Size};
 
     #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
     pub struct ElementId(thunderdome::Index);
 
+    pub struct ElementBuilder<M> {
+        name: Option<&'static str>,
+        on_click: Option<M>,
+        rect: Rect,
+    }
+
+    impl<M> Default for ElementBuilder<M> {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl<M> ElementBuilder<M> {
+        pub fn new() -> Self {
+            Self {
+                name: None,
+                on_click: None,
+                rect: Rect::zero(),
+            }
+        }
+
+        pub fn name(mut self, name: &'static str) -> Self {
+            self.name = Some(name);
+            self
+        }
+
+        pub fn on_click(mut self, msg: M) -> Self {
+            self.on_click = Some(msg);
+            self
+        }
+
+        pub fn rect(mut self, rect: Rect) -> Self {
+            self.rect = rect;
+            self
+        }
+
+        pub fn position(mut self, pos: Point) -> Self {
+            self.rect.origin = pos;
+            self
+        }
+
+        pub fn size(mut self, size: Size) -> Self {
+            self.rect.size = size;
+            self
+        }
+
+        fn build(self) -> Element<M> {
+            Element {
+                name: self.name.unwrap_or("Element"),
+                on_click: self.on_click,
+                hovered: false,
+                rect: self.rect,
+            }
+        }
+    }
+
     #[derive(Debug)]
     pub struct Element<M> {
-        dbg_name: &'static str,
+        name: &'static str,
         on_click: Option<M>,
         hovered: bool,
         rect: Rect,
     }
 
     impl<M> Element<M> {
-        pub fn dbg_name(&self) -> &'static str {
-            self.dbg_name
+        pub fn name(&self) -> &'static str {
+            self.name
         }
 
         pub fn hovered(&self) -> bool {
@@ -48,18 +104,8 @@ mod elements_map {
             }
         }
 
-        pub fn insert(
-            &mut self,
-            dbg_name: &'static str,
-            rect: Rect,
-            on_click: Option<M>,
-        ) -> ElementId {
-            let id = ElementId(self.elements.insert(Element {
-                dbg_name,
-                rect,
-                on_click,
-                hovered: false,
-            }));
+        pub fn insert(&mut self, builder: ElementBuilder<M>) -> ElementId {
+            let id = ElementId(self.elements.insert(builder.build()));
             self.listen_for_mouse(id);
             id
         }

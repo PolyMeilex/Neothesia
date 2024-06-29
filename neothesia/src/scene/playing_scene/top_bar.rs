@@ -113,38 +113,39 @@ impl TopBar {
         let mut elements = nuon::ElementsMap::new();
 
         let back_button = elements.insert(
-            "BackButton",
-            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
-            Some(Msg::GoBack),
+            nuon::ElementBuilder::new()
+                .name("BackButton")
+                .on_click(Msg::GoBack),
         );
 
         let play_button = elements.insert(
-            "PlayButton",
-            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
-            Some(Msg::PlayResume),
+            nuon::ElementBuilder::new()
+                .name("PlayButton")
+                .on_click(Msg::PlayResume),
         );
 
         let loop_button = elements.insert(
-            "LoopButton",
-            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
-            Some(Msg::LooperToggle),
+            nuon::ElementBuilder::new()
+                .name("LoopButton")
+                .on_click(Msg::LooperToggle),
         );
 
         let settings_button = elements.insert(
-            "SettingsButton",
-            nuon::Rect::new((0.0, 0.0).into(), (30.0, 30.0).into()),
-            Some(Msg::SettingsToggle),
+            nuon::ElementBuilder::new()
+                .name("SettingsButton")
+                .on_click(Msg::SettingsToggle),
         );
 
         let loop_start_tick_id = elements.insert(
-            "LoopStartTick",
-            nuon::Rect::default(),
-            Some(Msg::LoopTickDrag(LooperDrag::Start)),
+            nuon::ElementBuilder::new()
+                .name("LoopStartTick")
+                .on_click(Msg::LoopTickDrag(LooperDrag::Start)),
         );
+
         let loop_end_tick_id = elements.insert(
-            "LoopEndTick",
-            nuon::Rect::default(),
-            Some(Msg::LoopTickDrag(LooperDrag::End)),
+            nuon::ElementBuilder::new()
+                .name("LoopEndTick")
+                .on_click(Msg::LoopTickDrag(LooperDrag::End)),
         );
 
         let bbox = Bbox::new([0.0, 0.0], [0.0, 45.0 + 30.0]);

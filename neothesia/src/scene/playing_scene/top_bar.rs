@@ -27,6 +27,7 @@ enum Msg {
     PlayResume,
     LooperToggle,
     SettingsToggle,
+    ProggresBarPressed,
     LoopTickDrag(LooperDrag),
 }
 
@@ -59,6 +60,9 @@ pub struct TopBar {
     play_button: Button,
     loop_button: Button,
     settings_button: Button,
+
+    progress_bar_bbox: nuon::Rect,
+    progress_bar: nuon::ElementId,
 
     loop_start_tick: Bbox,
     loop_start_tick_id: nuon::ElementId,
@@ -136,6 +140,12 @@ impl TopBar {
                 .on_click(Msg::SettingsToggle),
         );
 
+        let progress_bar = elements.insert(
+            nuon::ElementBuilder::new()
+                .name("ProgressBar")
+                .on_click(Msg::ProggresBarPressed),
+        );
+
         let loop_start_tick_id = elements.insert(
             nuon::ElementBuilder::new()
                 .name("LoopStartTick")
@@ -172,6 +182,8 @@ impl TopBar {
                 .delay(30.0),
             is_expanded: false,
             settings_animation: Animation::new(),
+            progress_bar_bbox: nuon::Rect::zero(),
+            progress_bar,
             loop_start_tick: Bbox::default(),
             loop_end_tick_id,
             loop_end_tick: Bbox::default(),
@@ -200,6 +212,20 @@ impl TopBar {
             }
             Msg::LoopTickDrag(side) => {
                 scene.top_bar.drag = Some(side);
+            }
+            Msg::ProggresBarPressed => {
+                if !scene.rewind_controller.is_rewinding() {
+                    scene
+                        .rewind_controller
+                        .start_mouse_rewind(&mut scene.player);
+
+                    let x = ctx.window_state.cursor_logical_position.x;
+                    let w = ctx.window_state.logical_size.width;
+
+                    let p = x / w;
+                    scene.player.set_percentage_time(p);
+                    scene.keyboard.reset_notes();
+                }
             }
         }
     }
@@ -241,26 +267,6 @@ impl TopBar {
                     .and_then(|(_, e)| e.on_click())
                 {
                     Self::on_msg(scene, ctx, msg.clone());
-                    return EVENT_CAPTURED;
-                }
-
-                let pos = &ctx.window_state.cursor_logical_position;
-
-                if pos.y > 30.0
-                    && pos.y < scene.top_bar.bbox.h()
-                    && !scene.rewind_controller.is_rewinding()
-                {
-                    scene
-                        .rewind_controller
-                        .start_mouse_rewind(&mut scene.player);
-
-                    let x = ctx.window_state.cursor_logical_position.x;
-                    let w = ctx.window_state.logical_size.width;
-
-                    let p = x / w;
-                    log::debug!("Progressbar: x:{},p:{}", x, p);
-                    scene.player.set_percentage_time(p);
-                    scene.keyboard.reset_notes();
                     return EVENT_CAPTURED;
                 }
             }
@@ -369,7 +375,27 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
     let w = top_bar.bbox.w();
 
     let progress_x = w * player.percentage();
-    draw_rect(quad_pipeline, &Bbox::new([0.0, y], [progress_x, h]), &BLUE);
+
+    top_bar.progress_bar_bbox.origin = (0.0, y).into();
+    top_bar.progress_bar_bbox.size = (w, h).into();
+
+    if top_bar.last_frame_bbox != top_bar.bbox {
+        top_bar
+            .elements
+            .update(top_bar.progress_bar, top_bar.progress_bar_bbox)
+    }
+
+    draw_rect(
+        quad_pipeline,
+        &Bbox::new(
+            [
+                top_bar.progress_bar_bbox.origin.x,
+                top_bar.progress_bar_bbox.origin.y,
+            ],
+            [progress_x, top_bar.progress_bar_bbox.size.height],
+        ),
+        &BLUE,
+    );
 
     for m in player.song().file.measures.iter() {
         let length = player.length().as_secs_f32();

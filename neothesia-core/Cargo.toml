@@ -15,6 +15,7 @@ wgpu-jumpstart.workspace = true
 piano-math.workspace = true
 midi-file.workspace = true
 profiling.workspace = true
+euclid.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"

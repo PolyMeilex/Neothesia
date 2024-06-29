@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-euclid = "0.22"
+euclid.workspace = true
 smallvec = "1.13.2"
 thunderdome = "0.6"

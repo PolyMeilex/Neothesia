@@ -93,6 +93,7 @@ mod elements_map {
     #[derive(Debug, Default)]
     pub struct ElementsMap<M> {
         elements: thunderdome::Arena<Element<M>>,
+        zorder: Vec<ElementId>,
         hovered: Option<ElementId>,
     }
 
@@ -100,6 +101,7 @@ mod elements_map {
         pub fn new() -> Self {
             Self {
                 elements: thunderdome::Arena::new(),
+                zorder: Vec::new(),
                 hovered: None,
             }
         }
@@ -119,8 +121,9 @@ mod elements_map {
             element.rect = rect;
         }
 
-        fn listen_for_mouse(&mut self, _id: ElementId) {
-            // TODO: Track stacking order in a vec
+        fn listen_for_mouse(&mut self, id: ElementId) {
+            // TODO: Make this smarter
+            self.zorder.push(id);
         }
 
         pub fn get(&self, id: ElementId) -> Option<&Element<M>> {
@@ -129,10 +132,15 @@ mod elements_map {
 
         pub fn update_cursor_pos(&mut self, point: Point) {
             self.hovered = None;
-            for (id, element) in self.elements.iter_mut() {
+
+            for id in self.zorder.iter().rev() {
+                let Some(element) = self.elements.get_mut(id.0) else {
+                    continue;
+                };
+
                 element.hovered = element.rect.contains(point);
                 if self.hovered.is_none() && element.hovered {
-                    self.hovered = Some(ElementId(id));
+                    self.hovered = Some(*id);
                 }
             }
         }

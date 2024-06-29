@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use neothesia_core::{
     render::{QuadInstance, QuadPipeline, TextRenderer},
@@ -13,8 +13,9 @@ use winit::{
 use crate::{context::Context, utils::window::WindowState, NeothesiaEvent};
 
 use super::{
-    animation::Animation, rewind_controller::RewindController, PlayingScene, EVENT_CAPTURED,
-    EVENT_IGNORED, LAYER_FG,
+    animation::{Animated, Animation, Easing},
+    rewind_controller::RewindController,
+    PlayingScene, EVENT_CAPTURED, EVENT_IGNORED, LAYER_FG,
 };
 
 mod button;
@@ -36,7 +37,7 @@ pub struct TopBar {
     bbox: Bbox<f32>,
     loop_tick_height: f32,
 
-    animation: Animation,
+    animation: Animated<bool, Instant>,
     is_expanded: bool,
 
     settings_animation: Animation,
@@ -109,7 +110,10 @@ impl TopBar {
             loop_start: Duration::ZERO,
             loop_end: Duration::ZERO,
             loop_active: false,
-            animation: Animation::new(),
+            animation: Animated::new(false)
+                .duration(1000.)
+                .easing(Easing::EaseOutExpo)
+                .delay(30.0),
             is_expanded: false,
             settings_animation: Animation::new(),
             loop_start_tick: Bbox::default(),
@@ -263,7 +267,12 @@ impl TopBar {
         top_bar.is_expanded |= top_bar.settings_active;
         top_bar.is_expanded |= matches!(rewind_controller, RewindController::Mouse { .. });
 
-        top_bar.animation.update(top_bar.is_expanded);
+        // TODO: Use one Instant per frame
+        let now = Instant::now();
+
+        if top_bar.animation.value != top_bar.is_expanded {
+            top_bar.animation.transition(top_bar.is_expanded, now);
+        }
         top_bar.settings_animation.update(top_bar.settings_active);
 
         if !top_bar.is_expanded {
@@ -275,13 +284,11 @@ impl TopBar {
             );
         }
 
-        if top_bar.animation.is_done() {
+        top_bar.bbox.pos.y = top_bar.animation.animate(-h, 0.0, now);
+
+        if top_bar.bbox.y() == -top_bar.bbox.h() {
             return;
         }
-
-        let bar_animation = top_bar.animation.expo_out(top_bar.is_expanded);
-
-        top_bar.bbox.pos.y = -h + (bar_animation * h);
 
         draw_rect(quad_pipeline, &top_bar.bbox, &BAR_BG);
 
@@ -291,12 +298,12 @@ impl TopBar {
             update_looper,
             update_settings_card,
         ] {
-            f(scene, text);
+            f(scene, text, &now);
         }
     }
 }
 
-fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer) {
+fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {
     let PlayingScene {
         top_bar,
         quad_pipeline,
@@ -328,7 +335,7 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     }
 }
 
-fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
+fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Instant) {
     let PlayingScene {
         top_bar,
         quad_pipeline,
@@ -380,7 +387,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer) {
         .draw(quad_pipeline, text);
 }
 
-fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer) {
+fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Instant) {
     let PlayingScene {
         top_bar,
         quad_pipeline,
@@ -392,12 +399,13 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer) {
         return;
     }
 
-    let animation = top_bar.animation.expo_out(top_bar.is_expanded);
+    let y = top_bar
+        .animation
+        .animate(-top_bar.bbox.h() - 30.0, 30.0, *now);
+    let alpha = top_bar.animation.animate(0.0, 1.0, *now);
 
     let h = top_bar.loop_tick_height;
     let w = top_bar.bbox.w();
-    let offset = 30.0 + h;
-    let y = 30.0 - offset + (animation * offset);
 
     let tick_size = Size::new(5.0, h);
     let tick_pos = |start: &Duration| Point {
@@ -408,13 +416,18 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     top_bar.loop_start_tick = Bbox::new(tick_pos(&top_bar.loop_start), tick_size);
     top_bar.loop_end_tick = Bbox::new(tick_pos(&top_bar.loop_end), tick_size);
 
-    let (start_color, end_color) = match (top_bar.hovered, top_bar.drag) {
+    let (mut start_color, mut end_color) = match (top_bar.hovered, top_bar.drag) {
         (Element::StartTick, _) | (_, Element::StartTick) => (WHITE, LOOPER),
         (Element::EndTick, _) | (_, Element::EndTick) => (LOOPER, WHITE),
         _ => (LOOPER, LOOPER),
     };
+    start_color.a *= alpha;
+    end_color.a *= alpha;
 
-    let color = Color { a: 0.35, ..LOOPER };
+    let color = Color {
+        a: 0.35 * alpha,
+        ..LOOPER
+    };
 
     let length = top_bar.loop_end_tick.x() - top_bar.loop_start_tick.x();
 
@@ -426,7 +439,7 @@ fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer) {
     draw_rect(quad_pipeline, &top_bar.loop_end_tick, &end_color);
 }
 
-fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer) {
+fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {
     let PlayingScene {
         top_bar,
         quad_pipeline,

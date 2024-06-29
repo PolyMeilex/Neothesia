@@ -151,6 +151,9 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved { x, y }))
         }
+        WindowEvent::RedrawRequested => Some(Event::Window(window::Event::RedrawRequested(
+            iced_core::time::Instant::now(),
+        ))),
         _ => None,
     }
 }

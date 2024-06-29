@@ -1,3 +1,5 @@
+pub use lilt::*;
+
 #[derive(Debug)]
 pub struct Animation {
     raw: f32,

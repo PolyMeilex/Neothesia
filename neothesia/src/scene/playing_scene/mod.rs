@@ -158,7 +158,7 @@ impl Scene for PlayingScene {
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
 
-        if self.player.is_finished() {
+        if self.player.is_finished() && !self.player.is_paused() {
             ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
         }
     }

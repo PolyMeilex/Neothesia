@@ -15,6 +15,7 @@ mod elements_map {
     pub struct ElementBuilder<M> {
         name: Option<&'static str>,
         on_click: Option<M>,
+        on_pressed: Option<M>,
         on_release: Option<M>,
         on_cursor_move: Option<M>,
         rect: Rect,
@@ -31,6 +32,7 @@ mod elements_map {
             Self {
                 name: None,
                 on_click: None,
+                on_pressed: None,
                 on_release: None,
                 on_cursor_move: None,
                 rect: Rect::zero(),
@@ -44,6 +46,11 @@ mod elements_map {
 
         pub fn on_click(mut self, msg: M) -> Self {
             self.on_click = Some(msg);
+            self
+        }
+
+        pub fn on_pressed(mut self, msg: M) -> Self {
+            self.on_pressed = Some(msg);
             self
         }
 
@@ -76,6 +83,7 @@ mod elements_map {
             Element {
                 name: self.name.unwrap_or("Element"),
                 on_click: self.on_click,
+                on_pressed: self.on_pressed,
                 on_release: self.on_release,
                 on_cursor_move: self.on_cursor_move,
                 hovered: false,
@@ -87,7 +95,9 @@ mod elements_map {
     #[derive(Debug)]
     pub struct Element<M> {
         name: &'static str,
+        /// Button-like click, needs both press and release without focus loss
         on_click: Option<M>,
+        on_pressed: Option<M>,
         on_release: Option<M>,
         on_cursor_move: Option<M>,
         hovered: bool,
@@ -109,6 +119,10 @@ mod elements_map {
 
         pub fn on_click(&self) -> Option<&M> {
             self.on_click.as_ref()
+        }
+
+        pub fn on_pressed(&self) -> Option<&M> {
+            self.on_pressed.as_ref()
         }
 
         pub fn on_release(&self) -> Option<&M> {

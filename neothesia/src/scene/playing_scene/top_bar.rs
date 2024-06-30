@@ -155,7 +155,7 @@ impl TopBar {
                     .top_bar
                     .elements
                     .on_press()
-                    .and_then(|(_, e)| e.on_click())
+                    .and_then(|(_, e)| e.on_pressed())
                     .cloned()
                 {
                     Self::on_msg(scene, ctx, msg);
@@ -163,14 +163,23 @@ impl TopBar {
                 }
             }
             (ElementState::Released, MouseButton::Left) => {
-                if let Some(msg) = scene
-                    .top_bar
-                    .elements
-                    .on_release()
-                    .and_then(|(_, e)| e.on_release())
-                    .cloned()
-                {
-                    Self::on_msg(scene, ctx, msg);
+                let hovered_element = scene.top_bar.elements.hovered_element_id();
+                if let Some((released_id, element)) = scene.top_bar.elements.on_release() {
+                    let click_event = element
+                        .on_click()
+                        // Is hover still over the element that started the press grab
+                        .filter(|_| hovered_element == Some(released_id))
+                        .cloned();
+
+                    let release_event = element.on_release().cloned();
+
+                    if let Some(msg) = click_event {
+                        Self::on_msg(scene, ctx, msg);
+                    }
+                    if let Some(msg) = release_event {
+                        Self::on_msg(scene, ctx, msg);
+                    }
+
                     return EVENT_CAPTURED;
                 }
             }

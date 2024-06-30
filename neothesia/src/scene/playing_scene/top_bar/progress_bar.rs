@@ -24,7 +24,7 @@ impl ProgressBar {
         let id = elements.insert(
             nuon::ElementBuilder::new()
                 .name("ProgressBar")
-                .on_click(Msg::ProggresBar(ProgressBarMsg::Pressed))
+                .on_pressed(Msg::ProggresBar(ProgressBarMsg::Pressed))
                 .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
         );
 

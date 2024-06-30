@@ -42,7 +42,7 @@ impl LoopTick {
                     LoopTickSide::Start => "LoopStartTick",
                     LoopTickSide::End => "LoopEndTick",
                 })
-                .on_click(Msg::LooperEvent(LooperMsg::Tick {
+                .on_pressed(Msg::LooperEvent(LooperMsg::Tick {
                     side,
                     event: LoopTickMsg::DragStart,
                 }))

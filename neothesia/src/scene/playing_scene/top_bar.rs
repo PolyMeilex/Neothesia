@@ -21,6 +21,9 @@ use super::{
 mod button;
 use button::Button;
 
+mod header;
+use header::Header;
+
 mod progress_bar;
 use progress_bar::{ProgressBar, ProgressBarMsg};
 
@@ -47,13 +50,7 @@ pub struct TopBar {
 
     settings_animation: Animation,
 
-    bar_layout: nuon::TriRowLayout,
-
-    back_button: Button,
-    play_button: Button,
-    loop_button: Button,
-    settings_button: Button,
-
+    header: Header,
     progress_bar: ProgressBar,
     pub looper: Looper,
 
@@ -74,63 +71,11 @@ const DARK_MEASURE: Color = Color::new(0.4, 0.4, 0.4, 1.0);
 const LOOPER: Color = color_u8!(255, 56, 187, 1.0);
 const WHITE: Color = Color::new(1.0, 1.0, 1.0, 1.0);
 
-fn gear_icon() -> &'static str {
-    "\u{F3E5}"
-}
-
-fn gear_fill_icon() -> &'static str {
-    "\u{F3E2}"
-}
-
-fn repeat_icon() -> &'static str {
-    "\u{f130}"
-}
-
-fn play_icon() -> &'static str {
-    "\u{f4f4}"
-}
-
-fn pause_icon() -> &'static str {
-    "\u{f4c3}"
-}
-
-fn left_arrow_icon() -> &'static str {
-    "\u{f12f}"
-}
-
 impl TopBar {
     pub fn new() -> Self {
         let mut elements = nuon::ElementsMap::new();
 
-        let mut back_button = Button::new(
-            &mut elements,
-            nuon::ElementBuilder::new()
-                .name("BackButton")
-                .on_click(Msg::GoBack),
-        );
-        let mut play_button = Button::new(
-            &mut elements,
-            nuon::ElementBuilder::new()
-                .name("PlayButton")
-                .on_click(Msg::PlayResume),
-        );
-        let mut loop_button = Button::new(
-            &mut elements,
-            nuon::ElementBuilder::new()
-                .name("LoopButton")
-                .on_click(Msg::LooperEvent(LooperMsg::Toggle)),
-        );
-        let mut settings_button = Button::new(
-            &mut elements,
-            nuon::ElementBuilder::new()
-                .name("SettingsButton")
-                .on_click(Msg::SettingsToggle),
-        );
-
-        back_button.set_icon(left_arrow_icon());
-        play_button.set_icon(pause_icon());
-        loop_button.set_icon(repeat_icon());
-        settings_button.set_icon(gear_icon());
+        let header = Header::new(&mut elements);
 
         let progress_bar = ProgressBar::new(&mut elements);
 
@@ -142,12 +87,8 @@ impl TopBar {
 
             bbox,
             loop_tick_height: 45.0 + 10.0,
-            bar_layout: nuon::TriRowLayout::new(),
 
-            back_button,
-            play_button,
-            loop_button,
-            settings_button,
+            header,
 
             animation: Animated::new(false)
                 .duration(1000.)
@@ -194,7 +135,7 @@ impl TopBar {
                 Self::handle_cursor_moved(scene, ctx, position);
             }
             WindowEvent::Resized(_) => {
-                scene.top_bar.bar_layout.invalidate();
+                scene.top_bar.header.invalidate_layout();
             }
             _ => {}
         }
@@ -306,99 +247,12 @@ impl TopBar {
 
         for f in [
             ProgressBar::update,
-            update_buttons,
+            Header::update,
             Looper::update,
             update_settings_card,
         ] {
             f(scene, text, &now);
         }
-    }
-}
-
-fn update_button_icons(scene: &mut PlayingScene) {
-    let PlayingScene {
-        top_bar, player, ..
-    } = scene;
-
-    top_bar.play_button.set_icon(if player.is_paused() {
-        play_icon()
-    } else {
-        pause_icon()
-    });
-
-    top_bar
-        .settings_button
-        .set_icon(if top_bar.settings_active {
-            gear_fill_icon()
-        } else {
-            gear_icon()
-        });
-}
-
-fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Instant) {
-    update_button_icons(scene);
-
-    let PlayingScene {
-        top_bar,
-        quad_pipeline,
-        ..
-    } = scene;
-
-    let y = top_bar.bbox.origin.y;
-    let w = top_bar.bbox.size.width;
-
-    let (_back_id,) = top_bar.bar_layout.start.once(|row| {
-        (
-            row.push(30.0),
-            //
-        )
-    });
-
-    top_bar.bar_layout.center.once(|_row| {});
-
-    let (_play, _loop, _settings) = top_bar.bar_layout.end.once(|row| {
-        (
-            row.push(30.0),
-            row.push(30.0),
-            row.push(30.0),
-            //
-        )
-    });
-
-    top_bar.bar_layout.resolve(0.0, w);
-
-    let start_row = top_bar.bar_layout.start.items();
-    let _center_row = top_bar.bar_layout.center.items();
-    let end_row = top_bar.bar_layout.end.items();
-
-    for (btn, item) in [&mut top_bar.back_button].into_iter().zip(start_row) {
-        btn.update(
-            &mut top_bar.elements,
-            Rect::new((item.x, y).into(), (item.width, 30.0).into()),
-        );
-    }
-
-    for (btn, item) in [
-        &mut top_bar.play_button,
-        &mut top_bar.loop_button,
-        &mut top_bar.settings_button,
-    ]
-    .into_iter()
-    .zip(end_row)
-    {
-        btn.update(
-            &mut top_bar.elements,
-            Rect::new((item.x, y).into(), (item.width, 30.0).into()),
-        );
-    }
-
-    for btn in [
-        &top_bar.back_button,
-        &top_bar.play_button,
-        &top_bar.loop_button,
-        &top_bar.settings_button,
-    ] {
-        btn.draw(quad_pipeline, text);
     }
 }
 

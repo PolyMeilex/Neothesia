@@ -1,8 +1,8 @@
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use neothesia_core::{
     render::{QuadInstance, QuadPipeline, TextRenderer},
-    utils::{Point, Rect, Size},
+    utils::Rect,
 };
 use wgpu_jumpstart::Color;
 use winit::{
@@ -21,20 +21,19 @@ use super::{
 mod button;
 use button::Button;
 
+mod progress_bar;
+use progress_bar::{ProgressBar, ProgressBarMsg};
+
+mod looper;
+use looper::{Looper, LooperEvent};
+
 #[derive(Debug, Clone)]
 enum Msg {
     GoBack,
     PlayResume,
-    LooperToggle,
     SettingsToggle,
-    ProggresBarPressed,
-    LoopTickDrag(LooperDrag),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum LooperDrag {
-    Start,
-    End,
+    ProggresBar(ProgressBarMsg),
+    LooperEvent(LooperEvent),
 }
 
 pub struct TopBar {
@@ -47,10 +46,6 @@ pub struct TopBar {
     is_expanded: bool,
 
     settings_animation: Animation,
-    drag: Option<LooperDrag>,
-
-    pub loop_start: Duration,
-    pub loop_end: Duration,
 
     bar_layout: nuon::TriRowLayout,
 
@@ -59,15 +54,9 @@ pub struct TopBar {
     loop_button: Button,
     settings_button: Button,
 
-    progress_bar: nuon::ElementId,
+    progress_bar: ProgressBar,
+    pub looper: Looper,
 
-    loop_start_tick: Rect,
-    loop_start_tick_id: nuon::ElementId,
-
-    loop_end_tick: Rect,
-    loop_end_tick_id: nuon::ElementId,
-
-    pub loop_active: bool,
     pub settings_active: bool,
 }
 
@@ -119,7 +108,11 @@ impl TopBar {
 
         let mut back_button = new_button(&mut elements, "BackButton", Msg::GoBack);
         let mut play_button = new_button(&mut elements, "PlayButton", Msg::PlayResume);
-        let mut loop_button = new_button(&mut elements, "LoopButton", Msg::LooperToggle);
+        let mut loop_button = new_button(
+            &mut elements,
+            "LoopButton",
+            Msg::LooperEvent(LooperEvent::Toggle),
+        );
         let mut settings_button = new_button(&mut elements, "SettingsButton", Msg::SettingsToggle);
 
         back_button.set_icon(left_arrow_icon());
@@ -127,24 +120,9 @@ impl TopBar {
         loop_button.set_icon(repeat_icon());
         settings_button.set_icon(gear_icon());
 
-        let progress_bar = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("ProgressBar")
-                .on_click(Msg::ProggresBarPressed),
-        );
+        let progress_bar = ProgressBar::new(&mut elements);
 
-        let loop_start_tick_id = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("LoopStartTick")
-                .on_click(Msg::LoopTickDrag(LooperDrag::Start)),
-        );
-
-        let loop_end_tick_id = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("LoopEndTick")
-                .on_click(Msg::LoopTickDrag(LooperDrag::End)),
-        );
-
+        let looper = Looper::new(&mut elements);
         let bbox = Rect::new((0.0, 0.0).into(), (0.0, 45.0 + 30.0).into());
 
         Self {
@@ -159,10 +137,6 @@ impl TopBar {
             loop_button,
             settings_button,
 
-            drag: None,
-            loop_start: Duration::ZERO,
-            loop_end: Duration::ZERO,
-            loop_active: false,
             animation: Animated::new(false)
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
@@ -170,10 +144,7 @@ impl TopBar {
             is_expanded: false,
             settings_animation: Animation::new(),
             progress_bar,
-            loop_start_tick: Rect::default(),
-            loop_end_tick_id,
-            loop_end_tick: Rect::default(),
-            loop_start_tick_id,
+            looper,
             settings_active: false,
         }
     }
@@ -186,32 +157,14 @@ impl TopBar {
             Msg::PlayResume => {
                 scene.player.pause_resume();
             }
-            Msg::LooperToggle => {
-                scene.top_bar.loop_active = !scene.top_bar.loop_active;
-                if scene.top_bar.loop_active {
-                    scene.top_bar.loop_start = scene.player.time();
-                    scene.top_bar.loop_end = scene.top_bar.loop_start + Duration::from_secs(3);
-                };
-            }
             Msg::SettingsToggle => {
                 scene.top_bar.settings_active = !scene.top_bar.settings_active;
             }
-            Msg::LoopTickDrag(side) => {
-                scene.top_bar.drag = Some(side);
+            Msg::LooperEvent(msg) => {
+                Looper::on_msg(scene, ctx, msg);
             }
-            Msg::ProggresBarPressed => {
-                if !scene.rewind_controller.is_rewinding() {
-                    scene
-                        .rewind_controller
-                        .start_mouse_rewind(&mut scene.player);
-
-                    let x = ctx.window_state.cursor_logical_position.x;
-                    let w = ctx.window_state.logical_size.width;
-
-                    let p = x / w;
-                    scene.player.set_percentage_time(p);
-                    scene.keyboard.reset_notes();
-                }
+            Msg::ProggresBar(msg) => {
+                ProgressBar::on_msg(scene, ctx, msg);
             }
         }
     }
@@ -248,18 +201,24 @@ impl TopBar {
                 if let Some(msg) = scene
                     .top_bar
                     .elements
-                    .hovered_element()
+                    .on_press()
                     .and_then(|(_, e)| e.on_click())
+                    .cloned()
                 {
-                    Self::on_msg(scene, ctx, msg.clone());
+                    Self::on_msg(scene, ctx, msg);
                     return EVENT_CAPTURED;
                 }
             }
             (ElementState::Released, MouseButton::Left) => {
-                scene.top_bar.drag = None;
-
-                if let RewindController::Mouse { .. } = scene.rewind_controller {
-                    scene.rewind_controller.stop_rewind(&mut scene.player);
+                if let Some(msg) = scene
+                    .top_bar
+                    .elements
+                    .on_release()
+                    .and_then(|(_, e)| e.on_release())
+                    .cloned()
+                {
+                    Self::on_msg(scene, ctx, msg);
+                    return EVENT_CAPTURED;
                 }
             }
             _ => {}
@@ -275,18 +234,17 @@ impl TopBar {
     ) {
         let x = position.to_logical::<f32>(ctx.window_state.scale_factor).x;
         let y = position.to_logical::<f32>(ctx.window_state.scale_factor).y;
-        let w = ctx.window_state.logical_size.width;
 
         scene.top_bar.elements.update_cursor_pos((x, y).into());
 
-        match scene.top_bar.drag {
-            Some(LooperDrag::Start) => {
-                scene.top_bar.loop_start = scene.player.percentage_to_time(x / w);
-            }
-            Some(LooperDrag::End) => {
-                scene.top_bar.loop_end = scene.player.percentage_to_time(x / w);
-            }
-            None => {}
+        if let Some(msg) = scene
+            .top_bar
+            .elements
+            .current_mouse_grab()
+            .and_then(|(_, e)| e.on_cursor_move())
+            .cloned()
+        {
+            Self::on_msg(scene, ctx, msg);
         }
     }
 
@@ -335,54 +293,13 @@ impl TopBar {
         draw_rect(quad_pipeline, &top_bar.bbox, &BAR_BG);
 
         for f in [
-            update_proggress_bar,
+            ProgressBar::update,
             update_buttons,
-            update_looper,
+            Looper::update,
             update_settings_card,
         ] {
             f(scene, text, &now);
         }
-    }
-}
-
-fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {
-    let PlayingScene {
-        top_bar,
-        quad_pipeline,
-        player,
-        ..
-    } = scene;
-
-    let y = top_bar.bbox.origin.y + 30.0;
-    let h = top_bar.bbox.size.height - 30.0;
-    let w = top_bar.bbox.size.width;
-
-    let progress_x = w * player.percentage();
-
-    let mut rect = nuon::Rect::new((0.0, y).into(), (w, h).into());
-    top_bar.elements.update(top_bar.progress_bar, rect);
-
-    rect.size.width = progress_x;
-    draw_rect(quad_pipeline, &rect, &BLUE);
-
-    for m in player.song().file.measures.iter() {
-        let length = player.length().as_secs_f32();
-        let start = player.leed_in().as_secs_f32() / length;
-        let measure = m.as_secs_f32() / length;
-
-        let x = (start + measure) * w;
-
-        let color = if x < progress_x {
-            LIGHT_MEASURE
-        } else {
-            DARK_MEASURE
-        };
-
-        draw_rect(
-            quad_pipeline,
-            &Rect::new((x, y).into(), (1.0, h).into()),
-            &color,
-        );
     }
 }
 
@@ -471,79 +388,6 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
     ] {
         btn.draw(quad_pipeline, text);
     }
-}
-
-fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Instant) {
-    let PlayingScene {
-        top_bar,
-        quad_pipeline,
-        ref player,
-        ..
-    } = scene;
-
-    if !top_bar.loop_active {
-        top_bar
-            .elements
-            .update(top_bar.loop_start_tick_id, nuon::Rect::zero());
-        top_bar
-            .elements
-            .update(top_bar.loop_end_tick_id, nuon::Rect::zero());
-        return;
-    }
-
-    let y = top_bar
-        .animation
-        .animate(-top_bar.bbox.size.height - 30.0, 30.0, *now);
-    let alpha = top_bar.animation.animate(0.0, 1.0, *now);
-
-    let h = top_bar.loop_tick_height;
-    let w = top_bar.bbox.size.width;
-
-    let tick_size = Size::new(5.0, h);
-    let tick_pos = |start: &Duration| Point::new(player.time_to_percentage(start) * w, y);
-
-    top_bar.loop_start_tick = Rect::new(tick_pos(&top_bar.loop_start), tick_size);
-    top_bar.loop_end_tick = Rect::new(tick_pos(&top_bar.loop_end), tick_size);
-
-    let start_hovered = top_bar
-        .elements
-        .get(top_bar.loop_start_tick_id)
-        .map(|e| e.hovered())
-        .unwrap_or(false)
-        || top_bar.drag == Some(LooperDrag::Start);
-    let end_hovered = top_bar
-        .elements
-        .get(top_bar.loop_end_tick_id)
-        .map(|e| e.hovered())
-        .unwrap_or(false)
-        || top_bar.drag == Some(LooperDrag::End);
-
-    let mut start_color = if start_hovered { WHITE } else { LOOPER };
-    let mut end_color = if end_hovered { WHITE } else { LOOPER };
-
-    start_color.a *= alpha;
-    end_color.a *= alpha;
-
-    let color = Color {
-        a: 0.35 * alpha,
-        ..LOOPER
-    };
-
-    let length = top_bar.loop_end_tick.origin.x - top_bar.loop_start_tick.origin.x;
-
-    let mut bg_box = top_bar.loop_start_tick;
-    bg_box.size.width = length;
-
-    draw_rect(quad_pipeline, &bg_box, &color);
-    draw_rect(quad_pipeline, &top_bar.loop_start_tick, &start_color);
-    draw_rect(quad_pipeline, &top_bar.loop_end_tick, &end_color);
-
-    top_bar
-        .elements
-        .update(top_bar.loop_start_tick_id, top_bar.loop_start_tick);
-    top_bar
-        .elements
-        .update(top_bar.loop_end_tick_id, top_bar.loop_end_tick);
 }
 
 fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {

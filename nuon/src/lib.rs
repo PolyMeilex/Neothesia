@@ -15,6 +15,8 @@ mod elements_map {
     pub struct ElementBuilder<M> {
         name: Option<&'static str>,
         on_click: Option<M>,
+        on_release: Option<M>,
+        on_cursor_move: Option<M>,
         rect: Rect,
     }
 
@@ -29,6 +31,8 @@ mod elements_map {
             Self {
                 name: None,
                 on_click: None,
+                on_release: None,
+                on_cursor_move: None,
                 rect: Rect::zero(),
             }
         }
@@ -40,6 +44,16 @@ mod elements_map {
 
         pub fn on_click(mut self, msg: M) -> Self {
             self.on_click = Some(msg);
+            self
+        }
+
+        pub fn on_release(mut self, msg: M) -> Self {
+            self.on_release = Some(msg);
+            self
+        }
+
+        pub fn on_cursor_move(mut self, msg: M) -> Self {
+            self.on_cursor_move = Some(msg);
             self
         }
 
@@ -62,6 +76,8 @@ mod elements_map {
             Element {
                 name: self.name.unwrap_or("Element"),
                 on_click: self.on_click,
+                on_release: self.on_release,
+                on_cursor_move: self.on_cursor_move,
                 hovered: false,
                 rect: self.rect,
             }
@@ -72,6 +88,8 @@ mod elements_map {
     pub struct Element<M> {
         name: &'static str,
         on_click: Option<M>,
+        on_release: Option<M>,
+        on_cursor_move: Option<M>,
         hovered: bool,
         rect: Rect,
     }
@@ -92,6 +110,14 @@ mod elements_map {
         pub fn on_click(&self) -> Option<&M> {
             self.on_click.as_ref()
         }
+
+        pub fn on_release(&self) -> Option<&M> {
+            self.on_release.as_ref()
+        }
+
+        pub fn on_cursor_move(&self) -> Option<&M> {
+            self.on_cursor_move.as_ref()
+        }
     }
 
     #[derive(Debug, Default)]
@@ -99,6 +125,8 @@ mod elements_map {
         elements: thunderdome::Arena<Element<M>>,
         zorder: Vec<ElementId>,
         hovered: Option<ElementId>,
+        pressed: Option<ElementId>,
+        mouse_grab: Option<ElementId>,
     }
 
     impl<M> ElementsMap<M> {
@@ -107,6 +135,8 @@ mod elements_map {
                 elements: thunderdome::Arena::new(),
                 zorder: Vec::new(),
                 hovered: None,
+                pressed: None,
+                mouse_grab: None,
             }
         }
 
@@ -116,7 +146,7 @@ mod elements_map {
             id
         }
 
-        pub fn update(&mut self, id: ElementId, rect: Rect) -> Option<&Element<M>>{
+        pub fn update(&mut self, id: ElementId, rect: Rect) -> Option<&Element<M>> {
             let Some(element) = self.elements.get_mut(id.0) else {
                 // TODO: make this debug panic with a log
                 panic!("Element not found");
@@ -156,6 +186,33 @@ mod elements_map {
 
         pub fn hovered_element(&self) -> Option<(ElementId, &Element<M>)> {
             let id = self.hovered?;
+            let element = self.elements.get(id.0)?;
+            Some((id, element))
+        }
+
+        pub fn set_mouse_grab(&mut self, id: Option<ElementId>) {
+            self.mouse_grab = id;
+        }
+
+        pub fn current_mouse_grab_id(&self) -> Option<ElementId> {
+            self.mouse_grab
+        }
+
+        pub fn current_mouse_grab(&self) -> Option<(ElementId, &Element<M>)> {
+            let id = self.mouse_grab?;
+            let element = self.elements.get(id.0)?;
+            Some((id, element))
+        }
+
+        pub fn on_press(&mut self) -> Option<(ElementId, &Element<M>)> {
+            let id = self.hovered?;
+            let element = self.elements.get(id.0)?;
+            self.pressed = Some(id);
+            Some((id, element))
+        }
+
+        pub fn on_release(&mut self) -> Option<(ElementId, &Element<M>)> {
+            let id = self.pressed.take()?;
             let element = self.elements.get(id.0)?;
             Some((id, element))
         }

@@ -103,8 +103,10 @@ impl PlayingScene {
 
     #[profiling::function]
     fn update_midi_player(&mut self, ctx: &Context, delta: Duration) -> f32 {
-        if self.top_bar.loop_active && self.player.time() > self.top_bar.loop_end {
-            self.player.set_time(self.top_bar.loop_start);
+        if self.top_bar.looper.is_active()
+            && self.player.time() > self.top_bar.looper.end_timestamp()
+        {
+            self.player.set_time(self.top_bar.looper.start_timestamp());
             self.keyboard.reset_notes();
         }
 

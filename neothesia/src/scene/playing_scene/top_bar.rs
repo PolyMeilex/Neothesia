@@ -98,22 +98,34 @@ fn left_arrow_icon() -> &'static str {
     "\u{f12f}"
 }
 
-fn new_button<M>(elements: &mut nuon::ElementsMap<M>, name: &'static str, on_click: M) -> Button {
-    Button::new(elements.insert(nuon::ElementBuilder::new().name(name).on_click(on_click)))
-}
-
 impl TopBar {
     pub fn new() -> Self {
         let mut elements = nuon::ElementsMap::new();
 
-        let mut back_button = new_button(&mut elements, "BackButton", Msg::GoBack);
-        let mut play_button = new_button(&mut elements, "PlayButton", Msg::PlayResume);
-        let mut loop_button = new_button(
+        let mut back_button = Button::new(
             &mut elements,
-            "LoopButton",
-            Msg::LooperEvent(LooperMsg::Toggle),
+            nuon::ElementBuilder::new()
+                .name("BackButton")
+                .on_click(Msg::GoBack),
         );
-        let mut settings_button = new_button(&mut elements, "SettingsButton", Msg::SettingsToggle);
+        let mut play_button = Button::new(
+            &mut elements,
+            nuon::ElementBuilder::new()
+                .name("PlayButton")
+                .on_click(Msg::PlayResume),
+        );
+        let mut loop_button = Button::new(
+            &mut elements,
+            nuon::ElementBuilder::new()
+                .name("LoopButton")
+                .on_click(Msg::LooperEvent(LooperMsg::Toggle)),
+        );
+        let mut settings_button = Button::new(
+            &mut elements,
+            nuon::ElementBuilder::new()
+                .name("SettingsButton")
+                .on_click(Msg::SettingsToggle),
+        );
 
         back_button.set_icon(left_arrow_icon());
         play_button.set_icon(pause_icon());

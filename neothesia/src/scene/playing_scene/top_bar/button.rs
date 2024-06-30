@@ -15,9 +15,9 @@ pub struct Button {
 }
 
 impl Button {
-    pub fn new(id: nuon::ElementId) -> Self {
+    pub fn new<M>(elements: &mut nuon::ElementsMap<M>, builder: nuon::ElementBuilder<M>) -> Self {
         Self {
-            id,
+            id: elements.insert(builder),
             is_hovered: false,
             icon: "",
             color: super::BAR_BG,

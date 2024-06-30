@@ -85,6 +85,10 @@ mod elements_map {
             self.hovered
         }
 
+        pub fn rect(&self) -> Rect {
+            self.rect
+        }
+
         pub fn on_click(&self) -> Option<&M> {
             self.on_click.as_ref()
         }
@@ -112,13 +116,14 @@ mod elements_map {
             id
         }
 
-        pub fn update(&mut self, id: ElementId, rect: Rect) {
+        pub fn update(&mut self, id: ElementId, rect: Rect) -> Option<&Element<M>>{
             let Some(element) = self.elements.get_mut(id.0) else {
                 // TODO: make this debug panic with a log
                 panic!("Element not found");
             };
 
             element.rect = rect;
+            Some(element)
         }
 
         fn listen_for_mouse(&mut self, id: ElementId) {

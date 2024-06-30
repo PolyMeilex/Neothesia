@@ -1,6 +1,5 @@
 use neothesia_core::{
     render::{QuadInstance, QuadPipeline, TextRenderer},
-    utils::{Point, Rect, Size},
     Color,
 };
 
@@ -8,27 +7,42 @@ use crate::scene::playing_scene::LAYER_FG;
 
 pub struct Button {
     id: nuon::ElementId,
-    bbox: Rect,
     is_hovered: bool,
     icon: &'static str,
     color: Color,
     hover_color: Color,
+    rect: nuon::Rect,
 }
 
 impl Button {
     pub fn new(id: nuon::ElementId) -> Self {
         Self {
             id,
-            bbox: Rect::new(Point::new(0.0, 0.0), Size::new(30.0, 30.0)),
             is_hovered: false,
             icon: "",
             color: super::BAR_BG,
             hover_color: super::BUTTON_HOVER,
+            rect: nuon::Rect::zero(),
         }
     }
 
     pub fn id(&self) -> nuon::ElementId {
         self.id
+    }
+
+    pub fn update<M>(
+        &mut self,
+        elements: &mut nuon::ElementsMap<M>,
+        rect: nuon::Rect,
+    ) -> &mut Self {
+        if let Some(element) = elements.update(self.id(), rect) {
+            self.update_state(element);
+        }
+        self
+    }
+
+    pub fn update_state<M>(&mut self, element: &nuon::Element<M>) -> &mut Self {
+        self.set_hovered(element.hovered()).set_rect(element.rect())
     }
 
     #[allow(dead_code)]
@@ -43,25 +57,13 @@ impl Button {
         self
     }
 
-    pub fn set_pos(&mut self, pos: impl Into<Point<f32>>) -> &mut Self {
-        self.bbox.origin = pos.into();
+    fn set_hovered(&mut self, hovered: bool) -> &mut Self {
+        self.is_hovered = hovered;
         self
     }
 
-    #[allow(dead_code)]
-    pub fn set_x(&mut self, x: f32) -> &mut Self {
-        self.bbox.origin.x = x;
-        self
-    }
-
-    #[allow(dead_code)]
-    pub fn set_y(&mut self, y: f32) -> &mut Self {
-        self.bbox.origin.y = y;
-        self
-    }
-
-    pub fn set_hovered(&mut self, hovered: Option<nuon::ElementId>) -> &mut Self {
-        self.is_hovered = hovered == Some(self.id());
+    fn set_rect(&mut self, rect: nuon::Rect) -> &mut Self {
+        self.rect = rect;
         self
     }
 
@@ -70,11 +72,7 @@ impl Button {
         self
     }
 
-    pub fn bbox(&self) -> &Rect {
-        &self.bbox
-    }
-
-    pub fn draw(&mut self, quad_pipeline: &mut QuadPipeline, text: &mut TextRenderer) {
+    pub fn draw(&self, quad_pipeline: &mut QuadPipeline, text: &mut TextRenderer) {
         let color = if self.is_hovered {
             self.hover_color
         } else {
@@ -85,8 +83,8 @@ impl Button {
         quad_pipeline.push(
             LAYER_FG,
             QuadInstance {
-                position: self.bbox.origin.into(),
-                size: self.bbox.size.into(),
+                position: self.rect.origin.into(),
+                size: self.rect.size.into(),
                 color,
                 border_radius: [5.0; 4],
             },
@@ -94,8 +92,8 @@ impl Button {
 
         let icon_size = 20.0;
         text.queue_icon(
-            self.bbox.origin.x + (self.bbox.size.width - icon_size) / 2.0,
-            self.bbox.origin.y + (self.bbox.size.height - icon_size) / 2.0,
+            self.rect.origin.x + (self.rect.size.width - icon_size) / 2.0,
+            self.rect.origin.y + (self.rect.size.height - icon_size) / 2.0,
             icon_size,
             self.icon,
         );

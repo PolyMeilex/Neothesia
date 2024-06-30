@@ -40,7 +40,6 @@ enum LooperDrag {
 pub struct TopBar {
     elements: nuon::ElementsMap<Msg>,
 
-    last_frame_bbox: Rect<f32>,
     bbox: Rect<f32>,
     loop_tick_height: f32,
 
@@ -60,7 +59,6 @@ pub struct TopBar {
     loop_button: Button,
     settings_button: Button,
 
-    progress_bar_bbox: nuon::Rect,
     progress_bar: nuon::ElementId,
 
     loop_start_tick: Rect,
@@ -111,33 +109,23 @@ fn left_arrow_icon() -> &'static str {
     "\u{f12f}"
 }
 
+fn new_button<M>(elements: &mut nuon::ElementsMap<M>, name: &'static str, on_click: M) -> Button {
+    Button::new(elements.insert(nuon::ElementBuilder::new().name(name).on_click(on_click)))
+}
+
 impl TopBar {
     pub fn new() -> Self {
         let mut elements = nuon::ElementsMap::new();
 
-        let back_button = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("BackButton")
-                .on_click(Msg::GoBack),
-        );
+        let mut back_button = new_button(&mut elements, "BackButton", Msg::GoBack);
+        let mut play_button = new_button(&mut elements, "PlayButton", Msg::PlayResume);
+        let mut loop_button = new_button(&mut elements, "LoopButton", Msg::LooperToggle);
+        let mut settings_button = new_button(&mut elements, "SettingsButton", Msg::SettingsToggle);
 
-        let play_button = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("PlayButton")
-                .on_click(Msg::PlayResume),
-        );
-
-        let loop_button = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("LoopButton")
-                .on_click(Msg::LooperToggle),
-        );
-
-        let settings_button = elements.insert(
-            nuon::ElementBuilder::new()
-                .name("SettingsButton")
-                .on_click(Msg::SettingsToggle),
-        );
+        back_button.set_icon(left_arrow_icon());
+        play_button.set_icon(pause_icon());
+        loop_button.set_icon(repeat_icon());
+        settings_button.set_icon(gear_icon());
 
         let progress_bar = elements.insert(
             nuon::ElementBuilder::new()
@@ -162,14 +150,15 @@ impl TopBar {
         Self {
             elements,
 
-            last_frame_bbox: bbox,
             bbox,
             loop_tick_height: 45.0 + 10.0,
             bar_layout: nuon::TriRowLayout::new(),
-            loop_button: Button::new(loop_button),
-            back_button: Button::new(back_button),
-            play_button: Button::new(play_button),
-            settings_button: Button::new(settings_button),
+
+            back_button,
+            play_button,
+            loop_button,
+            settings_button,
+
             drag: None,
             loop_start: Duration::ZERO,
             loop_end: Duration::ZERO,
@@ -180,7 +169,6 @@ impl TopBar {
                 .delay(30.0),
             is_expanded: false,
             settings_animation: Animation::new(),
-            progress_bar_bbox: nuon::Rect::zero(),
             progress_bar,
             loop_start_tick: Rect::default(),
             loop_end_tick_id,
@@ -312,8 +300,6 @@ impl TopBar {
             ..
         } = scene;
 
-        top_bar.last_frame_bbox = top_bar.bbox;
-
         top_bar.bbox.size.width = window_state.logical_size.width;
 
         let h = top_bar.bbox.size.height;
@@ -373,23 +359,11 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
 
     let progress_x = w * player.percentage();
 
-    top_bar.progress_bar_bbox.origin = (0.0, y).into();
-    top_bar.progress_bar_bbox.size = (w, h).into();
+    let mut rect = nuon::Rect::new((0.0, y).into(), (w, h).into());
+    top_bar.elements.update(top_bar.progress_bar, rect);
 
-    if top_bar.last_frame_bbox != top_bar.bbox {
-        top_bar
-            .elements
-            .update(top_bar.progress_bar, top_bar.progress_bar_bbox)
-    }
-
-    draw_rect(
-        quad_pipeline,
-        &Rect::new(
-            top_bar.progress_bar_bbox.origin,
-            (progress_x, top_bar.progress_bar_bbox.size.height).into(),
-        ),
-        &BLUE,
-    );
+    rect.size.width = progress_x;
+    draw_rect(quad_pipeline, &rect, &BLUE);
 
     for m in player.song().file.measures.iter() {
         let length = player.length().as_secs_f32();
@@ -412,7 +386,29 @@ fn update_proggress_bar(scene: &mut PlayingScene, _text: &mut TextRenderer, _now
     }
 }
 
+fn update_button_icons(scene: &mut PlayingScene) {
+    let PlayingScene {
+        top_bar, player, ..
+    } = scene;
+
+    top_bar.play_button.set_icon(if player.is_paused() {
+        play_icon()
+    } else {
+        pause_icon()
+    });
+
+    top_bar
+        .settings_button
+        .set_icon(if top_bar.settings_active {
+            gear_fill_icon()
+        } else {
+            gear_icon()
+        });
+}
+
 fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Instant) {
+    update_button_icons(scene);
+
     let PlayingScene {
         top_bar,
         quad_pipeline,
@@ -422,7 +418,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
     let y = top_bar.bbox.origin.y;
     let w = top_bar.bbox.size.width;
 
-    let (back_id,) = top_bar.bar_layout.start.once(|row| {
+    let (_back_id,) = top_bar.bar_layout.start.once(|row| {
         (
             row.push(30.0),
             //
@@ -431,7 +427,7 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
 
     top_bar.bar_layout.center.once(|_row| {});
 
-    let (play_id, loop_id, settings_id) = top_bar.bar_layout.end.once(|row| {
+    let (_play, _loop, _settings) = top_bar.bar_layout.end.once(|row| {
         (
             row.push(30.0),
             row.push(30.0),
@@ -446,54 +442,35 @@ fn update_buttons(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Inst
     let _center_row = top_bar.bar_layout.center.items();
     let end_row = top_bar.bar_layout.end.items();
 
-    let hovered_element = top_bar.elements.hovered_element_id();
-
-    top_bar
-        .back_button
-        .set_pos((start_row[back_id].x, y))
-        .set_hovered(hovered_element)
-        .set_icon(left_arrow_icon())
-        .draw(quad_pipeline, text);
-
-    top_bar
-        .settings_button
-        .set_pos((end_row[settings_id].x, y))
-        .set_hovered(hovered_element)
-        .set_icon(if top_bar.settings_active {
-            gear_fill_icon()
-        } else {
-            gear_icon()
-        })
-        .draw(quad_pipeline, text);
-
-    top_bar
-        .loop_button
-        .set_pos((end_row[loop_id].x, y))
-        .set_hovered(hovered_element)
-        .set_icon(repeat_icon())
-        .draw(quad_pipeline, text);
-
-    top_bar
-        .play_button
-        .set_pos((end_row[play_id].x, y))
-        .set_hovered(hovered_element)
-        .set_icon(if scene.player.is_paused() {
-            play_icon()
-        } else {
-            pause_icon()
-        })
-        .draw(quad_pipeline, text);
-
-    if top_bar.last_frame_bbox != top_bar.bbox {
-        update_button_element(&mut top_bar.elements, &top_bar.back_button);
-        update_button_element(&mut top_bar.elements, &top_bar.settings_button);
-        update_button_element(&mut top_bar.elements, &top_bar.loop_button);
-        update_button_element(&mut top_bar.elements, &top_bar.play_button);
+    for (btn, item) in [&mut top_bar.back_button].into_iter().zip(start_row) {
+        btn.update(
+            &mut top_bar.elements,
+            Rect::new((item.x, y).into(), (item.width, 30.0).into()),
+        );
     }
-}
 
-fn update_button_element<M>(elements: &mut nuon::ElementsMap<M>, button: &Button) {
-    elements.update(button.id(), *button.bbox())
+    for (btn, item) in [
+        &mut top_bar.play_button,
+        &mut top_bar.loop_button,
+        &mut top_bar.settings_button,
+    ]
+    .into_iter()
+    .zip(end_row)
+    {
+        btn.update(
+            &mut top_bar.elements,
+            Rect::new((item.x, y).into(), (item.width, 30.0).into()),
+        );
+    }
+
+    for btn in [
+        &top_bar.back_button,
+        &top_bar.play_button,
+        &top_bar.loop_button,
+        &top_bar.settings_button,
+    ] {
+        btn.draw(quad_pipeline, text);
+    }
 }
 
 fn update_looper(scene: &mut PlayingScene, _text: &mut TextRenderer, now: &Instant) {

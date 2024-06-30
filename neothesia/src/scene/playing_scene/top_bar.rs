@@ -25,7 +25,7 @@ mod progress_bar;
 use progress_bar::{ProgressBar, ProgressBarMsg};
 
 mod looper;
-use looper::{Looper, LooperEvent};
+use looper::{Looper, LooperMsg};
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -33,7 +33,7 @@ enum Msg {
     PlayResume,
     SettingsToggle,
     ProggresBar(ProgressBarMsg),
-    LooperEvent(LooperEvent),
+    LooperEvent(LooperMsg),
 }
 
 pub struct TopBar {
@@ -111,7 +111,7 @@ impl TopBar {
         let mut loop_button = new_button(
             &mut elements,
             "LoopButton",
-            Msg::LooperEvent(LooperEvent::Toggle),
+            Msg::LooperEvent(LooperMsg::Toggle),
         );
         let mut settings_button = new_button(&mut elements, "SettingsButton", Msg::SettingsToggle);
 

@@ -14,17 +14,17 @@ pub enum LoopTickSide {
 }
 
 #[derive(Debug, Clone)]
-pub enum LoopTickEvent {
+pub enum LoopTickMsg {
     DragStart,
     Drag,
     DragEnd,
 }
 
 #[derive(Debug, Clone)]
-pub enum LooperEvent {
+pub enum LooperMsg {
     Tick {
         side: LoopTickSide,
-        event: LoopTickEvent,
+        event: LoopTickMsg,
     },
     Toggle,
 }
@@ -42,17 +42,17 @@ impl LoopTick {
                     LoopTickSide::Start => "LoopStartTick",
                     LoopTickSide::End => "LoopEndTick",
                 })
-                .on_click(Msg::LooperEvent(LooperEvent::Tick {
+                .on_click(Msg::LooperEvent(LooperMsg::Tick {
                     side,
-                    event: LoopTickEvent::DragStart,
+                    event: LoopTickMsg::DragStart,
                 }))
-                .on_cursor_move(Msg::LooperEvent(LooperEvent::Tick {
+                .on_cursor_move(Msg::LooperEvent(LooperMsg::Tick {
                     side,
-                    event: LoopTickEvent::Drag,
+                    event: LoopTickMsg::Drag,
                 }))
-                .on_release(Msg::LooperEvent(LooperEvent::Tick {
+                .on_release(Msg::LooperEvent(LooperMsg::Tick {
                     side,
-                    event: LoopTickEvent::DragEnd,
+                    event: LoopTickMsg::DragEnd,
                 })),
         );
 
@@ -92,7 +92,7 @@ impl Looper {
         self.end_tick.timestamp
     }
 
-    pub fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: LooperEvent) {
+    pub fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: LooperMsg) {
         let PlayingScene {
             top_bar,
             ref player,
@@ -102,27 +102,27 @@ impl Looper {
         let elements = &mut top_bar.elements;
 
         match msg {
-            LooperEvent::Tick { side, event } => {
+            LooperMsg::Tick { side, event } => {
                 let tick = match side {
                     LoopTickSide::Start => &mut looper.start_tick,
                     LoopTickSide::End => &mut looper.end_tick,
                 };
 
                 match event {
-                    LoopTickEvent::DragStart => {
+                    LoopTickMsg::DragStart => {
                         elements.set_mouse_grab(Some(tick.id));
                     }
-                    LoopTickEvent::Drag => {
+                    LoopTickMsg::Drag => {
                         let w = ctx.window_state.logical_size.width;
                         let x = ctx.window_state.cursor_logical_position.x;
                         tick.timestamp = scene.player.percentage_to_time(x / w);
                     }
-                    LoopTickEvent::DragEnd => {
+                    LoopTickMsg::DragEnd => {
                         elements.set_mouse_grab(None);
                     }
                 }
             }
-            LooperEvent::Toggle => {
+            LooperMsg::Toggle => {
                 looper.is_active = !looper.is_active;
                 if looper.is_active {
                     looper.start_tick.timestamp = player.time();

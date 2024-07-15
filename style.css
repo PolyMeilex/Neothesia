@@ -22,6 +22,9 @@ header {
   background-color: rgba(0, 0, 0, 0.4);
   /* background: linear-gradient(180deg, rgb(0, 0, 0) 0%, rgb(79, 25, 117) 100%); */
   /* background: linear-gradient(180deg, #A051FF 0%, #EB00FF 100%); */
+
+  border-bottom: solid #e605ff 1px;
+  box-shadow: rgba(175, 0, 255, 0.3) 0px 0px 1000px 0px;
 }
 
 header > neo-background {
@@ -46,6 +49,8 @@ hr {
 
 #neo-download {
   background: linear-gradient(-90deg, #a051ff 0%, #eb00ff 100%);
+  box-shadow: rgba(175, 0, 255, 0.5) 0px 0px 30px 0px;
+
   border: none;
   border-radius: 3px;
   padding: 15px 25px;

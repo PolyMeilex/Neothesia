@@ -76,7 +76,8 @@ impl Neothesia {
         self.context.window_state.window_event(&event);
 
         match &event {
-            WindowEvent::Resized(_) => {
+            // Windows sets size to 0 on minimise
+            WindowEvent::Resized(ps) if ps.width > 0 && ps.height > 0 => {
                 self.surface.resize_swap_chain(
                     &self.context.gpu.device,
                     self.context.window_state.physical_size.width,
@@ -87,7 +88,6 @@ impl Neothesia {
                 self.context.window.request_redraw();
             }
             WindowEvent::ScaleFactorChanged { .. } => {
-                // TODO: Check if this update is needed;
                 self.context.resize();
             }
             WindowEvent::KeyboardInput {

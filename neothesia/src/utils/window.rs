@@ -51,10 +51,10 @@ impl WindowState {
 
     pub fn window_event(&mut self, event: &WindowEvent) {
         match event {
-            WindowEvent::Resized(ps) => {
-                // Windows sets size to 0,0 on minimize
-                self.physical_size.width = ps.width.max(1);
-                self.physical_size.height = ps.height.max(1);
+            // Windows sets size to 0 on minimise
+            WindowEvent::Resized(ps) if ps.width > 0 && ps.height > 0 => {
+                self.physical_size.width = ps.width;
+                self.physical_size.height = ps.height;
                 self.logical_size = ps.to_logical(self.scale_factor);
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {

@@ -44,16 +44,14 @@ impl<'a, M: 'static> Layout<'a, M> {
         let body = col![body]
             .width(Length::Fill)
             .height(Length::Fill)
-            .align_items(Alignment::Center);
+            .align_x(Alignment::Center);
 
         let top = self
             .top
-            .map(|top| col![top].width(Length::Fill).align_items(Alignment::Center));
-        let bottom = self.bottom.map(|bottom| {
-            col![bottom]
-                .width(Length::Fill)
-                .align_items(Alignment::Center)
-        });
+            .map(|top| col![top].width(Length::Fill).align_x(Alignment::Center));
+        let bottom = self
+            .bottom
+            .map(|bottom| col![bottom].width(Length::Fill).align_x(Alignment::Center));
 
         col![]
             .push_maybe(top)
@@ -113,9 +111,7 @@ impl<'a, M: 'static> BarLayout<'a, M> {
         let center = row![].push_maybe(self.center).width(Length::Fill);
         let right = row![].push_maybe(self.right).width(Length::Fill);
 
-        row![left, center, right]
-            .align_items(Alignment::Center)
-            .into()
+        row![left, center, right].align_y(Alignment::Center).into()
     }
 }
 

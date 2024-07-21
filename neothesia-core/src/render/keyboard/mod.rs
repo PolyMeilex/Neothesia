@@ -145,7 +145,7 @@ impl KeyboardRenderer {
 
             let mut buffer =
                 glyphon::Buffer::new(text.font_system(), glyphon::Metrics::new(size, size));
-            buffer.set_size(text.font_system(), w, h);
+            buffer.set_size(text.font_system(), Some(w), Some(h));
             buffer.set_wrap(text.font_system(), glyphon::Wrap::None);
             buffer.set_text(
                 text.font_system(),
@@ -154,7 +154,7 @@ impl KeyboardRenderer {
                 glyphon::Shaping::Basic,
             );
             buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));
-            buffer.shape_until_scroll(text.font_system());
+            buffer.shape_until_scroll(text.font_system(), false);
 
             text.queue(super::text::TextArea {
                 buffer,

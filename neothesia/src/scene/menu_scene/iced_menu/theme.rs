@@ -161,32 +161,32 @@ pub fn scrollable(
             is_vertical_scrollbar_hovered,
         } => iced_widget::scrollable::Style {
             container: iced_widget::container::Style::default(),
-            vertical_scrollbar: iced_widget::scrollable::Scrollbar {
+            vertical_rail: iced_widget::scrollable::Rail {
                 background: Some(iced_core::Background::Color(Color::from_rgba8(
                     37, 35, 42, 1.0,
                 ))),
-                border: Border::rounded(10.0),
+                border: Border::default().rounded(10.0),
                 scroller: iced_widget::scrollable::Scroller {
                     color: if is_vertical_scrollbar_hovered {
                         Color::from_rgba8(87, 81, 101, 1.0)
                     } else {
                         Color::from_rgba8(74, 68, 88, 1.0)
                     },
-                    border: Border::rounded(10.0),
+                    border: Border::default().rounded(10.0),
                 },
             },
-            horizontal_scrollbar: iced_widget::scrollable::Scrollbar {
+            horizontal_rail: iced_widget::scrollable::Rail {
                 background: Some(iced_core::Background::Color(Color::from_rgba8(
                     37, 35, 42, 1.0,
                 ))),
-                border: Border::rounded(10.0),
+                border: Border::default().rounded(10.0),
                 scroller: iced_widget::scrollable::Scroller {
                     color: if is_horizontal_scrollbar_hovered {
                         Color::from_rgba8(87, 81, 101, 1.0)
                     } else {
                         Color::from_rgba8(74, 68, 88, 1.0)
                     },
-                    border: Border::rounded(10.0),
+                    border: Border::default().rounded(10.0),
                 },
             },
             gap: None,

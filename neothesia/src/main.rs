@@ -174,7 +174,7 @@ impl Neothesia {
         self.game_scene.update(&mut self.context, delta);
         self.context.text_renderer.update(
             self.context.window_state.logical_size.into(),
-            &self.context.gpu,
+            &mut self.context.gpu,
         );
     }
 
@@ -236,7 +236,8 @@ impl Neothesia {
             .iced_manager
             .engine
             .submit(&self.context.gpu.queue, encoder);
-        // self.context.gpu.submit();
+        self.context.text_renderer.end_frame();
+
         frame.present();
 
         self.context.text_renderer.atlas().trim();

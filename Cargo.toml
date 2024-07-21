@@ -16,7 +16,8 @@ resolver = "2"
 
 [workspace.dependencies]
 wgpu = "0.19"
-glyphon = "0.5"
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "feef9f5630c2adb3528937e55f7bfad2da561a65" }
+# glyphon = "0.5"
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.11"
@@ -34,13 +35,13 @@ nuon = { path = "./nuon" }
 
 profiling = "1.0"
 
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
-iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
-iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a" }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a", features = [
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
+iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90", features = [
   "image",
 ] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "b9eb86199afe0f2d936eb4ab90af5b2a2c32a87a", features = [
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90", features = [
   "image",
 ] }

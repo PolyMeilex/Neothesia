@@ -71,7 +71,7 @@ impl Scene for MenuScene {
         // }
 
         if let Some(task) = self.iced_state.update(ctx) {
-            if let Some(fut) = task.into_stream() {
+            if let Some(fut) = iced_runtime::task::into_stream(task) {
                 self.futures.push(fut);
             }
         }

@@ -20,9 +20,11 @@ pub struct TextArea {
 }
 
 pub struct TextRenderer {
+    viewport: glyphon::Viewport,
     font_system: glyphon::FontSystem,
-    cache: glyphon::SwashCache,
+    swash_cache: glyphon::SwashCache,
     atlas: glyphon::TextAtlas,
+    _cache: glyphon::Cache,
     text_renderer: glyphon::TextRenderer,
 
     queue: Vec<TextArea>,
@@ -37,8 +39,10 @@ impl TextRenderer {
             ))),
         ]);
 
-        let cache = glyphon::SwashCache::new();
-        let mut atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, gpu.texture_format);
+        let swash_cache = glyphon::SwashCache::new();
+        let cache = glyphon::Cache::new(&gpu.device);
+        let mut atlas =
+            glyphon::TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.texture_format);
         let text_renderer = glyphon::TextRenderer::new(
             &mut atlas,
             &gpu.device,
@@ -46,10 +50,14 @@ impl TextRenderer {
             None,
         );
 
+        let viewport = glyphon::Viewport::new(&gpu.device, &cache);
+
         Self {
+            viewport,
             font_system,
-            cache,
+            swash_cache,
             atlas,
+            _cache: cache,
             text_renderer,
             queue: Vec::new(),
         }
@@ -70,14 +78,14 @@ impl TextRenderer {
     pub fn queue_text(&mut self, text: &str) {
         let mut buffer =
             glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX);
+        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
             &mut self.font_system,
             text,
             glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
-        buffer.shape_until_scroll(&mut self.font_system);
+        buffer.shape_until_scroll(&mut self.font_system, false);
 
         #[cfg(debug_assertions)]
         let top = 20.0;
@@ -97,14 +105,14 @@ impl TextRenderer {
     pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str) {
         let mut buffer =
             glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));
-        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX);
+        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
             &mut self.font_system,
             icon,
             glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
             glyphon::Shaping::Basic,
         );
-        buffer.shape_until_scroll(&mut self.font_system);
+        buffer.shape_until_scroll(&mut self.font_system, false);
 
         self.queue(TextArea {
             buffer,
@@ -120,14 +128,14 @@ impl TextRenderer {
         let text = format!("FPS: {}", fps.round() as u32);
         let mut buffer =
             glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX);
+        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
             &mut self.font_system,
             &text,
             glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
-        buffer.shape_until_scroll(&mut self.font_system);
+        buffer.shape_until_scroll(&mut self.font_system, false);
 
         self.queue(TextArea {
             buffer,
@@ -140,7 +148,7 @@ impl TextRenderer {
     }
 
     #[profiling::function]
-    pub fn update(&mut self, logical_size: (u32, u32), gpu: &Gpu) {
+    pub fn update(&mut self, logical_size: (u32, u32), gpu: &mut Gpu) {
         let elements = self.queue.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
             left: area.left,
@@ -150,25 +158,37 @@ impl TextRenderer {
             default_color: area.default_color,
         });
 
+        self.viewport.update(
+            &gpu.queue,
+            glyphon::Resolution {
+                width: logical_size.0,
+                height: logical_size.1,
+            },
+        );
+
         self.text_renderer
             .prepare(
                 &gpu.device,
                 &gpu.queue,
+                &mut gpu.encoder,
                 &mut self.font_system,
                 &mut self.atlas,
-                glyphon::Resolution {
-                    width: logical_size.0,
-                    height: logical_size.1,
-                },
+                &self.viewport,
                 elements,
-                &mut self.cache,
+                &mut self.swash_cache,
             )
             .unwrap();
 
         self.queue.clear();
     }
 
+    pub fn end_frame(&mut self) {
+        self.atlas.trim();
+    }
+
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
-        self.text_renderer.render(&self.atlas, render_pass).unwrap();
+        self.text_renderer
+            .render(&self.atlas, &self.viewport, render_pass)
+            .unwrap();
     }
 }

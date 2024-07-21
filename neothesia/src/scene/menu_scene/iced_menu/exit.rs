@@ -45,7 +45,7 @@ impl Page for ExitPage {
         .height(Length::Fixed(50.0));
 
         let controls = col![output, select_row]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .width(Length::Fixed(650.0))
             .spacing(30);
 

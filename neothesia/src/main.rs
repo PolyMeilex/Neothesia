@@ -84,8 +84,7 @@ impl Neothesia {
                 );
 
                 self.context.resize();
-
-                self.context.gpu.submit();
+                self.context.window.request_redraw();
             }
             WindowEvent::ScaleFactorChanged { .. } => {
                 // TODO: Check if this update is needed;

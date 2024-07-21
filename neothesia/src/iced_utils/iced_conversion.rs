@@ -3,7 +3,7 @@
 //! https://github.com/hecrj/iced/blob/master/winit/src/conversion.rs
 use iced_core::{
     keyboard::{self},
-    mouse, touch, window, Event, Point,
+    mouse, touch, window, Event, Point, Size,
 };
 
 /// The position of a window in a given screen.
@@ -54,10 +54,10 @@ pub fn window_event(
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
+            Some(Event::Window(window::Event::Resized(Size {
                 width: logical_size.width,
                 height: logical_size.height,
-            }))
+            })))
         }
         WindowEvent::CloseRequested => Some(Event::Window(window::Event::CloseRequested)),
         WindowEvent::CursorMoved { position, .. } => {
@@ -149,7 +149,7 @@ pub fn window_event(
         WindowEvent::Moved(position) => {
             let winit::dpi::LogicalPosition { x, y } = position.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Moved { x, y }))
+            Some(Event::Window(window::Event::Moved(Point { x, y })))
         }
         WindowEvent::RedrawRequested => Some(Event::Window(window::Event::RedrawRequested(
             iced_core::time::Instant::now(),

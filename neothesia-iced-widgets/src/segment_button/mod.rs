@@ -1,8 +1,5 @@
 use super::{Element, Renderer};
-use iced_core::{
-    alignment::{Horizontal, Vertical},
-    Color, Length, Theme,
-};
+use iced_core::{Color, Length, Theme};
 
 mod theme;
 
@@ -46,8 +43,7 @@ impl<MSG> SegmentButton<MSG> {
 fn segment<'a, MSG: 'a>(label: &str) -> iced_widget::Button<'a, MSG, Theme, Renderer> {
     iced_widget::button(
         iced_widget::text(label.to_string())
-            .horizontal_alignment(Horizontal::Center)
-            .vertical_alignment(Vertical::Center)
+            .center()
             .width(Length::Fill)
             .height(Length::Fill),
     )

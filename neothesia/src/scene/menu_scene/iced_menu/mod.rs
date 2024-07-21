@@ -3,11 +3,7 @@ use std::collections::VecDeque;
 use self::page::PageMessage;
 
 use super::Renderer;
-use iced_core::{
-    alignment::{Horizontal, Vertical},
-    image::Handle as ImageHandle,
-    Alignment, Length, Theme,
-};
+use iced_core::{image::Handle as ImageHandle, Alignment, Length, Theme};
 use iced_runtime::Task;
 use iced_widget::{column as col, container, image, text, vertical_space};
 
@@ -249,15 +245,13 @@ fn play(data: &Data, ctx: &mut Context) {
 fn loading(data: &Data) -> Element<'_, Message> {
     let column = col![image(data.logo_handle.clone()), text("Loading...").size(30)]
         .spacing(40)
-        .align_items(Alignment::Center);
+        .align_x(Alignment::Center);
 
     center_x(top_padded(column)).into()
 }
 
 fn centered_text<'a>(label: impl ToString) -> iced_widget::Text<'a, Theme, Renderer> {
-    text(label.to_string())
-        .horizontal_alignment(Horizontal::Center)
-        .vertical_alignment(Vertical::Center)
+    text(label.to_string()).center()
 }
 
 fn top_padded<'a, MSG: 'a>(
@@ -272,7 +266,7 @@ fn top_padded<'a, MSG: 'a>(
     col![spacer, content]
         .width(Length::Fill)
         .height(Length::Fill)
-        .align_items(Alignment::Center)
+        .align_x(Alignment::Center)
 }
 
 fn center_x<'a, MSG: 'a>(

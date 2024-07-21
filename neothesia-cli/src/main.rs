@@ -151,7 +151,7 @@ impl Recorder {
         self.quad_pipeline
             .prepare(&self.gpu.device, &self.gpu.queue);
 
-        self.text.update((self.width, self.height), &self.gpu);
+        self.text.update((self.width, self.height), &mut self.gpu);
     }
 
     fn render(

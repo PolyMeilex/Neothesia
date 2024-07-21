@@ -129,21 +129,16 @@ impl Page for TracksPage {
             .align_items(Alignment::Center);
 
         let column = col![vertical_space().height(Length::Fixed(30.0)), column]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .width(Length::Fill);
 
         let column = iced_widget::scrollable(column);
 
         let right = {
-            let play = NeoBtn::new(
-                icons::play_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Event::Play);
+            let play = NeoBtn::new(icons::play_icon().size(30.0).center())
+                .height(Length::Fixed(60.0))
+                .min_width(80.0)
+                .on_press(Event::Play);
 
             if ctx.song.is_some() {
                 row![play]
@@ -152,7 +147,7 @@ impl Page for TracksPage {
             }
             .spacing(10)
             .width(Length::Shrink)
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
         };
 
         let right = container(right)
@@ -167,17 +162,12 @@ impl Page for TracksPage {
             });
 
         let left = {
-            let back = NeoBtn::new(
-                icons::left_arrow_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Event::GoBack);
+            let back = NeoBtn::new(icons::left_arrow_icon().size(30.0).center())
+                .height(Length::Fixed(60.0))
+                .min_width(80.0)
+                .on_press(Event::GoBack);
 
-            row![back].align_items(Alignment::Start)
+            row![back].align_y(Alignment::Start)
         };
 
         let left = container(left)
@@ -202,7 +192,7 @@ impl Page for TracksPage {
 
             row![listen, play_along]
                 .width(Length::Shrink)
-                .align_items(Alignment::Center)
+                .align_y(Alignment::Center)
                 .spacing(14)
         };
 

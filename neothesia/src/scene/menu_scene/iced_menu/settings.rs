@@ -141,23 +141,18 @@ impl Page for SettingsPage {
         ]
         .spacing(10)
         .width(Length::Fill)
-        .align_items(Alignment::Center);
+        .align_x(Alignment::Center);
 
         let left = {
-            let back = NeoBtn::new(
-                icons::left_arrow_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Event::GoBack);
+            let back = NeoBtn::new(icons::left_arrow_icon().size(30.0).center())
+                .height(Length::Fixed(60.0))
+                .min_width(80.0)
+                .on_press(Event::GoBack);
 
             row![back]
                 .spacing(10)
                 .width(Length::Shrink)
-                .align_items(Alignment::Center)
+                .align_y(Alignment::Center)
         };
 
         let left = container(left)
@@ -176,9 +171,7 @@ impl Page for SettingsPage {
             ..Padding::ZERO
         });
 
-        let body = col![body]
-            .width(Length::Fill)
-            .align_items(Alignment::Center);
+        let body = col![body].width(Length::Fill).align_x(Alignment::Center);
 
         let column = iced_widget::scrollable(body).style(theme::scrollable);
 
@@ -277,9 +270,7 @@ fn counter<'a>(value: impl ToString, msg: fn(RangeUpdateKind) -> Event) -> Eleme
         .style(theme::round_button)
         .on_press(msg(RangeUpdateKind::Add));
 
-    let row = row![label, sub, add]
-        .spacing(10)
-        .align_items(Alignment::Center);
+    let row = row![label, sub, add].spacing(10).align_y(Alignment::Center);
 
     neothesia_iced_widgets::ScrollListener::new(row, move |delta| {
         if delta.is_sign_positive() {

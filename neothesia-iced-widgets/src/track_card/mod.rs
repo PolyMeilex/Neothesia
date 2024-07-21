@@ -71,7 +71,7 @@ impl<'a, M: Clone + 'a> From<TrackCard<'a, M>> for Element<'a, M> {
                     iced_widget::text(card.subtitle).size(14).into(),
                 ])
                 .spacing(4)
-                .align_items(Alignment::Start),
+                .align_x(Alignment::Start),
             ]
             .spacing(16)
         };

@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use iced_core::{
-    alignment::{Horizontal, Vertical},
-    Alignment, Length, Padding,
-};
+use iced_core::{alignment::Horizontal, Alignment, Length, Padding};
 use iced_runtime::Task;
 use iced_widget::{column, container, image, row, text};
 use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
@@ -67,34 +64,22 @@ impl Page for MainPage {
 
         let column = column![image(data.logo_handle.clone()), buttons]
             .spacing(40)
-            .align_items(Alignment::Center);
+            .align_x(Alignment::Center);
 
         let mut layout = Layout::new().body(top_padded(column));
 
         if let Some(song) = ctx.song.as_ref() {
-            let tracks = NeoBtn::new(
-                icons::note_list_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Event::GoToPage(Step::TrackSelection));
+            let tracks = NeoBtn::new(icons::note_list_icon().size(30.0).center())
+                .height(Length::Fixed(60.0))
+                .min_width(80.0)
+                .on_press(Event::GoToPage(Step::TrackSelection));
 
-            let play = NeoBtn::new(
-                icons::play_icon()
-                    .size(30.0)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
-            )
-            .height(Length::Fixed(60.0))
-            .min_width(80.0)
-            .on_press(Event::Play);
+            let play = NeoBtn::new(icons::play_icon().size(30.0).center())
+                .height(Length::Fixed(60.0))
+                .min_width(80.0)
+                .on_press(Event::Play);
 
-            let row = row![tracks, play]
-                .spacing(10)
-                .align_items(Alignment::Center);
+            let row = row![tracks, play].spacing(10).align_y(Alignment::Center);
 
             let container = container(row)
                 .width(Length::Fill)
@@ -111,8 +96,7 @@ impl Page for MainPage {
                     .center(
                         text(song.file.name.to_string())
                             .width(Length::Fill)
-                            .vertical_alignment(Vertical::Center)
-                            .horizontal_alignment(Horizontal::Center),
+                            .center(),
                     )
                     .right(container),
             );

@@ -1,6 +1,5 @@
 use super::Renderer;
 use iced_core::{
-    alignment::{Horizontal, Vertical},
     border::Radius,
     layout, mouse,
     renderer::Style,
@@ -24,12 +23,7 @@ pub struct NeoBtn<'a, Message> {
 
 impl<'a, Message: Clone> NeoBtn<'a, Message> {
     pub fn new_with_label(label: &'a str) -> Self {
-        Self::new(
-            text(label)
-                .size(30)
-                .vertical_alignment(Vertical::Center)
-                .horizontal_alignment(Horizontal::Center),
-        )
+        Self::new(text(label).size(30).center())
     }
 
     pub fn new<E>(content: E) -> Self

@@ -20,9 +20,19 @@ pub fn segment_button<T>(
     match status {
         button::Status::Active => {
             let border_radius = match kind {
-                ButtonSegmentKind::Start => Radius::from([255.0, 0.0, 0.0, 255.0]),
+                ButtonSegmentKind::Start => Radius {
+                    top_left: 255.0,
+                    top_right: 0.0,
+                    bottom_right: 0.0,
+                    bottom_left: 255.0,
+                },
                 ButtonSegmentKind::Center => Radius::from(0.0),
-                ButtonSegmentKind::End => Radius::from([0.0, 255.0, 255.0, 0.0]),
+                ButtonSegmentKind::End => Radius {
+                    top_left: 0.0,
+                    top_right: 255.0,
+                    bottom_right: 255.0,
+                    bottom_left: 0.0,
+                },
             };
 
             let background = if active {

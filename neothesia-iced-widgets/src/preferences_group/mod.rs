@@ -101,7 +101,7 @@ fn triple_split<'a, T: 'a>(
     row = row.push(row![].push_maybe(center).width(Length::Fill));
     row = row.push(row![].push_maybe(suffix).width(Length::Shrink));
 
-    row.align_items(iced_core::Alignment::Center).spacing(6)
+    row.align_y(iced_core::Alignment::Center).spacing(6)
 }
 
 fn group_header<'a, T: 'a>(data: PreferencesGroupHeader) -> Element<'a, T> {

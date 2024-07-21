@@ -67,11 +67,23 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                         bounds,
                         border: Border {
                             radius: if n == 0 {
-                                Radius::from([12.0, 0.0, 5.0, 12.0])
+                                Radius::new(0.0)
+                                    .top_left(12.0)
+                                    .top_right(0.0)
+                                    .bottom_right(5.0)
+                                    .bottom_left(12.0)
                             } else if neutral.peek().is_none() {
-                                Radius::from([0.0, 12.0, 12.0, 5.0])
+                                Radius::new(0.0)
+                                    .top_left(0.0)
+                                    .top_right(12.0)
+                                    .bottom_right(12.0)
+                                    .bottom_left(5.0)
                             } else {
-                                Radius::from([0.0, 0.0, 5.0, 5.0])
+                                Radius::new(0.0)
+                                    .top_left(0.0)
+                                    .top_right(0.0)
+                                    .bottom_right(5.0)
+                                    .bottom_left(5.0)
                             },
                             width: 0.0,
                             color: Color::TRANSPARENT,

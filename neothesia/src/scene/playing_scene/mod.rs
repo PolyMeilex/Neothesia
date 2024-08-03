@@ -154,7 +154,7 @@ impl Scene for PlayingScene {
         self.keyboard
             .update(&mut self.quad_pipeline, LAYER_FG, &mut ctx.text_renderer);
 
-        TopBar::update(self, &ctx.window_state, &mut ctx.text_renderer);
+        TopBar::update(self, ctx);
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
 

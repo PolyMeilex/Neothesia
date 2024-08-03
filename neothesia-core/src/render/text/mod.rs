@@ -102,6 +102,77 @@ impl TextRenderer {
         });
     }
 
+    pub fn measure(buffer: &glyphon::cosmic_text::Buffer) -> (f32, f32) {
+        buffer
+            .layout_runs()
+            .fold((0.0, 0.0), |(width, height), run| {
+                (run.line_w.max(width), height + run.line_height)
+            })
+    }
+
+    pub fn gen_buffer(&mut self, size: f32, text: &str) -> glyphon::Buffer {
+        self.gen_buffer_with_attr(
+            size,
+            text,
+            glyphon::Attrs::new().family(glyphon::Family::Name("Roboto")),
+        )
+    }
+
+    pub fn gen_buffer_bold(&mut self, size: f32, text: &str) -> glyphon::Buffer {
+        self.gen_buffer_with_attr(
+            size,
+            text,
+            glyphon::Attrs::new()
+                .family(glyphon::Family::Name("Roboto"))
+                .weight(glyphon::Weight::BOLD),
+        )
+    }
+
+    pub fn gen_buffer_with_attr(
+        &mut self,
+        size: f32,
+        text: &str,
+        attrs: glyphon::Attrs,
+    ) -> glyphon::Buffer {
+        let mut buffer =
+            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));
+        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
+        buffer.set_text(&mut self.font_system, text, attrs, glyphon::Shaping::Basic);
+        buffer.shape_until_scroll(&mut self.font_system, false);
+        buffer
+    }
+
+    pub fn queue_buffer(&mut self, x: f32, y: f32, buffer: glyphon::Buffer) {
+        self.queue(TextArea {
+            buffer,
+            left: x,
+            top: y,
+            scale: 1.0,
+            bounds: glyphon::TextBounds::default(),
+            default_color: glyphon::Color::rgb(255, 255, 255),
+        });
+    }
+
+    pub fn queue_buffer_centered(
+        &mut self,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        buffer: glyphon::Buffer,
+    ) {
+        let (text_w, text_h) = Self::measure(&buffer);
+
+        self.queue(TextArea {
+            buffer,
+            left: x + w / 2.0 - text_w / 2.0,
+            top: y + h / 2.0 - text_h / 2.0,
+            scale: 1.0,
+            bounds: glyphon::TextBounds::default(),
+            default_color: glyphon::Color::rgb(255, 255, 255),
+        });
+    }
+
     pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str) {
         let mut buffer =
             glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));

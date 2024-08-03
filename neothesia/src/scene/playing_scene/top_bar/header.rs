@@ -1,10 +1,12 @@
 use std::time::Instant;
 
-use neothesia_core::render::TextRenderer;
+use speed_pill::SpeedPill;
 
-use crate::scene::playing_scene::PlayingScene;
+use crate::{context::Context, scene::playing_scene::PlayingScene};
 
 use super::{looper::LooperMsg, Button, Msg};
+
+mod speed_pill;
 
 fn gear_icon() -> &'static str {
     "\u{F3E5}"
@@ -36,6 +38,8 @@ pub struct Header {
     play_button: Button,
     loop_button: Button,
     settings_button: Button,
+
+    speed_pill: SpeedPill,
 }
 
 impl Header {
@@ -76,6 +80,8 @@ impl Header {
             play_button,
             loop_button,
             settings_button,
+
+            speed_pill: SpeedPill::new(elements),
         }
     }
 
@@ -104,7 +110,7 @@ impl Header {
             });
     }
 
-    pub fn update(scene: &mut PlayingScene, text: &mut TextRenderer, _now: &Instant) {
+    pub fn update(scene: &mut PlayingScene, ctx: &mut Context, now: &Instant) {
         Self::update_button_icons(scene);
 
         let PlayingScene {
@@ -123,7 +129,12 @@ impl Header {
             )
         });
 
-        top_bar.header.layout.center.once(|_row| {});
+        let (center_box,) = top_bar.header.layout.center.once(|row| {
+            (
+                row.push(90.0),
+                //
+            )
+        });
 
         let (_play, _loop, _settings) = top_bar.header.layout.end.once(|row| {
             (
@@ -135,6 +146,15 @@ impl Header {
         });
 
         top_bar.header.layout.resolve(0.0, w);
+
+        top_bar.header.speed_pill.update(
+            &mut top_bar.elements,
+            ctx,
+            quad_pipeline,
+            y,
+            &top_bar.header.layout.center.items()[center_box],
+            now,
+        );
 
         let start_row = top_bar.header.layout.start.items();
         let _center_row = top_bar.header.layout.center.items();
@@ -167,7 +187,7 @@ impl Header {
             &top_bar.header.loop_button,
             &top_bar.header.settings_button,
         ] {
-            btn.draw(quad_pipeline, text);
+            btn.draw(quad_pipeline, &mut ctx.text_renderer);
         }
     }
 }

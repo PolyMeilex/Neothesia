@@ -312,13 +312,13 @@ mod row_layout {
             &self.items
         }
 
-        pub fn resolve_left(&mut self, x: f32) {
+        pub fn resolve_left(&mut self, origin_x: f32) {
             if !self.dirty {
                 return;
             }
             self.dirty = false;
 
-            let mut x = x;
+            let mut x = origin_x;
 
             for item in self.items.iter_mut() {
                 item.x = x;
@@ -328,13 +328,18 @@ mod row_layout {
             self.width = self
                 .items
                 .last()
-                .map(|i| (i.x - x) + i.width)
+                .map(|i| (i.x + i.width) - origin_x)
                 .unwrap_or(0.0);
         }
 
         pub fn resolve_center(&mut self, x: f32, width: f32) {
+            if !self.dirty {
+                return;
+            }
             self.resolve_left(x);
+
             let center_x = width / 2.0 - self.width() / 2.0;
+
             for item in self.items.iter_mut() {
                 item.x += center_x;
             }

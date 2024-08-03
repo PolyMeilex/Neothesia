@@ -1,7 +1,5 @@
 use std::time::Instant;
 
-use neothesia_core::render::TextRenderer;
-
 use crate::{
     context::Context,
     scene::playing_scene::{rewind_controller::RewindController, PlayingScene},
@@ -60,7 +58,7 @@ impl ProgressBar {
         }
     }
 
-    pub fn update(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {
+    pub fn update(scene: &mut PlayingScene, _ctx: &mut Context, _now: &Instant) {
         let PlayingScene {
             top_bar,
             quad_pipeline,

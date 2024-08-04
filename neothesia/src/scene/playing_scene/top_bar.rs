@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use neothesia_core::{
-    render::{QuadInstance, QuadPipeline, TextRenderer},
+    render::{QuadInstance, QuadPipeline},
     utils::Rect,
 };
 use wgpu_jumpstart::Color;
@@ -10,7 +10,7 @@ use winit::{
     event::{ElementState, MouseButton, WindowEvent},
 };
 
-use crate::{context::Context, utils::window::WindowState, NeothesiaEvent};
+use crate::{context::Context, NeothesiaEvent};
 
 use super::{
     animation::{Animated, Animation, Easing},
@@ -37,6 +37,8 @@ enum Msg {
     SettingsToggle,
     ProggresBar(ProgressBarMsg),
     LooperEvent(LooperMsg),
+    SpeedUpdateUp,
+    SpeedUpdateDown,
 }
 
 pub struct TopBar {
@@ -112,6 +114,13 @@ impl TopBar {
             }
             Msg::SettingsToggle => {
                 scene.top_bar.settings_active = !scene.top_bar.settings_active;
+            }
+            Msg::SpeedUpdateUp => {
+                ctx.config.speed_multiplier += 0.1;
+            }
+            Msg::SpeedUpdateDown => {
+                ctx.config.speed_multiplier -= 0.1;
+                ctx.config.speed_multiplier = ctx.config.speed_multiplier.max(0.0);
             }
             Msg::LooperEvent(msg) => {
                 Looper::on_msg(scene, ctx, msg);
@@ -211,7 +220,7 @@ impl TopBar {
     }
 
     #[profiling::function]
-    pub fn update(scene: &mut PlayingScene, window_state: &WindowState, text: &mut TextRenderer) {
+    pub fn update(scene: &mut PlayingScene, ctx: &mut Context) {
         let PlayingScene {
             top_bar,
             quad_pipeline,
@@ -219,6 +228,8 @@ impl TopBar {
             ref rewind_controller,
             ..
         } = scene;
+
+        let window_state = &ctx.window_state;
 
         top_bar.bbox.size.width = window_state.logical_size.width;
 
@@ -260,12 +271,12 @@ impl TopBar {
             Looper::update,
             update_settings_card,
         ] {
-            f(scene, text, &now);
+            f(scene, ctx, &now);
         }
     }
 }
 
-fn update_settings_card(scene: &mut PlayingScene, _text: &mut TextRenderer, _now: &Instant) {
+fn update_settings_card(scene: &mut PlayingScene, _ctx: &mut Context, _now: &Instant) {
     let PlayingScene {
         top_bar,
         quad_pipeline,

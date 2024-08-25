@@ -149,8 +149,8 @@ impl Looper {
 
         let y = top_bar
             .animation
-            .animate(-top_bar.bbox.size.height - 30.0, 30.0, *now);
-        let alpha = top_bar.animation.animate(0.0, 1.0, *now);
+            .animate_bool(-top_bar.bbox.size.height - 30.0, 30.0, *now);
+        let alpha = top_bar.animation.animate_bool(0.0, 1.0, *now);
 
         let h = top_bar.loop_tick_height;
         let w = top_bar.bbox.size.width;

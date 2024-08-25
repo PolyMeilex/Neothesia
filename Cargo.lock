@@ -1985,9 +1985,9 @@ dependencies = [
 
 [[package]]
 name = "lilt"
-version = "0.2.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9b185706c3f0e9d7bb824178c85262a8c37d44bb3454cb15cfa51ff3caa5544"
+checksum = "a095f60643436f4a6bddb82f7f37c1a9247990a2ee3421cf4faa43715edd5896"
 
 [[package]]
 name = "linux-raw-sys"

@@ -13,7 +13,7 @@ use winit::{
 use crate::{context::Context, NeothesiaEvent};
 
 use super::{
-    animation::{Animated, Animation, Easing},
+    animation::{Animated, Easing},
     rewind_controller::RewindController,
     PlayingScene, EVENT_CAPTURED, EVENT_IGNORED, LAYER_FG,
 };
@@ -50,7 +50,7 @@ pub struct TopBar {
     animation: Animated<bool, Instant>,
     is_expanded: bool,
 
-    settings_animation: Animation,
+    settings_animation: Animated<bool, Instant>,
 
     header: Header,
     progress_bar: ProgressBar,
@@ -96,8 +96,12 @@ impl TopBar {
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
                 .delay(30.0),
+            settings_animation: Animated::new(false)
+                .duration(1000.)
+                .easing(Easing::EaseOutExpo)
+                .delay(30.0),
+
             is_expanded: false,
-            settings_animation: Animation::new(),
             progress_bar,
             looper,
             settings_active: false,
@@ -243,10 +247,10 @@ impl TopBar {
         // TODO: Use one Instant per frame
         let now = Instant::now();
 
-        if top_bar.animation.value != top_bar.is_expanded {
-            top_bar.animation.transition(top_bar.is_expanded, now);
-        }
-        top_bar.settings_animation.update(top_bar.settings_active);
+        top_bar.animation.transition(top_bar.is_expanded, now);
+        top_bar
+            .settings_animation
+            .transition(top_bar.settings_active, now);
 
         if !top_bar.is_expanded {
             let progress_x = top_bar.bbox.size.width * player.percentage();
@@ -257,7 +261,7 @@ impl TopBar {
             );
         }
 
-        top_bar.bbox.origin.y = top_bar.animation.animate(-h, 0.0, now);
+        top_bar.bbox.origin.y = top_bar.animation.animate_bool(-h, 0.0, now);
 
         if top_bar.bbox.origin.y == -top_bar.bbox.size.height {
             return;
@@ -276,22 +280,20 @@ impl TopBar {
     }
 }
 
-fn update_settings_card(scene: &mut PlayingScene, _ctx: &mut Context, _now: &Instant) {
+fn update_settings_card(scene: &mut PlayingScene, _ctx: &mut Context, now: &Instant) {
     let PlayingScene {
         top_bar,
         quad_pipeline,
         ..
     } = scene;
 
-    let settings_animation = top_bar.settings_animation.expo_out(top_bar.settings_active);
-
     let y = top_bar.bbox.origin.y;
     let h = top_bar.bbox.size.height;
     let w = top_bar.bbox.size.width;
 
-    if !top_bar.settings_animation.is_done() {
+    if top_bar.settings_animation.in_progress(*now) || top_bar.settings_animation.value {
         let card_w = 300.0;
-        let card_x = card_w - (settings_animation * card_w);
+        let card_x = top_bar.settings_animation.animate_bool(card_w, 0.0, *now);
 
         quad_pipeline.push(
             LAYER_FG,

@@ -87,7 +87,7 @@ impl SpeedPill {
             if let Some(element) = elements.get(element) {
                 animation.transition(element.hovered(), *now);
 
-                let m = animation.animate(0.0, 20.0, *now) / 255.0;
+                let m = animation.animate_bool(0.0, 20.0, *now) / 255.0;
                 let c = 67.0 / 255.0;
                 let color = Color::new(c + m, c + m, c + m, 1.0);
 

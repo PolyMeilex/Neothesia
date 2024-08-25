@@ -247,14 +247,10 @@ impl TopBar {
         // TODO: Use one Instant per frame
         let now = Instant::now();
 
-        if top_bar.animation.value != top_bar.is_expanded {
-            top_bar.animation.transition(top_bar.is_expanded, now);
-        }
-        if top_bar.settings_animation.value != top_bar.settings_active {
-            top_bar
-                .settings_animation
-                .transition(top_bar.settings_active, now);
-        }
+        top_bar.animation.transition(top_bar.is_expanded, now);
+        top_bar
+            .settings_animation
+            .transition(top_bar.settings_active, now);
 
         if !top_bar.is_expanded {
             let progress_x = top_bar.bbox.size.width * player.percentage();
@@ -265,7 +261,7 @@ impl TopBar {
             );
         }
 
-        top_bar.bbox.origin.y = top_bar.animation.animate(-h, 0.0, now);
+        top_bar.bbox.origin.y = top_bar.animation.animate_bool(-h, 0.0, now);
 
         if top_bar.bbox.origin.y == -top_bar.bbox.size.height {
             return;
@@ -297,7 +293,7 @@ fn update_settings_card(scene: &mut PlayingScene, _ctx: &mut Context, now: &Inst
 
     if top_bar.settings_animation.in_progress(*now) || top_bar.settings_animation.value {
         let card_w = 300.0;
-        let card_x = top_bar.settings_animation.animate(card_w, 0.0, *now);
+        let card_x = top_bar.settings_animation.animate_bool(card_w, 0.0, *now);
 
         quad_pipeline.push(
             LAYER_FG,

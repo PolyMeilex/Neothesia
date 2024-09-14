@@ -14,7 +14,7 @@ runs:
     - name: zip binary
       shell: bash
       run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: macos-artifact
         path: .github/app/app.zip

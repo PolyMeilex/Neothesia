@@ -1,3 +1,5 @@
+pub mod debug_ui;
+
 pub use euclid;
 
 pub type Point = euclid::default::Point2D<f32>;
@@ -152,6 +154,12 @@ mod elements_map {
                 pressed: None,
                 mouse_grab: None,
             }
+        }
+
+        pub fn iter(&self) -> impl Iterator<Item = (ElementId, &Element<M>)> {
+            self.elements
+                .iter()
+                .map(|(id, element)| (ElementId(id), element))
         }
 
         pub fn insert(&mut self, builder: ElementBuilder<M>) -> ElementId {

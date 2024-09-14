@@ -17,7 +17,7 @@ runs:
     - name: zip binary
       shell: bash
       run: zip -rj app.zip target/release/neothesia
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: ubuntu-artifact
         path: app.zip

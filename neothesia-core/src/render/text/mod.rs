@@ -4,6 +4,7 @@ use wgpu_jumpstart::Gpu;
 
 pub use glyphon;
 
+#[derive(Debug, Clone)]
 pub struct TextArea {
     pub buffer: glyphon::Buffer,
     /// The left edge of the buffer.

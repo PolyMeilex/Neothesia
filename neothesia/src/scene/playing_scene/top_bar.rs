@@ -277,6 +277,10 @@ impl TopBar {
         ] {
             f(scene, ctx, &now);
         }
+
+        if false {
+            draw_debug_ui(&mut scene.top_bar.elements, &mut scene.quad_pipeline);
+        }
     }
 }
 
@@ -317,4 +321,32 @@ fn draw_rect(quad_pipeline: &mut QuadPipeline, bbox: &Rect, color: &Color) {
             ..Default::default()
         },
     );
+}
+
+fn draw_debug_ui(elements: &mut nuon::ElementsMap<Msg>, quad_pipeline: &mut QuadPipeline) {
+    for (element, dbg) in nuon::debug_ui::iter_elements(elements) {
+        for (pos, size) in dbg.border {
+            quad_pipeline.push(
+                LAYER_FG,
+                QuadInstance {
+                    position: pos.into(),
+                    size: size.into(),
+                    color: [1.0, 1.0, 1.0, 0.5],
+                    border_radius: [0.0; 4],
+                },
+            );
+        }
+
+        if element.hovered() {
+            quad_pipeline.push(
+                LAYER_FG,
+                QuadInstance {
+                    position: dbg.bounding_box.0.into(),
+                    size: dbg.bounding_box.1.into(),
+                    color: [1.0, 1.0, 1.0, 0.1],
+                    border_radius: [0.0; 4],
+                },
+            );
+        }
+    }
 }

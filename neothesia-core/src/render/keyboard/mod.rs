@@ -18,6 +18,7 @@ pub struct KeyboardRenderer {
     layout: piano_math::KeyboardLayout,
 
     cache: Vec<QuadInstance>,
+    text_cache: Vec<super::text::TextArea>,
 }
 
 impl KeyboardRenderer {
@@ -37,6 +38,7 @@ impl KeyboardRenderer {
 
             layout,
             cache,
+            text_cache: Vec::new(),
         }
     }
 
@@ -82,11 +84,12 @@ impl KeyboardRenderer {
 
     pub fn invalidate_cache(&mut self) {
         self.cache.clear();
+        self.text_cache.clear();
     }
 
     /// Reupload instances to GPU
     #[profiling::function]
-    fn reupload(&mut self) {
+    fn rebuild_quad_cache(&mut self) {
         let instances = &mut self.cache;
 
         // black_background
@@ -118,19 +121,7 @@ impl KeyboardRenderer {
     }
 
     #[profiling::function]
-    pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, text: &mut TextRenderer) {
-        if self.cache.is_empty() {
-            self.reupload();
-        }
-
-        {
-            profiling::scope!("push from cache");
-            for quad in self.cache.iter() {
-                quads.instances(layer).push(*quad);
-            }
-        }
-
-        profiling::scope!("push text");
+    fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
         let range_start = self.layout.range.start() as usize;
         for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
             let x = self.pos.x + key.x();
@@ -143,20 +134,19 @@ impl KeyboardRenderer {
 
             let oct_number = (key.id() + range_start) / 12;
 
-            let mut buffer =
-                glyphon::Buffer::new(text.font_system(), glyphon::Metrics::new(size, size));
-            buffer.set_size(text.font_system(), Some(w), Some(h));
-            buffer.set_wrap(text.font_system(), glyphon::Wrap::None);
+            let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
+            buffer.set_size(font_system, Some(w), Some(h));
+            buffer.set_wrap(font_system, glyphon::Wrap::None);
             buffer.set_text(
-                text.font_system(),
+                font_system,
                 &format!("C{}", oct_number as i8 - 1),
                 glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                 glyphon::Shaping::Basic,
             );
             buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));
-            buffer.shape_until_scroll(text.font_system(), false);
+            buffer.shape_until_scroll(font_system, false);
 
-            text.queue(super::text::TextArea {
+            self.text_cache.push(super::text::TextArea {
                 buffer,
                 left: x,
                 top: y + h - size * 1.2,
@@ -169,6 +159,31 @@ impl KeyboardRenderer {
                 },
                 default_color: glyphon::Color::rgb(153, 153, 153),
             });
+        }
+    }
+
+    #[profiling::function]
+    pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, text: &mut TextRenderer) {
+        if self.cache.is_empty() {
+            self.rebuild_quad_cache();
+        }
+
+        if self.text_cache.is_empty() {
+            self.rebuild_text_cache(text.font_system());
+        }
+
+        {
+            profiling::scope!("push quads from cache");
+            for quad in self.cache.iter() {
+                quads.instances(layer).push(*quad);
+            }
+        }
+
+        {
+            profiling::scope!("push text from cache");
+            for buffer in self.text_cache.iter() {
+                text.queue(buffer.clone());
+            }
         }
     }
 }

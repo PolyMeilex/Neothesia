@@ -294,19 +294,13 @@ fn note_range_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
 }
 
 fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
-    let vertical = toggler(
-        None,
-        ctx.config.vertical_guidelines,
-        Event::VerticalGuidelines,
-    )
-    .style(theme::toggler);
+    let vertical = toggler(ctx.config.vertical_guidelines)
+        .on_toggle(Event::VerticalGuidelines)
+        .style(theme::toggler);
 
-    let horizontal = toggler(
-        None,
-        ctx.config.horizontal_guidelines,
-        Event::HorizontalGuidelines,
-    )
-    .style(theme::toggler);
+    let horizontal = toggler(ctx.config.horizontal_guidelines)
+        .on_toggle(Event::HorizontalGuidelines)
+        .style(theme::toggler);
 
     PreferencesGroup::new()
         .title("Render")

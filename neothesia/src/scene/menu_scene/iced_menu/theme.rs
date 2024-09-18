@@ -141,6 +141,7 @@ pub fn toggler(theme: &Theme, status: iced_widget::toggler::Status) -> iced_widg
                 iced_widget::toggler::default(theme, status)
             }
         }
+        iced_widget::toggler::Status::Disabled => iced_widget::toggler::default(theme, status),
     }
 }
 

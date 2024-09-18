@@ -159,7 +159,9 @@ impl Scene for PlayingScene {
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
 
         if self.player.is_finished() && !self.player.is_paused() {
-            ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+            ctx.proxy
+                .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
+                .ok();
         }
     }
 
@@ -186,7 +188,7 @@ impl Scene for PlayingScene {
             self.keyboard.reset_notes();
         }
 
-        handle_back_button(ctx, event);
+        handle_back_button(ctx, self.player.song(), event);
         handle_pause_button(&mut self.player, event);
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
 
@@ -220,7 +222,7 @@ fn handle_pause_button(player: &mut MidiPlayer, event: &WindowEvent) {
     }
 }
 
-fn handle_back_button(ctx: &Context, event: &WindowEvent) {
+fn handle_back_button(ctx: &Context, song: &Song, event: &WindowEvent) {
     let mut is_back_event = matches!(
         event,
         WindowEvent::KeyboardInput {
@@ -243,7 +245,9 @@ fn handle_back_button(ctx: &Context, event: &WindowEvent) {
     );
 
     if is_back_event {
-        ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+        ctx.proxy
+            .send_event(NeothesiaEvent::MainMenu(Some(song.clone())))
+            .ok();
     }
 }
 

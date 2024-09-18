@@ -1,5 +1,7 @@
 use midi_file::MidiTrack;
 
+use crate::context::Context;
+
 #[derive(Debug, Clone)]
 pub enum PlayerConfig {
     Mute,
@@ -48,5 +50,26 @@ impl Song {
     pub fn new(file: midi_file::MidiFile) -> Self {
         let config = SongConfig::new(&file.tracks);
         Self { file, config }
+    }
+
+    pub fn from_env(ctx: &Context) -> Option<Self> {
+        let args: Vec<String> = std::env::args().collect();
+        let midi_file = if args.len() > 1 {
+            if let Ok(midi) = midi_file::MidiFile::new(&args[1]) {
+                Some(midi)
+            } else {
+                None
+            }
+        } else if let Some(last) = ctx.config.last_opened_song.as_ref() {
+            if let Ok(midi) = midi_file::MidiFile::new(last) {
+                Some(midi)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        Some(Self::new(midi_file?))
     }
 }

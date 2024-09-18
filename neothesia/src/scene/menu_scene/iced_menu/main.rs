@@ -44,7 +44,10 @@ impl Page for MainPage {
         PageMessage::None
     }
 
-    fn view<'a>(data: &'a Data, ctx: &Context) -> neothesia_iced_widgets::Element<'a, Self::Event> {
+    fn view<'a>(
+        data: &'a Data,
+        _ctx: &Context,
+    ) -> neothesia_iced_widgets::Element<'a, Self::Event> {
         let buttons = column![
             NeoBtn::new_with_label("Select File")
                 .on_press(Event::MidiFilePicker(MidiFilePickerMessage::open()))
@@ -68,7 +71,7 @@ impl Page for MainPage {
 
         let mut layout = Layout::new().body(top_padded(column));
 
-        if let Some(song) = ctx.song.as_ref() {
+        if let Some(song) = data.song.as_ref() {
             let tracks = NeoBtn::new(icons::note_list_icon().size(30.0).center())
                 .height(Length::Fixed(60.0))
                 .min_width(80.0)
@@ -166,7 +169,7 @@ fn midi_file_picker_update(
         MidiFilePickerMessage::MidiFileLoaded(midi) => {
             if let Some((midi, path)) = midi {
                 ctx.config.last_opened_song = Some(path);
-                ctx.song = Some(Song::new(midi));
+                data.song = Some(Song::new(midi));
             }
             data.is_loading = false;
         }

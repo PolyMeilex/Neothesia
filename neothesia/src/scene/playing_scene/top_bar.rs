@@ -111,7 +111,9 @@ impl TopBar {
     fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: Msg) {
         match msg {
             Msg::GoBack => {
-                ctx.proxy.send_event(NeothesiaEvent::MainMenu).ok();
+                ctx.proxy
+                    .send_event(NeothesiaEvent::MainMenu(Some(scene.player.song().clone())))
+                    .ok();
             }
             Msg::PlayResume => {
                 scene.player.pause_resume();

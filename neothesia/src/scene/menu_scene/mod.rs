@@ -18,6 +18,7 @@ use crate::{
         iced_state::{self, Program},
     },
     scene::Scene,
+    song::Song,
 };
 
 type Renderer = iced_wgpu::Renderer;
@@ -31,8 +32,8 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub fn new(ctx: &mut Context) -> Self {
-        let menu = AppUi::new(ctx);
+    pub fn new(ctx: &mut Context, song: Option<Song>) -> Self {
+        let menu = AppUi::new(ctx, song);
         let iced_state =
             iced_state::State::new(menu, ctx.iced_manager.viewport.logical_size(), ctx);
 

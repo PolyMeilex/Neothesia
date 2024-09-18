@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::render::TextRenderer;
-use crate::song::Song;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use wgpu_jumpstart::{Gpu, Uniform};
@@ -25,7 +24,6 @@ pub struct Context {
 
     pub output_manager: OutputManager,
     pub input_manager: InputManager,
-    pub song: Option<Song>,
     pub config: Config,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
@@ -59,23 +57,6 @@ impl Context {
         );
 
         let config = Config::new();
-        let args: Vec<String> = std::env::args().collect();
-
-        let midi_file = if args.len() > 1 {
-            if let Ok(midi) = midi_file::MidiFile::new(&args[1]) {
-                Some(midi)
-            } else {
-                None
-            }
-        } else if let Some(last) = config.last_opened_song.as_ref() {
-            if let Ok(midi) = midi_file::MidiFile::new(last) {
-                Some(midi)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
 
         Self {
             window,
@@ -89,7 +70,6 @@ impl Context {
 
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),
-            song: midi_file.map(Song::new),
             config,
             proxy,
         }

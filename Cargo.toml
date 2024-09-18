@@ -35,13 +35,13 @@ nuon = { path = "./nuon" }
 
 profiling = "1.0"
 
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
-iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
-iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90" }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90", features = [
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "40ea3dabff991843396d4703d485169d0dd90845" }
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "40ea3dabff991843396d4703d485169d0dd90845" }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "40ea3dabff991843396d4703d485169d0dd90845" }
+iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "40ea3dabff991843396d4703d485169d0dd90845" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "40ea3dabff991843396d4703d485169d0dd90845", features = [
   "image",
 ] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "4b44079f34aa9e01977a7974e5f49ae79ff6cd90", features = [
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "40ea3dabff991843396d4703d485169d0dd90845", features = [
   "image",
 ] }

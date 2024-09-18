@@ -3,7 +3,7 @@ use crate::{
     utils::Point,
 };
 
-use piano_math::range::KeyboardRange;
+use piano_layout::range::KeyboardRange;
 
 mod key_state;
 pub use key_state::KeyState;
@@ -15,14 +15,14 @@ pub struct KeyboardRenderer {
 
     key_states: Vec<KeyState>,
 
-    layout: piano_math::KeyboardLayout,
+    layout: piano_layout::KeyboardLayout,
 
     cache: Vec<QuadInstance>,
     text_cache: Vec<super::text::TextArea>,
 }
 
 impl KeyboardRenderer {
-    pub fn new(layout: piano_math::KeyboardLayout) -> Self {
+    pub fn new(layout: piano_layout::KeyboardLayout) -> Self {
         let key_states: Vec<KeyState> = layout
             .range
             .iter()
@@ -73,11 +73,11 @@ impl KeyboardRenderer {
         self.invalidate_cache();
     }
 
-    pub fn layout(&self) -> &piano_math::KeyboardLayout {
+    pub fn layout(&self) -> &piano_layout::KeyboardLayout {
         &self.layout
     }
 
-    pub fn set_layout(&mut self, layout: piano_math::KeyboardLayout) {
+    pub fn set_layout(&mut self, layout: piano_layout::KeyboardLayout) {
         self.layout = layout;
         self.invalidate_cache();
     }

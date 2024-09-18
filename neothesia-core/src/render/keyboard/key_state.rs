@@ -63,12 +63,12 @@ pub fn border_radius(w: f32, is_sharp: bool) -> f32 {
     radius * kind_multiplier
 }
 
-pub fn to_quad(key: &piano_math::Key, color: Color, origin: Point<f32>) -> QuadInstance {
+pub fn to_quad(key: &piano_layout::Key, color: Color, origin: Point<f32>) -> QuadInstance {
     let position = [origin.x + key.x(), origin.y];
 
     let mut size: Size<f32> = key.size().into();
 
-    if let piano_math::KeyKind::Neutral = key.kind() {
+    if let piano_layout::KeyKind::Neutral = key.kind() {
         size.width -= 1.0;
     }
 

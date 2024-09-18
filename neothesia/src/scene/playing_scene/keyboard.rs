@@ -1,9 +1,10 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::{
+    piano_layout,
     render::{QuadPipeline, TextRenderer},
     utils::Point,
 };
-use piano_math::KeyboardRange;
+use piano_layout::KeyboardRange;
 
 use crate::{config::Config, context::Context, render::KeyboardRenderer, song::SongConfig};
 
@@ -15,13 +16,13 @@ pub struct Keyboard {
 fn get_layout(
     width: f32,
     height: f32,
-    range: piano_math::KeyboardRange,
-) -> piano_math::KeyboardLayout {
+    range: piano_layout::KeyboardRange,
+) -> piano_layout::KeyboardLayout {
     let white_count = range.white_count();
     let neutral_width = width / white_count as f32;
     let neutral_height = height * 0.2;
 
-    piano_math::KeyboardLayout::from_range(neutral_width, neutral_height, range)
+    piano_layout::KeyboardLayout::from_range(neutral_width, neutral_height, range)
 }
 
 impl Keyboard {
@@ -29,7 +30,7 @@ impl Keyboard {
         let layout = get_layout(
             ctx.window_state.logical_size.width,
             ctx.window_state.logical_size.height,
-            piano_math::KeyboardRange::new(ctx.config.piano_range()),
+            piano_layout::KeyboardRange::new(ctx.config.piano_range()),
         );
 
         let mut renderer = KeyboardRenderer::new(layout);
@@ -41,11 +42,11 @@ impl Keyboard {
         }
     }
 
-    pub fn layout(&self) -> &piano_math::KeyboardLayout {
+    pub fn layout(&self) -> &piano_layout::KeyboardLayout {
         self.renderer.layout()
     }
 
-    fn set_layout(&mut self, layout: piano_math::KeyboardLayout) {
+    fn set_layout(&mut self, layout: piano_layout::KeyboardLayout) {
         self.renderer.set_layout(layout)
     }
 

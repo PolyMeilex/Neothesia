@@ -2,6 +2,7 @@ use std::{default::Default, time::Duration};
 
 use neothesia_core::{
     config::Config,
+    piano_layout,
     render::{GuidelineRenderer, KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
@@ -26,13 +27,13 @@ struct Recorder {
 fn get_layout(
     width: f32,
     height: f32,
-    range: piano_math::KeyboardRange,
-) -> piano_math::KeyboardLayout {
+    range: piano_layout::KeyboardRange,
+) -> piano_layout::KeyboardLayout {
     let white_count = range.white_count();
     let neutral_width = width / white_count as f32;
     let neutral_height = height * 0.2;
 
-    piano_math::KeyboardLayout::from_range(neutral_width, neutral_height, range)
+    piano_layout::KeyboardLayout::from_range(neutral_width, neutral_height, range)
 }
 
 fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
@@ -82,7 +83,7 @@ impl Recorder {
         let keyboard_layout = get_layout(
             width as f32,
             height as f32,
-            piano_math::KeyboardRange::new(config.piano_range()),
+            piano_layout::KeyboardRange::new(config.piano_range()),
         );
 
         let mut keyboard = KeyboardRenderer::new(keyboard_layout.clone());

@@ -38,14 +38,14 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
     ) {
         let bounds = layout.bounds();
         renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
-            let range = piano_math::KeyboardRange::new(self.0.clone());
+            let range = piano_layout::KeyboardRange::new(self.0.clone());
 
             let white_count = range.white_count();
             let neutral_width = bounds.width / white_count as f32;
             let neutral_height = bounds.height;
 
             let layout =
-                piano_math::KeyboardLayout::from_range(neutral_width, neutral_height, range);
+                piano_layout::KeyboardLayout::from_range(neutral_width, neutral_height, range);
 
             let mut neutral = layout
                 .keys

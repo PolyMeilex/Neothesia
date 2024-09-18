@@ -21,7 +21,6 @@ wgpu.workspace = true
 wgpu-jumpstart.workspace = true
 neothesia-core.workspace = true
 neothesia-iced-widgets.workspace = true
-piano-math.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
 nuon.workspace = true

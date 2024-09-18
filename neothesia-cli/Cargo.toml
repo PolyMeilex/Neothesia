@@ -10,7 +10,6 @@ build-ffmpeg = ["mpeg_encoder/build"]
 [dependencies]
 neothesia-core.workspace = true
 midi-file.workspace = true
-piano-math.workspace = true
 wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 futures.workspace = true

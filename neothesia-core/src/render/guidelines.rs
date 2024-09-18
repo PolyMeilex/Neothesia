@@ -8,7 +8,7 @@ use crate::{
 pub struct GuidelineRenderer {
     pos: Point<f32>,
 
-    layout: piano_math::KeyboardLayout,
+    layout: piano_layout::KeyboardLayout,
     vertical_guidelines: bool,
     horizontal_guidelines: bool,
 
@@ -18,7 +18,7 @@ pub struct GuidelineRenderer {
 
 impl GuidelineRenderer {
     pub fn new(
-        layout: piano_math::KeyboardLayout,
+        layout: piano_layout::KeyboardLayout,
         pos: Point<f32>,
         vertical_guidelines: bool,
         horizontal_guidelines: bool,
@@ -39,7 +39,7 @@ impl GuidelineRenderer {
         self.cache.clear();
     }
 
-    pub fn set_layout(&mut self, layout: piano_math::KeyboardLayout) {
+    pub fn set_layout(&mut self, layout: piano_layout::KeyboardLayout) {
         self.layout = layout;
         self.cache.clear();
     }

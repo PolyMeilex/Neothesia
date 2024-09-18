@@ -4,6 +4,7 @@ use crate::{
     output_manager::OutputConnection,
     song::{PlayerConfig, Song},
 };
+use neothesia_core::piano_layout;
 use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
@@ -20,7 +21,7 @@ impl MidiPlayer {
     pub fn new(
         output: OutputConnection,
         song: Song,
-        user_keyboard_range: piano_math::KeyboardRange,
+        user_keyboard_range: piano_layout::KeyboardRange,
     ) -> Self {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
@@ -245,7 +246,7 @@ struct NotePress {
 
 #[derive(Debug)]
 pub struct PlayAlong {
-    user_keyboard_range: piano_math::KeyboardRange,
+    user_keyboard_range: piano_layout::KeyboardRange,
 
     /// Notes required to proggres further in the song
     required_notes: HashMap<NoteId, NotePress>,
@@ -259,7 +260,7 @@ pub struct PlayAlong {
 }
 
 impl PlayAlong {
-    fn new(user_keyboard_range: piano_math::KeyboardRange) -> Self {
+    fn new(user_keyboard_range: piano_layout::KeyboardRange) -> Self {
         Self {
             user_keyboard_range,
             required_notes: Default::default(),

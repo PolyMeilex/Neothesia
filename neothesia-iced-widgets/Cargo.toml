@@ -9,4 +9,4 @@ iced_core.workspace = true
 iced_wgpu.workspace = true
 iced_widget.workspace = true
 
-piano-math = { workspace = true }
+piano-layout = { workspace = true }

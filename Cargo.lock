@@ -2257,7 +2257,6 @@ dependencies = [
  "neothesia-iced-widgets",
  "nuon",
  "oxisynth",
- "piano-math",
  "profiling",
  "puffin",
  "puffin_http",
@@ -2276,7 +2275,6 @@ dependencies = [
  "midi-file",
  "mpeg_encoder",
  "neothesia-core",
- "piano-math",
  "wgpu-jumpstart",
 ]
 
@@ -2290,7 +2288,7 @@ dependencies = [
  "log",
  "midi-file",
  "objc",
- "piano-math",
+ "piano-layout",
  "profiling",
  "ron",
  "serde",
@@ -2306,7 +2304,7 @@ dependencies = [
  "iced_graphics",
  "iced_wgpu",
  "iced_widget",
- "piano-math",
+ "piano-layout",
 ]
 
 [[package]]
@@ -2745,7 +2743,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "piano-math"
+name = "piano-layout"
 version = "0.1.0"
 
 [[package]]

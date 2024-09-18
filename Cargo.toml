@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "piano-math",
+  "piano-layout",
   "wgpu-jumpstart",
   "neothesia",
   "neothesia-cli",
@@ -30,7 +30,7 @@ neothesia-iced-widgets = { path = "./neothesia-iced-widgets" }
 
 midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
-piano-math = { path = "./piano-math" }
+piano-layout = { path = "./piano-layout" }
 nuon = { path = "./nuon" }
 
 profiling = "1.0"

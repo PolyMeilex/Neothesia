@@ -21,7 +21,7 @@ impl WaterfallRenderer {
         hidden_tracks: &[usize],
         config: &Config,
         transform_uniform: &Uniform<TransformUniform>,
-        layout: piano_math::KeyboardLayout,
+        layout: piano_layout::KeyboardLayout,
     ) -> Self {
         let mut notes: Vec<_> = tracks
             .iter()
@@ -52,7 +52,7 @@ impl WaterfallRenderer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &Config,
-        layout: piano_math::KeyboardLayout,
+        layout: piano_layout::KeyboardLayout,
     ) {
         let range_start = layout.range.start() as usize;
 

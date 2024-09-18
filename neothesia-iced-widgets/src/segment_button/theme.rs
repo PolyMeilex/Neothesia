@@ -14,7 +14,7 @@ pub fn segment_button<T>(
     kind: ButtonSegmentKind,
     active: bool,
     active_color: Color,
-    theme: &T,
+    _theme: &T,
     status: iced_widget::button::Status,
 ) -> button::Style {
     match status {
@@ -56,7 +56,7 @@ pub fn segment_button<T>(
         }
         iced_widget::button::Status::Hovered => {
             let mut active =
-                segment_button(kind, active, active_color, theme, button::Status::Active);
+                segment_button(kind, active, active_color, _theme, button::Status::Active);
 
             if let Some(iced_core::Background::Color(ref mut color)) = active.background {
                 color.r = (color.r + 0.05).min(1.0);
@@ -67,10 +67,10 @@ pub fn segment_button<T>(
             active
         }
         iced_widget::button::Status::Pressed => {
-            segment_button(kind, active, active_color, theme, button::Status::Active)
+            segment_button(kind, active, active_color, _theme, button::Status::Active)
         }
         iced_widget::button::Status::Disabled => {
-            segment_button(kind, active, active_color, theme, button::Status::Active)
+            segment_button(kind, active, active_color, _theme, button::Status::Active)
         }
     }
 }

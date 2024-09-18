@@ -5,7 +5,7 @@ use iced_core::{
     Alignment, Length, Padding,
 };
 use iced_runtime::Task;
-use iced_widget::{button, column as col, container, pick_list, row, toggler};
+use iced_widget::{button, column as col, container, mouse_area, pick_list, row, toggler};
 use neothesia_iced_widgets::{ActionRow, BarLayout, Element, Layout, NeoBtn, PreferencesGroup};
 
 use crate::{context::Context, output_manager::OutputDescriptor, scene::menu_scene::icons};
@@ -305,16 +305,24 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
     PreferencesGroup::new()
         .title("Render")
         .push(
-            ActionRow::new()
-                .title("Vertical Guidelines")
-                .subtitle("Display octave indicators")
-                .suffix(vertical),
+            mouse_area(
+                ActionRow::new()
+                    .title("Vertical Guidelines")
+                    .subtitle("Display octave indicators")
+                    .suffix(vertical),
+            )
+            .on_press(Event::VerticalGuidelines(!ctx.config.vertical_guidelines)),
         )
         .push(
-            ActionRow::new()
-                .title("Horizontal Guidelines")
-                .subtitle("Display measure/bar indicators")
-                .suffix(horizontal),
+            mouse_area(
+                ActionRow::new()
+                    .title("Horizontal Guidelines")
+                    .subtitle("Display measure/bar indicators")
+                    .suffix(horizontal),
+            )
+            .on_press(Event::HorizontalGuidelines(
+                !ctx.config.horizontal_guidelines,
+            )),
         )
         .build()
 }

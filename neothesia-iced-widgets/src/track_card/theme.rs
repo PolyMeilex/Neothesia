@@ -16,7 +16,7 @@ pub fn card<T>(_theme: &T) -> container::Style {
 
 pub fn track_icon_button<T>(
     color: iced_core::Color,
-    theme: &T,
+    _theme: &T,
     status: button::Status,
 ) -> button::Style {
     match status {
@@ -29,7 +29,7 @@ pub fn track_icon_button<T>(
             ..Default::default()
         },
         button::Status::Hovered => {
-            let mut active = track_icon_button(color, theme, button::Status::Active);
+            let mut active = track_icon_button(color, _theme, button::Status::Active);
 
             if let Some(iced_core::Background::Color(ref mut color)) = active.background {
                 color.r = (color.r + 0.05).min(1.0);
@@ -39,7 +39,7 @@ pub fn track_icon_button<T>(
 
             active
         }
-        button::Status::Pressed => track_icon_button(color, theme, button::Status::Active),
-        button::Status::Disabled => track_icon_button(color, theme, button::Status::Active),
+        button::Status::Pressed => track_icon_button(color, _theme, button::Status::Active),
+        button::Status::Disabled => track_icon_button(color, _theme, button::Status::Active),
     }
 }

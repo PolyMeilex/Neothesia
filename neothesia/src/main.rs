@@ -14,6 +14,7 @@ use std::time::Duration;
 use context::Context;
 use iced_core::Renderer;
 use scene::{menu_scene, playing_scene, Scene};
+use song::Song;
 use utils::window::WindowState;
 
 use midi_file::midly::MidiMessage;
@@ -29,7 +30,7 @@ pub enum NeothesiaEvent {
     /// Go to playing scene
     Play(song::Song),
     /// Go to main menu scene
-    MainMenu,
+    MainMenu(Option<song::Song>),
     MidiInput {
         /// The MIDI channel that this message is associated with.
         channel: u8,
@@ -51,7 +52,8 @@ struct Neothesia {
 
 impl Neothesia {
     fn new(mut context: Context, surface: Surface) -> Self {
-        let game_scene = menu_scene::MenuScene::new(&mut context);
+        let song = Song::from_env(&context);
+        let game_scene = menu_scene::MenuScene::new(&mut context, song);
 
         context.resize();
         context.gpu.submit();
@@ -144,8 +146,8 @@ impl Neothesia {
                 let to = playing_scene::PlayingScene::new(&self.context, song);
                 self.game_scene = Box::new(to);
             }
-            NeothesiaEvent::MainMenu => {
-                let to = menu_scene::MenuScene::new(&mut self.context);
+            NeothesiaEvent::MainMenu(song) => {
+                let to = menu_scene::MenuScene::new(&mut self.context, song);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MidiInput { channel, message } => {

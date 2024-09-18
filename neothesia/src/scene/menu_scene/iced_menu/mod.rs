@@ -12,6 +12,7 @@ use crate::{
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
     scene::menu_scene::iced_menu::main::MainPage,
+    song::Song,
     NeothesiaEvent,
 };
 
@@ -50,6 +51,8 @@ pub struct Data {
     is_loading: bool,
 
     logo_handle: ImageHandle,
+
+    song: Option<Song>,
 }
 
 pub struct AppUi {
@@ -58,7 +61,7 @@ pub struct AppUi {
 }
 
 impl AppUi {
-    pub fn new(_ctx: &Context) -> Self {
+    pub fn new(_ctx: &Context, song: Option<Song>) -> Self {
         let mut page_stack = VecDeque::new();
         page_stack.push_front(Step::Main);
 
@@ -74,6 +77,7 @@ impl AppUi {
                 is_loading: false,
 
                 logo_handle: ImageHandle::from_bytes(include_bytes!("../img/banner.png").to_vec()),
+                song,
             },
         }
     }
@@ -214,7 +218,7 @@ pub enum Step {
 }
 
 fn play(data: &Data, ctx: &mut Context) {
-    let Some(song) = ctx.song.as_ref() else {
+    let Some(song) = data.song.as_ref() else {
         return;
     };
 

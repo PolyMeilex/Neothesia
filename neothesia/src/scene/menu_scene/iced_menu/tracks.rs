@@ -30,19 +30,19 @@ impl Page for TracksPage {
     fn update(data: &mut Data, event: Event, ctx: &mut Context) -> PageMessage {
         match event {
             Event::AllTracksPlayer(config) => {
-                if let Some(song) = ctx.song.as_mut() {
+                if let Some(song) = data.song.as_mut() {
                     for track in song.config.tracks.iter_mut() {
                         track.player = config.clone();
                     }
                 }
             }
             Event::TrackPlayer(track, config) => {
-                if let Some(song) = ctx.song.as_mut() {
+                if let Some(song) = data.song.as_mut() {
                     song.config.tracks[track].player = config;
                 }
             }
             Event::TrackVisibility(track, visible) => {
-                if let Some(song) = ctx.song.as_mut() {
+                if let Some(song) = data.song.as_mut() {
                     song.config.tracks[track].visible = visible;
                 }
             }
@@ -57,9 +57,9 @@ impl Page for TracksPage {
         PageMessage::none()
     }
 
-    fn view<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
+    fn view<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         let mut tracks = Vec::new();
-        if let Some(song) = ctx.song.as_ref() {
+        if let Some(song) = data.song.as_ref() {
             for track in song.file.tracks.iter().filter(|t| !t.notes.is_empty()) {
                 let config = &song.config.tracks[track.track_id];
 
@@ -140,7 +140,7 @@ impl Page for TracksPage {
                 .min_width(80.0)
                 .on_press(Event::Play);
 
-            if ctx.song.is_some() {
+            if data.song.is_some() {
                 row![play]
             } else {
                 row![]

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use iced_core::{
     alignment::{Horizontal, Vertical},
+    mouse::ScrollDelta,
     Alignment, Length, Padding,
 };
 use iced_runtime::Task;
@@ -272,14 +273,17 @@ fn counter<'a>(value: impl ToString, msg: fn(RangeUpdateKind) -> Event) -> Eleme
 
     let row = row![label, sub, add].spacing(10).align_y(Alignment::Center);
 
-    neothesia_iced_widgets::ScrollListener::new(row, move |delta| {
-        if delta.is_sign_positive() {
-            msg(RangeUpdateKind::Add)
-        } else {
-            msg(RangeUpdateKind::Sub)
-        }
-    })
-    .into()
+    mouse_area(row)
+        .on_scroll(move |delta| {
+            let (ScrollDelta::Lines { y, .. } | ScrollDelta::Pixels { y, .. }) = delta;
+
+            if y.is_sign_positive() {
+                msg(RangeUpdateKind::Add)
+            } else {
+                msg(RangeUpdateKind::Sub)
+            }
+        })
+        .into()
 }
 
 fn note_range_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {

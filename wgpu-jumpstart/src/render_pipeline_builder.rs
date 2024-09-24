@@ -25,6 +25,7 @@ pub fn default_fragment<'a>(
         module,
         entry_point: "fs_main",
         targets,
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
     }
 }
 
@@ -36,6 +37,7 @@ pub fn default_vertex<'a>(
         module,
         entry_point: "vs_main",
         buffers,
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
     }
 }
 
@@ -49,5 +51,6 @@ pub fn default_render_pipeline(vertex: wgpu::VertexState) -> wgpu::RenderPipelin
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
+        cache: None,
     }
 }

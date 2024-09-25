@@ -14,4 +14,4 @@ wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 futures.workspace = true
 
-mpeg_encoder = { git = "https://github.com/PolyMeilex/mpeg_encoder_next.git" }
+mpeg_encoder = { path = "../mpeg_encoder" }

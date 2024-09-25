@@ -2213,7 +2213,6 @@ dependencies = [
 [[package]]
 name = "mpeg_encoder"
 version = "0.2.1"
-source = "git+https://github.com/PolyMeilex/mpeg_encoder_next.git#577efd933e4b556526df773f267dd0fb066f724c"
 dependencies = [
  "ffmpeg-sys-next",
 ]

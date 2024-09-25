@@ -2,6 +2,7 @@
 members = [
   "piano-layout",
   "wgpu-jumpstart",
+  "mpeg_encoder",
   "neothesia",
   "neothesia-cli",
   "neothesia-core",

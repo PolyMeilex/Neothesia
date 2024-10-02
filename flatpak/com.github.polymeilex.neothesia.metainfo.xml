@@ -7,8 +7,9 @@
   <project_license>GPL-3.0-only</project_license>
 
   <releases>
-    <release version="0.2.1" date="2024-14-01" timestamp="1707775500"></release>
-    <release version="0.2.0" date="2024-14-01" timestamp="1705211142">
+    <release version="0.2.2" date="2024-10-02" timestamp="1727899669"></release>
+    <release version="0.2.1" date="2024-01-14" timestamp="1707775500"></release>
+    <release version="0.2.0" date="2024-01-14" timestamp="1705211142">
       <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.2.0</url>
     </release>
   </releases>
@@ -29,12 +30,15 @@
   <screenshots>
     <screenshot type="default">
       <image>https://i.imgur.com/1R5uOnA.png</image>
+      <caption>Playback</caption>
     </screenshot>
     <screenshot>
       <image>https://i.imgur.com/WUO61EN.png</image>
+      <caption>Main Menu</caption>
     </screenshot>
     <screenshot>
       <image>https://i.imgur.com/QfdMwMI.png</image>
+      <caption>Logo</caption>
     </screenshot>
   </screenshots>
 </component>

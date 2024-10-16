@@ -6,7 +6,7 @@ jobs:
   build_ubuntu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install alsa
         run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev
       - uses: Swatinem/rust-cache@v1
@@ -18,27 +18,27 @@ jobs:
         run: chmod +x target/release/neothesia
       - name: zip binary
         run: zip -rj app.zip target/release/neothesia
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: ubuntu-artifact
           path: app.zip
   build_windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-artifact
           path: target/release/neothesia.exe
   build_macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
@@ -48,7 +48,7 @@ jobs:
         run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
       - name: zip binary
         run: cd .github/app/ && zip -r app.zip Neothesia.app && cd ../..
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-artifact
           path: .github/app/app.zip
@@ -56,7 +56,7 @@ jobs:
   build_ubuntu_recorder:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install alsa
         run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
       - uses: Swatinem/rust-cache@v1
@@ -68,7 +68,7 @@ jobs:
         run: chmod +x target/release/neothesia-cli
       - name: zip binary
         run: zip -rj app.zip target/release/neothesia-cli
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: ubuntu-recorder-artifact
           path: app.zip
@@ -80,7 +80,7 @@ jobs:
       FFMPEG_DOWNLOAD_URL: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z
       
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -98,7 +98,7 @@ jobs:
         with:
           command: build
           args: --release -p neothesia-cli
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-recorder-artifact
           path: target/release/neothesia-cli.exe

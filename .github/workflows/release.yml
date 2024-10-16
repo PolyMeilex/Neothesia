@@ -9,7 +9,7 @@ jobs:
   build_ubuntu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: Build
         uses: ./.github/actions/ubuntu
       - name: ls
@@ -24,7 +24,7 @@ jobs:
   build_ubuntu_recorder:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: Build
         uses: ./.github/actions/ubuntu-recorder
       - name: ls
@@ -39,7 +39,7 @@ jobs:
   build_windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: Build
         uses: ./.github/actions/windows
       - name: ls
@@ -58,7 +58,7 @@ jobs:
       FFMPEG_DOWNLOAD_URL: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z
       
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: Build
         uses: ./.github/actions/windows-recorder
       - name: ls
@@ -77,7 +77,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 10.12
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: Build
         uses: ./.github/actions/macos
       - name: ls

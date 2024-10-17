@@ -5,7 +5,7 @@ runs:
   steps:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build macOS Release
-        run: cargo build --release
+        run: cargo build --release 
     - name: copy binary
       shell: bash
       run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS

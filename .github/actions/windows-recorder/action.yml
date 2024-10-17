@@ -16,7 +16,7 @@ runs:
         Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
         Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
     - uses: actions-rs/cargo@v1
       with:
         command: build

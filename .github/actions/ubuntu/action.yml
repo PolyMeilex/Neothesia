@@ -7,10 +7,9 @@ runs:
       shell: bash
       run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev
     - uses: Swatinem/rust-cache@v2
-    - uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release 
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Build Ubuntu Release
+      run: cargo build --release
     - name: Chmod +x
       shell: bash
       run: chmod +x target/release/neothesia

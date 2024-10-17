@@ -17,10 +17,9 @@ runs:
         Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
 
     - uses: Swatinem/rust-cache@v2
-    - uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release -p neothesia-cli
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Build Ubuntu Release
+      run: cargo build --release -p neothesia-cli
     - uses: actions/upload-artifact@v4
       with:
         name: windows-recorder-artifact

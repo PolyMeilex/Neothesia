@@ -4,10 +4,9 @@ runs:
   using: "composite"
   steps:
     - uses: Swatinem/rust-cache@v2
-    - uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release 
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Build Windows Release
+      run: cargo build --release
     - uses: actions/upload-artifact@v4
       with:
         name: windows-artifact

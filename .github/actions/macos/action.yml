@@ -3,7 +3,7 @@ description: Build macOS builds
 runs:
   using: "composite"
   steps:
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
     - uses: actions-rs/cargo@v1
       with:
         command: build

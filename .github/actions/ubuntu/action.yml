@@ -9,7 +9,7 @@ runs:
     - uses: Swatinem/rust-cache@v2
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Ubuntu Release
-        run: cargo build --release
+        run: cargo build --release 
     - name: Chmod +x
       shell: bash
       run: chmod +x target/release/neothesia

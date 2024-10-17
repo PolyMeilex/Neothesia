@@ -9,6 +9,7 @@ runs:
     - uses: Swatinem/rust-cache@v2
     - uses: dtolnay/rust-toolchain@stable
     - name: Build Ubuntu Recorder Release
+      shell: bash
       run: cargo build --release -p neothesia-cli
     - name: Chmod +x
       shell: bash

@@ -7,6 +7,7 @@ runs:
     - uses: Swatinem/rust-cache@v2
     - uses: dtolnay/rust-toolchain@stable
     - name: Build macOS Release
+      shell: bash
       run: cargo build --release
     - name: copy binary
       shell: bash

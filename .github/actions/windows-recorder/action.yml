@@ -18,6 +18,7 @@ runs:
 
     - uses: Swatinem/rust-cache@v2
     - uses: dtolnay/rust-toolchain@stable
+      shell: bash
     - name: Build Ubuntu Release
       run: cargo build --release -p neothesia-cli
     - uses: actions/upload-artifact@v4

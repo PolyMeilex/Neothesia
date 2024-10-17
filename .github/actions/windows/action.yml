@@ -5,6 +5,7 @@ runs:
   steps:
     - uses: Swatinem/rust-cache@v2
     - uses: dtolnay/rust-toolchain@stable
+      shell: bash
     - name: Build Windows Release
       run: cargo build --release
     - uses: actions/upload-artifact@v4

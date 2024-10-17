@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build MacOS Release
+      - name: Build macOS Release
         run: cargo build --release 
       - name: copy binary
         run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS

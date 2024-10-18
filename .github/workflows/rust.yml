@@ -9,11 +9,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install alsa
         run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release 
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Ubuntu Release
+        run: cargo build --release 
       - name: Chmod +x
         run: chmod +x target/release/neothesia
       - name: zip binary
@@ -26,11 +25,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release 
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Windows Release
+        run: cargo build --release 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-artifact
@@ -39,11 +37,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release 
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build macOS Release
+        run: cargo build --release 
       - name: copy binary
         run: cp target/release/neothesia .github/app/Neothesia.app/Contents/MacOS
       - name: zip binary
@@ -59,11 +56,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install alsa
         run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release -p neothesia-cli
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Ubuntu Release
+        run: cargo build --release -p neothesia-cli
       - name: Chmod +x
         run: chmod +x target/release/neothesia-cli
       - name: zip binary
@@ -93,11 +89,10 @@ jobs:
           Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
           Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
 
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release -p neothesia-cli
+      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Ubuntu Release
+        run: cargo build --release -p neothesia-cli
       - uses: actions/upload-artifact@v4
         with:
           name: windows-recorder-artifact

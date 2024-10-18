@@ -6,11 +6,11 @@ runs:
     - name: Install alsa
       shell: bash
       run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
-    - uses: Swatinem/rust-cache@v1
-    - uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release -p neothesia-cli
+    - uses: Swatinem/rust-cache@v2
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Build Ubuntu Recorder Release
+      shell: bash
+      run: cargo build --release -p neothesia-cli
     - name: Chmod +x
       shell: bash
       run: chmod +x target/release/neothesia-cli

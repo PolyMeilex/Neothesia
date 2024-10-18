@@ -262,9 +262,9 @@ fn main() {
         "./out/video.mp4",
         recorder.width as usize,
         recorder.height as usize,
+        Some(0.0),
+        Some("medium"),
     );
-
-    encoder.init(Some(0.0), Some("medium"));
 
     let start = std::time::Instant::now();
 

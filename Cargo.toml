@@ -4,6 +4,7 @@ members = [
   "wgpu-jumpstart",
   "mpeg_encoder",
   "neothesia",
+  "neothesia-ai",
   "neothesia-cli",
   "neothesia-core",
   "midi-file",

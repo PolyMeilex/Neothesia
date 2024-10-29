@@ -51,8 +51,10 @@ impl Recorder {
             backends: wgpu_jumpstart::default_backends(),
             ..Default::default()
         });
-        let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap();
-
+        let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
+            eprintln!("Failed to initialize GPU: {}", err);
+            std::process::exit(1);
+        });
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {

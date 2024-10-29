@@ -56,11 +56,14 @@ impl Recorder {
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).ok()
+            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
+                eprintln!("Error loading MIDI file: {}", err);
+                std::process::exit(1);
+            })
         } else {
-            None
-        }
-        .unwrap();
+            eprintln!("No MIDI file provided.");
+            std::process::exit(1);
+        };
 
         let config = Config::new();
 

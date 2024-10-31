@@ -64,6 +64,7 @@ impl Recorder {
             })
         } else {
             eprintln!("No MIDI file provided.");
+            eprintln!("Usage: neothesia-cli <midi-file>");
             std::process::exit(1);
         };
 

@@ -51,16 +51,22 @@ impl Recorder {
             backends: wgpu_jumpstart::default_backends(),
             ..Default::default()
         });
-        let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap();
-
+        let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
+            eprintln!("Failed to initialize GPU: {}", err);
+            std::process::exit(1);
+        });
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).ok()
+            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
+                eprintln!("Error loading MIDI file: {}", err);
+                std::process::exit(1);
+            })
         } else {
-            None
-        }
-        .unwrap();
+            eprintln!("No MIDI file provided.");
+            eprintln!("Usage: neothesia-cli <midi-file>");
+            std::process::exit(1);
+        };
 
         let config = Config::new();
 

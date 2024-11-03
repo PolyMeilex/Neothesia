@@ -1,4 +1,14 @@
-![Neothesia Baner](https://github.com/PolyMeilex/Neothesia/assets/20758186/ca9aa8ae-2a69-48de-92d6-97d7ea9e678d)
+# MetaThesia
+
+### Status: Mostly inactive, but feature-complete
+
+MetaThesia is a fork of [Neothesia by PolyMeilex](https://github.com/PolyMeilex/neothesia), enhanced with a few additional scenes, including game stats and a MIDI folder viewer etc. For more details on what’s changed, check out the commits or changelog.
+
+### Project Status
+
+This project is mostly inactive due to limited time, and frankly, it works for my needs. Barring any major bugs that interfere with usability, there likely won’t be new updates.
+
+If you encounter bugs, you can try the [original project](https://github.com/PolyMeilex/neothesia), or feel free to open an issue here. With a bit of luck, we might be able to address it!
 
 # Neothesia
 

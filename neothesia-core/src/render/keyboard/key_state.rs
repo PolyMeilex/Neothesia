@@ -56,7 +56,7 @@ impl KeyState {
 }
 
 pub fn border_radius(w: f32, is_sharp: bool) -> f32 {
-    let kind_multiplier = if is_sharp { 1.0 } else { 3.5 };
+    let kind_multiplier = if is_sharp { 2.0 } else { 3.5 };
 
     let radius = w * 0.08;
 
@@ -72,7 +72,7 @@ pub fn to_quad(key: &piano_layout::Key, color: Color, origin: Point<f32>) -> Qua
         size.width -= 1.0;
     }
 
-    let r = border_radius(size.width, false);
+    let r = border_radius(size.width, key.kind().is_sharp());
 
     QuadInstance {
         position,

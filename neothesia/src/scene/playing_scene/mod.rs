@@ -122,17 +122,19 @@ impl PlayingScene {
         let key_states = self.keyboard.key_states();
         for key in self.keyboard.layout().keys.iter() {
             let glow_state = &mut self.glow_states[key.id()];
-            let glow_w = 200.0 + glow_state.time.sin() * 50.0;
-            let glow_h = 200.0 + glow_state.time.sin() * 50.0;
+            let glow_w = 150.0 + glow_state.time.sin() * 10.0;
+            let glow_h = 150.0 + glow_state.time.sin() * 10.0;
 
             let y = self.keyboard.pos().y;
             if let Some(color) = &key_states[key.id()].pressed_by_file {
                 glow_state.time += 0.1;
                 let mut color = color.into_linear_rgba();
-                color[0] += 0.1;
-                color[1] += 0.1;
-                color[2] += 0.1;
-                color[3] = 0.3;
+                let v = 0.2 * glow_state.time.cos().abs();
+                let v = v.min(1.0);
+                color[0] += v;
+                color[1] += v;
+                color[2] += v;
+                color[3] = 0.2;
                 self.glow_pipeline.instances().push(GlowInstance {
                     position: [key.x() - glow_w / 2.0 + key.width() / 2.0, y - glow_w / 2.0],
                     size: [glow_w, glow_h],

@@ -2,7 +2,7 @@
 //!
 //! *This API requires the following crate features to be activated: `wrap`*
 use iced_widget::core::{
-    self, event,
+    self,
     layout::{Limits, Node},
     mouse::{self, Cursor},
     renderer,
@@ -181,7 +181,7 @@ where
         self.inner_layout(tree, renderer, limits)
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         state: &mut Tree,
         event: Event,
@@ -191,13 +191,13 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         self.elements
             .iter_mut()
             .zip(&mut state.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
+            .for_each(|((child, state), layout)| {
+                child.as_widget_mut().update(
                     state,
                     event.clone(),
                     layout,
@@ -207,8 +207,7 @@ where
                     shell,
                     viewport,
                 )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+            });
     }
 
     fn overlay<'b>(

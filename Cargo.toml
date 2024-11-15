@@ -17,8 +17,8 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.dependencies]
-wgpu = "22"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0d7ba1bba4dd71eb88d2cface5ce649db2413cb7" }
+wgpu = "23"
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "09712a70df7431e9a3b1ac1bbd4fb634096cb3b4" }
 # glyphon = "0.5"
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
@@ -37,13 +37,13 @@ nuon = { path = "./nuon" }
 
 profiling = "1.0"
 
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "142aba2f172c2df2572f6f5b19cdf8b2d565905a" }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "142aba2f172c2df2572f6f5b19cdf8b2d565905a" }
-iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "142aba2f172c2df2572f6f5b19cdf8b2d565905a" }
-iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "142aba2f172c2df2572f6f5b19cdf8b2d565905a" }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "142aba2f172c2df2572f6f5b19cdf8b2d565905a", features = [
+iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "2a2e20b0a35bcf4da9ac34ab2f664485c4e1dbe3" }
+iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "2a2e20b0a35bcf4da9ac34ab2f664485c4e1dbe3" }
+iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "2a2e20b0a35bcf4da9ac34ab2f664485c4e1dbe3" }
+iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "2a2e20b0a35bcf4da9ac34ab2f664485c4e1dbe3" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "2a2e20b0a35bcf4da9ac34ab2f664485c4e1dbe3", features = [
   "image",
 ] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "142aba2f172c2df2572f6f5b19cdf8b2d565905a", features = [
+iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "2a2e20b0a35bcf4da9ac34ab2f664485c4e1dbe3", features = [
   "image",
 ] }

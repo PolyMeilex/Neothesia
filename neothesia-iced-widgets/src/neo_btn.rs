@@ -139,7 +139,7 @@ impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message
         }
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
         event: Event,
@@ -149,10 +149,14 @@ impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> iced_core::event::Status {
+    ) {
         if self.disabled {
-            return iced_core::event::Status::Ignored;
+            return;
         };
+
+        if shell.is_event_captured() {
+            return;
+        }
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -163,6 +167,10 @@ impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message
                         .unwrap_or(false);
 
                     tree.state.downcast_mut::<State>().is_pressed = is_mouse_over;
+
+                    if is_mouse_over {
+                        shell.capture_event();
+                    }
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
@@ -174,19 +182,19 @@ impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message
                         .map(|point| layout.bounds().contains(point))
                         .unwrap_or(false);
 
-                    let is_clicked = *is_pressed && is_mouse_over;
+                    if *is_pressed {
+                        *is_pressed = false;
 
-                    *is_pressed = false;
+                        if is_mouse_over {
+                            shell.publish(on_press);
+                        }
 
-                    if is_clicked {
-                        shell.publish(on_press);
+                        shell.capture_event();
                     }
                 }
             }
             _ => {}
         };
-
-        iced_core::event::Status::Ignored
     }
 
     fn draw(

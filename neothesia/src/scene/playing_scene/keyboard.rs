@@ -1,7 +1,7 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::{
     piano_layout,
-    render::{QuadPipeline, TextRenderer},
+    render::{KeyboardKeyState, QuadPipeline, TextRenderer},
     utils::Point,
 };
 use piano_layout::KeyboardRange;
@@ -40,6 +40,10 @@ impl Keyboard {
             renderer,
             song_config,
         }
+    }
+
+    pub fn key_states(&self) -> &[KeyboardKeyState] {
+        self.renderer.key_states()
     }
 
     pub fn layout(&self) -> &piano_layout::KeyboardLayout {

@@ -23,6 +23,10 @@ impl KeyState {
         }
     }
 
+    pub fn pressed_by_file(&self) -> Option<&Color> {
+        self.pressed_by_file.as_ref()
+    }
+
     pub fn set_pressed_by_user(&mut self, is: bool) {
         self.pressed_by_user = is;
     }

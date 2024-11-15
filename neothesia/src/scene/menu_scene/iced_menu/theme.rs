@@ -37,7 +37,7 @@ pub fn pick_list(
 
             active
         }
-        iced_widget::pick_list::Status::Opened => {
+        iced_widget::pick_list::Status::Opened { .. } => {
             pick_list(_theme, iced_widget::pick_list::Status::Active)
         }
     }

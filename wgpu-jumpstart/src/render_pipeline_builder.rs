@@ -23,7 +23,7 @@ pub fn default_fragment<'a>(
 ) -> wgpu::FragmentState<'a> {
     wgpu::FragmentState {
         module,
-        entry_point: "fs_main",
+        entry_point: Some("fs_main"),
         targets,
         compilation_options: wgpu::PipelineCompilationOptions::default(),
     }
@@ -35,7 +35,7 @@ pub fn default_vertex<'a>(
 ) -> wgpu::VertexState<'a> {
     wgpu::VertexState {
         module,
-        entry_point: "vs_main",
+        entry_point: Some("vs_main"),
         buffers,
         compilation_options: wgpu::PipelineCompilationOptions::default(),
     }

@@ -9,7 +9,7 @@ use wgpu_jumpstart::Color;
 pub struct KeyState {
     is_sharp: bool,
 
-    pub pressed_by_file: Option<Color>,
+    pressed_by_file: Option<Color>,
     pressed_by_user: bool,
 }
 
@@ -21,6 +21,10 @@ impl KeyState {
             pressed_by_file: None,
             pressed_by_user: false,
         }
+    }
+
+    pub fn pressed_by_file(&self) -> Option<&Color> {
+        self.pressed_by_file.as_ref()
     }
 
     pub fn set_pressed_by_user(&mut self, is: bool) {

@@ -126,7 +126,7 @@ impl PlayingScene {
             let glow_h = 150.0 + glow_state.time.sin() * 10.0;
 
             let y = self.keyboard.pos().y;
-            if let Some(color) = &key_states[key.id()].pressed_by_file {
+            if let Some(color) = key_states[key.id()].pressed_by_file() {
                 glow_state.time += 0.1;
                 let mut color = color.into_linear_rgba();
                 let v = 0.2 * glow_state.time.cos().abs();

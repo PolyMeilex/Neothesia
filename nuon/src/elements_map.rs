@@ -72,6 +72,7 @@ impl<M> ElementBuilder<M> {
 
     fn build(self) -> Element<M> {
         Element {
+            id: ElementId(thunderdome::Index::DANGLING),
             name: self.name.unwrap_or("Element"),
             on_click: self.on_click,
             on_pressed: self.on_pressed,
@@ -85,6 +86,7 @@ impl<M> ElementBuilder<M> {
 
 #[derive(Debug)]
 pub struct Element<M> {
+    id: ElementId,
     name: &'static str,
     /// Button-like click, needs both press and release without focus loss
     on_click: Option<M>,
@@ -96,6 +98,10 @@ pub struct Element<M> {
 }
 
 impl<M> Element<M> {
+    pub fn id(&self) -> ElementId {
+        self.id
+    }
+
     pub fn name(&self) -> &'static str {
         self.name
     }
@@ -145,14 +151,13 @@ impl<M> ElementsMap<M> {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (ElementId, &Element<M>)> {
-        self.elements
-            .iter()
-            .map(|(id, element)| (ElementId(id), element))
+    pub fn iter(&self) -> impl Iterator<Item = &Element<M>> {
+        self.elements.iter().map(|(_id, element)| element)
     }
 
     pub fn insert(&mut self, builder: ElementBuilder<M>) -> ElementId {
         let id = ElementId(self.elements.insert(builder.build()));
+        self.elements.get_mut(id.0).unwrap().id = id;
         self.listen_for_mouse(id);
         id
     }
@@ -195,10 +200,10 @@ impl<M> ElementsMap<M> {
         self.hovered
     }
 
-    pub fn hovered_element(&self) -> Option<(ElementId, &Element<M>)> {
+    pub fn hovered_element(&self) -> Option<&Element<M>> {
         let id = self.hovered?;
         let element = self.elements.get(id.0)?;
-        Some((id, element))
+        Some(element)
     }
 
     pub fn set_mouse_grab(&mut self, id: Option<ElementId>) {
@@ -209,23 +214,23 @@ impl<M> ElementsMap<M> {
         self.mouse_grab
     }
 
-    pub fn current_mouse_grab(&self) -> Option<(ElementId, &Element<M>)> {
+    pub fn current_mouse_grab(&self) -> Option<&Element<M>> {
         let id = self.mouse_grab?;
         let element = self.elements.get(id.0)?;
-        Some((id, element))
+        Some(element)
     }
 
-    pub fn on_press(&mut self) -> Option<(ElementId, &Element<M>)> {
+    pub fn on_press(&mut self) -> Option<&Element<M>> {
         let id = self.hovered?;
         let element = self.elements.get(id.0)?;
         self.pressed = Some(id);
-        Some((id, element))
+        Some(element)
     }
 
-    pub fn on_release(&mut self) -> Option<(ElementId, &Element<M>)> {
+    pub fn on_release(&mut self) -> Option<&Element<M>> {
         let id = self.pressed.take()?;
         let element = self.elements.get(id.0)?;
-        Some((id, element))
+        Some(element)
     }
 
     pub fn element_under(&self, point: Point) -> Option<ElementId> {

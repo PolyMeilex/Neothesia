@@ -10,7 +10,7 @@ pub struct ElementDebug {
 pub fn iter_elements<Msg>(
     elements: &mut ElementsMap<Msg>,
 ) -> impl Iterator<Item = (&Element<Msg>, ElementDebug)> {
-    elements.iter().map(|(_id, element)| {
+    elements.iter().map(|element| {
         let pos = element.rect().origin;
         let size = element.rect().size;
 

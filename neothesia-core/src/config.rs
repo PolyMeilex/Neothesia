@@ -131,11 +131,11 @@ fn default_audio_gain() -> f32 {
 }
 
 fn default_vertical_guidelines() -> bool {
-    false
+    true
 }
 
 fn default_horizontal_guidelines() -> bool {
-    false
+    true
 }
 
 fn default_color_schema() -> Vec<ColorSchema> {

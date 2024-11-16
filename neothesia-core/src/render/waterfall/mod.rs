@@ -38,7 +38,7 @@ impl WaterfallRenderer {
         };
         notes
             .notes_pipeline
-            .set_speed(&gpu.queue, config.animation_speed);
+            .set_speed(&gpu.queue, config.animation_speed());
         notes.resize(&gpu.device, &gpu.queue, config, layout);
         notes
     }
@@ -63,7 +63,7 @@ impl WaterfallRenderer {
             if layout.range.contains(note.note) && note.channel != 9 {
                 let key = &layout.keys[note.note as usize - range_start];
 
-                let color_schema = &config.color_schema;
+                let color_schema = config.color_schema();
 
                 let color = &color_schema[note.track_color_id % color_schema.len()];
                 let color = if key.kind().is_sharp() {

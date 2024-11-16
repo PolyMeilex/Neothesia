@@ -61,8 +61,8 @@ impl PlayingScene {
         let guidelines = GuidelineRenderer::new(
             keyboard_layout.clone(),
             *keyboard.pos(),
-            ctx.config.vertical_guidelines,
-            ctx.config.horizontal_guidelines,
+            ctx.config.vertical_guidelines(),
+            ctx.config.horizontal_guidelines(),
             song.file.measures.clone(),
         );
 
@@ -154,12 +154,12 @@ impl PlayingScene {
         }
 
         if self.player.play_along().are_required_keys_pressed() {
-            let delta = (delta / 10) * (ctx.config.speed_multiplier * 10.0) as u32;
+            let delta = (delta / 10) * (ctx.config.speed_multiplier() * 10.0) as u32;
             let midi_events = self.player.update(delta);
             self.keyboard.file_midi_events(&ctx.config, &midi_events);
         }
 
-        self.player.time_without_lead_in() + ctx.config.playback_offset
+        self.player.time_without_lead_in() + ctx.config.animation_offset()
     }
 
     #[profiling::function]
@@ -191,7 +191,7 @@ impl Scene for PlayingScene {
         self.guidelines.update(
             &mut self.quad_pipeline,
             LAYER_BG,
-            ctx.config.animation_speed,
+            ctx.config.animation_speed(),
             time,
         );
         self.keyboard
@@ -321,13 +321,14 @@ fn handle_settings_input(
             };
 
             if key == NamedKey::ArrowUp {
-                ctx.config.speed_multiplier += amount;
+                ctx.config
+                    .set_speed_multiplier(ctx.config.speed_multiplier() + amount);
             } else {
-                ctx.config.speed_multiplier -= amount;
-                ctx.config.speed_multiplier = ctx.config.speed_multiplier.max(0.0);
+                ctx.config
+                    .set_speed_multiplier(ctx.config.speed_multiplier() - amount);
             }
 
-            toast_manager.speed_toast(ctx.config.speed_multiplier);
+            toast_manager.speed_toast(ctx.config.speed_multiplier());
         }
 
         Key::Named(key @ (NamedKey::PageUp | NamedKey::PageDown)) => {
@@ -338,23 +339,17 @@ fn handle_settings_input(
             };
 
             if key == NamedKey::PageUp {
-                ctx.config.animation_speed += amount;
-                // 0.0 is invalid speed, let's skip it and jump to positive
-                if ctx.config.animation_speed == 0.0 {
-                    ctx.config.animation_speed += amount;
-                }
+                ctx.config
+                    .set_animation_speed(ctx.config.animation_speed() + amount);
             } else {
-                ctx.config.animation_speed -= amount;
-                // 0.0 is invalid speed, let's skip it and jump to negative
-                if ctx.config.animation_speed == 0.0 {
-                    ctx.config.animation_speed -= amount;
-                }
+                ctx.config
+                    .set_animation_speed(ctx.config.animation_speed() - amount);
             }
 
             waterfall
                 .pipeline()
-                .set_speed(&ctx.gpu.queue, ctx.config.animation_speed);
-            toast_manager.animation_speed_toast(ctx.config.animation_speed);
+                .set_speed(&ctx.gpu.queue, ctx.config.animation_speed());
+            toast_manager.animation_speed_toast(ctx.config.animation_speed());
         }
 
         Key::Character(ref ch) if matches!(ch.as_str(), "_" | "-" | "+" | "=") => {
@@ -365,12 +360,14 @@ fn handle_settings_input(
             };
 
             if matches!(ch.as_str(), "-" | "_") {
-                ctx.config.playback_offset -= amount;
+                ctx.config
+                    .set_animation_offset(ctx.config.animation_offset() - amount);
             } else {
-                ctx.config.playback_offset += amount;
+                ctx.config
+                    .set_animation_offset(ctx.config.animation_offset() + amount);
             }
 
-            toast_manager.offset_toast(ctx.config.playback_offset);
+            toast_manager.offset_toast(ctx.config.animation_offset());
         }
 
         _ => {}

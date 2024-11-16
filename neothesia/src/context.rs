@@ -29,6 +29,12 @@ pub struct Context {
     pub proxy: EventLoopProxy<NeothesiaEvent>,
 }
 
+impl Drop for Context {
+    fn drop(&mut self) {
+        self.config.save();
+    }
+}
+
 impl Context {
     pub fn new(
         window: Arc<Window>,

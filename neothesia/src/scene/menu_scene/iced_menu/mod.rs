@@ -182,7 +182,7 @@ impl Program for AppUi {
         self.data.inputs = ctx.input_manager.inputs();
 
         if self.data.selected_output.is_none() {
-            if let Some(name) = ctx.config.output.as_ref() {
+            if let Some(name) = ctx.config.output() {
                 if let Some(out) = self
                     .data
                     .outputs
@@ -203,7 +203,7 @@ impl Program for AppUi {
                 .data
                 .inputs
                 .iter()
-                .find(|input| Some(input.to_string()) == ctx.config.input)
+                .find(|input| Some(input.to_string().as_str()) == ctx.config.input())
             {
                 self.data.selected_input = Some(input.clone());
             } else {
@@ -230,7 +230,7 @@ fn play(data: &Data, ctx: &mut Context) {
         let out = match out {
             #[cfg(feature = "synth")]
             OutputDescriptor::Synth(_) => {
-                OutputDescriptor::Synth(ctx.config.soundfont_path.clone())
+                OutputDescriptor::Synth(ctx.config.soundfont_path().cloned())
             }
             o => o,
         };
@@ -238,7 +238,7 @@ fn play(data: &Data, ctx: &mut Context) {
         ctx.output_manager.connect(out);
         ctx.output_manager
             .connection()
-            .set_gain(ctx.config.audio_gain);
+            .set_gain(ctx.config.audio_gain());
     }
 
     if let Some(port) = data.selected_input.clone() {

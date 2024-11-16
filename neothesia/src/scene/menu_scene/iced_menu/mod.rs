@@ -182,15 +182,19 @@ impl Program for AppUi {
         self.data.inputs = ctx.input_manager.inputs();
 
         if self.data.selected_output.is_none() {
-            if let Some(out) = self
-                .data
-                .outputs
-                .iter()
-                .find(|output| Some(output.to_string()) == ctx.config.output)
-            {
-                self.data.selected_output = Some(out.clone());
+            if let Some(name) = ctx.config.output.as_ref() {
+                if let Some(out) = self
+                    .data
+                    .outputs
+                    .iter()
+                    .find(|output| output.to_string().as_str() == name)
+                {
+                    self.data.selected_output = Some(out.clone());
+                } else {
+                    self.data.selected_output = self.data.outputs.first().cloned();
+                }
             } else {
-                self.data.selected_output = self.data.outputs.first().cloned();
+                self.data.selected_output = Some(OutputDescriptor::DummyOutput);
             }
         }
 

@@ -98,8 +98,8 @@ impl Recorder {
         let guidelines = GuidelineRenderer::new(
             keyboard.layout().clone(),
             *keyboard.pos(),
-            config.vertical_guidelines,
-            config.horizontal_guidelines,
+            config.vertical_guidelines(),
+            config.horizontal_guidelines(),
             midi.measures.clone(),
         );
 
@@ -147,7 +147,7 @@ impl Recorder {
         self.guidelines.update(
             &mut self.quad_pipeline,
             0,
-            self.config.animation_speed,
+            self.config.animation_speed(),
             time,
         );
 
@@ -168,7 +168,7 @@ impl Recorder {
         texture_desc: &wgpu::TextureDescriptor<'_>,
         output_buffer: &wgpu::Buffer,
     ) {
-        let bg_color = self.config.background_color;
+        let bg_color = self.config.background_color();
         let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
 
         {
@@ -327,7 +327,7 @@ fn file_midi_events(
             let key = &mut keyboard.key_states_mut()[id];
 
             if is_on {
-                let color = &config.color_schema[e.track_color_id % config.color_schema.len()];
+                let color = &config.color_schema()[e.track_color_id % config.color_schema().len()];
                 key.pressed_by_file_on(color);
             } else {
                 key.pressed_by_file_off();

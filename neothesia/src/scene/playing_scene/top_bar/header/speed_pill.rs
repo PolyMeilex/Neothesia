@@ -107,7 +107,7 @@ impl SpeedPill {
         text.queue_icon(pad + item.x, y, h, minus_icon());
         text.queue_icon(item.x + item.width - h - pad, y, h, plus_icon());
 
-        let label = format!("{}%", (ctx.config.speed_multiplier * 100.0).round());
+        let label = format!("{}%", (ctx.config.speed_multiplier() * 100.0).round());
         let buffer = text.gen_buffer_bold(13.0, &label);
         text.queue_buffer_centered(item.x, y, w, h, buffer);
     }

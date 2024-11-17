@@ -124,7 +124,8 @@ impl Keyboard {
                 let key = &mut self.renderer.key_states_mut()[id];
 
                 if is_on {
-                    let color = &config.color_schema[e.track_color_id % config.color_schema.len()];
+                    let color =
+                        &config.color_schema()[e.track_color_id % config.color_schema().len()];
                     key.pressed_by_file_on(color);
                 } else {
                     key.pressed_by_file_off();

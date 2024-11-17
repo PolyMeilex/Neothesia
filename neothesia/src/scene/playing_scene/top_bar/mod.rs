@@ -122,11 +122,12 @@ impl TopBar {
                 scene.top_bar.settings_active = !scene.top_bar.settings_active;
             }
             Msg::SpeedUpdateUp => {
-                ctx.config.speed_multiplier += 0.1;
+                ctx.config
+                    .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
             }
             Msg::SpeedUpdateDown => {
-                ctx.config.speed_multiplier -= 0.1;
-                ctx.config.speed_multiplier = ctx.config.speed_multiplier.max(0.0);
+                ctx.config
+                    .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
             }
             Msg::LooperEvent(msg) => {
                 Looper::on_msg(scene, ctx, msg);

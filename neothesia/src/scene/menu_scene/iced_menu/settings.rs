@@ -66,10 +66,10 @@ impl Page for SettingsPage {
                 data.selected_input = Some(input);
             }
             Event::VerticalGuidelines(v) => {
-                ctx.config.vertical_guidelines = v;
+                ctx.config.set_vertical_guidelines(v);
             }
             Event::HorizontalGuidelines(v) => {
-                ctx.config.horizontal_guidelines = v;
+                ctx.config.set_horizontal_guidelines(v);
             }
             Event::OpenSoundFontPicker => {
                 data.is_loading = true;
@@ -80,7 +80,7 @@ impl Page for SettingsPage {
             }
             Event::SoundFontFileLoaded(font) => {
                 if let Some(font) = font {
-                    ctx.config.soundfont_path = Some(font.clone());
+                    ctx.config.set_soundfont_path(Some(font.clone()));
                 }
                 data.is_loading = false;
             }
@@ -88,35 +88,38 @@ impl Page for SettingsPage {
                 RangeUpdateKind::Add => {
                     let v = (ctx.config.piano_range().start() + 1).min(127);
                     if v + 24 < *ctx.config.piano_range().end() {
-                        ctx.config.piano_range.0 = v;
+                        ctx.config.set_piano_range_start(v);
                     }
                 }
                 RangeUpdateKind::Sub => {
-                    ctx.config.piano_range.0 = ctx.config.piano_range.0.saturating_sub(1);
+                    ctx.config
+                        .set_piano_range_start(ctx.config.piano_range().start().saturating_sub(1));
                 }
             },
             Event::RangeEnd(kind) => match kind {
                 RangeUpdateKind::Add => {
-                    ctx.config.piano_range.1 = (ctx.config.piano_range.1 + 1).min(127);
+                    ctx.config
+                        .set_piano_range_end(ctx.config.piano_range().end() + 1);
                 }
                 RangeUpdateKind::Sub => {
                     let v = ctx.config.piano_range().end().saturating_sub(1);
                     if *ctx.config.piano_range().start() + 24 < v {
-                        ctx.config.piano_range.1 = v;
+                        ctx.config.set_piano_range_end(v);
                     }
                 }
             },
             Event::AudioGain(kind) => {
                 match kind {
                     RangeUpdateKind::Add => {
-                        ctx.config.audio_gain += 0.1;
+                        ctx.config.set_audio_gain(ctx.config.audio_gain() + 0.1);
                     }
                     RangeUpdateKind::Sub => {
-                        ctx.config.audio_gain = (ctx.config.audio_gain - 0.1).max(0.0);
+                        ctx.config.set_audio_gain(ctx.config.audio_gain() - 0.1);
                     }
                 }
 
-                ctx.config.audio_gain = (ctx.config.audio_gain * 10.0).round() / 10.0;
+                ctx.config
+                    .set_audio_gain((ctx.config.audio_gain() * 10.0).round() / 10.0);
             }
             Event::GoBack => {
                 return PageMessage::go_back();
@@ -216,8 +219,7 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
     let synth_settings = is_synth.then(|| {
         let subtitle = ctx
             .config
-            .soundfont_path
-            .as_ref()
+            .soundfont_path()
             .and_then(|path| path.file_name())
             .map(|name| name.to_string_lossy().to_string());
 
@@ -236,7 +238,7 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
     let synth_gain_settings = is_synth.then(|| {
         ActionRow::new()
             .title("Audio Gain")
-            .suffix(counter(ctx.config.audio_gain, Event::AudioGain))
+            .suffix(counter(ctx.config.audio_gain(), Event::AudioGain))
     });
 
     PreferencesGroup::new()
@@ -298,11 +300,11 @@ fn note_range_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
 }
 
 fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
-    let vertical = toggler(ctx.config.vertical_guidelines)
+    let vertical = toggler(ctx.config.vertical_guidelines())
         .on_toggle(Event::VerticalGuidelines)
         .style(theme::toggler);
 
-    let horizontal = toggler(ctx.config.horizontal_guidelines)
+    let horizontal = toggler(ctx.config.horizontal_guidelines())
         .on_toggle(Event::HorizontalGuidelines)
         .style(theme::toggler);
 
@@ -315,7 +317,7 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
                     .subtitle("Display octave indicators")
                     .suffix(vertical),
             )
-            .on_press(Event::VerticalGuidelines(!ctx.config.vertical_guidelines)),
+            .on_press(Event::VerticalGuidelines(!ctx.config.vertical_guidelines())),
         )
         .push(
             mouse_area(
@@ -325,7 +327,7 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
                     .suffix(horizontal),
             )
             .on_press(Event::HorizontalGuidelines(
-                !ctx.config.horizontal_guidelines,
+                !ctx.config.horizontal_guidelines(),
             )),
         )
         .build()

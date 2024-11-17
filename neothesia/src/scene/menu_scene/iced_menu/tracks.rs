@@ -74,8 +74,8 @@ impl Page for TracksPage {
                 let color = if !visible {
                     iced_core::Color::from_rgb8(102, 102, 102)
                 } else {
-                    let color_id = track.track_color_id % ctx.config.color_schema.len();
-                    let color = &ctx.config.color_schema[color_id].base;
+                    let color_id = track.track_color_id % ctx.config.color_schema().len();
+                    let color = &ctx.config.color_schema()[color_id].base;
                     iced_core::Color::from_rgb8(color.0, color.1, color.2)
                 };
 

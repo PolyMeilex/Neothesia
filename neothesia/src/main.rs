@@ -194,7 +194,7 @@ impl Neothesia {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         {
-            let bg_color = self.context.config.background_color;
+            let bg_color = self.context.config.background_color();
             let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
             let mut rpass =
                 self.context

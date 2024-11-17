@@ -1,5 +1,5 @@
 use crate::{
-    config::ColorSchema,
+    config::ColorSchemaV1,
     render::QuadInstance,
     utils::{Point, Size},
 };
@@ -31,7 +31,7 @@ impl KeyState {
         self.pressed_by_user = is;
     }
 
-    pub fn pressed_by_file_on(&mut self, scheme: &ColorSchema) {
+    pub fn pressed_by_file_on(&mut self, scheme: &ColorSchemaV1) {
         let (r, g, b) = if self.is_sharp {
             scheme.dark
         } else {

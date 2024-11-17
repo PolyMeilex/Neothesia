@@ -60,7 +60,7 @@ impl Song {
             } else {
                 None
             }
-        } else if let Some(last) = ctx.config.last_opened_song.as_ref() {
+        } else if let Some(last) = ctx.config.last_opened_song() {
             if let Ok(midi) = midi_file::MidiFile::new(last) {
                 Some(midi)
             } else {

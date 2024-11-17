@@ -168,7 +168,7 @@ fn midi_file_picker_update(
         }
         MidiFilePickerMessage::MidiFileLoaded(midi) => {
             if let Some((midi, path)) = midi {
-                ctx.config.last_opened_song = Some(path);
+                ctx.config.set_last_opened_song(Some(path));
                 data.song = Some(Song::new(midi));
             }
             data.is_loading = false;

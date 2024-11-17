@@ -1,97 +1,41 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-use neothesia_core::{
-    render::{QuadInstance, QuadPipeline},
-    utils::Rect,
-};
+use neothesia_core::render::QuadInstance;
+use ui::{LooperMsg, ProgressBarMsg};
 use wgpu_jumpstart::Color;
-use winit::{
-    dpi::LogicalPosition,
-    event::{ElementState, MouseButton, WindowEvent},
-};
 
 use crate::{context::Context, NeothesiaEvent};
 
 use super::{
     animation::{Animated, Easing},
     rewind_controller::RewindController,
-    PlayingScene, EVENT_CAPTURED, EVENT_IGNORED, LAYER_FG,
+    PlayingScene, LAYER_FG,
 };
 
-mod button;
-use button::Button;
+mod renderer;
+pub mod ui;
+mod widget;
 
-mod header;
-use header::Header;
-
-mod progress_bar;
-use progress_bar::{ProgressBar, ProgressBarMsg};
-
-mod looper;
-use looper::{Looper, LooperMsg};
-
-#[derive(Debug, Clone)]
-enum Msg {
-    GoBack,
-    PlayResume,
-    SettingsToggle,
-    ProggresBar(ProgressBarMsg),
-    LooperEvent(LooperMsg),
-    SpeedUpdateUp,
-    SpeedUpdateDown,
-}
+use renderer::NuonRenderer;
 
 pub struct TopBar {
-    elements: nuon::ElementsMap<Msg>,
-
-    bbox: Rect<f32>,
-    loop_tick_height: f32,
-
     animation: Animated<bool, Instant>,
     is_expanded: bool,
 
     settings_animation: Animated<bool, Instant>,
 
-    header: Header,
-    progress_bar: ProgressBar,
-    pub looper: Looper,
+    settings_active: bool,
 
-    pub settings_active: bool,
+    looper_active: bool,
+    loop_start: Duration,
+    loop_end: Duration,
+
+    ui: ui::Ui,
 }
-
-macro_rules! color_u8 {
-    ($r: expr, $g: expr, $b: expr, $a: expr) => {
-        Color::new($r as f32 / 255.0, $g as f32 / 255.0, $b as f32 / 255.0, 1.0)
-    };
-}
-
-const BAR_BG: Color = color_u8!(37, 35, 42, 1.0);
-const BUTTON_HOVER: Color = color_u8!(47, 45, 52, 1.0);
-const BLUE: Color = color_u8!(56, 145, 255, 1.0);
-const LIGHT_MEASURE: Color = Color::new(1.0, 1.0, 1.0, 0.5);
-const DARK_MEASURE: Color = Color::new(0.4, 0.4, 0.4, 1.0);
-const LOOPER: Color = color_u8!(255, 56, 187, 1.0);
-const WHITE: Color = Color::new(1.0, 1.0, 1.0, 1.0);
 
 impl TopBar {
     pub fn new() -> Self {
-        let mut elements = nuon::ElementsMap::new();
-
-        let header = Header::new(&mut elements);
-
-        let progress_bar = ProgressBar::new(&mut elements);
-
-        let looper = Looper::new(&mut elements);
-        let bbox = Rect::new((0.0, 0.0).into(), (0.0, 45.0 + 30.0).into());
-
         Self {
-            elements,
-
-            bbox,
-            loop_tick_height: 45.0 + 10.0,
-
-            header,
-
             animation: Animated::new(false)
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
@@ -102,258 +46,204 @@ impl TopBar {
                 .delay(30.0),
 
             is_expanded: false,
-            progress_bar,
-            looper,
             settings_active: false,
+
+            looper_active: false,
+            loop_start: Duration::ZERO,
+            loop_end: Duration::ZERO,
+
+            ui: ui::Ui::new(),
         }
     }
 
-    fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: Msg) {
+    pub fn is_looper_active(&self) -> bool {
+        self.looper_active
+    }
+
+    pub fn loop_start_timestamp(&self) -> Duration {
+        self.loop_start
+    }
+
+    pub fn loop_end_timestamp(&self) -> Duration {
+        self.loop_end
+    }
+
+    fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: &ui::Msg) {
+        use ui::Msg;
         match msg {
+            Msg::PauseResume => {
+                scene.player.pause_resume();
+            }
+            Msg::SpeedUp => {
+                ctx.config
+                    .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
+            }
+            Msg::SpeedDown => {
+                ctx.config
+                    .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
+            }
+            Msg::SettingsToggle => {
+                scene.top_bar.settings_active = !scene.top_bar.settings_active;
+            }
             Msg::GoBack => {
                 ctx.proxy
                     .send_event(NeothesiaEvent::MainMenu(Some(scene.player.song().clone())))
                     .ok();
             }
-            Msg::PlayResume => {
-                scene.player.pause_resume();
-            }
-            Msg::SettingsToggle => {
-                scene.top_bar.settings_active = !scene.top_bar.settings_active;
-            }
-            Msg::SpeedUpdateUp => {
-                ctx.config
-                    .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
-            }
-            Msg::SpeedUpdateDown => {
-                ctx.config
-                    .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
-            }
-            Msg::LooperEvent(msg) => {
-                Looper::on_msg(scene, ctx, msg);
-            }
+            Msg::Looper(msg) => match msg {
+                LooperMsg::Toggle => {
+                    scene.top_bar.looper_active = !scene.top_bar.looper_active;
+
+                    // Looper enabled for the first time
+                    if scene.top_bar.looper_active
+                        && scene.top_bar.loop_start.is_zero()
+                        && scene.top_bar.loop_end.is_zero()
+                    {
+                        scene.top_bar.loop_start = scene.player.time();
+                        scene.top_bar.loop_end = scene.player.time() + Duration::from_secs(5);
+                    }
+                }
+                LooperMsg::MoveStart(t) => {
+                    scene.top_bar.loop_start = *t;
+                }
+                LooperMsg::MoveEnd(t) => {
+                    scene.top_bar.loop_end = *t;
+                }
+            },
             Msg::ProggresBar(msg) => {
-                ProgressBar::on_msg(scene, ctx, msg);
-            }
-        }
-    }
+                let PlayingScene {
+                    player,
+                    keyboard,
+                    rewind_controller,
+                    ..
+                } = scene;
 
-    pub fn handle_window_event(
-        scene: &mut PlayingScene,
-        ctx: &mut Context,
-        event: &WindowEvent,
-    ) -> bool {
-        match &event {
-            WindowEvent::MouseInput { state, button, .. } => {
-                return Self::handle_mouse_input(scene, ctx, state, button);
-            }
-            WindowEvent::CursorMoved { position, .. } => {
-                Self::handle_cursor_moved(
-                    scene,
-                    ctx,
-                    &position.to_logical::<f32>(ctx.window_state.scale_factor),
-                );
-            }
-            WindowEvent::Resized(_) => {
-                scene.top_bar.header.invalidate_layout();
-            }
-            _ => {}
-        }
+                match msg {
+                    ProgressBarMsg::Pressed => {
+                        if !rewind_controller.is_rewinding() {
+                            rewind_controller.start_mouse_rewind(player);
 
-        EVENT_IGNORED
-    }
+                            let x = ctx.window_state.cursor_logical_position.x;
+                            let w = ctx.window_state.logical_size.width;
 
-    fn handle_mouse_input(
-        scene: &mut PlayingScene,
-        ctx: &mut Context,
-        state: &ElementState,
-        button: &MouseButton,
-    ) -> bool {
-        match (state, button) {
-            (ElementState::Pressed, MouseButton::Left) => {
-                if let Some(msg) = scene
-                    .top_bar
-                    .elements
-                    .on_press()
-                    .and_then(|e| e.on_pressed())
-                    .cloned()
-                {
-                    Self::on_msg(scene, ctx, msg);
-                    return EVENT_CAPTURED;
+                            let p = x / w;
+                            player.set_percentage_time(p);
+                            keyboard.reset_notes();
+                        }
+                    }
+                    ProgressBarMsg::Released => {
+                        if let RewindController::Mouse { .. } = rewind_controller {
+                            rewind_controller.stop_rewind(player);
+                        }
+                    }
                 }
             }
-            (ElementState::Released, MouseButton::Left) => {
-                let hovered_element = scene.top_bar.elements.hovered_element_id();
-                if let Some(element) = scene.top_bar.elements.on_release() {
-                    let click_event = element
-                        .on_click()
-                        // Is hover still over the element that started the press grab
-                        .filter(|_| hovered_element == Some(element.id()))
-                        .cloned();
-
-                    let release_event = element.on_release().cloned();
-
-                    if let Some(msg) = click_event {
-                        Self::on_msg(scene, ctx, msg);
-                    }
-                    if let Some(msg) = release_event {
-                        Self::on_msg(scene, ctx, msg);
-                    }
-
-                    return EVENT_CAPTURED;
-                }
-            }
-            _ => {}
         }
-
-        EVENT_IGNORED
     }
 
-    fn handle_cursor_moved(
-        scene: &mut PlayingScene,
-        ctx: &mut Context,
-        position: &LogicalPosition<f32>,
-    ) {
+    #[profiling::function]
+    fn update_nuon(scene: &mut PlayingScene, ctx: &mut Context, _delta: Duration, y: f32) {
+        let mut root = scene
+            .top_bar
+            .ui
+            .view(ui::UiData {
+                y,
+                is_settings_open: scene.top_bar.settings_active,
+                is_looper_on: scene.top_bar.is_looper_active(),
+                speed: ctx.config.speed_multiplier(),
+                player: &scene.player,
+                loop_start: scene.top_bar.loop_start_timestamp(),
+                loop_end: scene.top_bar.loop_end_timestamp(),
+            })
+            .into();
+
+        let layout = {
+            profiling::scope!("nuon_layout");
+            root.as_widget_mut().layout(&nuon::LayoutCtx {
+                x: 0.0,
+                y: 0.0,
+                w: ctx.window_state.logical_size.width,
+                h: ctx.window_state.logical_size.height,
+            })
+        };
+
+        let mut messages = vec![];
+
         scene
-            .top_bar
-            .elements
-            .update_cursor_pos((position.x, position.y).into());
+            .nuon_event_queue
+            .dispatch_events(&mut messages, root.as_widget_mut(), &layout);
 
-        if let Some(msg) = scene
-            .top_bar
-            .elements
-            .current_mouse_grab()
-            .and_then(|e| e.on_cursor_move())
-            .cloned()
         {
+            profiling::scope!("nuon_render");
+            root.as_widget().render(
+                &mut NuonRenderer {
+                    quads: &mut scene.quad_pipeline,
+                    text: &mut ctx.text_renderer,
+                },
+                &layout,
+                &nuon::RenderCtx {},
+            );
+        }
+
+        drop(root);
+
+        for msg in messages.iter() {
             Self::on_msg(scene, ctx, msg);
         }
     }
 
     #[profiling::function]
-    pub fn update(scene: &mut PlayingScene, ctx: &mut Context) {
-        let PlayingScene {
-            top_bar,
-            quad_pipeline,
-            ref player,
-            ref rewind_controller,
-            ..
-        } = scene;
+    pub fn update(scene: &mut PlayingScene, ctx: &mut Context, delta: Duration) {
+        let PlayingScene { top_bar, .. } = scene;
 
         let window_state = &ctx.window_state;
 
-        top_bar.bbox.size.width = window_state.logical_size.width;
-
-        let h = top_bar.bbox.size.height;
+        let h = 75.0;
         let is_hovered = window_state.cursor_logical_position.y < h * 1.7;
 
         top_bar.is_expanded = is_hovered;
         top_bar.is_expanded |= top_bar.settings_active;
-        top_bar.is_expanded |= matches!(rewind_controller, RewindController::Mouse { .. });
+        top_bar.is_expanded |= top_bar.ui.looper.is_grabbed();
+        top_bar.is_expanded |= top_bar.ui.proggress_bar.is_grabbed();
 
-        // TODO: Use one Instant per frame
-        let now = Instant::now();
+        let now = ctx.frame_timestamp;
 
         top_bar.animation.transition(top_bar.is_expanded, now);
         top_bar
             .settings_animation
             .transition(top_bar.settings_active, now);
 
-        if !top_bar.is_expanded {
-            let progress_x = top_bar.bbox.size.width * player.percentage();
-            draw_rect(
-                quad_pipeline,
-                &Rect::new((0.0, 0.0).into(), (progress_x, 5.0).into()),
-                &BLUE,
-            );
-        }
+        let y = top_bar.animation.animate_bool(-h + 5.0, 0.0, now);
 
-        top_bar.bbox.origin.y = top_bar.animation.animate_bool(-h, 0.0, now);
-
-        if top_bar.bbox.origin.y == -top_bar.bbox.size.height {
-            return;
-        }
-
-        draw_rect(quad_pipeline, &top_bar.bbox, &BAR_BG);
-
-        for f in [
-            ProgressBar::update,
-            Header::update,
-            Looper::update,
-            update_settings_card,
-        ] {
-            f(scene, ctx, &now);
-        }
-
-        if false {
-            draw_debug_ui(&mut scene.top_bar.elements, &mut scene.quad_pipeline);
-        }
+        update_settings_card(scene, ctx, y);
+        Self::update_nuon(scene, ctx, delta, y);
     }
 }
 
-fn update_settings_card(scene: &mut PlayingScene, _ctx: &mut Context, now: &Instant) {
+fn update_settings_card(scene: &mut PlayingScene, ctx: &mut Context, y: f32) {
     let PlayingScene {
         top_bar,
         quad_pipeline,
         ..
     } = scene;
 
-    let y = top_bar.bbox.origin.y;
-    let h = top_bar.bbox.size.height;
-    let w = top_bar.bbox.size.width;
+    let h = 75.0;
+    let w = ctx.window_state.logical_size.width;
+    let now = ctx.frame_timestamp;
 
-    if top_bar.settings_animation.in_progress(*now) || top_bar.settings_animation.value {
+    if top_bar.settings_animation.in_progress(now) || top_bar.settings_animation.value {
         let card_w = 300.0;
-        let card_x = top_bar.settings_animation.animate_bool(card_w, 0.0, *now);
+        let card_x = top_bar.settings_animation.animate_bool(card_w, 0.0, now);
 
+        let bar_bg: Color = Color::from_rgba8(37, 35, 42, 1.0);
         quad_pipeline.push(
             LAYER_FG,
             QuadInstance {
                 position: [card_x + w - card_w, y + h + 1.0],
                 size: [card_w, 100.0],
-                color: BAR_BG.into_linear_rgba(),
+                color: bar_bg.into_linear_rgba(),
                 border_radius: [10.0, 0.0, 10.0, 0.0],
             },
         );
-    }
-}
-
-fn draw_rect(quad_pipeline: &mut QuadPipeline, bbox: &Rect, color: &Color) {
-    quad_pipeline.push(
-        LAYER_FG,
-        QuadInstance {
-            position: bbox.origin.into(),
-            size: bbox.size.into(),
-            color: color.into_linear_rgba(),
-            ..Default::default()
-        },
-    );
-}
-
-fn draw_debug_ui(elements: &mut nuon::ElementsMap<Msg>, quad_pipeline: &mut QuadPipeline) {
-    for (element, dbg) in nuon::debug_ui::iter_elements(elements) {
-        for (pos, size) in dbg.border {
-            quad_pipeline.push(
-                LAYER_FG,
-                QuadInstance {
-                    position: pos.into(),
-                    size: size.into(),
-                    color: [1.0, 1.0, 1.0, 0.5],
-                    border_radius: [0.0; 4],
-                },
-            );
-        }
-
-        if element.hovered() {
-            quad_pipeline.push(
-                LAYER_FG,
-                QuadInstance {
-                    position: dbg.bounding_box.0.into(),
-                    size: dbg.bounding_box.1.into(),
-                    color: [1.0, 1.0, 1.0, 0.1],
-                    border_radius: [0.0; 4],
-                },
-            );
-        }
     }
 }

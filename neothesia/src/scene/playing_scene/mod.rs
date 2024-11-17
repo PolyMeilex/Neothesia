@@ -27,9 +27,6 @@ use toast_manager::ToastManager;
 mod animation;
 mod top_bar;
 
-const EVENT_CAPTURED: bool = true;
-const EVENT_IGNORED: bool = false;
-
 const LAYER_BG: usize = 0;
 const LAYER_FG: usize = 1;
 
@@ -48,6 +45,8 @@ pub struct PlayingScene {
     glow_pipeline: GlowPipeline,
     glow_states: Vec<GlowState>,
     toast_manager: ToastManager,
+
+    nuon_event_queue: nuon::input::EventQueue,
 
     top_bar: TopBar,
 }
@@ -112,6 +111,9 @@ impl PlayingScene {
             glow_pipeline: GlowPipeline::new(&ctx.gpu, &ctx.transform),
             glow_states,
             toast_manager: ToastManager::default(),
+
+            nuon_event_queue: nuon::input::EventQueue::new(),
+
             top_bar: TopBar::new(),
         }
     }
@@ -146,10 +148,9 @@ impl PlayingScene {
 
     #[profiling::function]
     fn update_midi_player(&mut self, ctx: &Context, delta: Duration) -> f32 {
-        if self.top_bar.looper.is_active()
-            && self.player.time() > self.top_bar.looper.end_timestamp()
+        if self.top_bar.is_looper_active() && self.player.time() > self.top_bar.loop_end_timestamp()
         {
-            self.player.set_time(self.top_bar.looper.start_timestamp());
+            self.player.set_time(self.top_bar.loop_start_timestamp());
             self.keyboard.reset_notes();
         }
 
@@ -197,9 +198,9 @@ impl Scene for PlayingScene {
         self.keyboard
             .update(&mut self.quad_pipeline, LAYER_FG, &mut ctx.text_renderer);
 
-        TopBar::update(self, ctx);
-
         self.update_glow(delta);
+
+        TopBar::update(self, ctx, delta);
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         self.glow_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
@@ -224,9 +225,8 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
-        if TopBar::handle_window_event(self, ctx, event) {
-            return;
-        }
+        self.nuon_event_queue
+            .push_winit_event(event, ctx.window_state.scale_factor);
 
         self.rewind_controller
             .handle_window_event(ctx, event, &mut self.player);

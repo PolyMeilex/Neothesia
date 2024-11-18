@@ -160,34 +160,21 @@ impl Header {
         let _center_row = top_bar.header.layout.center.items();
         let end_row = top_bar.header.layout.end.items();
 
-        for (btn, item) in [&mut top_bar.header.back_button].into_iter().zip(start_row) {
-            btn.update(
-                &mut top_bar.elements,
-                nuon::Rect::new((item.x, y).into(), (item.width, 30.0).into()),
-            );
-        }
-
-        for (btn, item) in [
+        let start_iter = [&mut top_bar.header.back_button].into_iter().zip(start_row);
+        let end_iter = [
             &mut top_bar.header.play_button,
             &mut top_bar.header.loop_button,
             &mut top_bar.header.settings_button,
         ]
         .into_iter()
-        .zip(end_row)
-        {
-            btn.update(
-                &mut top_bar.elements,
-                nuon::Rect::new((item.x, y).into(), (item.width, 30.0).into()),
-            );
-        }
+        .zip(end_row);
 
-        for btn in [
-            &top_bar.header.back_button,
-            &top_bar.header.play_button,
-            &top_bar.header.loop_button,
-            &top_bar.header.settings_button,
-        ] {
-            btn.draw(quad_pipeline, &mut ctx.text_renderer);
+        for (btn, item) in start_iter.chain(end_iter) {
+            let element = top_bar.elements.get_mut(btn.id()).unwrap();
+            element.set_pos((item.x, y));
+            element.set_size((item.width, 30.0));
+
+            btn.draw(quad_pipeline, &mut ctx.text_renderer, element);
         }
     }
 }

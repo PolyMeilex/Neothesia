@@ -6,7 +6,7 @@ use neothesia_core::{
 };
 use wgpu_jumpstart::Color;
 use winit::{
-    dpi::PhysicalPosition,
+    dpi::LogicalPosition,
     event::{ElementState, MouseButton, WindowEvent},
 };
 
@@ -148,7 +148,11 @@ impl TopBar {
                 return Self::handle_mouse_input(scene, ctx, state, button);
             }
             WindowEvent::CursorMoved { position, .. } => {
-                Self::handle_cursor_moved(scene, ctx, position);
+                Self::handle_cursor_moved(
+                    scene,
+                    ctx,
+                    &position.to_logical::<f32>(ctx.window_state.scale_factor),
+                );
             }
             WindowEvent::Resized(_) => {
                 scene.top_bar.header.invalidate_layout();
@@ -208,12 +212,12 @@ impl TopBar {
     fn handle_cursor_moved(
         scene: &mut PlayingScene,
         ctx: &mut Context,
-        position: &PhysicalPosition<f64>,
+        position: &LogicalPosition<f32>,
     ) {
-        let x = position.to_logical::<f32>(ctx.window_state.scale_factor).x;
-        let y = position.to_logical::<f32>(ctx.window_state.scale_factor).y;
-
-        scene.top_bar.elements.update_cursor_pos((x, y).into());
+        scene
+            .top_bar
+            .elements
+            .update_cursor_pos((position.x, position.y).into());
 
         if let Some(msg) = scene
             .top_bar

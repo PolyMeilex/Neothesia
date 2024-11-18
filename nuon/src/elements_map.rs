@@ -110,6 +110,18 @@ impl<M> Element<M> {
         self.hovered
     }
 
+    pub fn set_pos(&mut self, pos: impl Into<Point>) {
+        self.rect.origin = pos.into();
+    }
+
+    pub fn set_size(&mut self, size: impl Into<Size>) {
+        self.rect.size = size.into();
+    }
+
+    pub fn set_rect(&mut self, rect: Rect) {
+        self.rect = rect;
+    }
+
     pub fn rect(&self) -> Rect {
         self.rect
     }
@@ -175,6 +187,10 @@ impl<M> ElementsMap<M> {
     fn listen_for_mouse(&mut self, id: ElementId) {
         // TODO: Make this smarter
         self.zorder.push(id);
+    }
+
+    pub fn get_mut(&mut self, id: ElementId) -> Option<&mut Element<M>> {
+        self.elements.get_mut(id.0)
     }
 
     pub fn get(&self, id: ElementId) -> Option<&Element<M>> {

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, WindowEvent},
@@ -51,15 +53,17 @@ impl RewindController {
     }
 
     #[profiling::function]
-    pub fn update(&self, player: &mut MidiPlayer, ctx: &Context) {
+    pub fn update(&self, player: &mut MidiPlayer, ctx: &Context, delta: Duration) {
         if let RewindController::Keyboard { speed, .. } = self {
-            if ctx.window_state.modifiers_state.shift_key() {
-                player.rewind(*speed * 2);
+            let v = if ctx.window_state.modifiers_state.shift_key() {
+                *speed * 2
             } else if ctx.window_state.modifiers_state.control_key() {
-                player.rewind(*speed / 2);
+                *speed / 2
             } else {
-                player.rewind(*speed);
-            }
+                *speed
+            };
+
+            player.rewind((100.0 * v as f32 * delta.as_secs_f32()).round() as i64);
         }
     }
 

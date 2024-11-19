@@ -116,7 +116,7 @@ impl PlayingScene {
         }
     }
 
-    fn update_glow(&mut self) {
+    fn update_glow(&mut self, delta: Duration) {
         self.glow_pipeline.clear();
 
         let key_states = self.keyboard.key_states();
@@ -127,7 +127,7 @@ impl PlayingScene {
 
             let y = self.keyboard.pos().y;
             if let Some(color) = key_states[key.id()].pressed_by_file() {
-                glow_state.time += 0.1;
+                glow_state.time += delta.as_secs_f32() * 5.0;
                 let mut color = color.into_linear_rgba();
                 let v = 0.2 * glow_state.time.cos().abs();
                 let v = v.min(1.0);
@@ -199,7 +199,7 @@ impl Scene for PlayingScene {
 
         TopBar::update(self, ctx);
 
-        self.update_glow();
+        self.update_glow(delta);
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         self.glow_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);

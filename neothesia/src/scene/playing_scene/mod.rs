@@ -183,7 +183,7 @@ impl Scene for PlayingScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_pipeline.clear();
 
-        self.rewind_controller.update(&mut self.player, ctx);
+        self.rewind_controller.update(&mut self.player, ctx, delta);
         self.toast_manager.update(&mut ctx.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);

@@ -47,7 +47,6 @@ struct Neothesia {
 
     #[cfg(debug_assertions)]
     fps_ticker: fps_ticker::Fps,
-    last_time: std::time::Instant,
 }
 
 impl Neothesia {
@@ -65,7 +64,6 @@ impl Neothesia {
 
             #[cfg(debug_assertions)]
             fps_ticker: fps_ticker::Fps::default(),
-            last_time: std::time::Instant::now(),
         }
     }
 
@@ -118,8 +116,8 @@ impl Neothesia {
                 _ => {}
             },
             WindowEvent::RedrawRequested => {
-                let delta = self.last_time.elapsed();
-                self.last_time = std::time::Instant::now();
+                let delta = self.context.frame_timestamp.elapsed();
+                self.context.frame_timestamp = std::time::Instant::now();
 
                 self.update(delta);
                 self.render();

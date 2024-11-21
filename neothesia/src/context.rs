@@ -27,6 +27,9 @@ pub struct Context {
     pub config: Config,
 
     pub proxy: EventLoopProxy<NeothesiaEvent>,
+
+    /// Last frame timestamp
+    pub frame_timestamp: std::time::Instant,
 }
 
 impl Drop for Context {
@@ -78,6 +81,7 @@ impl Context {
             input_manager: InputManager::new(proxy.clone()),
             config,
             proxy,
+            frame_timestamp: std::time::Instant::now(),
         }
     }
 

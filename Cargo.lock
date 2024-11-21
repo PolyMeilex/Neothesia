@@ -2584,9 +2584,12 @@ dependencies = [
 name = "nuon"
 version = "0.1.0"
 dependencies = [
+ "dpi",
  "euclid",
+ "profiling",
  "smallvec",
  "thunderdome",
+ "winit",
 ]
 
 [[package]]

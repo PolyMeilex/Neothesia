@@ -236,14 +236,34 @@ fn update_settings_card(scene: &mut PlayingScene, ctx: &mut Context, y: f32) {
         let card_x = top_bar.settings_animation.animate_bool(card_w, 0.0, now);
 
         let bar_bg: Color = Color::from_rgba8(37, 35, 42, 1.0);
+
+        let x = card_x + w - card_w;
+        let y = y + h + 1.0;
+
+        let w = card_w;
+        let h = 100.0;
+
         quad_pipeline.push(
             LAYER_FG,
             QuadInstance {
-                position: [card_x + w - card_w, y + h + 1.0],
-                size: [card_w, 100.0],
+                position: [x, y],
+                size: [w, h],
                 color: bar_bg.into_linear_rgba(),
                 border_radius: [10.0, 0.0, 10.0, 0.0],
             },
         );
+
+        fn cone_icon() -> &'static str {
+            "\u{F2D2}"
+        }
+
+        let size = 50.0;
+        let half_size = size / 2.0;
+        ctx.text_renderer
+            .queue_icon(x + w / 2.0 - half_size, y + 10.0, size, cone_icon());
+
+        let buffer = ctx.text_renderer.gen_buffer_bold(25.0, "WIP");
+        ctx.text_renderer
+            .queue_buffer_centered(x, y + size + 15.0, w, 25.0, buffer);
     }
 }

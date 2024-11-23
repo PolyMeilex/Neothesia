@@ -23,6 +23,14 @@ impl<'a, MSG> Column<'a, MSG> {
         self.children.push(widget.into());
         self
     }
+
+    pub fn when(self, v: bool, f: impl FnOnce(Self) -> Self) -> Self {
+        if v {
+            f(self)
+        } else {
+            self
+        }
+    }
 }
 
 impl<'a, MSG> Widget<MSG> for Column<'a, MSG> {

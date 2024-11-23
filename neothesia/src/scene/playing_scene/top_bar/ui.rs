@@ -164,14 +164,15 @@ impl Ui {
                             .on_press(Msg::ProggresBar(ProgressBarMsg::Pressed))
                             .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
                     )
-                    .push_if(
-                        data.is_looper_on,
-                        Looper::new(&mut self.looper, data.player)
-                            .start(data.loop_start)
-                            .end(data.loop_end)
-                            .on_start_move(|p| Msg::Looper(LooperMsg::MoveStart(p)))
-                            .on_end_move(|p| Msg::Looper(LooperMsg::MoveEnd(p))),
-                    ),
+                    .when(data.is_looper_on, |stack| {
+                        stack.push(
+                            Looper::new(&mut self.looper, data.player)
+                                .start(data.loop_start)
+                                .end(data.loop_end)
+                                .on_start_move(|p| Msg::Looper(LooperMsg::MoveStart(p)))
+                                .on_end_move(|p| Msg::Looper(LooperMsg::MoveEnd(p))),
+                        )
+                    }),
             ),
         );
 

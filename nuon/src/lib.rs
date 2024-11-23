@@ -98,6 +98,13 @@ impl Node {
     pub fn contains(&self, x: f32, y: f32) -> bool {
         self.as_rect().contains((x, y).into())
     }
+
+    pub fn for_each_descend_mut(&mut self, cb: &impl Fn(&mut Self)) {
+        cb(self);
+        for ch in self.children.iter_mut() {
+            ch.for_each_descend_mut(cb);
+        }
+    }
 }
 
 pub struct Element<'a, MSG>(Box<dyn Widget<MSG> + 'a>);

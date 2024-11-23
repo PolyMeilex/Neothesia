@@ -69,38 +69,32 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         }
 
         if let Some(center) = self.center.as_ref() {
-            // TODO: This is stupid
-            let tmp_node = center.as_widget().layout(&LayoutCtx {
-                x: 0.0,
-                y: 0.0,
+            let mut node = center.as_widget().layout(&LayoutCtx {
+                x: ctx.x,
+                y: ctx.y,
                 w: ctx.w,
                 h: ctx.h,
             });
 
-            let node = center.as_widget().layout(&LayoutCtx {
-                x: ctx.x + (ctx.w / 2.0 - tmp_node.w / 2.0),
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
+            let x_offset = ctx.w / 2.0 - node.w / 2.0;
+            node.for_each_descend_mut(&|node| {
+                node.x += x_offset;
             });
 
             children.push(node);
         }
 
         if let Some(end) = self.end.as_ref() {
-            // TODO: This is stupid
-            let tmp_node = end.as_widget().layout(&LayoutCtx {
-                x: 0.0,
-                y: 0.0,
+            let mut node = end.as_widget().layout(&LayoutCtx {
+                x: ctx.x,
+                y: ctx.y,
                 w: ctx.w,
                 h: ctx.h,
             });
 
-            let node = end.as_widget().layout(&LayoutCtx {
-                x: ctx.x + ctx.w - tmp_node.w,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
+            let x_offset = ctx.w - node.w;
+            node.for_each_descend_mut(&|node| {
+                node.x += x_offset;
             });
 
             children.push(node);

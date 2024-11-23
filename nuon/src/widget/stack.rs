@@ -22,11 +22,12 @@ impl<'a, MSG> Stack<'a, MSG> {
         self
     }
 
-    pub fn push_if(mut self, condition: bool, widget: impl Into<Element<'a, MSG>>) -> Self {
-        if condition {
-            self.children.push(widget.into());
+    pub fn when(self, v: bool, f: impl FnOnce(Self) -> Self) -> Self {
+        if v {
+            f(self)
+        } else {
+            self
         }
-        self
     }
 }
 

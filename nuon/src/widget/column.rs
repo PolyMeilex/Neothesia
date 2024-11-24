@@ -36,6 +36,8 @@ impl<'a, MSG> Column<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for Column<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 

@@ -47,6 +47,8 @@ impl<'a, MSG: 'static> Container<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         self.child.as_widget().layout(&LayoutCtx {
             x: ctx.x,

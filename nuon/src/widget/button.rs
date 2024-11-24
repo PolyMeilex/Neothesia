@@ -82,6 +82,8 @@ impl<'a, MSG: Clone> Button<'a, MSG> {
 }
 
 impl<'a, MSG: Clone> Widget<MSG> for Button<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         Node {
             x: ctx.x,

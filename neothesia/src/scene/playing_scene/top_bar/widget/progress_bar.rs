@@ -52,6 +52,8 @@ impl<'a, MSG> ProgressBar<'a, MSG> {
 }
 
 impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         Node {
             x: ctx.x,

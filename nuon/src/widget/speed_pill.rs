@@ -70,6 +70,8 @@ impl<'a, MSG: Clone> SpeedPill<'a, MSG> {
 }
 
 impl<'a, MSG: Clone> Widget<MSG> for SpeedPill<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let minus = self.minus.layout(&LayoutCtx {
             x: ctx.x,

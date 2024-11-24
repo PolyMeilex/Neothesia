@@ -96,6 +96,8 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
 }
 
 pub trait Widget<MSG> {
+    type State;
+
     fn layout(&self, ctx: &LayoutCtx) -> Node;
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx);
     fn update(&mut self, event: input::Event, layout: &Node, ctx: &mut UpdateCtx<MSG>);

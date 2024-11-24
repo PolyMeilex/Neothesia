@@ -74,6 +74,8 @@ impl<'a, MSG> Looper<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let start = self.player.time_to_percentage(&self.start) * ctx.w;
         let start = Node {

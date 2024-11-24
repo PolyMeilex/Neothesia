@@ -54,6 +54,8 @@ impl<'a, MSG> TriLayout<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let mut children = vec![];
 

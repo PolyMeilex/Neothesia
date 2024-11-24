@@ -10,6 +10,8 @@ impl Null {
 }
 
 impl<MSG> Widget<MSG> for Null {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         Node {
             x: ctx.x,

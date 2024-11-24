@@ -34,6 +34,8 @@ impl<'a, MSG> Stack<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 

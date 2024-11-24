@@ -38,6 +38,8 @@ impl<'a, MSG: 'static> Translate<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for Translate<'a, MSG> {
+    type State = ();
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         self.child.as_widget().layout(&LayoutCtx {
             x: ctx.x + self.x,

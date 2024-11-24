@@ -1,3 +1,5 @@
+use crate::WidgetAny;
+
 use super::{Node, UpdateCtx, Widget};
 
 #[derive(Clone, Copy, Debug)]
@@ -70,7 +72,7 @@ impl EventQueue {
     pub fn dispatch_events<MSG>(
         &mut self,
         messages: &mut Vec<MSG>,
-        root: &mut dyn Widget<MSG>,
+        root: &mut dyn WidgetAny<MSG>,
         layout: &Node,
     ) {
         for event in self.event_queue.drain(..) {

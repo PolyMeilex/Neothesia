@@ -75,6 +75,26 @@ pub struct LayoutCtx {
     pub h: f32,
 }
 
+pub trait WidgetAny<MSG> {
+    fn layout(&self, ctx: &LayoutCtx) -> Node;
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx);
+    fn update(&mut self, event: input::Event, layout: &Node, ctx: &mut UpdateCtx<MSG>);
+}
+
+impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
+    fn layout(&self, ctx: &LayoutCtx) -> Node {
+        Widget::layout(self, ctx)
+    }
+
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
+        Widget::render(self, renderer, layout, ctx)
+    }
+
+    fn update(&mut self, event: input::Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
+        Widget::update(self, event, layout, ctx)
+    }
+}
+
 pub trait Widget<MSG> {
     fn layout(&self, ctx: &LayoutCtx) -> Node;
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx);
@@ -107,18 +127,18 @@ impl Node {
     }
 }
 
-pub struct Element<'a, MSG>(Box<dyn Widget<MSG> + 'a>);
+pub struct Element<'a, MSG>(Box<dyn WidgetAny<MSG> + 'a>);
 
 impl<'a, MSG> Element<'a, MSG> {
     pub fn new(widget: impl Widget<MSG> + 'a) -> Self {
         Self(Box::new(widget))
     }
 
-    pub fn as_widget(&self) -> &dyn Widget<MSG> {
+    pub fn as_widget(&self) -> &dyn WidgetAny<MSG> {
         self.0.as_ref()
     }
 
-    pub fn as_widget_mut(&mut self) -> &mut dyn Widget<MSG> {
+    pub fn as_widget_mut(&mut self) -> &mut dyn WidgetAny<MSG> {
         self.0.as_mut()
     }
 }

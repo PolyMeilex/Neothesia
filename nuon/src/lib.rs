@@ -1,4 +1,7 @@
 pub mod widget;
+use std::any::{Any, TypeId};
+
+pub use tree::Tree;
 pub use widget::*;
 
 pub use euclid;
@@ -10,6 +13,7 @@ pub type Rect = euclid::default::Rect<f32>;
 
 pub mod input;
 mod renderer;
+mod tree;
 
 pub use input::{Event, MouseButton};
 pub use renderer::Renderer;
@@ -55,9 +59,18 @@ pub struct RenderCtx {}
 pub struct UpdateCtx<'a, MSG> {
     pub messages: &'a mut Vec<MSG>,
     pub event_captured: bool,
+    pub mouse_grab: bool,
 }
 
 impl<MSG> UpdateCtx<'_, MSG> {
+    pub fn grab_mouse(&mut self) {
+        self.mouse_grab = true;
+    }
+
+    pub fn ungrab_mouse(&mut self) {
+        self.mouse_grab = false;
+    }
+
     pub fn capture_event(&mut self) {
         self.event_captured = true;
     }
@@ -76,31 +89,77 @@ pub struct LayoutCtx {
 }
 
 pub trait WidgetAny<MSG> {
+    fn state_type_id(&self) -> TypeId;
+    fn default_state(&self) -> Box<dyn Any>;
+    fn children(&self) -> Vec<Tree>;
+    fn diff(&self, tree: &mut Tree);
+
     fn layout(&self, ctx: &LayoutCtx) -> Node;
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx);
-    fn update(&mut self, event: input::Event, layout: &Node, ctx: &mut UpdateCtx<MSG>);
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
+    fn update(
+        &mut self,
+        event: input::Event,
+        layout: &Node,
+        tree: &mut Tree,
+        ctx: &mut UpdateCtx<MSG>,
+    );
 }
 
 impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
+    fn state_type_id(&self) -> TypeId {
+        TypeId::of::<W::State>()
+    }
+
+    fn default_state(&self) -> Box<dyn Any> {
+        Box::new(W::State::default())
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        Widget::children(self)
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        Widget::diff(self, tree)
+    }
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         Widget::layout(self, ctx)
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        Widget::render(self, renderer, layout, ctx)
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+        Widget::render(self, renderer, layout, tree, ctx)
     }
 
-    fn update(&mut self, event: input::Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        Widget::update(self, event, layout, ctx)
+    fn update(
+        &mut self,
+        event: input::Event,
+        layout: &Node,
+        tree: &mut Tree,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
+        Widget::update(self, event, layout, tree, ctx)
     }
 }
 
 pub trait Widget<MSG> {
-    type State;
+    type State: Any + Default;
+
+    fn children(&self) -> Vec<Tree> {
+        vec![]
+    }
+
+    #[allow(unused)]
+    fn diff(&self, tree: &mut Tree) {}
 
     fn layout(&self, ctx: &LayoutCtx) -> Node;
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx);
-    fn update(&mut self, event: input::Event, layout: &Node, ctx: &mut UpdateCtx<MSG>);
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
+    fn update(
+        &mut self,
+        event: input::Event,
+        layout: &Node,
+        tree: &mut Tree,
+        ctx: &mut UpdateCtx<MSG>,
+    );
 }
 
 #[derive(Default, Clone)]

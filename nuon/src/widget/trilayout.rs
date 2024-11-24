@@ -1,4 +1,4 @@
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
 
 pub struct TriLayout<'a, MSG> {
     start: Option<Element<'a, MSG>>,
@@ -56,6 +56,29 @@ impl<'a, MSG> TriLayout<'a, MSG> {
 impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
     type State = ();
 
+    fn children(&self) -> Vec<Tree> {
+        self.start
+            .as_ref()
+            .into_iter()
+            .chain(self.center.as_ref())
+            .chain(self.end.as_ref())
+            .map(|w| Tree::new(w.as_widget()))
+            .collect()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        // TODO: remove this alloc by splitting trilayout to 3 subnodes
+        let children: Vec<_> = self
+            .start
+            .as_ref()
+            .into_iter()
+            .chain(self.center.as_ref())
+            .chain(self.end.as_ref())
+            .collect();
+
+        tree.diff_children2(&children);
+    }
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let mut children = vec![];
 
@@ -111,15 +134,23 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        for (ch, layout) in self.iter().zip(layout.children.iter()) {
-            ch.as_widget().render(renderer, layout, ctx);
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+        for ((ch, layout), tree) in self
+            .iter()
+            .zip(layout.children.iter())
+            .zip(tree.children.iter())
+        {
+            ch.as_widget().render(renderer, layout, tree, ctx);
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        for (ch, layout) in self.iter_mut().zip(layout.children.iter()) {
-            ch.as_widget_mut().update(event.clone(), layout, ctx);
+    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+        for ((ch, layout), tree) in self
+            .iter_mut()
+            .zip(layout.children.iter())
+            .zip(tree.children.iter_mut())
+        {
+            ch.as_widget_mut().update(event.clone(), layout, tree, ctx);
         }
     }
 }

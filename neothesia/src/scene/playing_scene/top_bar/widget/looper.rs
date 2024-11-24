@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use nuon::{
-    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, UpdateCtx, Widget,
+    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, Tree, UpdateCtx,
+    Widget,
 };
 
 use crate::scene::playing_scene::midi_player::MidiPlayer;
@@ -18,15 +19,8 @@ pub struct LooperState {
     end: TickState,
 }
 
-impl LooperState {
-    pub fn is_grabbed(&self) -> bool {
-        self.start.is_pressed || self.end.is_pressed
-    }
-}
-
 pub struct Looper<'a, MSG> {
     color: Color,
-    state: &'a mut LooperState,
     player: &'a MidiPlayer,
     on_start_move: Option<fn(Duration) -> MSG>,
     on_end_move: Option<fn(Duration) -> MSG>,
@@ -35,10 +29,9 @@ pub struct Looper<'a, MSG> {
 }
 
 impl<'a, MSG> Looper<'a, MSG> {
-    pub fn new(state: &'a mut LooperState, player: &'a MidiPlayer) -> Self {
+    pub fn new(player: &'a MidiPlayer) -> Self {
         Self {
             color: Color::new_u8(255, 56, 187, 1.0),
-            state,
             player,
             on_start_move: None,
             on_end_move: None,
@@ -74,7 +67,7 @@ impl<'a, MSG> Looper<'a, MSG> {
 }
 
 impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
-    type State = ();
+    type State = LooperState;
 
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let start = self.player.time_to_percentage(&self.start) * ctx.w;
@@ -112,7 +105,9 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, _ctx: &RenderCtx) {
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, _ctx: &RenderCtx) {
+        let state = tree.state.downcast_ref::<Self::State>().unwrap();
+
         let bg = &layout.children[0];
 
         renderer.quad(
@@ -126,10 +121,7 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
             },
         );
 
-        for (layout, state) in layout.children[1..]
-            .iter()
-            .zip([&self.state.start, &self.state.end])
-        {
+        for (layout, state) in layout.children[1..].iter().zip([&state.start, &state.end]) {
             renderer.quad(
                 layout.x,
                 layout.y,
@@ -144,16 +136,18 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
+    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+        let state = tree.state.downcast_mut::<Self::State>().unwrap();
+
         match event {
             Event::CursorMoved { position } => {
                 let start = &layout.children[1];
                 let end = &layout.children[2];
 
-                self.state.start.is_hovered = start.contains(position.x, position.y);
-                self.state.end.is_hovered = end.contains(position.x, position.y);
+                state.start.is_hovered = start.contains(position.x, position.y);
+                state.end.is_hovered = end.contains(position.x, position.y);
 
-                if self.state.start.is_pressed && position.x < end.x - 10.0 {
+                if state.start.is_pressed && position.x < end.x - 10.0 {
                     if let Some(msg) = self.on_start_move.as_ref() {
                         let w = layout.w;
                         let x = position.x;
@@ -165,7 +159,7 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
                     return;
                 }
 
-                if self.state.end.is_pressed && position.x > start.x + 10.0 {
+                if state.end.is_pressed && position.x > start.x + 10.0 {
                     if let Some(msg) = self.on_end_move.as_ref() {
                         let w = layout.w;
                         let x = position.x;
@@ -178,9 +172,10 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
             Event::MousePress {
                 button: MouseButton::Left,
             } => {
-                for state in [&mut self.state.start, &mut self.state.end] {
+                for state in [&mut state.start, &mut state.end] {
                     if state.is_hovered {
                         state.is_pressed = true;
+                        ctx.grab_mouse();
                         ctx.capture_event();
                     }
                 }
@@ -188,7 +183,10 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
             Event::MouseRelease {
                 button: MouseButton::Left,
             } => {
-                for state in [&mut self.state.start, &mut self.state.end] {
+                for state in [&mut state.start, &mut state.end] {
+                    if state.is_pressed {
+                        ctx.ungrab_mouse();
+                    }
                     state.is_pressed = false;
                 }
             }

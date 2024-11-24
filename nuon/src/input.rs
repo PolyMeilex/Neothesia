@@ -1,6 +1,6 @@
-use crate::WidgetAny;
+use crate::Tree;
 
-use super::{Node, UpdateCtx, Widget};
+use super::{Node, UpdateCtx, WidgetAny};
 
 #[derive(Clone, Copy, Debug)]
 pub enum MouseButton {
@@ -55,11 +55,16 @@ impl Event {
 #[derive(Default, Debug)]
 pub struct EventQueue {
     event_queue: Vec<Event>,
+    mouse_grab: bool,
 }
 
 impl EventQueue {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn is_mouse_grabbed(&self) -> bool {
+        self.mouse_grab
     }
 
     pub fn push_winit_event(&mut self, event: &winit::event::WindowEvent, scale_factor: f64) {
@@ -72,18 +77,20 @@ impl EventQueue {
     pub fn dispatch_events<MSG>(
         &mut self,
         messages: &mut Vec<MSG>,
+        tree: &mut Tree,
         root: &mut dyn WidgetAny<MSG>,
         layout: &Node,
     ) {
+        let mut ctx = UpdateCtx {
+            messages,
+            event_captured: false,
+            mouse_grab: self.mouse_grab,
+        };
+
         for event in self.event_queue.drain(..) {
-            root.update(
-                event,
-                layout,
-                &mut UpdateCtx {
-                    messages,
-                    event_captured: false,
-                },
-            );
+            root.update(event, layout, tree, &mut ctx);
         }
+
+        self.mouse_grab = ctx.mouse_grab;
     }
 }

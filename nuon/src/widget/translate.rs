@@ -1,4 +1,6 @@
-use crate::{null::Null, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use crate::{
+    null::Null, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
+};
 
 pub struct Translate<'a, MSG> {
     x: f32,
@@ -40,6 +42,14 @@ impl<'a, MSG: 'static> Translate<'a, MSG> {
 impl<'a, MSG> Widget<MSG> for Translate<'a, MSG> {
     type State = ();
 
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(self.child.as_widget())]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children2(&[&self.child]);
+    }
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         self.child.as_widget().layout(&LayoutCtx {
             x: ctx.x + self.x,
@@ -49,12 +59,16 @@ impl<'a, MSG> Widget<MSG> for Translate<'a, MSG> {
         })
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        self.child.as_widget().render(renderer, layout, ctx)
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+        self.child
+            .as_widget()
+            .render(renderer, layout, &tree.children[0], ctx)
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        self.child.as_widget_mut().update(event, layout, ctx)
+    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+        self.child
+            .as_widget_mut()
+            .update(event, layout, &mut tree.children[0], ctx)
     }
 }
 

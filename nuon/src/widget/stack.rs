@@ -1,6 +1,6 @@
 use smallvec::SmallVec;
 
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
 
 pub struct Stack<'a, MSG> {
     children: SmallVec<[Element<'a, MSG>; 4]>,
@@ -36,6 +36,17 @@ impl<'a, MSG> Stack<'a, MSG> {
 impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
     type State = ();
 
+    fn children(&self) -> Vec<Tree> {
+        self.children
+            .iter()
+            .map(|w| Tree::new(w.as_widget()))
+            .collect()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(self.children.as_ref());
+    }
+
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 
@@ -52,15 +63,26 @@ impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        for (ch, layout) in self.children.iter().zip(layout.children.iter()) {
-            ch.as_widget().render(renderer, layout, ctx);
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+        for ((ch, layout), tree) in self
+            .children
+            .iter()
+            .zip(layout.children.iter())
+            .zip(tree.children.iter())
+        {
+            ch.as_widget().render(renderer, layout, tree, ctx);
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        for (ch, layout) in self.children.iter_mut().zip(layout.children.iter()).rev() {
-            ch.as_widget_mut().update(event.clone(), layout, ctx);
+    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+        for ((ch, layout), tree) in self
+            .children
+            .iter_mut()
+            .zip(layout.children.iter())
+            .zip(tree.children.iter_mut())
+            .rev()
+        {
+            ch.as_widget_mut().update(event.clone(), layout, tree, ctx);
 
             if ctx.is_event_captured() {
                 return;

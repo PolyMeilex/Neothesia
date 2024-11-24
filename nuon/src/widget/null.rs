@@ -1,4 +1,4 @@
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
 
 #[derive(Default, Debug)]
 pub struct Null;
@@ -21,8 +21,16 @@ impl<MSG> Widget<MSG> for Null {
             children: vec![],
         }
     }
-    fn render(&self, _renderer: &mut dyn Renderer, _layout: &Node, _ctx: &RenderCtx) {}
-    fn update(&mut self, _event: Event, _layout: &Node, _ctx: &mut UpdateCtx<MSG>) {}
+    fn render(&self, _renderer: &mut dyn Renderer, _layout: &Node, _tree: &Tree, _ctx: &RenderCtx) {
+    }
+    fn update(
+        &mut self,
+        _event: Event,
+        _layout: &Node,
+        _tree: &mut Tree,
+        _ctx: &mut UpdateCtx<MSG>,
+    ) {
+    }
 }
 
 impl<MSG> From<Null> for Element<'_, MSG> {

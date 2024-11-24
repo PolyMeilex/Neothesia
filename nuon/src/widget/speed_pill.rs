@@ -1,5 +1,5 @@
 use crate::{
-    button, Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget,
+    button, Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
 };
 
 fn minus_icon() -> &'static str {
@@ -10,32 +10,32 @@ fn plus_icon() -> &'static str {
     "\u{F4FE}"
 }
 
-#[derive(Default)]
-pub struct SpeedPillState {
-    minus: button::ButtonState,
-    plus: button::ButtonState,
-}
-
-pub struct SpeedPill<'a, MSG> {
+pub struct SpeedPill<MSG> {
     w: f32,
     h: f32,
 
-    minus: button::Button<'a, MSG>,
-    plus: button::Button<'a, MSG>,
+    minus: button::Button<MSG>,
+    plus: button::Button<MSG>,
 
     speed: f32,
 }
 
-impl<'a, MSG: Clone> SpeedPill<'a, MSG> {
-    pub fn new(state: &'a mut SpeedPillState) -> Self {
-        let minus = button::Button::new(&mut state.minus)
+impl<MSG: Clone> Default for SpeedPill<MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<MSG: Clone> SpeedPill<MSG> {
+    pub fn new() -> Self {
+        let minus = button::Button::new()
             .color(Color::new_u8(67, 67, 67, 1.0))
             .hover_color(Color::new_u8(87, 87, 87, 1.0))
             .preseed_color(Color::new_u8(97, 97, 97, 1.0))
             .width(45.0)
             .height(20.0)
             .border_radius([10.0, 0.0, 10.0, 0.0]);
-        let plus = button::Button::new(&mut state.plus)
+        let plus = button::Button::new()
             .color(Color::new_u8(67, 67, 67, 1.0))
             .hover_color(Color::new_u8(87, 87, 87, 1.0))
             .preseed_color(Color::new_u8(97, 97, 97, 1.0))
@@ -69,8 +69,16 @@ impl<'a, MSG: Clone> SpeedPill<'a, MSG> {
     }
 }
 
-impl<'a, MSG: Clone> Widget<MSG> for SpeedPill<'a, MSG> {
+impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
     type State = ();
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.minus), Tree::new(&self.plus)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children3(&[&self.minus, &self.plus]);
+    }
 
     fn layout(&self, ctx: &LayoutCtx) -> Node {
         let minus = self.minus.layout(&LayoutCtx {
@@ -95,9 +103,11 @@ impl<'a, MSG: Clone> Widget<MSG> for SpeedPill<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        self.minus.render(renderer, &layout.children[0], ctx);
-        self.plus.render(renderer, &layout.children[1], ctx);
+    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+        self.minus
+            .render(renderer, &layout.children[0], &tree.children[0], ctx);
+        self.plus
+            .render(renderer, &layout.children[1], &tree.children[1], ctx);
 
         let pad = 2.0;
 
@@ -120,14 +130,20 @@ impl<'a, MSG: Clone> Widget<MSG> for SpeedPill<'a, MSG> {
         renderer.centered_text(layout.x, layout.y, layout.w, layout.h, 13.0, &label);
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        self.minus.update(event.clone(), &layout.children[0], ctx);
-        self.plus.update(event, &layout.children[1], ctx);
+    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+        self.minus.update(
+            event.clone(),
+            &layout.children[0],
+            &mut tree.children[0],
+            ctx,
+        );
+        self.plus
+            .update(event, &layout.children[1], &mut tree.children[1], ctx);
     }
 }
 
-impl<'a, MSG: Clone + 'static> From<SpeedPill<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: SpeedPill<'a, MSG>) -> Self {
+impl<'a, MSG: Clone + 'static> From<SpeedPill<MSG>> for Element<'a, MSG> {
+    fn from(value: SpeedPill<MSG>) -> Self {
         Element::new(value)
     }
 }

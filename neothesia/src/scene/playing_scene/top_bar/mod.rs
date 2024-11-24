@@ -157,6 +157,15 @@ impl TopBar {
             })
             .into();
 
+        match scene.tree.as_mut() {
+            Some(tree) => {
+                tree.diff(root.as_widget());
+            }
+            None => {
+                scene.tree = Some(nuon::Tree::new(root.as_widget()));
+            }
+        };
+
         let layout = {
             profiling::scope!("nuon_layout");
             root.as_widget_mut().layout(&nuon::LayoutCtx {
@@ -169,9 +178,12 @@ impl TopBar {
 
         let mut messages = vec![];
 
-        scene
-            .nuon_event_queue
-            .dispatch_events(&mut messages, root.as_widget_mut(), &layout);
+        scene.nuon_event_queue.dispatch_events(
+            &mut messages,
+            scene.tree.as_mut().unwrap(),
+            root.as_widget_mut(),
+            &layout,
+        );
 
         {
             profiling::scope!("nuon_render");
@@ -181,6 +193,7 @@ impl TopBar {
                     text: &mut ctx.text_renderer,
                 },
                 &layout,
+                scene.tree.as_ref().unwrap(),
                 &nuon::RenderCtx {},
             );
         }
@@ -203,8 +216,7 @@ impl TopBar {
 
         top_bar.is_expanded = is_hovered;
         top_bar.is_expanded |= top_bar.settings_active;
-        top_bar.is_expanded |= top_bar.ui.looper.is_grabbed();
-        top_bar.is_expanded |= top_bar.ui.proggress_bar.is_grabbed();
+        top_bar.is_expanded |= scene.nuon_event_queue.is_mouse_grabbed();
 
         let now = ctx.frame_timestamp;
 

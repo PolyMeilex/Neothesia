@@ -1,7 +1,9 @@
+use smallvec::SmallVec;
+
 use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
 
 pub struct Row<'a, MSG> {
-    children: Vec<Element<'a, MSG>>,
+    children: SmallVec<[Element<'a, MSG>; 4]>,
     gap: f32,
 }
 
@@ -14,7 +16,7 @@ impl<'a, MSG> Default for Row<'a, MSG> {
 impl<'a, MSG> Row<'a, MSG> {
     pub fn new() -> Self {
         Self {
-            children: Vec::new(),
+            children: SmallVec::new(),
             gap: 0.0,
         }
     }

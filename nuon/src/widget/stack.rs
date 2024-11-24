@@ -1,7 +1,9 @@
+use smallvec::SmallVec;
+
 use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
 
 pub struct Stack<'a, MSG> {
-    children: Vec<Element<'a, MSG>>,
+    children: SmallVec<[Element<'a, MSG>; 4]>,
 }
 
 impl<'a, MSG> Default for Stack<'a, MSG> {
@@ -13,7 +15,7 @@ impl<'a, MSG> Default for Stack<'a, MSG> {
 impl<'a, MSG> Stack<'a, MSG> {
     pub fn new() -> Self {
         Self {
-            children: Vec::new(),
+            children: SmallVec::new(),
         }
     }
 

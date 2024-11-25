@@ -1,10 +1,7 @@
-use crate::{
-    Color, Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx,
-    Widget,
-};
+use crate::{Color, Element, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, Widget};
 
 pub struct Container<MSG> {
-    child: Element<MSG>,
+    child: [Element<MSG>; 1],
     background: Option<Color>,
     x: f32,
     y: f32,
@@ -21,7 +18,7 @@ impl<MSG: 'static> Default for Container<MSG> {
 impl<MSG: 'static> Container<MSG> {
     pub fn new() -> Self {
         Self {
-            child: Element::null(),
+            child: [Element::null()],
             background: None,
             x: 0.0,
             y: 0.0,
@@ -31,7 +28,7 @@ impl<MSG: 'static> Container<MSG> {
     }
 
     pub fn child(mut self, child: impl Into<Element<MSG>>) -> Self {
-        self.child = child.into();
+        self.child[0] = child.into();
         self
     }
 
@@ -64,25 +61,43 @@ impl<MSG: 'static> Container<MSG> {
 impl<MSG> Widget<MSG> for Container<MSG> {
     type State = ();
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(self.child.as_widget())]
+    fn children(&self) -> &[Element<MSG>] {
+        &self.child
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        self.child.as_widget().diff(&mut tree.children[0]);
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.child
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
-        self.child.as_widget().layout(
-            &mut tree.children[0],
-            &ParentLayout {
-                x: parent.x + self.x,
-                y: parent.y + self.y,
-                w: self.width.unwrap_or(parent.w),
-                h: self.height.unwrap_or(parent.h),
-            },
-            ctx,
-        )
+        let parent = &ParentLayout {
+            x: parent.x + self.x,
+            y: parent.y + self.y,
+            w: self.width.unwrap_or(parent.w),
+            h: self.height.unwrap_or(parent.h),
+        };
+
+        let mut children = Vec::with_capacity(self.child.len());
+
+        let mut w = 0.0;
+        let mut h = 0.0;
+
+        for (ch, tree) in self.child.iter().zip(tree.children.iter_mut()) {
+            let node = ch.as_widget().layout(tree, parent, ctx);
+
+            w = node.w.max(node.w);
+            h = node.h.max(node.h);
+
+            children.push(node);
+        }
+
+        Node {
+            x: parent.x,
+            y: parent.y,
+            w: self.width.unwrap_or(w),
+            h: self.height.unwrap_or(h),
+            children,
+        }
     }
 
     fn render(
@@ -95,22 +110,7 @@ impl<MSG> Widget<MSG> for Container<MSG> {
         if let Some(bg) = self.background {
             renderer.quad(layout.x, layout.y, layout.w, layout.h, bg);
         }
-
-        self.child
-            .as_widget()
-            .render(renderer, layout, &tree.children[0], ctx)
-    }
-
-    fn update(
-        &mut self,
-        event: Event,
-        layout: &Node,
-        tree: &mut Tree<Self::State>,
-        ctx: &mut UpdateCtx<MSG>,
-    ) {
-        self.child
-            .as_widget_mut()
-            .update(event, layout, &mut tree.children[0], ctx)
+        self.render_default(renderer, layout, tree, ctx);
     }
 }
 

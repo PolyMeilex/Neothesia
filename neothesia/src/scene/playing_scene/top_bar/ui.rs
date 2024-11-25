@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use nuon::{
-    button::Button, column::Column, container::Container, row::Row, speed_pill::SpeedPill,
-    stack::Stack, trilayout::TriLayout, Color, Element,
+    button::Button, column::Column, container::Container, row::Row, stack::Stack,
+    trilayout::TriLayout, Color, Element,
 };
 
 use crate::scene::playing_scene::midi_player::MidiPlayer;
 
-use super::widget::{looper::Looper, progress_bar::ProgressBar};
+use super::widget::{looper::Looper, progress_bar::ProgressBar, speed_pill::SpeedPill};
 
 #[derive(Debug, Clone)]
 pub enum ProgressBarMsg {

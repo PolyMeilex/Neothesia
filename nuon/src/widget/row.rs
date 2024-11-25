@@ -1,7 +1,6 @@
 use smallvec::SmallVec;
 
-use super::base::layout::GenericLayout;
-use crate::{Element, Node, ParentLayout};
+use crate::{Element, LayoutCtx, Node, ParentLayout, Tree, Widget};
 
 pub struct Row<MSG> {
     children: SmallVec<[Element<MSG>; 4]>,
@@ -41,48 +40,59 @@ impl<MSG> Row<MSG> {
     }
 }
 
+impl<MSG> Widget<MSG> for Row<MSG> {
+    type State = ();
+
+    fn children(&self) -> &[Element<MSG>] {
+        &self.children
+    }
+
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.children
+    }
+
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
+        let mut children = Vec::with_capacity(self.children.len());
+
+        let mut item_layout = ParentLayout {
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
+        };
+
+        let mut total_width = 0.0;
+
+        for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
+            let node = ch.as_widget().layout(tree, &item_layout, ctx);
+
+            item_layout.x += node.w;
+            item_layout.w -= node.w;
+
+            item_layout.x += self.gap;
+            item_layout.w -= self.gap;
+
+            total_width += node.w;
+            total_width += self.gap;
+
+            children.push(node);
+        }
+
+        total_width -= self.gap;
+        total_width = total_width.max(0.0);
+
+        Node {
+            x: parent.x,
+            y: parent.y,
+            w: total_width,
+            h: parent.h,
+            children,
+        }
+    }
+}
+
 impl<MSG: 'static> From<Row<MSG>> for Element<MSG> {
-    fn from(this: Row<MSG>) -> Self {
-        let base =
-            GenericLayout::<_, MSG>::new(this.children, move |widgets, tree, parent, ctx| {
-                let mut children = Vec::with_capacity(widgets.len());
-
-                let mut item_layout = ParentLayout {
-                    x: parent.x,
-                    y: parent.y,
-                    w: parent.w,
-                    h: parent.h,
-                };
-
-                let mut total_width = 0.0;
-
-                for (ch, tree) in widgets.iter().zip(tree.children.iter_mut()) {
-                    let node = ch.as_widget().layout(tree, &item_layout, ctx);
-
-                    item_layout.x += node.w;
-                    item_layout.w -= node.w;
-
-                    item_layout.x += this.gap;
-                    item_layout.w -= this.gap;
-
-                    total_width += node.w;
-                    total_width += this.gap;
-
-                    children.push(node);
-                }
-
-                total_width -= this.gap;
-                total_width = total_width.max(0.0);
-
-                Node {
-                    x: parent.x,
-                    y: parent.y,
-                    w: total_width,
-                    h: parent.h,
-                    children,
-                }
-            });
-
-        Element::new(base)
+    fn from(value: Row<MSG>) -> Self {
+        Element::new(value)
     }
 }

@@ -1,6 +1,4 @@
-use crate::{
-    Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
-};
+use crate::{Element, Widget};
 
 #[derive(Default, Debug)]
 pub struct Null;
@@ -13,37 +11,6 @@ impl Null {
 
 impl<MSG> Widget<MSG> for Null {
     type State = ();
-
-    fn layout(
-        &self,
-        _tree: &mut Tree<Self::State>,
-        parent: &ParentLayout,
-        _ctx: &LayoutCtx,
-    ) -> Node {
-        Node {
-            x: parent.x,
-            y: parent.y,
-            w: 0.0,
-            h: 0.0,
-            children: vec![],
-        }
-    }
-    fn render(
-        &self,
-        _renderer: &mut dyn Renderer,
-        _layout: &Node,
-        _tree: &Tree<Self::State>,
-        _ctx: &RenderCtx,
-    ) {
-    }
-    fn update(
-        &mut self,
-        _event: Event,
-        _layout: &Node,
-        _tree: &mut Tree<Self::State>,
-        _ctx: &mut UpdateCtx<MSG>,
-    ) {
-    }
 }
 
 impl<MSG> From<Null> for Element<MSG> {

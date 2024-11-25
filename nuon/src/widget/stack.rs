@@ -1,7 +1,6 @@
 use smallvec::SmallVec;
 
-use super::base::layout::GenericLayout;
-use crate::{Element, Node};
+use crate::{Element, Widget};
 
 pub struct Stack<MSG> {
     children: SmallVec<[Element<MSG>; 4]>,
@@ -34,25 +33,20 @@ impl<MSG> Stack<MSG> {
     }
 }
 
+impl<MSG> Widget<MSG> for Stack<MSG> {
+    type State = ();
+
+    fn children(&self) -> &[Element<MSG>] {
+        &self.children
+    }
+
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.children
+    }
+}
+
 impl<MSG: 'static> From<Stack<MSG>> for Element<MSG> {
     fn from(value: Stack<MSG>) -> Self {
-        let base =
-            GenericLayout::<_, MSG>::new(value.children, move |widgets, tree, parent, ctx| {
-                let mut children = Vec::with_capacity(widgets.len());
-
-                for (ch, tree) in widgets.iter().zip(tree.children.iter_mut()) {
-                    children.push(ch.as_widget().layout(tree, parent, ctx));
-                }
-
-                Node {
-                    x: parent.x,
-                    y: parent.y,
-                    w: parent.w,
-                    h: parent.h,
-                    children,
-                }
-            });
-
-        Element::new(base)
+        Element::new(value)
     }
 }

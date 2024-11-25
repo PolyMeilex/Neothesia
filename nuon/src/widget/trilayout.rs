@@ -79,27 +79,33 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         tree.diff_children2(&children);
     }
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
         let mut children = vec![];
 
         if let Some(start) = self.start.as_ref() {
-            let node = start.as_widget().layout(&LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
-            });
+            let node = start.as_widget().layout(
+                &mut tree.children[0],
+                &LayoutCtx {
+                    x: ctx.x,
+                    y: ctx.y,
+                    w: ctx.w,
+                    h: ctx.h,
+                },
+            );
 
             children.push(node);
         }
 
         if let Some(center) = self.center.as_ref() {
-            let mut node = center.as_widget().layout(&LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
-            });
+            let mut node = center.as_widget().layout(
+                &mut tree.children[1],
+                &LayoutCtx {
+                    x: ctx.x,
+                    y: ctx.y,
+                    w: ctx.w,
+                    h: ctx.h,
+                },
+            );
 
             let x_offset = ctx.w / 2.0 - node.w / 2.0;
             node.for_each_descend_mut(&|node| {
@@ -110,12 +116,15 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         }
 
         if let Some(end) = self.end.as_ref() {
-            let mut node = end.as_widget().layout(&LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
-            });
+            let mut node = end.as_widget().layout(
+                &mut tree.children[2],
+                &LayoutCtx {
+                    x: ctx.x,
+                    y: ctx.y,
+                    w: ctx.w,
+                    h: ctx.h,
+                },
+            );
 
             let x_offset = ctx.w - node.w;
             node.for_each_descend_mut(&|node| {
@@ -134,7 +143,13 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    ) {
         for ((ch, layout), tree) in self
             .iter()
             .zip(layout.children.iter())
@@ -144,7 +159,13 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
         for ((ch, layout), tree) in self
             .iter_mut()
             .zip(layout.children.iter())

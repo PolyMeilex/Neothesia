@@ -47,11 +47,11 @@ impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
         tree.diff_children(self.children.as_ref());
     }
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 
-        for ch in self.children.iter() {
-            children.push(ch.as_widget().layout(ctx));
+        for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
+            children.push(ch.as_widget().layout(tree, ctx));
         }
 
         Node {
@@ -63,7 +63,13 @@ impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    ) {
         for ((ch, layout), tree) in self
             .children
             .iter()
@@ -74,7 +80,13 @@ impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
         for ((ch, layout), tree) in self
             .children
             .iter_mut()

@@ -168,12 +168,15 @@ impl TopBar {
 
         let layout = {
             profiling::scope!("nuon_layout");
-            root.as_widget_mut().layout(&nuon::LayoutCtx {
-                x: 0.0,
-                y: 0.0,
-                w: ctx.window_state.logical_size.width,
-                h: ctx.window_state.logical_size.height,
-            })
+            root.as_widget_mut().layout(
+                scene.tree.as_mut().unwrap(),
+                &nuon::LayoutCtx {
+                    x: 0.0,
+                    y: 0.0,
+                    w: ctx.window_state.logical_size.width,
+                    h: ctx.window_state.logical_size.height,
+                },
+            )
         };
 
         let mut messages = vec![];

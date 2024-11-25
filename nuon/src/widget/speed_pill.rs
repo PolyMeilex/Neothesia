@@ -80,19 +80,25 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         tree.diff_children3(&[&self.minus, &self.plus]);
     }
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
-        let minus = self.minus.layout(&LayoutCtx {
-            x: ctx.x,
-            y: ctx.y + 5.0,
-            w: ctx.w,
-            h: ctx.h,
-        });
-        let plus = self.plus.layout(&LayoutCtx {
-            x: ctx.x + minus.w,
-            y: ctx.y + 5.0,
-            w: ctx.w,
-            h: ctx.h,
-        });
+    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+        let minus = self.minus.layout(
+            tree.children[0].remap_mut(),
+            &LayoutCtx {
+                x: ctx.x,
+                y: ctx.y + 5.0,
+                w: ctx.w,
+                h: ctx.h,
+            },
+        );
+        let plus = self.plus.layout(
+            tree.children[1].remap_mut(),
+            &LayoutCtx {
+                x: ctx.x + minus.w,
+                y: ctx.y + 5.0,
+                w: ctx.w,
+                h: ctx.h,
+            },
+        );
 
         Node {
             x: ctx.x,
@@ -103,11 +109,25 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
-        self.minus
-            .render(renderer, &layout.children[0], &tree.children[0], ctx);
-        self.plus
-            .render(renderer, &layout.children[1], &tree.children[1], ctx);
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    ) {
+        self.minus.render(
+            renderer,
+            &layout.children[0],
+            tree.children[0].remap_ref(),
+            ctx,
+        );
+        self.plus.render(
+            renderer,
+            &layout.children[1],
+            tree.children[1].remap_ref(),
+            ctx,
+        );
 
         let pad = 2.0;
 
@@ -130,15 +150,25 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         renderer.centered_text(layout.x, layout.y, layout.w, layout.h, 13.0, &label);
     }
 
-    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
         self.minus.update(
             event.clone(),
             &layout.children[0],
-            &mut tree.children[0],
+            tree.children[0].remap_mut(),
             ctx,
         );
-        self.plus
-            .update(event, &layout.children[1], &mut tree.children[1], ctx);
+        self.plus.update(
+            event,
+            &layout.children[1],
+            tree.children[1].remap_mut(),
+            ctx,
+        );
     }
 }
 

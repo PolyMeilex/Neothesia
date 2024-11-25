@@ -12,7 +12,7 @@ impl Null {
 impl<MSG> Widget<MSG> for Null {
     type State = ();
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, _tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
         Node {
             x: ctx.x,
             y: ctx.y,
@@ -21,13 +21,19 @@ impl<MSG> Widget<MSG> for Null {
             children: vec![],
         }
     }
-    fn render(&self, _renderer: &mut dyn Renderer, _layout: &Node, _tree: &Tree, _ctx: &RenderCtx) {
+    fn render(
+        &self,
+        _renderer: &mut dyn Renderer,
+        _layout: &Node,
+        _tree: &Tree<Self::State>,
+        _ctx: &RenderCtx,
+    ) {
     }
     fn update(
         &mut self,
         _event: Event,
         _layout: &Node,
-        _tree: &mut Tree,
+        _tree: &mut Tree<Self::State>,
         _ctx: &mut UpdateCtx<MSG>,
     ) {
     }

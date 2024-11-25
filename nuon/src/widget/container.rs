@@ -58,16 +58,25 @@ impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
         tree.diff_children2(&[&self.child]);
     }
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
-        self.child.as_widget().layout(&LayoutCtx {
-            x: ctx.x,
-            y: ctx.y,
-            w: self.width.unwrap_or(ctx.w),
-            h: self.height.unwrap_or(ctx.h),
-        })
+    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+        self.child.as_widget().layout(
+            &mut tree.children[0],
+            &LayoutCtx {
+                x: ctx.x,
+                y: ctx.y,
+                w: self.width.unwrap_or(ctx.w),
+                h: self.height.unwrap_or(ctx.h),
+            },
+        )
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    ) {
         if let Some(bg) = self.background {
             renderer.quad(layout.x, layout.y, layout.w, layout.h, bg);
         }
@@ -77,7 +86,13 @@ impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
             .render(renderer, layout, &tree.children[0], ctx)
     }
 
-    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
         self.child
             .as_widget_mut()
             .update(event, layout, &mut tree.children[0], ctx)

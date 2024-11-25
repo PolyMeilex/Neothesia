@@ -94,7 +94,7 @@ pub trait WidgetAny<MSG> {
     fn children(&self) -> Vec<Tree>;
     fn diff(&self, tree: &mut Tree);
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node;
+    fn layout(&self, tree: &mut Tree, ctx: &LayoutCtx) -> Node;
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
     fn update(
         &mut self,
@@ -122,12 +122,12 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
         Widget::diff(self, tree)
     }
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
-        Widget::layout(self, ctx)
+    fn layout(&self, tree: &mut Tree, ctx: &LayoutCtx) -> Node {
+        Widget::layout(self, tree.remap_mut(), ctx)
     }
 
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
-        Widget::render(self, renderer, layout, tree, ctx)
+        Widget::render(self, renderer, layout, tree.remap_ref(), ctx)
     }
 
     fn update(
@@ -137,7 +137,7 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
         tree: &mut Tree,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        Widget::update(self, event, layout, tree, ctx)
+        Widget::update(self, event, layout, tree.remap_mut(), ctx)
     }
 }
 
@@ -151,13 +151,19 @@ pub trait Widget<MSG> {
     #[allow(unused)]
     fn diff(&self, tree: &mut Tree) {}
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node;
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
+    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node;
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    );
     fn update(
         &mut self,
         event: input::Event,
         layout: &Node,
-        tree: &mut Tree,
+        tree: &mut Tree<Self::State>,
         ctx: &mut UpdateCtx<MSG>,
     );
 }

@@ -47,7 +47,7 @@ impl<'a, MSG> ProgressBar<'a, MSG> {
 impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
     type State = ProgressBarState;
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, _tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
         Node {
             x: ctx.x,
             y: ctx.y,
@@ -57,8 +57,14 @@ impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, _ctx: &RenderCtx) {
-        let _state = tree.state.downcast_ref::<Self::State>().unwrap();
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        _ctx: &RenderCtx,
+    ) {
+        let _state = tree.state();
 
         let progress_w = layout.w * self.player.percentage();
 
@@ -84,8 +90,14 @@ impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
-        let state = tree.state.downcast_mut::<Self::State>().unwrap();
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
+        let state = tree.state_mut();
 
         match event {
             Event::CursorMoved { position } => {

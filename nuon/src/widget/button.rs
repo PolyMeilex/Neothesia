@@ -89,7 +89,7 @@ impl<MSG: Clone> Button<MSG> {
 impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     type State = ButtonState;
 
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, _tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
         Node {
             x: ctx.x,
             y: ctx.y,
@@ -99,8 +99,14 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, _ctx: &RenderCtx) {
-        let state = tree.state.downcast_ref::<Self::State>().unwrap();
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        _ctx: &RenderCtx,
+    ) {
+        let state = tree.state();
 
         renderer.rounded_quad(
             layout.x,
@@ -128,8 +134,14 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>) {
-        let state = tree.state.downcast_mut::<Self::State>().unwrap();
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
+        let state = tree.state_mut();
 
         match event {
             Event::CursorMoved { position } => {

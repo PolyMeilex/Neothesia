@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use nuon::{
-    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, Tree, UpdateCtx,
-    Widget,
+    Color, Element, Event, LayoutCtx, MouseButton, Node, ParentLayout, RenderCtx, Renderer, Tree,
+    UpdateCtx, Widget,
 };
 
 use crate::scene::playing_scene::midi_player::MidiPlayer;
@@ -19,20 +19,24 @@ pub struct LooperState {
     end: TickState,
 }
 
-pub struct Looper<'a, MSG> {
+pub struct Looper<MSG> {
     color: Color,
-    player: &'a MidiPlayer,
     on_start_move: Option<fn(Duration) -> MSG>,
     on_end_move: Option<fn(Duration) -> MSG>,
     start: Duration,
     end: Duration,
 }
 
-impl<'a, MSG> Looper<'a, MSG> {
-    pub fn new(player: &'a MidiPlayer) -> Self {
+impl<MSG> Default for Looper<MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<MSG> Looper<MSG> {
+    pub fn new() -> Self {
         Self {
             color: Color::new_u8(255, 56, 187, 1.0),
-            player,
             on_start_move: None,
             on_end_move: None,
             start: Duration::ZERO,
@@ -66,41 +70,48 @@ impl<'a, MSG> Looper<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
+impl<MSG> Widget<MSG> for Looper<MSG> {
     type State = LooperState;
 
-    fn layout(&self, _tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
-        let start = self.player.time_to_percentage(&self.start) * ctx.w;
+    fn layout(
+        &self,
+        _tree: &mut Tree<Self::State>,
+        parent: &ParentLayout,
+        ctx: &LayoutCtx,
+    ) -> Node {
+        let player = ctx.globals.get::<MidiPlayer>();
+
+        let start = player.time_to_percentage(&self.start) * parent.w;
         let start = Node {
-            x: ctx.x + start,
-            y: ctx.y,
+            x: parent.x + start,
+            y: parent.y,
             w: 5.0,
-            h: ctx.h + 10.0,
+            h: parent.h + 10.0,
             children: vec![],
         };
 
-        let end = self.player.time_to_percentage(&self.end) * ctx.w;
+        let end = player.time_to_percentage(&self.end) * parent.w;
         let end = Node {
-            x: ctx.x + end,
-            y: ctx.y,
+            x: parent.x + end,
+            y: parent.y,
             w: 5.0,
-            h: ctx.h + 10.0,
+            h: parent.h + 10.0,
             children: vec![],
         };
 
         let bg = Node {
             x: start.x,
-            y: ctx.y,
+            y: parent.y,
             w: end.x - start.x,
-            h: ctx.h + 10.0,
+            h: parent.h + 10.0,
             children: vec![],
         };
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
             children: vec![bg, start, end],
         }
     }
@@ -150,6 +161,7 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
         ctx: &mut UpdateCtx<MSG>,
     ) {
         let state = tree.state_mut();
+        let player = ctx.globals.get::<MidiPlayer>();
 
         match event {
             Event::CursorMoved { position } => {
@@ -164,7 +176,7 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
                         let w = layout.w;
                         let x = position.x;
                         let p = x / w;
-                        let timestamp = self.player.percentage_to_time(p);
+                        let timestamp = player.percentage_to_time(p);
                         ctx.messages.push(msg(timestamp));
                     }
 
@@ -176,7 +188,7 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
                         let w = layout.w;
                         let x = position.x;
                         let p = x / w;
-                        let timestamp = self.player.percentage_to_time(p);
+                        let timestamp = player.percentage_to_time(p);
                         ctx.messages.push(msg(timestamp));
                     }
                 }
@@ -207,8 +219,8 @@ impl<'a, MSG> Widget<MSG> for Looper<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<Looper<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Looper<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Looper<MSG>> for Element<'_, MSG> {
+    fn from(value: Looper<MSG>) -> Self {
         Element::new(value)
     }
 }

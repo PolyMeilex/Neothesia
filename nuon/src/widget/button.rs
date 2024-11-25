@@ -1,6 +1,6 @@
 use crate::{
-    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, Tree, UpdateCtx,
-    Widget,
+    Color, Element, Event, LayoutCtx, MouseButton, Node, ParentLayout, RenderCtx, Renderer, Tree,
+    UpdateCtx, Widget,
 };
 
 #[derive(Default)]
@@ -89,12 +89,17 @@ impl<MSG: Clone> Button<MSG> {
 impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     type State = ButtonState;
 
-    fn layout(&self, _tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(
+        &self,
+        _tree: &mut Tree<Self::State>,
+        parent: &ParentLayout,
+        _ctx: &LayoutCtx,
+    ) -> Node {
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: self.w.unwrap_or(ctx.w),
-            h: self.h.unwrap_or(ctx.h),
+            x: parent.x,
+            y: parent.y,
+            w: self.w.unwrap_or(parent.w),
+            h: self.h.unwrap_or(parent.h),
             children: vec![],
         }
     }
@@ -175,7 +180,7 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     }
 }
 
-impl<'a, MSG: Clone + 'static> From<Button<MSG>> for Element<'a, MSG> {
+impl<MSG: Clone + 'static> From<Button<MSG>> for Element<'_, MSG> {
     fn from(value: Button<MSG>) -> Self {
         Element::new(value)
     }

@@ -1,4 +1,6 @@
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
+use crate::{
+    Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
+};
 
 pub struct TriLayout<'a, MSG> {
     start: Element<'a, MSG>,
@@ -54,29 +56,31 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         tree.children[2].diff(self.end.as_widget());
     }
 
-    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let start = self.start.as_widget().layout(
             &mut tree.children[0],
-            &LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
+            &ParentLayout {
+                x: parent.x,
+                y: parent.y,
+                w: parent.w,
+                h: parent.h,
             },
+            ctx,
         );
 
         let center = {
             let mut node = self.center.as_widget().layout(
                 &mut tree.children[1],
-                &LayoutCtx {
-                    x: ctx.x,
-                    y: ctx.y,
-                    w: ctx.w,
-                    h: ctx.h,
+                &ParentLayout {
+                    x: parent.x,
+                    y: parent.y,
+                    w: parent.w,
+                    h: parent.h,
                 },
+                ctx,
             );
 
-            let x_offset = ctx.w / 2.0 - node.w / 2.0;
+            let x_offset = parent.w / 2.0 - node.w / 2.0;
             node.for_each_descend_mut(&|node| {
                 node.x += x_offset;
             });
@@ -87,15 +91,16 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         let end = {
             let mut node = self.end.as_widget().layout(
                 &mut tree.children[2],
-                &LayoutCtx {
-                    x: ctx.x,
-                    y: ctx.y,
-                    w: ctx.w,
-                    h: ctx.h,
+                &ParentLayout {
+                    x: parent.x,
+                    y: parent.y,
+                    w: parent.w,
+                    h: parent.h,
                 },
+                ctx,
             );
 
-            let x_offset = ctx.w - node.w;
+            let x_offset = parent.w - node.w;
             node.for_each_descend_mut(&|node| {
                 node.x += x_offset;
             });
@@ -104,10 +109,10 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         };
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
             children: vec![start, center, end],
         }
     }

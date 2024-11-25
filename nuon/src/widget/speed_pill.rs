@@ -1,5 +1,6 @@
 use crate::{
-    button, Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
+    button, Color, Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree,
+    UpdateCtx, Widget,
 };
 
 fn minus_icon() -> &'static str {
@@ -80,29 +81,31 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         tree.diff_children3(&[&self.minus, &self.plus]);
     }
 
-    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let minus = self.minus.layout(
             tree.children[0].remap_mut(),
-            &LayoutCtx {
-                x: ctx.x,
-                y: ctx.y + 5.0,
-                w: ctx.w,
-                h: ctx.h,
+            &ParentLayout {
+                x: parent.x,
+                y: parent.y + 5.0,
+                w: parent.w,
+                h: parent.h,
             },
+            ctx,
         );
         let plus = self.plus.layout(
             tree.children[1].remap_mut(),
-            &LayoutCtx {
-                x: ctx.x + minus.w,
-                y: ctx.y + 5.0,
-                w: ctx.w,
-                h: ctx.h,
+            &ParentLayout {
+                x: parent.x + minus.w,
+                y: parent.y + 5.0,
+                w: parent.w,
+                h: parent.h,
             },
+            ctx,
         );
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
+            x: parent.x,
+            y: parent.y,
             w: self.w,
             h: self.h,
             children: vec![minus, plus],
@@ -172,7 +175,7 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
     }
 }
 
-impl<'a, MSG: Clone + 'static> From<SpeedPill<MSG>> for Element<'a, MSG> {
+impl<MSG: Clone + 'static> From<SpeedPill<MSG>> for Element<'_, MSG> {
     fn from(value: SpeedPill<MSG>) -> Self {
         Element::new(value)
     }

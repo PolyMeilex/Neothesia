@@ -143,6 +143,10 @@ impl TopBar {
 
     #[profiling::function]
     fn update_nuon(scene: &mut PlayingScene, ctx: &mut Context, _delta: Duration, y: f32) {
+        let globals = nuon::GlobalStore::with(|store| {
+            store.insert(&scene.player);
+        });
+
         let mut root = scene
             .top_bar
             .ui
@@ -163,12 +167,13 @@ impl TopBar {
             profiling::scope!("nuon_layout");
             root.as_widget_mut().layout(
                 &mut scene.tree,
-                &nuon::LayoutCtx {
+                &nuon::ParentLayout {
                     x: 0.0,
                     y: 0.0,
                     w: ctx.window_state.logical_size.width,
                     h: ctx.window_state.logical_size.height,
                 },
+                &nuon::LayoutCtx { globals: &globals },
             )
         };
 
@@ -179,6 +184,7 @@ impl TopBar {
             &mut scene.tree,
             root.as_widget_mut(),
             &layout,
+            &globals,
         );
 
         {
@@ -190,7 +196,7 @@ impl TopBar {
                 },
                 &layout,
                 &scene.tree,
-                &nuon::RenderCtx {},
+                &nuon::RenderCtx { globals: &globals },
             );
         }
 

@@ -1,6 +1,6 @@
 use nuon::{
-    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, Tree, UpdateCtx,
-    Widget,
+    Color, Element, Event, LayoutCtx, MouseButton, Node, ParentLayout, RenderCtx, Renderer, Tree,
+    UpdateCtx, Widget,
 };
 
 use crate::scene::playing_scene::midi_player::MidiPlayer;
@@ -11,18 +11,22 @@ pub struct ProgressBarState {
     is_pressed: bool,
 }
 
-pub struct ProgressBar<'a, MSG> {
+pub struct ProgressBar<MSG> {
     color: Color,
-    player: &'a MidiPlayer,
     on_press: Option<MSG>,
     on_release: Option<MSG>,
 }
 
-impl<'a, MSG> ProgressBar<'a, MSG> {
-    pub fn new(player: &'a MidiPlayer) -> Self {
+impl<MSG> Default for ProgressBar<MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<MSG> ProgressBar<MSG> {
+    pub fn new() -> Self {
         Self {
             color: Color::new_u8(255, 255, 255, 1.0),
-            player,
             on_press: None,
             on_release: None,
         }
@@ -44,15 +48,20 @@ impl<'a, MSG> ProgressBar<'a, MSG> {
     }
 }
 
-impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
+impl<MSG: Clone> Widget<MSG> for ProgressBar<MSG> {
     type State = ProgressBarState;
 
-    fn layout(&self, _tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(
+        &self,
+        _tree: &mut Tree<Self::State>,
+        parent: &ParentLayout,
+        _ctx: &LayoutCtx,
+    ) -> Node {
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
             children: vec![],
         }
     }
@@ -62,17 +71,18 @@ impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
         renderer: &mut dyn Renderer,
         layout: &Node,
         tree: &Tree<Self::State>,
-        _ctx: &RenderCtx,
+        ctx: &RenderCtx,
     ) {
         let _state = tree.state();
+        let player = ctx.globals.get::<MidiPlayer>();
 
-        let progress_w = layout.w * self.player.percentage();
+        let progress_w = layout.w * player.percentage();
 
         renderer.quad(layout.x, layout.y, progress_w, layout.h, self.color);
 
-        for m in self.player.song().file.measures.iter() {
-            let length = self.player.length().as_secs_f32();
-            let start = self.player.leed_in().as_secs_f32() / length;
+        for m in player.song().file.measures.iter() {
+            let length = player.length().as_secs_f32();
+            let start = player.leed_in().as_secs_f32() / length;
             let measure = m.as_secs_f32() / length;
 
             let x = (start + measure) * layout.w;
@@ -130,8 +140,8 @@ impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
     }
 }
 
-impl<'a, MSG: Clone + 'static> From<ProgressBar<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: ProgressBar<'a, MSG>) -> Self {
+impl<MSG: Clone + 'static> From<ProgressBar<MSG>> for Element<'_, MSG> {
+    fn from(value: ProgressBar<MSG>) -> Self {
         Element::new(value)
     }
 }

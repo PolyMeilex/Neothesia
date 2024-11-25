@@ -1,4 +1,4 @@
-use crate::Tree;
+use crate::{GlobalStore, Tree};
 
 use super::{Node, UpdateCtx, WidgetAny};
 
@@ -80,11 +80,13 @@ impl EventQueue {
         tree: &mut Tree,
         root: &mut dyn WidgetAny<MSG>,
         layout: &Node,
+        globals: &GlobalStore,
     ) {
         let mut ctx = UpdateCtx {
             messages,
             event_captured: false,
             mouse_grab: self.mouse_grab,
+            globals,
         };
 
         for event in self.event_queue.drain(..) {

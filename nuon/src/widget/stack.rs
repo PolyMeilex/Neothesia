@@ -1,6 +1,8 @@
 use smallvec::SmallVec;
 
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
+use crate::{
+    Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
+};
 
 pub struct Stack<'a, MSG> {
     children: SmallVec<[Element<'a, MSG>; 4]>,
@@ -47,18 +49,18 @@ impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
         tree.diff_children(self.children.as_ref());
     }
 
-    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 
         for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
-            children.push(ch.as_widget().layout(tree, ctx));
+            children.push(ch.as_widget().layout(tree, parent, ctx));
         }
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
             children,
         }
     }

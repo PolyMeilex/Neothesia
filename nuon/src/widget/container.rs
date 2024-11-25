@@ -1,4 +1,7 @@
-use crate::{Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
+use crate::{
+    Color, Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx,
+    Widget,
+};
 
 pub struct Container<'a, MSG> {
     child: Element<'a, MSG>,
@@ -55,15 +58,16 @@ impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
         tree.diff_children2(&[&self.child]);
     }
 
-    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         self.child.as_widget().layout(
             &mut tree.children[0],
-            &LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: self.width.unwrap_or(ctx.w),
-                h: self.height.unwrap_or(ctx.h),
+            &ParentLayout {
+                x: parent.x,
+                y: parent.y,
+                w: self.width.unwrap_or(parent.w),
+                h: self.height.unwrap_or(parent.h),
             },
+            ctx,
         )
     }
 

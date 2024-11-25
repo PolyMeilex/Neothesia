@@ -73,7 +73,7 @@ pub struct UiData<'a> {
 pub struct Header {}
 
 impl Header {
-    fn view(&mut self, data: &UiData) -> impl Into<Element<'_, Msg>> {
+    fn view(&mut self, data: &UiData) -> impl Into<Element<'static, Msg>> {
         Container::new().height(30.0).child(
             TriLayout::new()
                 .start(
@@ -134,21 +134,21 @@ impl Ui {
     }
 
     #[profiling::function]
-    pub fn view<'a>(&'a mut self, data: UiData<'a>) -> impl Into<Element<'a, Msg>> {
+    pub fn view<'a>(&'a mut self, data: UiData<'a>) -> impl Into<Element<'static, Msg>> {
         let header = self.header.view(&data);
 
         let timeline = Container::new().height(45.0).child(
             Row::new().push(
                 Stack::new()
                     .push(
-                        ProgressBar::new(data.player)
+                        ProgressBar::new()
                             .color(Color::new_u8(56, 145, 255, 1.0))
                             .on_press(Msg::ProggresBar(ProgressBarMsg::Pressed))
                             .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
                     )
                     .when(data.is_looper_on, |stack| {
                         stack.push(
-                            Looper::new(data.player)
+                            Looper::new()
                                 .start(data.loop_start)
                                 .end(data.loop_end)
                                 .on_start_move(|p| Msg::Looper(LooperMsg::MoveStart(p)))

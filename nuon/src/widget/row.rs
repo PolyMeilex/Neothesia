@@ -1,6 +1,8 @@
 use smallvec::SmallVec;
 
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
+use crate::{
+    Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
+};
 
 pub struct Row<'a, MSG> {
     children: SmallVec<[Element<'a, MSG>; 4]>,
@@ -49,26 +51,26 @@ impl<'a, MSG> Widget<MSG> for Row<'a, MSG> {
         tree.diff_children(self.children.as_ref());
     }
 
-    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 
-        let mut item_layout_ctx = LayoutCtx {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+        let mut item_layout = ParentLayout {
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
         };
 
         let mut total_width = 0.0;
 
         for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
-            let node = ch.as_widget().layout(tree, &item_layout_ctx);
+            let node = ch.as_widget().layout(tree, &item_layout, ctx);
 
-            item_layout_ctx.x += node.w;
-            item_layout_ctx.w -= node.w;
+            item_layout.x += node.w;
+            item_layout.w -= node.w;
 
-            item_layout_ctx.x += self.gap;
-            item_layout_ctx.w -= self.gap;
+            item_layout.x += self.gap;
+            item_layout.w -= self.gap;
 
             total_width += node.w;
             total_width += self.gap;
@@ -80,10 +82,10 @@ impl<'a, MSG> Widget<MSG> for Row<'a, MSG> {
         total_width = total_width.max(0.0);
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
+            x: parent.x,
+            y: parent.y,
             w: total_width,
-            h: ctx.h,
+            h: parent.h,
             children,
         }
     }

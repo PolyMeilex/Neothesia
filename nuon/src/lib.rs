@@ -1,5 +1,8 @@
 pub mod widget;
-use std::any::{Any, TypeId};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+};
 
 pub use tree::Tree;
 pub use widget::*;
@@ -54,12 +57,15 @@ impl Color {
     }
 }
 
-pub struct RenderCtx {}
+pub struct RenderCtx<'a> {
+    pub globals: &'a GlobalStore<'a>,
+}
 
 pub struct UpdateCtx<'a, MSG> {
     pub messages: &'a mut Vec<MSG>,
     pub event_captured: bool,
     pub mouse_grab: bool,
+    pub globals: &'a GlobalStore<'a>,
 }
 
 impl<MSG> UpdateCtx<'_, MSG> {
@@ -80,8 +86,12 @@ impl<MSG> UpdateCtx<'_, MSG> {
     }
 }
 
+pub struct LayoutCtx<'a> {
+    pub globals: &'a GlobalStore<'a>,
+}
+
 #[derive(Default, Clone)]
-pub struct LayoutCtx {
+pub struct ParentLayout {
     pub x: f32,
     pub y: f32,
     pub w: f32,
@@ -94,7 +104,7 @@ pub trait WidgetAny<MSG> {
     fn children(&self) -> Vec<Tree>;
     fn diff(&self, tree: &mut Tree);
 
-    fn layout(&self, tree: &mut Tree, ctx: &LayoutCtx) -> Node;
+    fn layout(&self, tree: &mut Tree, avalilable: &ParentLayout, ctx: &LayoutCtx) -> Node;
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
     fn update(
         &mut self,
@@ -122,8 +132,8 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
         Widget::diff(self, tree)
     }
 
-    fn layout(&self, tree: &mut Tree, ctx: &LayoutCtx) -> Node {
-        Widget::layout(self, tree.remap_mut(), ctx)
+    fn layout(&self, tree: &mut Tree, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
+        Widget::layout(self, tree.remap_mut(), parent, ctx)
     }
 
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
@@ -155,7 +165,7 @@ pub trait Widget<MSG> {
     #[allow(unused)]
     fn diff(&self, tree: &mut Tree) {}
 
-    fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node;
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node;
     fn render(
         &self,
         renderer: &mut dyn Renderer,
@@ -215,5 +225,35 @@ impl<'a, MSG> Element<'a, MSG> {
 
     pub fn as_widget_mut(&mut self) -> &mut dyn WidgetAny<MSG> {
         self.0.as_mut()
+    }
+}
+
+#[derive(Default)]
+pub struct GlobalStore<'a> {
+    map: HashMap<TypeId, &'a dyn Any>,
+}
+
+impl<'a> GlobalStore<'a> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with(f: impl FnOnce(&mut Self)) -> Self {
+        let mut this = Self::new();
+        f(&mut this);
+        this
+    }
+
+    pub fn insert(&mut self, v: &'a dyn Any) {
+        self.map.insert(v.type_id(), v);
+    }
+
+    #[track_caller]
+    pub fn get<T: Any>(&self) -> &T {
+        self.map
+            .get(&TypeId::of::<T>())
+            .unwrap()
+            .downcast_ref()
+            .unwrap()
     }
 }

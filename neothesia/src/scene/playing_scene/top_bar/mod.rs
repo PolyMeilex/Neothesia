@@ -29,8 +29,6 @@ pub struct TopBar {
     looper_active: bool,
     loop_start: Duration,
     loop_end: Duration,
-
-    ui: ui::Ui,
 }
 
 impl TopBar {
@@ -51,8 +49,6 @@ impl TopBar {
             looper_active: false,
             loop_start: Duration::ZERO,
             loop_end: Duration::ZERO,
-
-            ui: ui::Ui::new(),
         }
     }
 
@@ -143,35 +139,46 @@ impl TopBar {
 
     #[profiling::function]
     fn update_nuon(scene: &mut PlayingScene, ctx: &mut Context, _delta: Duration, y: f32) {
-        let mut root = scene
-            .top_bar
-            .ui
-            .view(ui::UiData {
-                y,
-                is_settings_open: scene.top_bar.settings_active,
-                is_looper_on: scene.top_bar.is_looper_active(),
-                speed: ctx.config.speed_multiplier(),
-                player: &scene.player,
-                loop_start: scene.top_bar.loop_start_timestamp(),
-                loop_end: scene.top_bar.loop_end_timestamp(),
-            })
-            .into();
+        let globals = nuon::GlobalStore::with(|store| {
+            store.insert(&scene.player);
+        });
+
+        let mut root = ui::top_bar(ui::UiData {
+            y,
+            is_settings_open: scene.top_bar.settings_active,
+            is_looper_on: scene.top_bar.is_looper_active(),
+            speed: ctx.config.speed_multiplier(),
+            player: &scene.player,
+            loop_start: scene.top_bar.loop_start_timestamp(),
+            loop_end: scene.top_bar.loop_end_timestamp(),
+        })
+        .into();
+
+        scene.tree.diff(root.as_widget());
 
         let layout = {
             profiling::scope!("nuon_layout");
-            root.as_widget_mut().layout(&nuon::LayoutCtx {
-                x: 0.0,
-                y: 0.0,
-                w: ctx.window_state.logical_size.width,
-                h: ctx.window_state.logical_size.height,
-            })
+            root.as_widget_mut().layout(
+                &mut scene.tree,
+                &nuon::ParentLayout {
+                    x: 0.0,
+                    y: 0.0,
+                    w: ctx.window_state.logical_size.width,
+                    h: ctx.window_state.logical_size.height,
+                },
+                &nuon::LayoutCtx { globals: &globals },
+            )
         };
 
         let mut messages = vec![];
 
-        scene
-            .nuon_event_queue
-            .dispatch_events(&mut messages, root.as_widget_mut(), &layout);
+        scene.nuon_event_queue.dispatch_events(
+            &mut messages,
+            &mut scene.tree,
+            root.as_widget_mut(),
+            &layout,
+            &globals,
+        );
 
         {
             profiling::scope!("nuon_render");
@@ -181,7 +188,8 @@ impl TopBar {
                     text: &mut ctx.text_renderer,
                 },
                 &layout,
-                &nuon::RenderCtx {},
+                &scene.tree,
+                &nuon::RenderCtx { globals: &globals },
             );
         }
 
@@ -203,8 +211,7 @@ impl TopBar {
 
         top_bar.is_expanded = is_hovered;
         top_bar.is_expanded |= top_bar.settings_active;
-        top_bar.is_expanded |= top_bar.ui.looper.is_grabbed();
-        top_bar.is_expanded |= top_bar.ui.proggress_bar.is_grabbed();
+        top_bar.is_expanded |= scene.nuon_event_queue.is_mouse_grabbed();
 
         let now = ctx.frame_timestamp;
 

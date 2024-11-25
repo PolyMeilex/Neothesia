@@ -1,5 +1,6 @@
 use nuon::{
-    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, UpdateCtx, Widget,
+    Color, Element, Event, LayoutCtx, MouseButton, Node, ParentLayout, RenderCtx, Renderer, Tree,
+    UpdateCtx, Widget,
 };
 
 use crate::scene::playing_scene::midi_player::MidiPlayer;
@@ -10,26 +11,22 @@ pub struct ProgressBarState {
     is_pressed: bool,
 }
 
-impl ProgressBarState {
-    pub fn is_grabbed(&self) -> bool {
-        self.is_pressed
-    }
-}
-
-pub struct ProgressBar<'a, MSG> {
+pub struct ProgressBar<MSG> {
     color: Color,
-    player: &'a MidiPlayer,
-    state: &'a mut ProgressBarState,
     on_press: Option<MSG>,
     on_release: Option<MSG>,
 }
 
-impl<'a, MSG> ProgressBar<'a, MSG> {
-    pub fn new(state: &'a mut ProgressBarState, player: &'a MidiPlayer) -> Self {
+impl<MSG> Default for ProgressBar<MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<MSG> ProgressBar<MSG> {
+    pub fn new() -> Self {
         Self {
             color: Color::new_u8(255, 255, 255, 1.0),
-            player,
-            state,
             on_press: None,
             on_release: None,
         }
@@ -51,25 +48,41 @@ impl<'a, MSG> ProgressBar<'a, MSG> {
     }
 }
 
-impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+impl<MSG: Clone> Widget<MSG> for ProgressBar<MSG> {
+    type State = ProgressBarState;
+
+    fn layout(
+        &self,
+        _tree: &mut Tree<Self::State>,
+        parent: &ParentLayout,
+        _ctx: &LayoutCtx,
+    ) -> Node {
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
             children: vec![],
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, _ctx: &RenderCtx) {
-        let progress_w = layout.w * self.player.percentage();
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    ) {
+        let _state = tree.state();
+        let player = ctx.globals.get::<MidiPlayer>();
+
+        let progress_w = layout.w * player.percentage();
 
         renderer.quad(layout.x, layout.y, progress_w, layout.h, self.color);
 
-        for m in self.player.song().file.measures.iter() {
-            let length = self.player.length().as_secs_f32();
-            let start = self.player.leed_in().as_secs_f32() / length;
+        for m in player.song().file.measures.iter() {
+            let length = player.length().as_secs_f32();
+            let start = player.leed_in().as_secs_f32() / length;
             let measure = m.as_secs_f32() / length;
 
             let x = (start + measure) * layout.w;
@@ -87,16 +100,25 @@ impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
+        let state = tree.state_mut();
+
         match event {
             Event::CursorMoved { position } => {
-                self.state.is_hovered = layout.contains(position.x, position.y);
+                state.is_hovered = layout.contains(position.x, position.y);
             }
             Event::MousePress {
                 button: MouseButton::Left,
             } => {
-                if self.state.is_hovered {
-                    self.state.is_pressed = true;
+                if state.is_hovered {
+                    state.is_pressed = true;
+                    ctx.grab_mouse();
                     if let Some(msg) = self.on_press.clone() {
                         ctx.messages.push(msg);
                     }
@@ -105,20 +127,21 @@ impl<'a, MSG: Clone> Widget<MSG> for ProgressBar<'a, MSG> {
             Event::MouseRelease {
                 button: MouseButton::Left,
             } => {
-                if self.state.is_pressed {
+                if state.is_pressed {
+                    ctx.ungrab_mouse();
                     if let Some(msg) = self.on_release.clone() {
                         ctx.messages.push(msg);
                     }
                 }
-                self.state.is_pressed = false;
+                state.is_pressed = false;
             }
             _ => {}
         }
     }
 }
 
-impl<'a, MSG: Clone + 'static> From<ProgressBar<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: ProgressBar<'a, MSG>) -> Self {
+impl<MSG: Clone + 'static> From<ProgressBar<MSG>> for Element<MSG> {
+    fn from(value: ProgressBar<MSG>) -> Self {
         Element::new(value)
     }
 }

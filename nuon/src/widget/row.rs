@@ -1,19 +1,19 @@
 use smallvec::SmallVec;
 
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use crate::{Element, LayoutCtx, Node, ParentLayout, Tree, Widget};
 
-pub struct Row<'a, MSG> {
-    children: SmallVec<[Element<'a, MSG>; 4]>,
+pub struct Row<MSG> {
+    children: SmallVec<[Element<MSG>; 4]>,
     gap: f32,
 }
 
-impl<'a, MSG> Default for Row<'a, MSG> {
+impl<MSG> Default for Row<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> Row<'a, MSG> {
+impl<MSG> Row<MSG> {
     pub fn new() -> Self {
         Self {
             children: SmallVec::new(),
@@ -21,7 +21,12 @@ impl<'a, MSG> Row<'a, MSG> {
         }
     }
 
-    pub fn push(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn gap(mut self, gap: f32) -> Self {
+        self.gap = gap;
+        self
+    }
+
+    pub fn push(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.children.push(widget.into());
         self
     }
@@ -35,27 +40,37 @@ impl<'a, MSG> Row<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Row<'a, MSG> {
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+impl<MSG> Widget<MSG> for Row<MSG> {
+    type State = ();
+
+    fn children(&self) -> &[Element<MSG>] {
+        &self.children
+    }
+
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.children
+    }
+
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let mut children = Vec::with_capacity(self.children.len());
 
-        let mut item_layout_ctx = LayoutCtx {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
+        let mut item_layout = ParentLayout {
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
         };
 
         let mut total_width = 0.0;
 
-        for ch in self.children.iter() {
-            let node = ch.as_widget().layout(&item_layout_ctx);
+        for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
+            let node = ch.as_widget().layout(tree, &item_layout, ctx);
 
-            item_layout_ctx.x += node.w;
-            item_layout_ctx.w -= node.w;
+            item_layout.x += node.w;
+            item_layout.w -= node.w;
 
-            item_layout_ctx.x += self.gap;
-            item_layout_ctx.w -= self.gap;
+            item_layout.x += self.gap;
+            item_layout.w -= self.gap;
 
             total_width += node.w;
             total_width += self.gap;
@@ -67,29 +82,17 @@ impl<'a, MSG> Widget<MSG> for Row<'a, MSG> {
         total_width = total_width.max(0.0);
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
+            x: parent.x,
+            y: parent.y,
             w: total_width,
-            h: ctx.h,
+            h: parent.h,
             children,
-        }
-    }
-
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        for (ch, layout) in self.children.iter().zip(layout.children.iter()) {
-            ch.as_widget().render(renderer, layout, ctx);
-        }
-    }
-
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        for (ch, layout) in self.children.iter_mut().zip(layout.children.iter()) {
-            ch.as_widget_mut().update(event.clone(), layout, ctx);
         }
     }
 }
 
-impl<'a, MSG: 'static> From<Row<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Row<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Row<MSG>> for Element<MSG> {
+    fn from(value: Row<MSG>) -> Self {
         Element::new(value)
     }
 }

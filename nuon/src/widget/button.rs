@@ -1,5 +1,6 @@
 use crate::{
-    Color, Element, Event, LayoutCtx, MouseButton, Node, RenderCtx, Renderer, UpdateCtx, Widget,
+    Color, Element, Event, LayoutCtx, MouseButton, Node, ParentLayout, RenderCtx, Renderer, Tree,
+    UpdateCtx, Widget,
 };
 
 #[derive(Default)]
@@ -8,27 +9,31 @@ pub struct ButtonState {
     is_pressed: bool,
 }
 
-pub struct Button<'a, MSG> {
+pub struct Button<MSG> {
     w: Option<f32>,
     h: Option<f32>,
     color: Color,
     hover_color: Color,
     preseed_color: Color,
-    state: &'a mut ButtonState,
     on_click: Option<MSG>,
     border_radius: [f32; 4],
     icon: Option<&'static str>,
 }
 
-impl<'a, MSG: Clone> Button<'a, MSG> {
-    pub fn new(state: &'a mut ButtonState) -> Self {
+impl<MSG: Clone> Default for Button<MSG> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<MSG: Clone> Button<MSG> {
+    pub fn new() -> Self {
         Self {
             w: None,
             h: None,
             color: Color::new_u8(0, 0, 0, 0.0),
             hover_color: Color::new_u8(57, 55, 62, 1.0),
             preseed_color: Color::new_u8(67, 65, 72, 1.0),
-            state,
             on_click: None,
             border_radius: [5.0; 4],
             icon: None,
@@ -81,26 +86,41 @@ impl<'a, MSG: Clone> Button<'a, MSG> {
     }
 }
 
-impl<'a, MSG: Clone> Widget<MSG> for Button<'a, MSG> {
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
+impl<MSG: Clone> Widget<MSG> for Button<MSG> {
+    type State = ButtonState;
+
+    fn layout(
+        &self,
+        _tree: &mut Tree<Self::State>,
+        parent: &ParentLayout,
+        _ctx: &LayoutCtx,
+    ) -> Node {
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: self.w.unwrap_or(ctx.w),
-            h: self.h.unwrap_or(ctx.h),
+            x: parent.x,
+            y: parent.y,
+            w: self.w.unwrap_or(parent.w),
+            h: self.h.unwrap_or(parent.h),
             children: vec![],
         }
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, _ctx: &RenderCtx) {
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        _ctx: &RenderCtx,
+    ) {
+        let state = tree.state();
+
         renderer.rounded_quad(
             layout.x,
             layout.y,
             layout.w,
             layout.h,
-            if self.state.is_pressed {
+            if state.is_pressed {
                 self.preseed_color
-            } else if self.state.is_hovered {
+            } else if state.is_hovered {
                 self.hover_color
             } else {
                 self.color
@@ -119,36 +139,49 @@ impl<'a, MSG: Clone> Widget<MSG> for Button<'a, MSG> {
         }
     }
 
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
+    fn update(
+        &mut self,
+        event: Event,
+        layout: &Node,
+        tree: &mut Tree<Self::State>,
+        ctx: &mut UpdateCtx<MSG>,
+    ) {
+        let state = tree.state_mut();
+
         match event {
             Event::CursorMoved { position } => {
-                self.state.is_hovered = layout.contains(position.x, position.y);
+                state.is_hovered = layout.contains(position.x, position.y);
             }
             Event::MousePress {
                 button: MouseButton::Left,
             } => {
-                if self.state.is_hovered {
-                    self.state.is_pressed = true;
+                if state.is_hovered {
+                    ctx.grab_mouse();
+                    state.is_pressed = true;
                 }
             }
             Event::MouseRelease {
                 button: MouseButton::Left,
             } => {
-                if self.state.is_hovered && self.state.is_pressed {
+                if state.is_pressed {
+                    ctx.ungrab_mouse();
+                }
+
+                if state.is_hovered && state.is_pressed {
                     if let Some(msg) = self.on_click.clone() {
                         ctx.messages.push(msg);
                     }
                 }
 
-                self.state.is_pressed = false;
+                state.is_pressed = false;
             }
             _ => {}
         }
     }
 }
 
-impl<'a, MSG: Clone + 'static> From<Button<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Button<'a, MSG>) -> Self {
+impl<MSG: Clone + 'static> From<Button<MSG>> for Element<MSG> {
+    fn from(value: Button<MSG>) -> Self {
         Element::new(value)
     }
 }

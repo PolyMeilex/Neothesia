@@ -1,129 +1,127 @@
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use smallvec::SmallVec;
 
-pub struct TriLayout<'a, MSG> {
-    start: Option<Element<'a, MSG>>,
-    center: Option<Element<'a, MSG>>,
-    end: Option<Element<'a, MSG>>,
+use crate::{Element, LayoutCtx, Node, ParentLayout, Tree, Widget};
+
+pub struct TriLayout<MSG> {
+    children: SmallVec<[Element<MSG>; 4]>,
 }
 
-impl<'a, MSG> Default for TriLayout<'a, MSG> {
+impl<MSG> Default for TriLayout<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> TriLayout<'a, MSG> {
+impl<MSG> TriLayout<MSG> {
     pub fn new() -> Self {
-        Self {
-            start: None,
-            center: None,
-            end: None,
+        let mut children = SmallVec::new();
+
+        children.push(Element::null());
+        children.push(Element::null());
+        children.push(Element::null());
+
+        Self { children }
+    }
+
+    pub fn start(mut self, widget: impl Into<Element<MSG>>) -> Self {
+        self.children[0] = widget.into();
+        self
+    }
+
+    pub fn center(mut self, widget: impl Into<Element<MSG>>) -> Self {
+        self.children[1] = widget.into();
+        self
+    }
+
+    pub fn end(mut self, widget: impl Into<Element<MSG>>) -> Self {
+        self.children[2] = widget.into();
+        self
+    }
+
+    pub fn when(self, v: bool, f: impl FnOnce(Self) -> Self) -> Self {
+        if v {
+            f(self)
+        } else {
+            self
         }
-    }
-
-    pub fn start(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
-        self.start = Some(widget.into());
-        self
-    }
-
-    pub fn center(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
-        self.center = Some(widget.into());
-        self
-    }
-
-    pub fn end(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
-        self.end = Some(widget.into());
-        self
-    }
-
-    fn iter(&self) -> impl Iterator<Item = &Element<MSG>> {
-        self.start
-            .as_ref()
-            .into_iter()
-            .chain(self.center.as_ref())
-            .chain(self.end.as_ref())
-    }
-
-    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Element<'a, MSG>> {
-        self.start
-            .as_mut()
-            .into_iter()
-            .chain(self.center.as_mut())
-            .chain(self.end.as_mut())
     }
 }
 
-impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
-        let mut children = vec![];
+impl<MSG> Widget<MSG> for TriLayout<MSG> {
+    type State = ();
 
-        if let Some(start) = self.start.as_ref() {
-            let node = start.as_widget().layout(&LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
-            });
+    fn children(&self) -> &[Element<MSG>] {
+        &self.children
+    }
 
-            children.push(node);
-        }
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.children
+    }
 
-        if let Some(center) = self.center.as_ref() {
-            let mut node = center.as_widget().layout(&LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
-            });
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
+        let start = self.children[0].as_widget().layout(
+            &mut tree.children[0],
+            &ParentLayout {
+                x: parent.x,
+                y: parent.y,
+                w: parent.w,
+                h: parent.h,
+            },
+            ctx,
+        );
 
-            let x_offset = ctx.w / 2.0 - node.w / 2.0;
+        let center = {
+            let mut node = self.children[1].as_widget().layout(
+                &mut tree.children[1],
+                &ParentLayout {
+                    x: parent.x,
+                    y: parent.y,
+                    w: parent.w,
+                    h: parent.h,
+                },
+                ctx,
+            );
+
+            let x_offset = parent.w / 2.0 - node.w / 2.0;
             node.for_each_descend_mut(&|node| {
                 node.x += x_offset;
             });
 
-            children.push(node);
-        }
+            node
+        };
 
-        if let Some(end) = self.end.as_ref() {
-            let mut node = end.as_widget().layout(&LayoutCtx {
-                x: ctx.x,
-                y: ctx.y,
-                w: ctx.w,
-                h: ctx.h,
-            });
+        let end = {
+            let mut node = self.children[2].as_widget().layout(
+                &mut tree.children[2],
+                &ParentLayout {
+                    x: parent.x,
+                    y: parent.y,
+                    w: parent.w,
+                    h: parent.h,
+                },
+                ctx,
+            );
 
-            let x_offset = ctx.w - node.w;
+            let x_offset = parent.w - node.w;
             node.for_each_descend_mut(&|node| {
                 node.x += x_offset;
             });
 
-            children.push(node);
-        }
+            node
+        };
 
         Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
-            children,
-        }
-    }
-
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        for (ch, layout) in self.iter().zip(layout.children.iter()) {
-            ch.as_widget().render(renderer, layout, ctx);
-        }
-    }
-
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        for (ch, layout) in self.iter_mut().zip(layout.children.iter()) {
-            ch.as_widget_mut().update(event.clone(), layout, ctx);
+            x: parent.x,
+            y: parent.y,
+            w: parent.w,
+            h: parent.h,
+            children: vec![start, center, end],
         }
     }
 }
 
-impl<'a, MSG: 'static> From<TriLayout<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: TriLayout<'a, MSG>) -> Self {
+impl<MSG: 'static> From<TriLayout<MSG>> for Element<MSG> {
+    fn from(value: TriLayout<MSG>) -> Self {
         Element::new(value)
     }
 }

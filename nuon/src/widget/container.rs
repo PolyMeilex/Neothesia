@@ -1,37 +1,49 @@
-use crate::{
-    null::Null, Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget,
-};
+use crate::{Color, Element, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, Widget};
 
-pub struct Container<'a, MSG> {
-    child: Element<'a, MSG>,
+pub struct Container<MSG> {
+    child: [Element<MSG>; 1],
     background: Option<Color>,
+    x: f32,
+    y: f32,
     width: Option<f32>,
     height: Option<f32>,
 }
 
-impl<'a, MSG: 'static> Default for Container<'a, MSG> {
+impl<MSG: 'static> Default for Container<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG: 'static> Container<'a, MSG> {
+impl<MSG: 'static> Container<MSG> {
     pub fn new() -> Self {
         Self {
-            child: Null.into(),
+            child: [Element::null()],
             background: None,
+            x: 0.0,
+            y: 0.0,
             width: None,
             height: None,
         }
     }
 
-    pub fn child(mut self, child: impl Into<Element<'a, MSG>>) -> Self {
-        self.child = child.into();
+    pub fn child(mut self, child: impl Into<Element<MSG>>) -> Self {
+        self.child[0] = child.into();
         self
     }
 
     pub fn background(mut self, background: Color) -> Self {
         self.background = Some(background);
+        self
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.y = y;
         self
     }
 
@@ -46,31 +58,64 @@ impl<'a, MSG: 'static> Container<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
-        self.child.as_widget().layout(&LayoutCtx {
-            x: ctx.x,
-            y: ctx.y,
-            w: self.width.unwrap_or(ctx.w),
-            h: self.height.unwrap_or(ctx.h),
-        })
+impl<MSG> Widget<MSG> for Container<MSG> {
+    type State = ();
+
+    fn children(&self) -> &[Element<MSG>] {
+        &self.child
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.child
+    }
+
+    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
+        let parent = &ParentLayout {
+            x: parent.x + self.x,
+            y: parent.y + self.y,
+            w: self.width.unwrap_or(parent.w),
+            h: self.height.unwrap_or(parent.h),
+        };
+
+        let mut children = Vec::with_capacity(self.child.len());
+
+        let mut w = 0.0;
+        let mut h = 0.0;
+
+        for (ch, tree) in self.child.iter().zip(tree.children.iter_mut()) {
+            let node = ch.as_widget().layout(tree, parent, ctx);
+
+            w = node.w.max(node.w);
+            h = node.h.max(node.h);
+
+            children.push(node);
+        }
+
+        Node {
+            x: parent.x,
+            y: parent.y,
+            w: self.width.unwrap_or(w),
+            h: self.height.unwrap_or(h),
+            children,
+        }
+    }
+
+    fn render(
+        &self,
+        renderer: &mut dyn Renderer,
+        layout: &Node,
+        tree: &Tree<Self::State>,
+        ctx: &RenderCtx,
+    ) {
         if let Some(bg) = self.background {
             renderer.quad(layout.x, layout.y, layout.w, layout.h, bg);
         }
-
-        self.child.as_widget().render(renderer, layout, ctx)
-    }
-
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        self.child.as_widget_mut().update(event, layout, ctx)
+        self.render_default(renderer, layout, tree, ctx);
     }
 }
 
-impl<'a, MSG: 'static> From<Container<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Container<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Container<MSG>> for Element<MSG> {
+    fn from(value: Container<MSG>) -> Self {
         Element::new(value)
     }
 }

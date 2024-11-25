@@ -1,25 +1,25 @@
 use smallvec::SmallVec;
 
-use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, UpdateCtx, Widget};
+use crate::{Element, Widget};
 
-pub struct Stack<'a, MSG> {
-    children: SmallVec<[Element<'a, MSG>; 4]>,
+pub struct Stack<MSG> {
+    children: SmallVec<[Element<MSG>; 4]>,
 }
 
-impl<'a, MSG> Default for Stack<'a, MSG> {
+impl<MSG> Default for Stack<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> Stack<'a, MSG> {
+impl<MSG> Stack<MSG> {
     pub fn new() -> Self {
         Self {
             children: SmallVec::new(),
         }
     }
 
-    pub fn push(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn push(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.children.push(widget.into());
         self
     }
@@ -33,42 +33,20 @@ impl<'a, MSG> Stack<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
-    fn layout(&self, ctx: &LayoutCtx) -> Node {
-        let mut children = Vec::with_capacity(self.children.len());
+impl<MSG> Widget<MSG> for Stack<MSG> {
+    type State = ();
 
-        for ch in self.children.iter() {
-            children.push(ch.as_widget().layout(ctx));
-        }
-
-        Node {
-            x: ctx.x,
-            y: ctx.y,
-            w: ctx.w,
-            h: ctx.h,
-            children,
-        }
+    fn children(&self) -> &[Element<MSG>] {
+        &self.children
     }
 
-    fn render(&self, renderer: &mut dyn Renderer, layout: &Node, ctx: &RenderCtx) {
-        for (ch, layout) in self.children.iter().zip(layout.children.iter()) {
-            ch.as_widget().render(renderer, layout, ctx);
-        }
-    }
-
-    fn update(&mut self, event: Event, layout: &Node, ctx: &mut UpdateCtx<MSG>) {
-        for (ch, layout) in self.children.iter_mut().zip(layout.children.iter()).rev() {
-            ch.as_widget_mut().update(event.clone(), layout, ctx);
-
-            if ctx.is_event_captured() {
-                return;
-            }
-        }
+    fn children_mut(&mut self) -> &mut [Element<MSG>] {
+        &mut self.children
     }
 }
 
-impl<'a, MSG: 'static> From<Stack<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Stack<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Stack<MSG>> for Element<MSG> {
+    fn from(value: Stack<MSG>) -> Self {
         Element::new(value)
     }
 }

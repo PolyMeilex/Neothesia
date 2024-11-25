@@ -47,6 +47,7 @@ pub struct PlayingScene {
     toast_manager: ToastManager,
 
     nuon_event_queue: nuon::input::EventQueue,
+    tree: nuon::Tree,
 
     top_bar: TopBar,
 }
@@ -113,6 +114,7 @@ impl PlayingScene {
             toast_manager: ToastManager::default(),
 
             nuon_event_queue: nuon::input::EventQueue::new(),
+            tree: nuon::Tree::null(),
 
             top_bar: TopBar::new(),
         }

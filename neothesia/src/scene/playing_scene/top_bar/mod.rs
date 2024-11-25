@@ -29,8 +29,6 @@ pub struct TopBar {
     looper_active: bool,
     loop_start: Duration,
     loop_end: Duration,
-
-    ui: ui::Ui,
 }
 
 impl TopBar {
@@ -51,8 +49,6 @@ impl TopBar {
             looper_active: false,
             loop_start: Duration::ZERO,
             loop_end: Duration::ZERO,
-
-            ui: ui::Ui::new(),
         }
     }
 
@@ -147,19 +143,16 @@ impl TopBar {
             store.insert(&scene.player);
         });
 
-        let mut root = scene
-            .top_bar
-            .ui
-            .view(ui::UiData {
-                y,
-                is_settings_open: scene.top_bar.settings_active,
-                is_looper_on: scene.top_bar.is_looper_active(),
-                speed: ctx.config.speed_multiplier(),
-                player: &scene.player,
-                loop_start: scene.top_bar.loop_start_timestamp(),
-                loop_end: scene.top_bar.loop_end_timestamp(),
-            })
-            .into();
+        let mut root = ui::top_bar(ui::UiData {
+            y,
+            is_settings_open: scene.top_bar.settings_active,
+            is_looper_on: scene.top_bar.is_looper_active(),
+            speed: ctx.config.speed_multiplier(),
+            player: &scene.player,
+            loop_start: scene.top_bar.loop_start_timestamp(),
+            loop_end: scene.top_bar.loop_end_timestamp(),
+        })
+        .into();
 
         scene.tree.diff(root.as_widget());
 

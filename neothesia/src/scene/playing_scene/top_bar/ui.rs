@@ -69,101 +69,85 @@ pub struct UiData<'a> {
     pub player: &'a MidiPlayer,
 }
 
-#[derive(Default)]
-pub struct Header {}
-
-impl Header {
-    fn view(&mut self, data: &UiData) -> impl Into<Element<Msg>> {
-        Container::new().height(30.0).child(
-            TriLayout::new()
-                .start(
-                    Row::new().push(
-                        Button::new()
-                            .icon(left_arrow_icon())
-                            .width(30.0)
-                            .on_click(Msg::GoBack),
-                    ),
-                )
-                .center(
-                    SpeedPill::new()
-                        .speed(data.speed)
-                        .on_minus(Msg::SpeedDown)
-                        .on_plus(Msg::SpeedUp),
-                )
-                .end(
-                    Row::new()
-                        .push(
-                            Button::new()
-                                .icon(if data.player.is_paused() {
-                                    play_icon()
-                                } else {
-                                    pause_icon()
-                                })
-                                .width(30.0)
-                                .on_click(Msg::PauseResume),
-                        )
-                        .push(
-                            Button::new()
-                                .icon(repeat_icon())
-                                .width(30.0)
-                                .on_click(Msg::Looper(LooperMsg::Toggle)),
-                        )
-                        .push(
-                            Button::new()
-                                .icon(if data.is_settings_open {
-                                    gear_fill_icon()
-                                } else {
-                                    gear_icon()
-                                })
-                                .width(30.0)
-                                .on_click(Msg::SettingsToggle),
-                        ),
+fn header(data: &UiData) -> impl Into<Element<Msg>> {
+    Container::new().height(30.0).child(
+        TriLayout::new()
+            .start(
+                Row::new().push(
+                    Button::new()
+                        .icon(left_arrow_icon())
+                        .width(30.0)
+                        .on_click(Msg::GoBack),
                 ),
-        )
-    }
-}
-
-#[derive(Default)]
-pub struct Ui {
-    header: Header,
-}
-
-impl Ui {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    #[profiling::function]
-    pub fn view(&mut self, data: UiData) -> impl Into<Element<Msg>> {
-        let header = self.header.view(&data);
-
-        let timeline = Container::new().height(45.0).child(
-            Row::new().push(
-                Stack::new()
+            )
+            .center(
+                SpeedPill::new()
+                    .speed(data.speed)
+                    .on_minus(Msg::SpeedDown)
+                    .on_plus(Msg::SpeedUp),
+            )
+            .end(
+                Row::new()
                     .push(
-                        ProgressBar::new()
-                            .color(Color::new_u8(56, 145, 255, 1.0))
-                            .on_press(Msg::ProggresBar(ProgressBarMsg::Pressed))
-                            .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
+                        Button::new()
+                            .icon(if data.player.is_paused() {
+                                play_icon()
+                            } else {
+                                pause_icon()
+                            })
+                            .width(30.0)
+                            .on_click(Msg::PauseResume),
                     )
-                    .when(data.is_looper_on, |stack| {
-                        stack.push(
-                            Looper::new()
-                                .start(data.loop_start)
-                                .end(data.loop_end)
-                                .on_start_move(|p| Msg::Looper(LooperMsg::MoveStart(p)))
-                                .on_end_move(|p| Msg::Looper(LooperMsg::MoveEnd(p))),
-                        )
-                    }),
+                    .push(
+                        Button::new()
+                            .icon(repeat_icon())
+                            .width(30.0)
+                            .on_click(Msg::Looper(LooperMsg::Toggle)),
+                    )
+                    .push(
+                        Button::new()
+                            .icon(if data.is_settings_open {
+                                gear_fill_icon()
+                            } else {
+                                gear_icon()
+                            })
+                            .width(30.0)
+                            .on_click(Msg::SettingsToggle),
+                    ),
             ),
-        );
+    )
+}
 
-        let body = Column::new().push(header).push(timeline);
+#[profiling::function]
+pub fn top_bar(data: UiData) -> impl Into<Element<Msg>> {
+    let header = header(&data);
 
-        Translate::new().y(data.y).child(
-            Container::new()
-                .background(Color::new_u8(37, 35, 42, 1.0))
-                .child(body),
-        )
-    }
+    let timeline = Container::new().height(45.0).child(
+        Row::new().push(
+            Stack::new()
+                .push(
+                    ProgressBar::new()
+                        .color(Color::new_u8(56, 145, 255, 1.0))
+                        .on_press(Msg::ProggresBar(ProgressBarMsg::Pressed))
+                        .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
+                )
+                .when(data.is_looper_on, |stack| {
+                    stack.push(
+                        Looper::new()
+                            .start(data.loop_start)
+                            .end(data.loop_end)
+                            .on_start_move(|p| Msg::Looper(LooperMsg::MoveStart(p)))
+                            .on_end_move(|p| Msg::Looper(LooperMsg::MoveEnd(p))),
+                    )
+                }),
+        ),
+    );
+
+    let body = Column::new().push(header).push(timeline);
+
+    Translate::new().y(data.y).child(
+        Container::new()
+            .background(Color::new_u8(37, 35, 42, 1.0))
+            .child(body),
+    )
 }

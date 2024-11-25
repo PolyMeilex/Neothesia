@@ -1,7 +1,4 @@
-use crate::{
-    null::Null, Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx,
-    Widget,
-};
+use crate::{Color, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
 
 pub struct Container<'a, MSG> {
     child: Element<'a, MSG>,
@@ -19,7 +16,7 @@ impl<'a, MSG: 'static> Default for Container<'a, MSG> {
 impl<'a, MSG: 'static> Container<'a, MSG> {
     pub fn new() -> Self {
         Self {
-            child: Null.into(),
+            child: Element::null(),
             background: None,
             width: None,
             height: None,

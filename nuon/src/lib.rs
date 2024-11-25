@@ -205,6 +205,10 @@ impl<'a, MSG> Element<'a, MSG> {
         Self(Box::new(widget))
     }
 
+    pub fn null() -> Self {
+        crate::null::Null::new().into()
+    }
+
     pub fn as_widget(&self) -> &dyn WidgetAny<MSG> {
         self.0.as_ref()
     }

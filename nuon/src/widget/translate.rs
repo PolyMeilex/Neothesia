@@ -1,6 +1,4 @@
-use crate::{
-    null::Null, Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
-};
+use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
 
 pub struct Translate<'a, MSG> {
     x: f32,
@@ -19,7 +17,7 @@ impl<'a, MSG: 'static> Translate<'a, MSG> {
         Self {
             x: 0.0,
             y: 0.0,
-            child: Null.into(),
+            child: Element::null(),
         }
     }
 

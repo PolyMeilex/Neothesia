@@ -1,9 +1,9 @@
 use crate::{Element, Event, LayoutCtx, Node, RenderCtx, Renderer, Tree, UpdateCtx, Widget};
 
 pub struct TriLayout<'a, MSG> {
-    start: Option<Element<'a, MSG>>,
-    center: Option<Element<'a, MSG>>,
-    end: Option<Element<'a, MSG>>,
+    start: Element<'a, MSG>,
+    center: Element<'a, MSG>,
+    end: Element<'a, MSG>,
 }
 
 impl<'a, MSG> Default for TriLayout<'a, MSG> {
@@ -15,41 +15,25 @@ impl<'a, MSG> Default for TriLayout<'a, MSG> {
 impl<'a, MSG> TriLayout<'a, MSG> {
     pub fn new() -> Self {
         Self {
-            start: None,
-            center: None,
-            end: None,
+            start: Element::null(),
+            center: Element::null(),
+            end: Element::null(),
         }
     }
 
     pub fn start(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
-        self.start = Some(widget.into());
+        self.start = widget.into();
         self
     }
 
     pub fn center(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
-        self.center = Some(widget.into());
+        self.center = widget.into();
         self
     }
 
     pub fn end(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
-        self.end = Some(widget.into());
+        self.end = widget.into();
         self
-    }
-
-    fn iter(&self) -> impl Iterator<Item = &Element<MSG>> {
-        self.start
-            .as_ref()
-            .into_iter()
-            .chain(self.center.as_ref())
-            .chain(self.end.as_ref())
-    }
-
-    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Element<'a, MSG>> {
-        self.start
-            .as_mut()
-            .into_iter()
-            .chain(self.center.as_mut())
-            .chain(self.end.as_mut())
     }
 }
 
@@ -57,47 +41,32 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
-        self.start
-            .as_ref()
-            .into_iter()
-            .chain(self.center.as_ref())
-            .chain(self.end.as_ref())
-            .map(|w| Tree::new(w.as_widget()))
-            .collect()
+        vec![
+            Tree::new(self.start.as_widget()),
+            Tree::new(self.center.as_widget()),
+            Tree::new(self.end.as_widget()),
+        ]
     }
 
     fn diff(&self, tree: &mut Tree) {
-        // TODO: remove this alloc by splitting trilayout to 3 subnodes
-        let children: Vec<_> = self
-            .start
-            .as_ref()
-            .into_iter()
-            .chain(self.center.as_ref())
-            .chain(self.end.as_ref())
-            .collect();
-
-        tree.diff_children2(&children);
+        tree.children[0].diff(self.start.as_widget());
+        tree.children[1].diff(self.center.as_widget());
+        tree.children[2].diff(self.end.as_widget());
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, ctx: &LayoutCtx) -> Node {
-        let mut children = vec![];
+        let start = self.start.as_widget().layout(
+            &mut tree.children[0],
+            &LayoutCtx {
+                x: ctx.x,
+                y: ctx.y,
+                w: ctx.w,
+                h: ctx.h,
+            },
+        );
 
-        if let Some(start) = self.start.as_ref() {
-            let node = start.as_widget().layout(
-                &mut tree.children[0],
-                &LayoutCtx {
-                    x: ctx.x,
-                    y: ctx.y,
-                    w: ctx.w,
-                    h: ctx.h,
-                },
-            );
-
-            children.push(node);
-        }
-
-        if let Some(center) = self.center.as_ref() {
-            let mut node = center.as_widget().layout(
+        let center = {
+            let mut node = self.center.as_widget().layout(
                 &mut tree.children[1],
                 &LayoutCtx {
                     x: ctx.x,
@@ -112,11 +81,11 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
                 node.x += x_offset;
             });
 
-            children.push(node);
-        }
+            node
+        };
 
-        if let Some(end) = self.end.as_ref() {
-            let mut node = end.as_widget().layout(
+        let end = {
+            let mut node = self.end.as_widget().layout(
                 &mut tree.children[2],
                 &LayoutCtx {
                     x: ctx.x,
@@ -131,15 +100,15 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
                 node.x += x_offset;
             });
 
-            children.push(node);
-        }
+            node
+        };
 
         Node {
             x: ctx.x,
             y: ctx.y,
             w: ctx.w,
             h: ctx.h,
-            children,
+            children: vec![start, center, end],
         }
     }
 
@@ -150,13 +119,15 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         tree: &Tree<Self::State>,
         ctx: &RenderCtx,
     ) {
-        for ((ch, layout), tree) in self
-            .iter()
-            .zip(layout.children.iter())
-            .zip(tree.children.iter())
-        {
-            ch.as_widget().render(renderer, layout, tree, ctx);
-        }
+        self.start
+            .as_widget()
+            .render(renderer, &layout.children[0], &tree.children[0], ctx);
+        self.center
+            .as_widget()
+            .render(renderer, &layout.children[1], &tree.children[1], ctx);
+        self.end
+            .as_widget()
+            .render(renderer, &layout.children[2], &tree.children[2], ctx);
     }
 
     fn update(
@@ -166,13 +137,24 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
         tree: &mut Tree<Self::State>,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        for ((ch, layout), tree) in self
-            .iter_mut()
-            .zip(layout.children.iter())
-            .zip(tree.children.iter_mut())
-        {
-            ch.as_widget_mut().update(event.clone(), layout, tree, ctx);
-        }
+        self.start.as_widget_mut().update(
+            event.clone(),
+            &layout.children[0],
+            &mut tree.children[0],
+            ctx,
+        );
+        self.center.as_widget_mut().update(
+            event.clone(),
+            &layout.children[1],
+            &mut tree.children[1],
+            ctx,
+        );
+        self.end.as_widget_mut().update(
+            event.clone(),
+            &layout.children[2],
+            &mut tree.children[2],
+            ctx,
+        );
     }
 }
 

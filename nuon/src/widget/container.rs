@@ -55,7 +55,7 @@ impl<MSG> Widget<MSG> for Container<MSG> {
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children2(&[&self.child]);
+        self.child.as_widget().diff(&mut tree.children[0]);
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {

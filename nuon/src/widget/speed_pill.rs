@@ -78,7 +78,8 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children3(&[&self.minus, &self.plus]);
+        self.minus.diff(tree.children[0].remap_mut());
+        self.plus.diff(tree.children[1].remap_mut());
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {

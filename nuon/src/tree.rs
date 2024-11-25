@@ -92,44 +92,6 @@ impl<T: 'static> Tree<T> {
         }
     }
 
-    // TODO: remove
-    pub fn diff_children2<MSG>(&mut self, new_children: &[&Element<MSG>]) {
-        if self.children.len() > new_children.len() {
-            self.children.truncate(new_children.len());
-        }
-
-        for (tree, widget) in self.children.iter_mut().zip(new_children.iter()) {
-            tree.diff(widget.as_widget());
-        }
-
-        if self.children.len() < new_children.len() {
-            self.children.extend(
-                new_children[self.children.len()..]
-                    .iter()
-                    .map(|widget| Self::new(widget.as_widget()).remap()),
-            );
-        }
-    }
-
-    // TODO: remove
-    pub fn diff_children3<MSG>(&mut self, new_children: &[&dyn WidgetAny<MSG>]) {
-        if self.children.len() > new_children.len() {
-            self.children.truncate(new_children.len());
-        }
-
-        for (tree, widget) in self.children.iter_mut().zip(new_children.iter()) {
-            tree.diff(*widget);
-        }
-
-        if self.children.len() < new_children.len() {
-            self.children.extend(
-                new_children[self.children.len()..]
-                    .iter()
-                    .map(|widget| Self::new(*widget).remap()),
-            );
-        }
-    }
-
     pub fn state_type_id(&self) -> TypeId {
         self.state.as_ref().type_id()
     }

@@ -2,19 +2,19 @@ use crate::{
     Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
 };
 
-pub struct Translate<'a, MSG> {
+pub struct Translate<MSG> {
     x: f32,
     y: f32,
-    child: Element<'a, MSG>,
+    child: Element<MSG>,
 }
 
-impl<'a, MSG: 'static> Default for Translate<'a, MSG> {
+impl<MSG: 'static> Default for Translate<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG: 'static> Translate<'a, MSG> {
+impl<MSG: 'static> Translate<MSG> {
     pub fn new() -> Self {
         Self {
             x: 0.0,
@@ -23,7 +23,7 @@ impl<'a, MSG: 'static> Translate<'a, MSG> {
         }
     }
 
-    pub fn child(mut self, child: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn child(mut self, child: impl Into<Element<MSG>>) -> Self {
         self.child = child.into();
         self
     }
@@ -39,7 +39,7 @@ impl<'a, MSG: 'static> Translate<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Translate<'a, MSG> {
+impl<MSG> Widget<MSG> for Translate<MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
@@ -88,8 +88,8 @@ impl<'a, MSG> Widget<MSG> for Translate<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<Translate<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Translate<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Translate<MSG>> for Element<MSG> {
+    fn from(value: Translate<MSG>) -> Self {
         Element::new(value)
     }
 }

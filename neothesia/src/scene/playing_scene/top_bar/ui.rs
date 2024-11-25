@@ -73,7 +73,7 @@ pub struct UiData<'a> {
 pub struct Header {}
 
 impl Header {
-    fn view(&mut self, data: &UiData) -> impl Into<Element<'static, Msg>> {
+    fn view(&mut self, data: &UiData) -> impl Into<Element<Msg>> {
         Container::new().height(30.0).child(
             TriLayout::new()
                 .start(
@@ -134,7 +134,7 @@ impl Ui {
     }
 
     #[profiling::function]
-    pub fn view<'a>(&'a mut self, data: UiData<'a>) -> impl Into<Element<'static, Msg>> {
+    pub fn view(&mut self, data: UiData) -> impl Into<Element<Msg>> {
         let header = self.header.view(&data);
 
         let timeline = Container::new().height(45.0).child(

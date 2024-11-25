@@ -5,18 +5,18 @@ use crate::{
     Widget,
 };
 
-pub struct Column<'a, MSG> {
-    children: SmallVec<[Element<'a, MSG>; 4]>,
+pub struct Column<MSG> {
+    children: SmallVec<[Element<MSG>; 4]>,
     gap: f32,
 }
 
-impl<'a, MSG> Default for Column<'a, MSG> {
+impl<MSG> Default for Column<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> Column<'a, MSG> {
+impl<MSG> Column<MSG> {
     pub fn new() -> Self {
         Self {
             children: SmallVec::new(),
@@ -24,7 +24,7 @@ impl<'a, MSG> Column<'a, MSG> {
         }
     }
 
-    pub fn push(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn push(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.children.push(widget.into());
         self
     }
@@ -38,7 +38,7 @@ impl<'a, MSG> Column<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Column<'a, MSG> {
+impl<MSG> Widget<MSG> for Column<MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
@@ -126,8 +126,8 @@ impl<'a, MSG> Widget<MSG> for Column<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<Column<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Column<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Column<MSG>> for Element<MSG> {
+    fn from(value: Column<MSG>) -> Self {
         Element::new(value)
     }
 }

@@ -4,18 +4,18 @@ use crate::{
     Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
 };
 
-pub struct Row<'a, MSG> {
-    children: SmallVec<[Element<'a, MSG>; 4]>,
+pub struct Row<MSG> {
+    children: SmallVec<[Element<MSG>; 4]>,
     gap: f32,
 }
 
-impl<'a, MSG> Default for Row<'a, MSG> {
+impl<MSG> Default for Row<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> Row<'a, MSG> {
+impl<MSG> Row<MSG> {
     pub fn new() -> Self {
         Self {
             children: SmallVec::new(),
@@ -23,7 +23,7 @@ impl<'a, MSG> Row<'a, MSG> {
         }
     }
 
-    pub fn push(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn push(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.children.push(widget.into());
         self
     }
@@ -37,7 +37,7 @@ impl<'a, MSG> Row<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Row<'a, MSG> {
+impl<MSG> Widget<MSG> for Row<MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
@@ -125,8 +125,8 @@ impl<'a, MSG> Widget<MSG> for Row<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<Row<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Row<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Row<MSG>> for Element<MSG> {
+    fn from(value: Row<MSG>) -> Self {
         Element::new(value)
     }
 }

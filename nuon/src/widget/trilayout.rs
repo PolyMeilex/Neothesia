@@ -2,19 +2,19 @@ use crate::{
     Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
 };
 
-pub struct TriLayout<'a, MSG> {
-    start: Element<'a, MSG>,
-    center: Element<'a, MSG>,
-    end: Element<'a, MSG>,
+pub struct TriLayout<MSG> {
+    start: Element<MSG>,
+    center: Element<MSG>,
+    end: Element<MSG>,
 }
 
-impl<'a, MSG> Default for TriLayout<'a, MSG> {
+impl<MSG> Default for TriLayout<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> TriLayout<'a, MSG> {
+impl<MSG> TriLayout<MSG> {
     pub fn new() -> Self {
         Self {
             start: Element::null(),
@@ -23,23 +23,23 @@ impl<'a, MSG> TriLayout<'a, MSG> {
         }
     }
 
-    pub fn start(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn start(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.start = widget.into();
         self
     }
 
-    pub fn center(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn center(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.center = widget.into();
         self
     }
 
-    pub fn end(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn end(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.end = widget.into();
         self
     }
 }
 
-impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
+impl<MSG> Widget<MSG> for TriLayout<MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
@@ -163,8 +163,8 @@ impl<'a, MSG> Widget<MSG> for TriLayout<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<TriLayout<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: TriLayout<'a, MSG>) -> Self {
+impl<MSG: 'static> From<TriLayout<MSG>> for Element<MSG> {
+    fn from(value: TriLayout<MSG>) -> Self {
         Element::new(value)
     }
 }

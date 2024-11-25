@@ -4,24 +4,24 @@ use crate::{
     Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
 };
 
-pub struct Stack<'a, MSG> {
-    children: SmallVec<[Element<'a, MSG>; 4]>,
+pub struct Stack<MSG> {
+    children: SmallVec<[Element<MSG>; 4]>,
 }
 
-impl<'a, MSG> Default for Stack<'a, MSG> {
+impl<MSG> Default for Stack<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG> Stack<'a, MSG> {
+impl<MSG> Stack<MSG> {
     pub fn new() -> Self {
         Self {
             children: SmallVec::new(),
         }
     }
 
-    pub fn push(mut self, widget: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn push(mut self, widget: impl Into<Element<MSG>>) -> Self {
         self.children.push(widget.into());
         self
     }
@@ -35,7 +35,7 @@ impl<'a, MSG> Stack<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
+impl<MSG> Widget<MSG> for Stack<MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
@@ -105,8 +105,8 @@ impl<'a, MSG> Widget<MSG> for Stack<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<Stack<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Stack<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Stack<MSG>> for Element<MSG> {
+    fn from(value: Stack<MSG>) -> Self {
         Element::new(value)
     }
 }

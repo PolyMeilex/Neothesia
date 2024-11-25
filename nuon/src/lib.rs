@@ -208,10 +208,10 @@ impl Node {
     }
 }
 
-pub struct Element<'a, MSG>(Box<dyn WidgetAny<MSG> + 'a>);
+pub struct Element<MSG>(Box<dyn WidgetAny<MSG>>);
 
-impl<'a, MSG> Element<'a, MSG> {
-    pub fn new(widget: impl Widget<MSG> + 'a) -> Self {
+impl<MSG> Element<MSG> {
+    pub fn new(widget: impl Widget<MSG> + 'static) -> Self {
         Self(Box::new(widget))
     }
 

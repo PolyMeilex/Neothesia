@@ -180,7 +180,7 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     }
 }
 
-impl<MSG: Clone + 'static> From<Button<MSG>> for Element<'_, MSG> {
+impl<MSG: Clone + 'static> From<Button<MSG>> for Element<MSG> {
     fn from(value: Button<MSG>) -> Self {
         Element::new(value)
     }

@@ -175,7 +175,7 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
     }
 }
 
-impl<MSG: Clone + 'static> From<SpeedPill<MSG>> for Element<'_, MSG> {
+impl<MSG: Clone + 'static> From<SpeedPill<MSG>> for Element<MSG> {
     fn from(value: SpeedPill<MSG>) -> Self {
         Element::new(value)
     }

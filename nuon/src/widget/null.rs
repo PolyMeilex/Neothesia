@@ -46,7 +46,7 @@ impl<MSG> Widget<MSG> for Null {
     }
 }
 
-impl<MSG> From<Null> for Element<'_, MSG> {
+impl<MSG> From<Null> for Element<MSG> {
     fn from(value: Null) -> Self {
         Element::new(value)
     }

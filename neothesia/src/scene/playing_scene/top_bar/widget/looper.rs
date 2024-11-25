@@ -219,7 +219,7 @@ impl<MSG> Widget<MSG> for Looper<MSG> {
     }
 }
 
-impl<MSG: 'static> From<Looper<MSG>> for Element<'_, MSG> {
+impl<MSG: 'static> From<Looper<MSG>> for Element<MSG> {
     fn from(value: Looper<MSG>) -> Self {
         Element::new(value)
     }

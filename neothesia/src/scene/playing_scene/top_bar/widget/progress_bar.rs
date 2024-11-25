@@ -140,7 +140,7 @@ impl<MSG: Clone> Widget<MSG> for ProgressBar<MSG> {
     }
 }
 
-impl<MSG: Clone + 'static> From<ProgressBar<MSG>> for Element<'_, MSG> {
+impl<MSG: Clone + 'static> From<ProgressBar<MSG>> for Element<MSG> {
     fn from(value: ProgressBar<MSG>) -> Self {
         Element::new(value)
     }

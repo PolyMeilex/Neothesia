@@ -3,20 +3,20 @@ use crate::{
     Widget,
 };
 
-pub struct Container<'a, MSG> {
-    child: Element<'a, MSG>,
+pub struct Container<MSG> {
+    child: Element<MSG>,
     background: Option<Color>,
     width: Option<f32>,
     height: Option<f32>,
 }
 
-impl<'a, MSG: 'static> Default for Container<'a, MSG> {
+impl<MSG: 'static> Default for Container<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, MSG: 'static> Container<'a, MSG> {
+impl<MSG: 'static> Container<MSG> {
     pub fn new() -> Self {
         Self {
             child: Element::null(),
@@ -26,7 +26,7 @@ impl<'a, MSG: 'static> Container<'a, MSG> {
         }
     }
 
-    pub fn child(mut self, child: impl Into<Element<'a, MSG>>) -> Self {
+    pub fn child(mut self, child: impl Into<Element<MSG>>) -> Self {
         self.child = child.into();
         self
     }
@@ -47,7 +47,7 @@ impl<'a, MSG: 'static> Container<'a, MSG> {
     }
 }
 
-impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
+impl<MSG> Widget<MSG> for Container<MSG> {
     type State = ();
 
     fn children(&self) -> Vec<Tree> {
@@ -100,8 +100,8 @@ impl<'a, MSG> Widget<MSG> for Container<'a, MSG> {
     }
 }
 
-impl<'a, MSG: 'static> From<Container<'a, MSG>> for Element<'a, MSG> {
-    fn from(value: Container<'a, MSG>) -> Self {
+impl<MSG: 'static> From<Container<MSG>> for Element<MSG> {
+    fn from(value: Container<MSG>) -> Self {
         Element::new(value)
     }
 }

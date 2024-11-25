@@ -157,19 +157,12 @@ impl TopBar {
             })
             .into();
 
-        match scene.tree.as_mut() {
-            Some(tree) => {
-                tree.diff(root.as_widget());
-            }
-            None => {
-                scene.tree = Some(nuon::Tree::new(root.as_widget()));
-            }
-        };
+        scene.tree.diff(root.as_widget());
 
         let layout = {
             profiling::scope!("nuon_layout");
             root.as_widget_mut().layout(
-                scene.tree.as_mut().unwrap(),
+                &mut scene.tree,
                 &nuon::LayoutCtx {
                     x: 0.0,
                     y: 0.0,
@@ -183,7 +176,7 @@ impl TopBar {
 
         scene.nuon_event_queue.dispatch_events(
             &mut messages,
-            scene.tree.as_mut().unwrap(),
+            &mut scene.tree,
             root.as_widget_mut(),
             &layout,
         );
@@ -196,7 +189,7 @@ impl TopBar {
                     text: &mut ctx.text_renderer,
                 },
                 &layout,
-                scene.tree.as_ref().unwrap(),
+                &scene.tree,
                 &nuon::RenderCtx {},
             );
         }

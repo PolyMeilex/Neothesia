@@ -6,6 +6,7 @@ use std::{
 use crate::{Element, WidgetAny};
 
 pub struct UnknownState;
+struct NullTreeState;
 
 pub struct Tree<T = UnknownState> {
     pub state: Box<dyn Any>,
@@ -51,7 +52,7 @@ impl<T: 'static> Tree<T> {
 
     pub fn null() -> Self {
         Self {
-            state: Box::new(()),
+            state: Box::new(NullTreeState),
             children: Vec::new(),
             _ph: PhantomData,
         }

@@ -59,7 +59,7 @@ impl<T: 'static> Tree<T> {
 
     pub fn new<MSG>(widget: &dyn WidgetAny<MSG>) -> Self {
         Self {
-            state: widget.default_state(),
+            state: widget.state(),
             children: widget.children(),
             _ph: PhantomData,
         }

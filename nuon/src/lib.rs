@@ -90,7 +90,7 @@ pub struct LayoutCtx {
 
 pub trait WidgetAny<MSG> {
     fn state_type_id(&self) -> TypeId;
-    fn default_state(&self) -> Box<dyn Any>;
+    fn state(&self) -> Box<dyn Any>;
     fn children(&self) -> Vec<Tree>;
     fn diff(&self, tree: &mut Tree);
 
@@ -110,8 +110,8 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
         TypeId::of::<W::State>()
     }
 
-    fn default_state(&self) -> Box<dyn Any> {
-        Box::new(W::State::default())
+    fn state(&self) -> Box<dyn Any> {
+        Widget::state(self)
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -143,6 +143,10 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
 
 pub trait Widget<MSG> {
     type State: Any + Default;
+
+    fn state(&self) -> Box<dyn Any> {
+        Box::new(Self::State::default())
+    }
 
     fn children(&self) -> Vec<Tree> {
         vec![]

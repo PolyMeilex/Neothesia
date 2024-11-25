@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use nuon::{
     button::Button, column::Column, container::Container, row::Row, speed_pill::SpeedPill,
-    stack::Stack, translate::Translate, trilayout::TriLayout, Color, Element,
+    stack::Stack, trilayout::TriLayout, Color, Element,
 };
 
 use crate::scene::playing_scene::midi_player::MidiPlayer;
@@ -145,9 +145,8 @@ pub fn top_bar(data: UiData) -> impl Into<Element<Msg>> {
 
     let body = Column::new().push(header).push(timeline);
 
-    Translate::new().y(data.y).child(
-        Container::new()
-            .background(Color::new_u8(37, 35, 42, 1.0))
-            .child(body),
-    )
+    Container::new()
+        .y(data.y)
+        .background(Color::new_u8(37, 35, 42, 1.0))
+        .child(body)
 }

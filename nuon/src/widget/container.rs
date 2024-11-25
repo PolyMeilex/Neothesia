@@ -6,6 +6,8 @@ use crate::{
 pub struct Container<MSG> {
     child: Element<MSG>,
     background: Option<Color>,
+    x: f32,
+    y: f32,
     width: Option<f32>,
     height: Option<f32>,
 }
@@ -21,6 +23,8 @@ impl<MSG: 'static> Container<MSG> {
         Self {
             child: Element::null(),
             background: None,
+            x: 0.0,
+            y: 0.0,
             width: None,
             height: None,
         }
@@ -33,6 +37,16 @@ impl<MSG: 'static> Container<MSG> {
 
     pub fn background(mut self, background: Color) -> Self {
         self.background = Some(background);
+        self
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.y = y;
         self
     }
 
@@ -62,8 +76,8 @@ impl<MSG> Widget<MSG> for Container<MSG> {
         self.child.as_widget().layout(
             &mut tree.children[0],
             &ParentLayout {
-                x: parent.x,
-                y: parent.y,
+                x: parent.x + self.x,
+                y: parent.y + self.y,
                 w: self.width.unwrap_or(parent.w),
                 h: self.height.unwrap_or(parent.h),
             },

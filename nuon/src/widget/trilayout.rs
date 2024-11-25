@@ -1,11 +1,10 @@
-use crate::{
-    Element, Event, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, Tree, UpdateCtx, Widget,
-};
+use smallvec::SmallVec;
+
+use super::base::layout::GenericLayout;
+use crate::{Element, Node, ParentLayout};
 
 pub struct TriLayout<MSG> {
-    start: Element<MSG>,
-    center: Element<MSG>,
-    end: Element<MSG>,
+    children: SmallVec<[Element<MSG>; 4]>,
 }
 
 impl<MSG> Default for TriLayout<MSG> {
@@ -16,155 +15,103 @@ impl<MSG> Default for TriLayout<MSG> {
 
 impl<MSG> TriLayout<MSG> {
     pub fn new() -> Self {
-        Self {
-            start: Element::null(),
-            center: Element::null(),
-            end: Element::null(),
-        }
+        let mut children = SmallVec::new();
+
+        children.push(Element::null());
+        children.push(Element::null());
+        children.push(Element::null());
+
+        Self { children }
     }
 
     pub fn start(mut self, widget: impl Into<Element<MSG>>) -> Self {
-        self.start = widget.into();
+        self.children[0] = widget.into();
         self
     }
 
     pub fn center(mut self, widget: impl Into<Element<MSG>>) -> Self {
-        self.center = widget.into();
+        self.children[1] = widget.into();
         self
     }
 
     pub fn end(mut self, widget: impl Into<Element<MSG>>) -> Self {
-        self.end = widget.into();
+        self.children[2] = widget.into();
         self
     }
-}
 
-impl<MSG> Widget<MSG> for TriLayout<MSG> {
-    type State = ();
-
-    fn children(&self) -> Vec<Tree> {
-        vec![
-            Tree::new(self.start.as_widget()),
-            Tree::new(self.center.as_widget()),
-            Tree::new(self.end.as_widget()),
-        ]
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        tree.children[0].diff(self.start.as_widget());
-        tree.children[1].diff(self.center.as_widget());
-        tree.children[2].diff(self.end.as_widget());
-    }
-
-    fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
-        let start = self.start.as_widget().layout(
-            &mut tree.children[0],
-            &ParentLayout {
-                x: parent.x,
-                y: parent.y,
-                w: parent.w,
-                h: parent.h,
-            },
-            ctx,
-        );
-
-        let center = {
-            let mut node = self.center.as_widget().layout(
-                &mut tree.children[1],
-                &ParentLayout {
-                    x: parent.x,
-                    y: parent.y,
-                    w: parent.w,
-                    h: parent.h,
-                },
-                ctx,
-            );
-
-            let x_offset = parent.w / 2.0 - node.w / 2.0;
-            node.for_each_descend_mut(&|node| {
-                node.x += x_offset;
-            });
-
-            node
-        };
-
-        let end = {
-            let mut node = self.end.as_widget().layout(
-                &mut tree.children[2],
-                &ParentLayout {
-                    x: parent.x,
-                    y: parent.y,
-                    w: parent.w,
-                    h: parent.h,
-                },
-                ctx,
-            );
-
-            let x_offset = parent.w - node.w;
-            node.for_each_descend_mut(&|node| {
-                node.x += x_offset;
-            });
-
-            node
-        };
-
-        Node {
-            x: parent.x,
-            y: parent.y,
-            w: parent.w,
-            h: parent.h,
-            children: vec![start, center, end],
+    pub fn when(self, v: bool, f: impl FnOnce(Self) -> Self) -> Self {
+        if v {
+            f(self)
+        } else {
+            self
         }
-    }
-
-    fn render(
-        &self,
-        renderer: &mut dyn Renderer,
-        layout: &Node,
-        tree: &Tree<Self::State>,
-        ctx: &RenderCtx,
-    ) {
-        self.start
-            .as_widget()
-            .render(renderer, &layout.children[0], &tree.children[0], ctx);
-        self.center
-            .as_widget()
-            .render(renderer, &layout.children[1], &tree.children[1], ctx);
-        self.end
-            .as_widget()
-            .render(renderer, &layout.children[2], &tree.children[2], ctx);
-    }
-
-    fn update(
-        &mut self,
-        event: Event,
-        layout: &Node,
-        tree: &mut Tree<Self::State>,
-        ctx: &mut UpdateCtx<MSG>,
-    ) {
-        self.start.as_widget_mut().update(
-            event.clone(),
-            &layout.children[0],
-            &mut tree.children[0],
-            ctx,
-        );
-        self.center.as_widget_mut().update(
-            event.clone(),
-            &layout.children[1],
-            &mut tree.children[1],
-            ctx,
-        );
-        self.end.as_widget_mut().update(
-            event.clone(),
-            &layout.children[2],
-            &mut tree.children[2],
-            ctx,
-        );
     }
 }
 
 impl<MSG: 'static> From<TriLayout<MSG>> for Element<MSG> {
     fn from(value: TriLayout<MSG>) -> Self {
-        Element::new(value)
+        let base =
+            GenericLayout::<_, MSG>::new(value.children, move |widgets, tree, parent, ctx| {
+                let start = widgets[0].as_widget().layout(
+                    &mut tree.children[0],
+                    &ParentLayout {
+                        x: parent.x,
+                        y: parent.y,
+                        w: parent.w,
+                        h: parent.h,
+                    },
+                    ctx,
+                );
+
+                let center = {
+                    let mut node = widgets[1].as_widget().layout(
+                        &mut tree.children[1],
+                        &ParentLayout {
+                            x: parent.x,
+                            y: parent.y,
+                            w: parent.w,
+                            h: parent.h,
+                        },
+                        ctx,
+                    );
+
+                    let x_offset = parent.w / 2.0 - node.w / 2.0;
+                    node.for_each_descend_mut(&|node| {
+                        node.x += x_offset;
+                    });
+
+                    node
+                };
+
+                let end = {
+                    let mut node = widgets[2].as_widget().layout(
+                        &mut tree.children[2],
+                        &ParentLayout {
+                            x: parent.x,
+                            y: parent.y,
+                            w: parent.w,
+                            h: parent.h,
+                        },
+                        ctx,
+                    );
+
+                    let x_offset = parent.w - node.w;
+                    node.for_each_descend_mut(&|node| {
+                        node.x += x_offset;
+                    });
+
+                    node
+                };
+
+                Node {
+                    x: parent.x,
+                    y: parent.y,
+                    w: parent.w,
+                    h: parent.h,
+                    children: vec![start, center, end],
+                }
+            });
+
+        Element::new(base)
     }
 }

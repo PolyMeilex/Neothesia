@@ -10,31 +10,23 @@ pub struct KeyboardLayout {
     pub width: f32,
     pub height: f32,
 
-    pub neutral_width: f32,
-    pub sharp_width: f32,
-
-    pub neutral_height: f32,
-    pub sharp_height: f32,
-
+    pub sizing: Sizing,
     pub range: KeyboardRange,
 }
 
 impl KeyboardLayout {
-    pub fn from_range(neutral_width: f32, neutral_height: f32, range: KeyboardRange) -> Self {
-        let sharp_width = neutral_width * 0.625; // 62.5%
-        let sharp_height = neutral_height * 0.635;
-
-        let sizing = Sizing::new(neutral_width, neutral_height);
-
-        let octaves = range_to_octaves(&sizing, range.range());
-
+    pub fn from_range(sizing: Sizing, range: KeyboardRange) -> Self {
         let mut keys = Vec::with_capacity(range.count());
 
         let mut offset = 0.0;
         let mut id = 0;
 
-        for octave in octaves {
-            for mut key in octave.keys {
+        let oct = Octave::new(&sizing);
+
+        for octave_range in split_range_by_octaves(range.range()) {
+            let (width, key_iter) = oct.sub_range(octave_range);
+
+            for mut key in key_iter {
                 key.id = id;
                 id += 1;
 
@@ -50,12 +42,12 @@ impl KeyboardLayout {
                 keys.push(key);
             }
 
-            offset += octave.width;
+            offset += width;
         }
 
         // Board size
-        let width = neutral_width * range.white_count() as f32;
-        let height = neutral_height;
+        let width = sizing.neutral_width * range.white_count() as f32;
+        let height = sizing.neutral_height;
 
         KeyboardLayout {
             keys: keys.into(),
@@ -63,34 +55,30 @@ impl KeyboardLayout {
             width,
             height,
 
-            neutral_width,
-            sharp_width,
-
-            neutral_height,
-            sharp_height,
-
+            sizing,
             range,
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyKind {
+    #[default]
     Neutral,
     Sharp,
 }
 
 impl KeyKind {
     pub fn is_neutral(&self) -> bool {
-        matches!(self, Self::Neutral)
+        *self == Self::Neutral
     }
 
     pub fn is_sharp(&self) -> bool {
-        matches!(self, Self::Sharp)
+        *self == Self::Sharp
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Key {
     x: f32,
     width: f32,
@@ -130,21 +118,142 @@ impl Key {
     }
 }
 
+fn split_range_by_octaves(
+    range: &std::ops::Range<u8>,
+) -> impl Iterator<Item = std::ops::Range<usize>> {
+    let start = range.start as usize;
+    let end = range.end as usize;
+
+    let mut id = start;
+
+    std::iter::from_fn(move || {
+        if id < end {
+            let start_id = id % 12;
+            let end_id = if id + 12 > end { end - id } else { 12 };
+
+            let range = start_id..end_id;
+
+            id += range.len();
+
+            Some(range)
+        } else {
+            None
+        }
+    })
+}
+
 struct Octave {
-    keys: Vec<Key>,
+    keys: [Key; 12],
     width: f32,
 }
 
-struct Sizing {
-    neutral_width: f32,
-    neutral_height: f32,
+impl Octave {
+    fn new(sizing: &Sizing) -> Self {
+        let mut keys = [Key::default(); 12];
 
-    sharp_width: f32,
-    sharp_height: f32,
+        let width = sizing.neutral_width * 7.0;
+
+        const C: u8 = 0;
+        const CS: u8 = 1;
+        const D: u8 = 2;
+        const DS: u8 = 3;
+        const E: u8 = 4;
+        const F: u8 = 5;
+        const FS: u8 = 6;
+        const G: u8 = 7;
+        const GS: u8 = 8;
+        const A: u8 = 9;
+        const AS: u8 = 10;
+        const B: u8 = 11;
+
+        let neutral_ids: [u8; 7] = [C, D, E, F, G, A, B];
+        let sharp_ids: [u8; 5] = [CS, DS, FS, GS, AS];
+
+        for (id, note_id) in neutral_ids.into_iter().enumerate() {
+            let x = id as f32 * sizing.neutral_width;
+
+            keys[note_id as usize] = Key {
+                id: 0,
+                x,
+                width: sizing.neutral_width,
+                height: sizing.neutral_height,
+                kind: KeyKind::Neutral,
+                note_id,
+            };
+        }
+
+        #[inline(always)]
+        fn sharp_note_id_to_x(note_id: u8, cde_width: f32, cde_mult: f32, fgab_mult: f32) -> f32 {
+            if matches!(note_id, CS | DS) {
+                let mult = cde_mult;
+                (note_id + 1) as f32 * mult - mult / 2.0
+            } else {
+                let mult = fgab_mult;
+                let id = note_id - E;
+                cde_width + id as f32 * mult - mult / 2.0
+            }
+        }
+
+        // Mathematically™ there is no correct way to position keys, but doing it separately for cde and fgh
+        // is quite popular, and gives decently accurate results, so let's do that
+        let cde_width = sizing.neutral_width * 3.0;
+        let fgab_width = sizing.neutral_width * 4.0;
+        let cde_mult = cde_width / 5.0;
+        let fgab_mult = fgab_width / 7.0;
+
+        for note_id in sharp_ids {
+            let x = sharp_note_id_to_x(note_id, cde_width, cde_mult, fgab_mult);
+
+            let w = sizing.sharp_width;
+            let hw = w / 2.0;
+
+            let x = x - hw;
+
+            keys[note_id as usize] = Key {
+                id: 0,
+                x,
+                width: sizing.sharp_width,
+                height: sizing.sharp_height,
+                kind: KeyKind::Sharp,
+                note_id,
+            };
+        }
+
+        Self { keys, width }
+    }
+
+    fn sub_range(&self, range: std::ops::Range<usize>) -> (f32, impl Iterator<Item = Key> + '_) {
+        let keys = &self.keys[range.clone()];
+        let start_offset = keys.first().map(Key::x).unwrap_or(0.0);
+        let new_width = self.width - start_offset;
+
+        let mut iter = keys.iter();
+
+        (
+            new_width,
+            std::iter::from_fn(move || {
+                let key = iter.next()?;
+
+                Some(Key {
+                    x: key.x - start_offset,
+                    ..*key
+                })
+            }),
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Sizing {
+    pub neutral_width: f32,
+    pub neutral_height: f32,
+
+    pub sharp_width: f32,
+    pub sharp_height: f32,
 }
 
 impl Sizing {
-    fn new(neutral_width: f32, neutral_height: f32) -> Self {
+    pub fn new(neutral_width: f32, neutral_height: f32) -> Self {
         let sharp_width = neutral_width * 0.625; // 62.5%
         let sharp_height = neutral_height * 0.635;
 
@@ -154,107 +263,5 @@ impl Sizing {
             sharp_width,
             sharp_height,
         }
-    }
-}
-
-fn range_to_octaves(sizing: &Sizing, range: &std::ops::Range<u8>) -> Vec<Octave> {
-    let start = range.start as usize;
-    let end = range.end as usize;
-
-    let mut octaves = Vec::with_capacity(10);
-
-    let mut id = start;
-    while id < end {
-        let start_id = id % 12;
-        let end_id = if id + 12 > end { end - id } else { 12 };
-
-        let start_id = start_id as u8;
-        let end_id = end_id as u8;
-
-        let range = start_id..end_id;
-
-        id += range.len();
-
-        octaves.push(partial_octave(sizing, range));
-    }
-
-    octaves
-}
-
-fn partial_octave(sizing: &Sizing, range: std::ops::Range<u8>) -> Octave {
-    let mut keys = Vec::with_capacity(12);
-
-    let width = sizing.neutral_width * 7.0;
-
-    let neutral_ids: [u8; 7] = [0, 2, 4, 5, 7, 9, 11];
-
-    for (id, note_id) in neutral_ids.iter().enumerate() {
-        let x = id as f32 * sizing.neutral_width;
-
-        if range.contains(note_id) {
-            keys.push(Key {
-                id: 0,
-                x,
-                width: sizing.neutral_width,
-                height: sizing.neutral_height,
-                kind: KeyKind::Neutral,
-                note_id: *note_id,
-            });
-        }
-    }
-
-    let sharp_ids: [u8; 5] = [1, 3, 6, 8, 10];
-
-    #[inline(always)]
-    fn sharp_id_to_x(id: u8, cde_width: f32, cde_mult: f32, fgab_mult: f32) -> f32 {
-        let id = id + 1;
-        if matches!(id, 2 | 4) {
-            let mult = cde_mult;
-            id as f32 * mult - mult / 2.0
-        } else {
-            let mult = fgab_mult;
-            let id = id - 5;
-            cde_width + id as f32 * mult - mult / 2.0
-        }
-    }
-
-    // Mathematically there is no correct™ way to position keys, but doing it separately for cde and fgh
-    // is quite popular, and gives decently accurate results, so let's do that
-    let cde_width = sizing.neutral_width * 3.0;
-    let fgab_width = sizing.neutral_width * 4.0;
-    let cde_mult = cde_width / 5.0;
-    let fgab_mult = fgab_width / 7.0;
-
-    for note_id in sharp_ids {
-        let x = sharp_id_to_x(note_id, cde_width, cde_mult, fgab_mult);
-
-        let w = sizing.sharp_width;
-        let hw = w / 2.0;
-
-        let x = x - hw;
-
-        if range.contains(&note_id) {
-            keys.push(Key {
-                id: 0,
-                x,
-                width: sizing.sharp_width,
-                height: sizing.sharp_height,
-                kind: KeyKind::Sharp,
-                note_id,
-            });
-        }
-    }
-
-    let start_offset = keys.first().map(|key| key.x());
-
-    if let Some(start_offset) = start_offset {
-        keys.iter_mut().for_each(|key| key.x -= start_offset);
-    }
-
-    keys.sort_by_key(|key| key.note_id);
-
-    Octave {
-        keys,
-        width: width - start_offset.unwrap_or(0.0),
     }
 }

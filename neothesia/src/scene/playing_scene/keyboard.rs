@@ -22,7 +22,10 @@ fn get_layout(
     let neutral_width = width / white_count as f32;
     let neutral_height = height * 0.2;
 
-    piano_layout::KeyboardLayout::from_range(neutral_width, neutral_height, range)
+    piano_layout::KeyboardLayout::from_range(
+        piano_layout::Sizing::new(neutral_width, neutral_height),
+        range,
+    )
 }
 
 impl Keyboard {

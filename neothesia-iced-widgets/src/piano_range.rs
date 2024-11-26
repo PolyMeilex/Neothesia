@@ -44,8 +44,10 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
             let neutral_width = bounds.width / white_count as f32;
             let neutral_height = bounds.height;
 
-            let layout =
-                piano_layout::KeyboardLayout::from_range(neutral_width, neutral_height, range);
+            let layout = piano_layout::KeyboardLayout::from_range(
+                piano_layout::Sizing::new(neutral_width, neutral_height),
+                range,
+            );
 
             let mut neutral = layout
                 .keys

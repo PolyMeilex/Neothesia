@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{
     ops::{Range, RangeBounds},
     rc::Rc,
@@ -129,6 +127,3 @@ impl Default for KeyboardRange {
         Self::standard_88_keys()
     }
 }
-
-#[cfg(test)]
-mod tests {}

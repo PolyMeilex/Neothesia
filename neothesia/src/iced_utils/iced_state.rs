@@ -66,9 +66,13 @@ where
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
-    pub fn new(mut program: P, bounds: Size, ctx: &mut Context) -> Self {
-        let user_interface =
-            build_user_interface(&mut program, user_interface::Cache::default(), bounds, ctx);
+    pub fn new(program: P, bounds: Size, ctx: &mut Context) -> Self {
+        let user_interface = UserInterface::build(
+            program.view(ctx),
+            bounds,
+            user_interface::Cache::default(),
+            &mut ctx.iced_manager.renderer,
+        );
 
         let cache = Some(user_interface.into_cache());
 
@@ -100,18 +104,6 @@ where
         self.queued_messages.push(message);
     }
 
-    /// Returns whether the event queue of the [`State`] is empty or not.
-    #[allow(dead_code)]
-    pub fn is_queue_empty(&self) -> bool {
-        self.queued_events.is_empty() && self.queued_messages.is_empty()
-    }
-
-    /// Returns the current [`mouse::Interaction`] of the [`State`].
-    #[allow(dead_code)]
-    pub fn mouse_interaction(&self) -> mouse::Interaction {
-        self.mouse_interaction
-    }
-
     pub fn tick(&mut self, ctx: &mut Context) {
         self.program.tick(ctx);
     }
@@ -122,79 +114,50 @@ where
     /// Returns the [`Command`] obtained from [`Program`] after updating it,
     /// only if an update was necessary.
     pub fn update(&mut self, ctx: &mut Context) -> Option<Task<P::Message>> {
-        let clipboard = &mut DummyClipboard {};
-
         let bounds = ctx.iced_manager.viewport.logical_size();
         let cursor_position = iced_conversion::cursor_position(
             ctx.window_state.cursor_physical_position,
             ctx.iced_manager.viewport.scale_factor(),
         );
 
-        let mut user_interface =
-            build_user_interface(&mut self.program, self.cache.take().unwrap(), bounds, ctx);
+        let mut user_interface = UserInterface::build(
+            self.program.view(ctx),
+            bounds,
+            self.cache.take().unwrap(),
+            &mut ctx.iced_manager.renderer,
+        );
 
         let mut messages = Vec::new();
 
-        let _ = user_interface.update(
+        user_interface.update(
             &self.queued_events,
             mouse::Cursor::Available(cursor_position),
             &mut ctx.iced_manager.renderer,
-            clipboard,
+            &mut DummyClipboard {},
             &mut messages,
         );
 
         messages.append(&mut self.queued_messages);
         self.queued_events.clear();
 
+        self.mouse_interaction = user_interface.draw(
+            &mut ctx.iced_manager.renderer,
+            &Theme::Dark,
+            &iced_core::renderer::Style {
+                text_color: Color::WHITE,
+            },
+            mouse::Cursor::Available(cursor_position),
+        );
+
+        self.cache = Some(user_interface.into_cache());
+
         if messages.is_empty() {
-            self.mouse_interaction = user_interface.draw(
-                &mut ctx.iced_manager.renderer,
-                &Theme::Dark,
-                &iced_core::renderer::Style {
-                    text_color: Color::WHITE,
-                },
-                mouse::Cursor::Available(cursor_position),
-            );
-
-            self.cache = Some(user_interface.into_cache());
-
             None
         } else {
-            // When there are messages, we are forced to rebuild twice
-            // for now :^)
-            let temp_cache = user_interface.into_cache();
-
             let commands = messages
                 .into_iter()
                 .map(|message| self.program.update(ctx, message));
-
-            let commands = Task::batch(commands);
-
-            let mut user_interface =
-                build_user_interface(&mut self.program, temp_cache, bounds, ctx);
-
-            self.mouse_interaction = user_interface.draw(
-                &mut ctx.iced_manager.renderer,
-                &Theme::Dark,
-                &iced_core::renderer::Style {
-                    text_color: Color::WHITE,
-                },
-                mouse::Cursor::Available(cursor_position),
-            );
-
-            self.cache = Some(user_interface.into_cache());
-
-            Some(commands)
+            Some(Task::batch(commands))
         }
     }
-}
-
-fn build_user_interface<'a, P: Program>(
-    program: &'a mut P,
-    cache: user_interface::Cache,
-    size: Size,
-    ctx: &mut Context,
-) -> UserInterface<'a, P::Message, Theme, iced_wgpu::Renderer> {
-    let view = program.view(ctx);
-    UserInterface::build(view, size, cache, &mut ctx.iced_manager.renderer)
 }

@@ -74,6 +74,11 @@ pub fn to_quad(key: &piano_layout::Key, color: Color, origin: Point<f32>) -> Qua
 
     if let piano_layout::KeyKind::Neutral = key.kind() {
         size.width -= 1.0;
+        size.height -= 3.0;
+
+        if color.r != 1.0 || color.g != 1.0 || color.b != 1.0 {
+            size.height += 3.0;
+        }
     }
 
     let r = border_radius(size.width, key.kind().is_sharp());

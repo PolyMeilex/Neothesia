@@ -89,5 +89,27 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         in.quad_border_radius
     );
 
-    return vec4<f32>(in.quad_color.xyz, in.quad_color.w * alpha);
+    let uv = in.src_position.xy;
+
+    let shadowWidth = 0.2;
+    let slope = -0.1;
+
+    var x = uv.x;
+    let y = uv.y;
+    
+    x *= 1.0;
+    
+    // Calculate the slanted shadow gradient
+    let gradient = 1.0 - smoothstep(shadowWidth, 0.0, x + slope * y);
+
+    var color = mix(vec4(0.0, 0.0, 0.0, 0.6), vec4(0.0), gradient);
+    color = mix(in.quad_color.rgba, vec4(color.rgb, 1.0), color.a);
+
+    if in.quad_color.r == 1.0 && in.quad_color.g == 1.0 && in.quad_color.b == 1.0 {
+      return vec4<f32>(in.quad_color.rgb, in.quad_color.a * alpha);
+    } else if in.quad_color.r == 0.0 && in.quad_color.g == 0.0 && in.quad_color.b == 0.0 {
+      return vec4<f32>(in.quad_color.rgb, in.quad_color.a * alpha);
+    } else {
+      return vec4(color.rgb, color.a * alpha);
+    }
 }

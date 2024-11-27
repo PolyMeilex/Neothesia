@@ -182,32 +182,52 @@ impl Octave {
             };
         }
 
-        #[inline(always)]
-        fn sharp_note_id_to_x(note_id: u8, cde_width: f32, cde_mult: f32, fgab_mult: f32) -> f32 {
-            if matches!(note_id, CS | DS) {
-                let mult = cde_mult;
-                (note_id + 1) as f32 * mult - mult / 2.0
-            } else {
-                let mult = fgab_mult;
-                let id = note_id - E;
-                cde_width + id as f32 * mult - mult / 2.0
-            }
-        }
+        // Mathematically™ it is impossible to correctly position the keys, but doing it separately for cde and fgh
+        // is quite popular (probably because this minimizes the amount of key sizes that need to be manufactured),
+        // this gives decently accurate results, so let's do that.
+        //
+        // We split the keyboard into 12 layouting blocks
+        // (Blocks are not the same size as keys, one can think about those as piano hamers rather than keys)
+        // ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐
+        // │ │╳│ │╳│ │ │╳│ │╳│ │╳│ │
+        // │ │╳│ │╳│ │ │╳│ │╳│ │╳│ │
+        // │ │╳│ │╳│ │ │╳│ │╳│ │╳│ │
+        // │ │ │ │ │ │ │ │ │ │ │ │ │
+        // │f│f│f│f│f│g│g│g│g│g│g│g│
+        // ├─┴─┴─┴─┴─┼─┴─┴─┴─┴─┴─┴─┤
+        // │cde_width│  fgab_width │
+        // └─────────┴─────────────┘
+        // As we are solving cde and fgab separately there will be two block sizes f and g:
+        // f = cde_width / 5
+        // g = fgab_width / 7
+        //
+        // With this we can figure out the center of each black layouting block, and use it as reference
+        // point to layout all of the sharp keys
 
-        // Mathematically™ there is no correct way to position keys, but doing it separately for cde and fgh
-        // is quite popular, and gives decently accurate results, so let's do that
         let cde_width = sizing.neutral_width * 3.0;
         let fgab_width = sizing.neutral_width * 4.0;
-        let cde_mult = cde_width / 5.0;
-        let fgab_mult = fgab_width / 7.0;
+        let cde_block_width = cde_width / 5.0;
+        let fgab_block_width = fgab_width / 7.0;
+
+        #[inline(always)]
+        fn calc_block_pos(block_width: f32, nth: u8) -> f32 {
+            let left_x = nth as f32 * block_width;
+            // center of the block
+            left_x + block_width / 2.0
+        }
 
         for note_id in sharp_ids {
-            let x = sharp_note_id_to_x(note_id, cde_width, cde_mult, fgab_mult);
+            let block_center_x = if matches!(note_id, CS | DS) {
+                calc_block_pos(cde_block_width, note_id)
+            } else {
+                // Let's start from F as 0, and add cde separately
+                cde_width + calc_block_pos(fgab_block_width, note_id - F)
+            };
 
-            let w = sizing.sharp_width;
-            let hw = w / 2.0;
-
-            let x = x - hw;
+            // Now that we have the center of the block, we can place a key on top of it,
+            // by simply offeting x by half of the intended key width.
+            let hw = sizing.sharp_width / 2.0;
+            let x = block_center_x - hw;
 
             keys[note_id as usize] = Key {
                 id: 0,

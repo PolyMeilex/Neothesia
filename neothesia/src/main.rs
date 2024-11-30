@@ -42,8 +42,9 @@ pub enum NeothesiaEvent {
 
 struct Neothesia {
     context: Context,
-    surface: Surface,
     game_scene: Box<dyn Scene>,
+    // We are dropping surface last, because of some wgpu internal ref-counting errors that cause libwayland crasch
+    surface: Surface,
 
     #[cfg(debug_assertions)]
     fps_ticker: fps_ticker::Fps,

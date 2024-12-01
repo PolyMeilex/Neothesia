@@ -5,8 +5,9 @@ use iced_core::{
     text::Renderer as TextRenderer,
     widget::Text
 };
-use iced_wgpu::Renderer;
-use super::Element;
+// Removed unused imports
+// use iced_wgpu::Renderer;
+// use super::Element;
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 
@@ -72,8 +73,8 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                     Background::Color(Color::WHITE),
                 );
 
-                let note_id = key.note_id();
-                let text = Text::from(note_id);
+                let note_id = key.note_id().to_string();
+                let text = Text::from(note_id.as_str());
                 renderer.fill_text(
                   text,
                   iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
@@ -103,8 +104,8 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                     Background::Color(Color::BLACK),
                 );
 
-                let note_id = key.note_id();
-                let text = Text::from(note_id);
+                let note_id = key.note_id().to_string();
+                let text = Text::from(note_id.as_str());
                 renderer.fill_text(
                   text,
                   iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),

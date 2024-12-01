@@ -106,7 +106,6 @@ pub fn resize(
 
     self.notes_pipeline.prepare(device, queue);
 }
-
     pub fn update(&mut self, queue: &wgpu::Queue, time: f32) {
         self.notes_pipeline.update_time(queue, time);
     }

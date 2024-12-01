@@ -3,12 +3,15 @@ use iced_core::{
     renderer::Quad,
     Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
     text::Renderer as TextRenderer,
-    Text
+    Pixels
 };
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 
-impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRange {
+impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRange
+where
+    <R as iced_core::text::Renderer>::Font: std::default::Default,
+{
     fn size(&self) -> Size<Length> {
         Size {
             width: iced_core::Length::Fill,
@@ -74,12 +77,14 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 renderer.fill_text(
                     iced_core::text::Text {
                         content: note_id,
-                        bounds,
-                        size: iced_core::Size::new(bounds.width, bounds.height),
+                        bounds: iced_core::Size::new(bounds.width, bounds.height),
+                        size: iced_core::Pixels(16.0),
                         font: Default::default(),
                         horizontal_alignment: iced_core::alignment::Horizontal::Center,
                         vertical_alignment: iced_core::alignment::Vertical::Center,
-                        line_height: Default::default(),
+                        line_height: iced_core::Pixels(20.0),
+                        shaping: iced_core::text::Shaping::Basic,
+                        wrapping: iced_core::text::Wrapping::NoWrap,
                     },
                     iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
                     iced_core::Color::BLACK,
@@ -112,12 +117,14 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 renderer.fill_text(
                     iced_core::text::Text {
                         content: note_id,
-                        bounds,
-                        size: iced_core::Size::new(bounds.width, bounds.height),
+                        bounds: iced_core::Size::new(bounds.width, bounds.height),
+                        size: iced_core::Pixels(16.0),
                         font: Default::default(),
                         horizontal_alignment: iced_core::alignment::Horizontal::Center,
                         vertical_alignment: iced_core::alignment::Vertical::Center,
-                        line_height: Default::default(),
+                        line_height: iced_core::Pixels(20.0),
+                        shaping: iced_core::text::Shaping::Basic,
+                        wrapping: iced_core::text::Wrapping::NoWrap,
                     },
                     iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
                     iced_core::Color::WHITE,

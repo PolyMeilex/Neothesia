@@ -74,10 +74,16 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 renderer.fill_text(
                     iced_core::text::Text {
                         content: note_id,
-                        position: iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
-                        color: iced_core::Color::BLACK,
-                        ..Default::default()
-                    }
+                        bounds,
+                        size: iced_core::Size::new(bounds.width, bounds.height),
+                        font: Default::default(),
+                        horizontal_alignment: iced_core::alignment::Horizontal::Center,
+                        vertical_alignment: iced_core::alignment::Vertical::Center,
+                        line_height: Default::default(),
+                    },
+                    iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                    iced_core::Color::BLACK,
+                    bounds
                 );
             }
 
@@ -106,10 +112,16 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 renderer.fill_text(
                     iced_core::text::Text {
                         content: note_id,
-                        position: iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
-                        color: iced_core::Color::WHITE,
-                        ..Default::default()
-                    }
+                        bounds,
+                        size: iced_core::Size::new(bounds.width, bounds.height),
+                        font: Default::default(),
+                        horizontal_alignment: iced_core::alignment::Horizontal::Center,
+                        vertical_alignment: iced_core::alignment::Vertical::Center,
+                        line_height: Default::default(),
+                    },
+                    iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                    iced_core::Color::WHITE,
+                    bounds
                 );
             }
         });

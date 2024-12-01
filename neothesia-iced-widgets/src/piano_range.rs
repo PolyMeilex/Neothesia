@@ -2,8 +2,7 @@ use iced_core::{
     border::{Border, Radius},
     renderer::Quad,
     Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
-    text::Renderer as TextRenderer,
-    Pixels
+    text::Renderer as TextRenderer
 };
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
@@ -82,9 +81,9 @@ where
                         font: Default::default(),
                         horizontal_alignment: iced_core::alignment::Horizontal::Center,
                         vertical_alignment: iced_core::alignment::Vertical::Center,
-                        line_height: iced_core::Pixels(20.0),
+                        line_height: iced_core::text::LineHeight::Absolute(iced_core::Pixels(20.0)),
                         shaping: iced_core::text::Shaping::Basic,
-                        wrapping: iced_core::text::Wrapping::NoWrap,
+                        wrapping: iced_core::text::Wrapping::default(),
                     },
                     iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
                     iced_core::Color::BLACK,
@@ -122,9 +121,9 @@ where
                         font: Default::default(),
                         horizontal_alignment: iced_core::alignment::Horizontal::Center,
                         vertical_alignment: iced_core::alignment::Vertical::Center,
-                        line_height: iced_core::Pixels(20.0),
+                        line_height: iced_core::text::LineHeight::Absolute(iced_core::Pixels(20.0)),
                         shaping: iced_core::text::Shaping::Basic,
-                        wrapping: iced_core::text::Wrapping::NoWrap,
+                        wrapping: iced_core::text::Wrapping::default(),
                     },
                     iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
                     iced_core::Color::WHITE,

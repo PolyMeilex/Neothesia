@@ -84,13 +84,17 @@ pub fn resize(
             let note_name = note_names[note_index];
             let oct_number = (note.note as usize - range_start) / 12;
             let full_note_name = format!("{}{}", note_name, oct_number as i8 - 1);
+            let mut note_name_bytes = [0u8; 4];
+            for (i, &byte) in full_note_name.as_bytes().iter().enumerate() {
+                note_name_bytes[i] = byte;
+            }
 
             self.notes_pipeline.instances().push(NoteInstance {
                 position: [key.x(), note.start.as_secs_f32()],
                 size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a little gap bettwen successive notes
                 color: color.into_linear_rgb(),
                 radius: key.width() * 0.2,
-                note_name: full_note_name, // Add note name here
+                note_name: note_name_bytes, // Add note name here
             });
         } else {
             longer_than_range = true;
@@ -105,7 +109,7 @@ pub fn resize(
     }
 
     self.notes_pipeline.prepare(device, queue);
-}
+} 
     pub fn update(&mut self, queue: &wgpu::Queue, time: f32) {
         self.notes_pipeline.update_time(queue, time);
     }

@@ -1,8 +1,10 @@
 use iced_core::{
     border::{Border, Radius},
     renderer::Quad,
-    Background, Color, Length, Rectangle, Size, Theme, Vector, Widget, text::Text,
+    Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
 };
+use iced_graphics::text::Text;
+use iced_graphics::Renderer;
 
 use super::Element;
 
@@ -101,7 +103,8 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                     .color(Color::BLACK)
                     .size(16);
 
-                renderer.draw_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
+                // Draw the text on the key
+                renderer.fill_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
             }
 
             for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
@@ -131,7 +134,8 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                     .color(Color::WHITE)
                     .size(16);
 
-                renderer.draw_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
+                // Draw the text on the key
+                renderer.fill_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
             }
         });
     }

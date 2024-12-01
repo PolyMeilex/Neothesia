@@ -3,11 +3,8 @@ use iced_core::{
     renderer::Quad,
     Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
     text::Renderer as TextRenderer,
-    widget::Text
+    Text
 };
-// Removed unused imports
-// use iced_wgpu::Renderer;
-// use super::Element;
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 
@@ -74,12 +71,14 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 );
 
                 let note_id = key.note_id().to_string();
-                let text = Text::from(note_id.as_str());
+                let text = Text::from(note_id.clone());
                 renderer.fill_text(
-                  text,
-                  iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
-                  iced_core::Color::BLACK,
-                  bounds
+                    iced_core::text::Text {
+                        content: note_id,
+                        position: iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                        color: iced_core::Color::BLACK,
+                        ..Default::default()
+                    }
                 );
             }
 
@@ -105,12 +104,14 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 );
 
                 let note_id = key.note_id().to_string();
-                let text = Text::from(note_id.as_str());
+                let text = Text::from(note_id.clone());
                 renderer.fill_text(
-                  text,
-                  iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
-                  iced_core::Color::WHITE,
-                  bounds
+                    iced_core::text::Text {
+                        content: note_id,
+                        position: iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                        color: iced_core::Color::WHITE,
+                        ..Default::default()
+                    }
                 );
             }
         });

@@ -136,6 +136,9 @@ fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
 
         let size = w * 0.7;
 
+        let note_names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        let note_index = (key.id() + range_start) % 12;
+        let note_name = note_names[note_index];
         let oct_number = (key.id() + range_start) / 12;
 
         let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
@@ -143,7 +146,7 @@ fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
         buffer.set_wrap(font_system, glyphon::Wrap::None);
         buffer.set_text(
             font_system,
-            &format!("C{}", oct_number as i8 - 1),
+            &format!("{}{}", note_name, oct_number as i8 - 1),
             glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
@@ -165,7 +168,6 @@ fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
         });
     }
 }
-
     #[profiling::function]
     pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, text: &mut TextRenderer) {
         if self.cache.is_empty() {

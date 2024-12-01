@@ -2,15 +2,14 @@ use iced_core::{
     border::{Border, Radius},
     renderer::Quad,
     Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
+    text::Renderer as TextRenderer,
 };
-use iced_graphics::text::Text;
-use iced_graphics::Renderer;
-
+use iced_wgpu::Renderer;
 use super::Element;
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 
-impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
+impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRange {
     fn size(&self) -> Size<Length> {
         Size {
             width: iced_core::Length::Fill,
@@ -51,14 +50,7 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                 range,
             );
 
-            let mut neutral = layout
-                .keys
-                .iter()
-                .filter(|key| key.kind().is_neutral())
-                .enumerate()
-                .peekable();
-
-            while let Some((n, key)) = neutral.next() {
+            for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
                 let bounds = Rectangle {
                     x: key.x(),
                     y: 0.0,
@@ -70,25 +62,7 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                     Quad {
                         bounds,
                         border: Border {
-                            radius: if n == 0 {
-                                Radius::new(0.0)
-                                    .top_left(12.0)
-                                    .top_right(0.0)
-                                    .bottom_right(5.0)
-                                    .bottom_left(12.0)
-                            } else if neutral.peek().is_none() {
-                                Radius::new(0.0)
-                                    .top_left(0.0)
-                                    .top_right(12.0)
-                                    .bottom_right(12.0)
-                                    .bottom_left(5.0)
-                            } else {
-                                Radius::new(0.0)
-                                    .top_left(0.0)
-                                    .top_right(0.0)
-                                    .bottom_right(5.0)
-                                    .bottom_left(5.0)
-                            },
+                            radius: Radius::new(0.0),
                             width: 0.0,
                             color: Color::TRANSPARENT,
                         },
@@ -97,13 +71,8 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                     Background::Color(Color::WHITE),
                 );
 
-                // Add text for note names
-                let note_name = get_note_name(key.note_id()); // Function to get the note name
-                let text = Text::new(note_name)
-                    .color(Color::BLACK)
-                    .size(16);
-
-                // Draw the text on the key
+                let note_name = key.note_name();
+                let text = Text::from(note_name);
                 renderer.fill_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
             }
 
@@ -119,7 +88,7 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                     Quad {
                         bounds,
                         border: Border {
-                            radius: Radius::default(),
+                            radius: Radius::new(0.0),
                             width: 0.0,
                             color: Color::TRANSPARENT,
                         },
@@ -128,40 +97,10 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                     Background::Color(Color::BLACK),
                 );
 
-                // Add text for note names
-                let note_name = get_note_name(key.note_id()); // Function to get the note name
-                let text = Text::new(note_name)
-                    .color(Color::WHITE)
-                    .size(16);
-
-                // Draw the text on the key
+                let note_name = key.note_name();
+                let text = Text::from(note_name);
                 renderer.fill_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
             }
         });
-    }
-}
-
-impl<'a, M: 'a> From<PianoRange> for Element<'a, M> {
-    fn from(value: PianoRange) -> Self {
-        Self::new(value)
-    }
-}
-
-// Function to get the note name from the note ID
-fn get_note_name(note_id: u8) -> &'static str {
-    match note_id % 12 {
-        0 => "C",
-        1 => "C#",
-        2 => "D",
-        3 => "D#",
-        4 => "E",
-        5 => "F",
-        6 => "F#",
-        7 => "G",
-        8 => "G#",
-        9 => "A",
-        10 => "A#",
-        11 => "B",
-        _ => "",
     }
 }

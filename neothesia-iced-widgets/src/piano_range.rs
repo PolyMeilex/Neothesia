@@ -71,7 +71,6 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 );
 
                 let note_id = key.note_id().to_string();
-                let text = Text::from(note_id.clone());
                 renderer.fill_text(
                     iced_core::text::Text {
                         content: note_id,
@@ -104,7 +103,6 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                 );
 
                 let note_id = key.note_id().to_string();
-                let text = Text::from(note_id.clone());
                 renderer.fill_text(
                     iced_core::text::Text {
                         content: note_id,

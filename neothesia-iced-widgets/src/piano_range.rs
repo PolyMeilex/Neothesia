@@ -3,6 +3,7 @@ use iced_core::{
     renderer::Quad,
     Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
     text::Renderer as TextRenderer,
+    widget::Text
 };
 use iced_wgpu::Renderer;
 use super::Element;
@@ -71,9 +72,14 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                     Background::Color(Color::WHITE),
                 );
 
-                let note_name = key.note_name();
-                let text = Text::from(note_name);
-                renderer.fill_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
+                let note_id = key.note_id();
+                let text = Text::from(note_id);
+                renderer.fill_text(
+                  text,
+                  iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                  iced_core::Color::BLACK,
+                  bounds
+                );
             }
 
             for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
@@ -97,9 +103,14 @@ impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRang
                     Background::Color(Color::BLACK),
                 );
 
-                let note_name = key.note_name();
-                let text = Text::from(note_name);
-                renderer.fill_text(text, bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0));
+                let note_id = key.note_id();
+                let text = Text::from(note_id);
+                renderer.fill_text(
+                  text,
+                  iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                  iced_core::Color::WHITE,
+                  bounds
+                );
             }
         });
     }

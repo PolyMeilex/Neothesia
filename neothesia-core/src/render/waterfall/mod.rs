@@ -47,69 +47,59 @@ impl WaterfallRenderer {
         &mut self.notes_pipeline
     }
 
-pub fn resize(
-    &mut self,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    config: &Config,
-    layout: piano_layout::KeyboardLayout,
-) {
-    let range_start = layout.range.start() as usize;
-    let note_names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    pub fn resize(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        config: &Config,
+        layout: piano_layout::KeyboardLayout,
+    ) {
+        let range_start = layout.range.start() as usize;
 
-    self.notes_pipeline.clear();
+        self.notes_pipeline.clear();
 
-    let mut longer_than_range = false;
-    for note in self.notes.iter() {
-        if layout.range.contains(note.note) && note.channel != 9 {
-            let key = &layout.keys[note.note as usize - range_start];
+        let mut longer_than_range = false;
+        for note in self.notes.iter() {
+            if layout.range.contains(note.note) && note.channel != 9 {
+                let key = &layout.keys[note.note as usize - range_start];
 
-            let color_schema = config.color_schema();
+                let color_schema = config.color_schema();
 
-            let color = &color_schema[note.track_color_id % color_schema.len()];
-            let color = if key.kind().is_sharp() {
-                color.dark
+                let color = &color_schema[note.track_color_id % color_schema.len()];
+                let color = if key.kind().is_sharp() {
+                    color.dark
+                } else {
+                    color.base
+                };
+                let color: Color = color.into();
+
+                let h = if note.duration.as_secs_f32() >= 0.1 {
+                    note.duration.as_secs_f32()
+                } else {
+                    0.1
+                };
+
+                self.notes_pipeline.instances().push(NoteInstance {
+                    position: [key.x(), note.start.as_secs_f32()],
+                    size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a little gap bettwen successive notes
+                    color: color.into_linear_rgb(),
+                    radius: key.width() * 0.2,
+                });
             } else {
-                color.base
-            };
-            let color: Color = color.into();
-
-            let h = if note.duration.as_secs_f32() >= 0.1 {
-                note.duration.as_secs_f32()
-            } else {
-                0.1
-            };
-
-            let note_index = (note.note as usize - range_start) % 12;
-            let note_name = note_names[note_index];
-            let oct_number = (note.note as usize - range_start) / 12;
-            let full_note_name = format!("{}{}", note_name, oct_number as i8 - 1);
-            let mut note_name_bytes = [0u8; 4];
-            for (i, &byte) in full_note_name.as_bytes().iter().enumerate() {
-                note_name_bytes[i] = byte;
+                longer_than_range = true;
             }
-
-            self.notes_pipeline.instances().push(NoteInstance {
-                position: [key.x(), note.start.as_secs_f32()],
-                size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a little gap bettwen successive notes
-                color: color.into_linear_rgb(),
-                radius: key.width() * 0.2,
-                note_name: note_name_bytes, // Add note name here
-            });
-        } else {
-            longer_than_range = true;
         }
+
+        if longer_than_range {
+            log::warn!(
+                "Midi wider than giver range: {range_start}-{}",
+                layout.range.end()
+            );
+        }
+
+        self.notes_pipeline.prepare(device, queue);
     }
 
-    if longer_than_range {
-        log::warn!(
-            "Midi wider than given range: {range_start}-{}",
-            layout.range.end()
-        );
-    }
-
-    self.notes_pipeline.prepare(device, queue);
-} 
     pub fn update(&mut self, queue: &wgpu::Queue, time: f32) {
         self.notes_pipeline.update_time(queue, time);
     }

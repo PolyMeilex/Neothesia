@@ -5,6 +5,9 @@ use iced_core::{
     text::Renderer as TextRenderer,
     Text
 };
+// Removed unused imports
+// use iced_wgpu::Renderer;
+// use super::Element;
 
 pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
 

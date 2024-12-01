@@ -1,51 +1,135 @@
-warning: function `home` is never used
- --> neothesia-core/src/utils/resources.rs:3:4
-  |
-3 | fn home() -> Option<PathBuf> {
-  |    ^^^^
-  |
-  = note: `#[warn(dead_code)]` on by default
-warning: function `xdg_config` is never used
- --> neothesia-core/src/utils/resources.rs:9:4
-  |
-9 | fn xdg_config() -> Option<PathBuf> {
-  |    ^^^^^^^^^^
-   Compiling midi-io v0.1.0 (/Users/runner/work/Neothesia/Neothesia/midi-io)
-warning: `neothesia-core` (lib) generated 2 warnings
-error[E0277]: the trait bound `iced_core::Element<'_, _, _, _>: From<PianoRange>` is not satisfied
-   --> neothesia/src/scene/menu_scene/iced_menu/settings.rs:139:22
-    |
-139 |           let column = col![
-    |  ______________________^
-140 | |             output_group,
-141 | |             input_group,
-142 | |             note_range_group,
-143 | |             range,
-144 | |             guidelines_group,
-145 | |         ]
-    | |_________^ the trait `From<PianoRange>` is not implemented for `iced_core::Element<'_, _, _, _>`
-    |
-    = help: the following other types implement trait `From<T>`:
-              `iced_core::Element<'_, Link, Theme, Renderer>` implements `From<Rich<'_, Link, Theme, Renderer>>`
-              `iced_core::Element<'_, M, iced_core::Theme, iced_wgpu::Renderer>` implements `From<ActionRow<'_, M>>`
-              `iced_core::Element<'_, M, iced_core::Theme, iced_wgpu::Renderer>` implements `From<BarLayout<'_, M>>`
-              `iced_core::Element<'_, M, iced_core::Theme, iced_wgpu::Renderer>` implements `From<SegmentButton<M>>`
-              `iced_core::Element<'_, M, iced_core::Theme, iced_wgpu::Renderer>` implements `From<TrackCard<'_, M>>`
-              `iced_core::Element<'_, M, iced_core::Theme, iced_wgpu::Renderer>` implements `From<neothesia_iced_widgets::Layout<'_, M>>`
-              `iced_core::Element<'_, Message, Theme, Renderer>` implements `From<&str>`
-              `iced_core::Element<'_, Message, Theme, Renderer>` implements `From<Checkbox<'_, Message, Theme, Renderer>>`
-            and 30 others
-    = note: this error originates in the macro `col` (in Nightly builds, run with -Z macro-backtrace for more info)
-warning: variable does not need to be mutable
-   --> neothesia/src/main.rs:256:13
-    |
-256 |         let mut attributes = winit::window::Window::default_attributes()
-    |             ----^^^^^^^^^^
-    |             |
-    |             help: remove this `mut`
-    |
-    = note: `#[warn(unused_mut)]` on by default
-For more information about this error, try `rustc --explain E0277`.
-warning: `neothesia` (bin "neothesia") generated 1 warning
-error: could not compile `neothesia` (bin "neothesia") due to 1 previous error; 1 warning emitted
-Error: Process completed with exit code 101.
+use iced_core::{
+    border::{Border, Radius},
+    renderer::Quad,
+    Background, Color, Length, Rectangle, Size, Theme, Vector, Widget,
+    text::Renderer as TextRenderer
+};
+
+pub struct PianoRange(pub std::ops::RangeInclusive<u8>);
+
+impl<M, R: iced_core::Renderer + TextRenderer> Widget<M, Theme, R> for PianoRange
+where
+    <R as iced_core::text::Renderer>::Font: std::default::Default,
+{
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: iced_core::Length::Fill,
+            height: iced_core::Length::Fixed(100.0),
+        }
+    }
+
+    fn layout(
+        &self,
+        _tree: &mut iced_core::widget::Tree,
+        _renderer: &R,
+        limits: &iced_core::layout::Limits,
+    ) -> iced_core::layout::Node {
+        let size = Widget::<M, Theme, R>::size(self);
+        iced_core::layout::atomic(limits, size.width, size.height)
+    }
+
+    fn draw(
+        &self,
+        _tree: &iced_core::widget::Tree,
+        renderer: &mut R,
+        _theme: &Theme,
+        _style: &iced_core::renderer::Style,
+        layout: iced_core::Layout<'_>,
+        _cursor: iced_core::mouse::Cursor,
+        _viewport: &iced_core::Rectangle,
+    ) {
+        let bounds = layout.bounds();
+        renderer.with_translation(Vector::new(bounds.x, bounds.y), |renderer| {
+            let range = piano_layout::KeyboardRange::new(self.0.clone());
+
+            let white_count = range.white_count();
+            let neutral_width = bounds.width / white_count as f32;
+            let neutral_height = bounds.height;
+
+            let layout = piano_layout::KeyboardLayout::from_range(
+                piano_layout::Sizing::new(neutral_width, neutral_height),
+                range,
+            );
+
+            for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
+                let bounds = Rectangle {
+                    x: key.x(),
+                    y: 0.0,
+                    width: key.width(),
+                    height: key.height(),
+                };
+
+                renderer.fill_quad(
+                    Quad {
+                        bounds,
+                        border: Border {
+                            radius: Radius::new(0.0),
+                            width: 0.0,
+                            color: Color::TRANSPARENT,
+                        },
+                        shadow: Default::default(),
+                    },
+                    Background::Color(Color::WHITE),
+                );
+
+                let note_id = key.note_id().to_string();
+                renderer.fill_text(
+                    iced_core::text::Text {
+                        content: note_id,
+                        bounds: iced_core::Size::new(bounds.width, bounds.height),
+                        size: iced_core::Pixels(16.0),
+                        font: Default::default(),
+                        horizontal_alignment: iced_core::alignment::Horizontal::Center,
+                        vertical_alignment: iced_core::alignment::Vertical::Center,
+                        line_height: iced_core::text::LineHeight::Absolute(iced_core::Pixels(20.0)),
+                        shaping: iced_core::text::Shaping::Basic,
+                        wrapping: iced_core::text::Wrapping::default(),
+                    },
+                    iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                    iced_core::Color::BLACK,
+                    bounds
+                );
+            }
+
+            for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
+                let bounds = Rectangle {
+                    x: key.x(),
+                    y: 0.0,
+                    width: key.width(),
+                    height: key.height(),
+                };
+
+                renderer.fill_quad(
+                    Quad {
+                        bounds,
+                        border: Border {
+                            radius: Radius::new(0.0),
+                            width: 0.0,
+                            color: Color::TRANSPARENT,
+                        },
+                        shadow: Default::default(),
+                    },
+                    Background::Color(Color::BLACK),
+                );
+
+                let note_id = key.note_id().to_string();
+                renderer.fill_text(
+                    iced_core::text::Text {
+                        content: note_id,
+                        bounds: iced_core::Size::new(bounds.width, bounds.height),
+                        size: iced_core::Pixels(16.0),
+                        font: Default::default(),
+                        horizontal_alignment: iced_core::alignment::Horizontal::Center,
+                        vertical_alignment: iced_core::alignment::Vertical::Center,
+                        line_height: iced_core::text::LineHeight::Absolute(iced_core::Pixels(20.0)),
+                        shaping: iced_core::text::Shaping::Basic,
+                        wrapping: iced_core::text::Wrapping::default(),
+                    },
+                    iced_core::Point::new(bounds.x + (bounds.width / 2.0), bounds.y + (bounds.height / 2.0)),
+                    iced_core::Color::WHITE,
+                    bounds
+                );
+            }
+        });
+    }
+}

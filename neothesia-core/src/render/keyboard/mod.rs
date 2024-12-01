@@ -110,13 +110,6 @@ impl KeyboardRenderer {
 
             instances.push(key_state::to_quad(key, color, self.pos));
         }
-
-        for key in self.layout.keys.iter().filter(|key| key.kind().is_sharp()) {
-            let id = key.id();
-            let color = self.key_states[id].color();
-
-            instances.push(key_state::to_quad(key, color, self.pos));
-        }
     }
 
     #[profiling::function]

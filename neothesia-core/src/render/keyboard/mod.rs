@@ -124,47 +124,47 @@ impl KeyboardRenderer {
         }
     }
 
-    #[profiling::function]
-    fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
-        let range_start = self.layout.range.start() as usize;
-        for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
-            let x = self.pos.x + key.x();
-            let y = self.pos.y;
+#[profiling::function]
+fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
+    let range_start = self.layout.range.start() as usize;
+    for key in self.layout.keys.iter() {
+        let x = self.pos.x + key.x();
+        let y = self.pos.y;
 
-            let w = key.width();
-            let h = key.height();
+        let w = key.width();
+        let h = key.height();
 
-            let size = w * 0.7;
+        let size = w * 0.7;
 
-            let oct_number = (key.id() + range_start) / 12;
+        let oct_number = (key.id() + range_start) / 12;
 
-            let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
-            buffer.set_size(font_system, Some(w), Some(h));
-            buffer.set_wrap(font_system, glyphon::Wrap::None);
-            buffer.set_text(
-                font_system,
-                &format!("C{}", oct_number as i8 - 1),
-                glyphon::Attrs::new().family(glyphon::Family::SansSerif),
-                glyphon::Shaping::Basic,
-            );
-            buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));
-            buffer.shape_until_scroll(font_system, false);
+        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
+        buffer.set_size(font_system, Some(w), Some(h));
+        buffer.set_wrap(font_system, glyphon::Wrap::None);
+        buffer.set_text(
+            font_system,
+            &format!("C{}", oct_number as i8 - 1),
+            glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+            glyphon::Shaping::Basic,
+        );
+        buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));
+        buffer.shape_until_scroll(font_system, false);
 
-            self.text_cache.push(super::text::TextArea {
-                buffer,
-                left: x,
-                top: y + h - size * 1.2,
-                scale: 1.0,
-                bounds: glyphon::TextBounds {
-                    left: x.round() as i32,
-                    top: y.round() as i32,
-                    right: x.round() as i32 + w.round() as i32,
-                    bottom: y.round() as i32 + h.round() as i32,
-                },
-                default_color: glyphon::Color::rgb(153, 153, 153),
-            });
-        }
+        self.text_cache.push(super::text::TextArea {
+            buffer,
+            left: x,
+            top: y + h - size * 1.2,
+            scale: 1.0,
+            bounds: glyphon::TextBounds {
+                left: x.round() as i32,
+                top: y.round() as i32,
+                right: x.round() as i32 + w.round() as i32,
+                bottom: y.round() as i32 + h.round() as i32,
+            },
+            default_color: glyphon::Color::rgb(153, 153, 153),
+        });
     }
+}
 
     #[profiling::function]
     pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, text: &mut TextRenderer) {

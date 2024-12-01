@@ -104,12 +104,7 @@ impl KeyboardRenderer {
             ..Default::default()
         });
 
-        for key in self
-            .layout
-            .keys
-            .iter()
-            .filter(|key| key.kind().is_neutral())
-        {
+        for key in self.layout.keys.iter() {
             let id = key.id();
             let color = self.key_states[id].color();
 

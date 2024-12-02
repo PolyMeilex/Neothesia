@@ -1,8 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    render::{QuadInstance, QuadPipeline},
-    render::text::{TextInstance, TextPipeline}, // Fix: use render::text instead of text
+    render::{QuadInstance, QuadPipeline, TextInstance, TextPipeline}, // Move text types to same level as Quad types
     utils::Point,
 };
 

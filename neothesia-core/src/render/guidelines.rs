@@ -1,7 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    render::{QuadInstance, QuadPipeline, TextInstance},
+    render::{QuadInstance, QuadPipeline},
+    render::text::{TextInstance, TextPipeline}, // Move to text module
     utils::Point,
 };
 
@@ -82,7 +83,7 @@ impl GuidelineRenderer {
             // Add text instance for note label
             self.text_cache.push(TextInstance {
                 position: [x, y],
-                text: key.note_name().to_string(),
+                text: key.note_id().to_string(),
                 color: [1.0, 1.0, 1.0, 1.0],
                 scale: 1.0,
             });
@@ -106,7 +107,7 @@ impl GuidelineRenderer {
                 position: [x, y],                    // Position of the guideline
                 size: [2.0, self.layout.height()],   // Thin width, full keyboard height
                 color: [0.2, 0.2, 0.2, 0.5],        // Semi-transparent dark gray
-                border_radius: 0.0,                  // Sharp corners for guidelines
+                border_radius: [0.0, 0.0, 0.0, 0.0], // Fix: Use [f32; 4] instead of f32
             });
 
             // Add text label
@@ -177,3 +178,18 @@ impl GuidelineRenderer {
         }
     }
 }
+
+impl KeyboardLayout {
+    pub fn white_keys(&self) -> impl Iterator<Item = &Key> {
+        self.keys.iter().filter(|k| !k.is_black())
+    }
+
+    pub fn black_keys(&self) -> impl Iterator<Item = &Key> {
+        self.keys.iter().filter(|k| k.is_black())
+    }
+
+    pub fn height(&self) -> f32 {
+        self.height
+    }
+}
+

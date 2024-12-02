@@ -81,10 +81,13 @@ impl WaterfallRenderer {
 
                 self.notes_pipeline.instances().push(NoteInstance {
                     position: [key.x(), note.start.as_secs_f32()],
-                    size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a little gap bettwen successive notes
+                    size: [key.width() - 1.0, h - 0.01], // h - 0.01 to make a little gap between successive notes
                     color: color.into_linear_rgb(),
                     radius: key.width() * 0.2,
                 });
+                // Add note label
+                let label_position = [key.x(), note.start.as_secs_f32()];
+                self.notes_pipeline.add_label(&note.to_string(), label_position);
             } else {
                 longer_than_range = true;
             }

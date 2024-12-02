@@ -1,7 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    render::{QuadInstance, QuadPipeline, text::TextInstance, text::TextPipeline},
+    render::{QuadInstance, QuadPipeline},
+    text::{TextInstance, TextPipeline}, // Fixed: moved to root text module
     utils::Point,
 };
 

@@ -1,7 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    render::{QuadInstance, QuadPipeline, TextInstance, TextPipeline},
+    render::{QuadInstance, QuadPipeline},
+    render::text::{Instance as TextInstance, Pipeline as TextPipeline},
     utils::Point,
 };
 
@@ -110,7 +111,7 @@ impl GuidelineRenderer {
 
             self.text_cache.push(TextInstance {
                 position: [x + 2.0, y + 2.0],
-                text: Self::get_note_name(key.index()).to_string(),
+                text: Self::get_note_name(key.note_id()).to_string(),
                 color: [1.0, 1.0, 1.0, 1.0],
                 scale: 0.8,
             });

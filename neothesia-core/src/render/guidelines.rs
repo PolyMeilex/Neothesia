@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     render::{QuadInstance, QuadPipeline},
-    text::{TextInstance, TextPipeline}, // Fixed: moved to root text module
+    render::text::{TextInstance, TextPipeline}, // Fix: use render::text instead of text
     utils::Point,
 };
 

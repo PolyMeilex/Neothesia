@@ -89,6 +89,36 @@ impl GuidelineRenderer {
         }
     }
 
+    // Helper method to convert key index to note name
+    fn get_note_name(key_index: usize) -> &'static str {
+        const NOTE_NAMES: [&str; 12] = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        NOTE_NAMES[key_index % 12]
+    }
+
+    #[profiling::function]
+    fn update_vertical_guidelines(&mut self, quads: &mut QuadPipeline, layer: usize) {
+        for key in self.layout.white_keys().chain(self.layout.black_keys()) {
+            let x = self.pos.x + key.x();
+            let y = self.pos.y;
+
+            // Add the quad instance
+            quads.instances(layer).push(QuadInstance {
+                position: [x, y],                    // Position of the guideline
+                size: [2.0, self.layout.height()],   // Thin width, full keyboard height
+                color: [0.2, 0.2, 0.2, 0.5],        // Semi-transparent dark gray
+                border_radius: 0.0,                  // Sharp corners for guidelines
+            });
+
+            // Add text label
+            self.text_cache.push(TextInstance {
+                position: [x + 2.0, y + 2.0], // Slight offset from quad corner
+                text: Self::get_note_name(key.index()).to_string(),
+                color: [1.0, 1.0, 1.0, 1.0], // White text
+                scale: 0.8,
+            });
+        }
+    }
+
     #[profiling::function]
     fn update_horizontal_guidelines(
         &mut self,

@@ -4,6 +4,7 @@ use crate::{
     render::{QuadInstance, QuadPipeline},
     render::text::{TextInstance, TextPipeline}, // Move to text module
     utils::Point,
+    piano_layout::{Key, KeyboardLayout},
 };
 
 pub struct GuidelineRenderer {
@@ -51,7 +52,7 @@ impl GuidelineRenderer {
 
     /// Reupload instances to GPU
     fn reupload(&mut self) {
-        if !self.vertical_guidelines {
+        if (!self.vertical_guidelines) {
             return;
         }
 
@@ -176,20 +177,6 @@ impl GuidelineRenderer {
         for text in self.text_cache.iter() {
             texts.instances(layer).push(*text);
         }
-    }
-}
-
-impl KeyboardLayout {
-    pub fn white_keys(&self) -> impl Iterator<Item = &Key> {
-        self.keys.iter().filter(|k| !k.is_black())
-    }
-
-    pub fn black_keys(&self) -> impl Iterator<Item = &Key> {
-        self.keys.iter().filter(|k| k.is_black())
-    }
-
-    pub fn height(&self) -> f32 {
-        self.height
     }
 }
 

@@ -13,6 +13,8 @@ pub struct WaterfallPipeline {
 
     instances: Instances<NoteInstance>,
     time_uniform: Uniform<TimeUniform>,
+
+    text_renderer: TextRenderer,    
 }
 
 impl<'a> WaterfallPipeline {
@@ -66,6 +68,8 @@ impl<'a> WaterfallPipeline {
 
         let instances = Instances::new(&gpu.device, notes_count);
 
+        let text_renderer = TextRenderer::new(&gpu.device, &gpu.queue);
+
         Self {
             render_pipeline,
             quad,
@@ -91,6 +95,9 @@ impl<'a> WaterfallPipeline {
         render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..self.instances.len());
     }
 
+    pub fn add_label(&mut self, text: &str, position: [f32; 2]) {
+        self.text_renderer.add_text(text, position);
+    
     pub fn clear(&mut self) {
         self.instances.data.clear();
     }

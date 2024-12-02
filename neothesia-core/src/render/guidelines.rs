@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    render::{QuadInstance, QuadPipeline},
+    render::{QuadInstance, QuadPipeline, TextInstance},
     utils::Point,
 };
 
@@ -13,6 +13,7 @@ pub struct GuidelineRenderer {
     horizontal_guidelines: bool,
 
     cache: Vec<QuadInstance>,
+    text_cache: Vec<TextInstance>,
     measures: Arc<[Duration]>,
 }
 
@@ -30,6 +31,7 @@ impl GuidelineRenderer {
             vertical_guidelines,
             horizontal_guidelines,
             cache: Vec::new(),
+            text_cache: Vec::new(),
             measures,
         }
     }
@@ -37,11 +39,13 @@ impl GuidelineRenderer {
     pub fn set_pos(&mut self, pos: Point<f32>) {
         self.pos = pos;
         self.cache.clear();
+        self.text_cache.clear();
     }
 
     pub fn set_layout(&mut self, layout: piano_layout::KeyboardLayout) {
         self.layout = layout;
         self.cache.clear();
+        self.text_cache.clear();
     }
 
     /// Reupload instances to GPU
@@ -73,6 +77,14 @@ impl GuidelineRenderer {
                 size: [w, h],
                 color,
                 border_radius: [0.0, 0.0, 0.0, 0.0],
+            });
+
+            // Add text instance for note label
+            self.text_cache.push(TextInstance {
+                position: [x, y],
+                text: key.note_name().to_string(),
+                color: [1.0, 1.0, 1.0, 1.0],
+                scale: 1.0,
             });
         }
     }
@@ -113,6 +125,7 @@ impl GuidelineRenderer {
     pub fn update(
         &mut self,
         quads: &mut QuadPipeline,
+        texts: &mut TextPipeline,
         layer: usize,
         animation_speed: f32,
         time: f32,
@@ -127,6 +140,10 @@ impl GuidelineRenderer {
 
         for quad in self.cache.iter() {
             quads.instances(layer).push(*quad);
+        }
+
+        for text in self.text_cache.iter() {
+            texts.instances(layer).push(*text);
         }
     }
 }

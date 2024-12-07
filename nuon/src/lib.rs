@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
 };
 
-pub use tree::Tree;
+pub use tree::{Tree, TreeState};
 pub use widget::*;
 
 pub use euclid;
@@ -100,12 +100,9 @@ pub struct ParentLayout {
 
 pub trait WidgetAny<MSG> {
     fn state_type_id(&self) -> TypeId;
-    fn state(&self) -> Box<dyn Any>;
+    fn state(&self) -> TreeState;
 
     fn children(&self) -> &[Element<MSG>];
-    fn children_tree(&self) -> Vec<Tree>;
-
-    fn diff(&self, tree: &mut Tree);
 
     fn layout(&self, tree: &mut Tree, avalilable: &ParentLayout, ctx: &LayoutCtx) -> Node;
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
@@ -117,28 +114,20 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
         TypeId::of::<W::State>()
     }
 
-    fn state(&self) -> Box<dyn Any> {
-        Widget::state(self)
+    fn state(&self) -> TreeState {
+        TreeState::new(Widget::state(self))
     }
 
     fn children(&self) -> &[Element<MSG>] {
         Widget::children(self)
     }
 
-    fn children_tree(&self) -> Vec<Tree> {
-        Widget::children_tree(self)
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        Widget::diff(self, tree)
-    }
-
     fn layout(&self, tree: &mut Tree, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
-        Widget::layout(self, tree.remap_mut(), parent, ctx)
+        Widget::layout(self, tree.cast_mut(), parent, ctx)
     }
 
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx) {
-        Widget::render(self, renderer, layout, tree.remap_ref(), ctx)
+        Widget::render(self, renderer, layout, tree.cast_ref(), ctx)
     }
 
     fn update(
@@ -148,30 +137,19 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
         tree: &mut Tree,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        Widget::update(self, event, layout, tree.remap_mut(), ctx)
+        Widget::update(self, event, layout, tree.cast_mut(), ctx)
     }
 }
 
 pub trait Widget<MSG> {
     type State: Any + Default;
 
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(Self::State::default())
+    fn state(&self) -> Self::State {
+        Self::State::default()
     }
 
     fn children(&self) -> &[Element<MSG>] {
         &[]
-    }
-
-    fn children_tree(&self) -> Vec<Tree> {
-        self.children()
-            .iter()
-            .map(|w| Tree::new(w.as_widget()))
-            .collect()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(self.children());
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {

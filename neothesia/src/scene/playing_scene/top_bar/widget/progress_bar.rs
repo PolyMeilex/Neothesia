@@ -73,7 +73,7 @@ impl<MSG: Clone> Widget<MSG> for ProgressBar<MSG> {
         tree: &Tree<Self::State>,
         ctx: &RenderCtx,
     ) {
-        let _state = tree.state();
+        let _state = tree.state.get();
         let player = ctx.globals.get::<MidiPlayer>();
 
         let progress_w = layout.w * player.percentage();
@@ -107,7 +107,7 @@ impl<MSG: Clone> Widget<MSG> for ProgressBar<MSG> {
         tree: &mut Tree<Self::State>,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        let state = tree.state_mut();
+        let state = tree.state.get_mut();
 
         match event {
             Event::CursorMoved { position } => {

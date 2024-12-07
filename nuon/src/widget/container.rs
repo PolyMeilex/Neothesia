@@ -110,7 +110,7 @@ impl<MSG> Widget<MSG> for Container<MSG> {
         if let Some(bg) = self.background {
             renderer.quad(layout.x, layout.y, layout.w, layout.h, bg);
         }
-        self.render_default(renderer, layout, tree, ctx);
+        crate::default_render(self, renderer, layout, tree, ctx);
     }
 }
 

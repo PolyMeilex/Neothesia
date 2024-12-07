@@ -52,42 +52,52 @@ impl<MSG> Widget<MSG> for Row<MSG> {
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
-        let mut children = Vec::with_capacity(self.children.len());
+        row_layout(self, tree, parent, ctx, self.gap)
+    }
+}
 
-        let mut item_layout = ParentLayout {
-            x: parent.x,
-            y: parent.y,
-            w: parent.w,
-            h: parent.h,
-        };
+pub fn row_layout<MSG, W: Widget<MSG> + ?Sized>(
+    this: &W,
+    tree: &mut Tree<W::State>,
+    parent: &ParentLayout,
+    ctx: &LayoutCtx,
+    gap: f32,
+) -> Node {
+    let mut children = Vec::with_capacity(this.children().len());
 
-        let mut total_width = 0.0;
+    let mut item_layout = ParentLayout {
+        x: parent.x,
+        y: parent.y,
+        w: parent.w,
+        h: parent.h,
+    };
 
-        for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
-            let node = ch.as_widget().layout(tree, &item_layout, ctx);
+    let mut total_width = 0.0;
 
-            item_layout.x += node.w;
-            item_layout.w -= node.w;
+    for (ch, tree) in this.children().iter().zip(tree.children.iter_mut()) {
+        let node = ch.as_widget().layout(tree, &item_layout, ctx);
 
-            item_layout.x += self.gap;
-            item_layout.w -= self.gap;
+        item_layout.x += node.w;
+        item_layout.w -= node.w;
 
-            total_width += node.w;
-            total_width += self.gap;
+        item_layout.x += gap;
+        item_layout.w -= gap;
 
-            children.push(node);
-        }
+        total_width += node.w;
+        total_width += gap;
 
-        total_width -= self.gap;
-        total_width = total_width.max(0.0);
+        children.push(node);
+    }
 
-        Node {
-            x: parent.x,
-            y: parent.y,
-            w: total_width,
-            h: parent.h,
-            children,
-        }
+    total_width -= gap;
+    total_width = total_width.max(0.0);
+
+    Node {
+        x: parent.x,
+        y: parent.y,
+        w: total_width,
+        h: parent.h,
+        children,
     }
 }
 

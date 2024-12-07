@@ -52,42 +52,52 @@ impl<MSG> Widget<MSG> for Column<MSG> {
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
-        let mut children = Vec::with_capacity(self.children.len());
+        column_layout(self, tree, parent, ctx, self.gap)
+    }
+}
 
-        let mut item_layout = ParentLayout {
-            x: parent.x,
-            y: parent.y,
-            w: parent.w,
-            h: parent.h,
-        };
+pub fn column_layout<MSG, W: Widget<MSG> + ?Sized>(
+    this: &W,
+    tree: &mut Tree<W::State>,
+    parent: &ParentLayout,
+    ctx: &LayoutCtx,
+    gap: f32,
+) -> Node {
+    let mut children = Vec::with_capacity(this.children().len());
 
-        let mut total_height = 0.0;
+    let mut item_layout = ParentLayout {
+        x: parent.x,
+        y: parent.y,
+        w: parent.w,
+        h: parent.h,
+    };
 
-        for (ch, tree) in self.children.iter().zip(tree.children.iter_mut()) {
-            let node = ch.as_widget().layout(tree, &item_layout, ctx);
+    let mut total_height = 0.0;
 
-            item_layout.y += node.h;
-            item_layout.h -= node.h;
+    for (ch, tree) in this.children().iter().zip(tree.children.iter_mut()) {
+        let node = ch.as_widget().layout(tree, &item_layout, ctx);
 
-            item_layout.y += self.gap;
-            item_layout.h -= self.gap;
+        item_layout.y += node.h;
+        item_layout.h -= node.h;
 
-            total_height += node.h;
-            total_height += self.gap;
+        item_layout.y += gap;
+        item_layout.h -= gap;
 
-            children.push(node);
-        }
+        total_height += node.h;
+        total_height += gap;
 
-        total_height -= self.gap;
-        total_height = total_height.max(0.0);
+        children.push(node);
+    }
 
-        Node {
-            x: parent.x,
-            y: parent.y,
-            w: parent.w,
-            h: total_height,
-            children,
-        }
+    total_height -= gap;
+    total_height = total_height.max(0.0);
+
+    Node {
+        x: parent.x,
+        y: parent.y,
+        w: parent.w,
+        h: total_height,
+        children,
     }
 }
 

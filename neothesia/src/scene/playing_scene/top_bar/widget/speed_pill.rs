@@ -117,7 +117,7 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         tree: &Tree<Self::State>,
         ctx: &RenderCtx,
     ) {
-        self.render_default(renderer, layout, tree, ctx);
+        nuon::default_render(self, renderer, layout, tree, ctx);
 
         let pad = 2.0;
 

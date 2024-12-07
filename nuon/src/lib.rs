@@ -190,37 +190,7 @@ pub trait Widget<MSG> {
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
-        let widgets = self.children();
-        let mut children = Vec::with_capacity(widgets.len());
-
-        for (ch, tree) in widgets.iter().zip(tree.children.iter_mut()) {
-            children.push(ch.as_widget().layout(tree, parent, ctx));
-        }
-
-        Node {
-            x: parent.x,
-            y: parent.y,
-            w: parent.w,
-            h: parent.h,
-            children,
-        }
-    }
-
-    fn render_default(
-        &self,
-        renderer: &mut dyn Renderer,
-        layout: &Node,
-        tree: &Tree<Self::State>,
-        ctx: &RenderCtx,
-    ) {
-        for ((ch, layout), tree) in self
-            .children()
-            .iter()
-            .zip(layout.children.iter())
-            .zip(tree.children.iter())
-        {
-            ch.as_widget().render(renderer, layout, tree, ctx);
-        }
+        widget::stack::stack_layout(self, tree, parent, ctx)
     }
 
     fn render(
@@ -230,29 +200,7 @@ pub trait Widget<MSG> {
         tree: &Tree<Self::State>,
         ctx: &RenderCtx,
     ) {
-        self.render_default(renderer, layout, tree, ctx)
-    }
-
-    fn update_default(
-        &mut self,
-        event: input::Event,
-        layout: &Node,
-        tree: &mut Tree<Self::State>,
-        ctx: &mut UpdateCtx<MSG>,
-    ) {
-        for ((ch, layout), tree) in self
-            .children_mut()
-            .iter_mut()
-            .zip(layout.children.iter())
-            .zip(tree.children.iter_mut())
-            .rev()
-        {
-            ch.as_widget_mut().update(event.clone(), layout, tree, ctx);
-
-            if ctx.is_event_captured() {
-                return;
-            }
-        }
+        default_render(self, renderer, layout, tree, ctx)
     }
 
     fn update(
@@ -262,7 +210,50 @@ pub trait Widget<MSG> {
         tree: &mut Tree<Self::State>,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        self.update_default(event, layout, tree, ctx)
+        default_update(self, event, layout, tree, ctx)
+    }
+}
+
+pub use widget::column::column_layout;
+pub use widget::row::row_layout;
+pub use widget::stack::stack_layout;
+
+pub fn default_render<MSG, W: Widget<MSG> + ?Sized>(
+    this: &W,
+    renderer: &mut dyn Renderer,
+    layout: &Node,
+    tree: &Tree<W::State>,
+    ctx: &RenderCtx,
+) {
+    for ((ch, layout), tree) in this
+        .children()
+        .iter()
+        .zip(layout.children.iter())
+        .zip(tree.children.iter())
+    {
+        ch.as_widget().render(renderer, layout, tree, ctx);
+    }
+}
+
+pub fn default_update<MSG, W: Widget<MSG> + ?Sized>(
+    this: &mut W,
+    event: input::Event,
+    layout: &Node,
+    tree: &mut Tree<W::State>,
+    ctx: &mut UpdateCtx<MSG>,
+) {
+    for ((ch, layout), tree) in this
+        .children_mut()
+        .iter_mut()
+        .zip(layout.children.iter())
+        .zip(tree.children.iter_mut())
+        .rev()
+    {
+        ch.as_widget_mut().update(event.clone(), layout, tree, ctx);
+
+        if ctx.is_event_captured() {
+            return;
+        }
     }
 }
 

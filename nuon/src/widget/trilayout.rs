@@ -54,10 +54,6 @@ impl<MSG> Widget<MSG> for TriLayout<MSG> {
         &self.children
     }
 
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.children
-    }
-
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let start = self.children[0].as_widget().layout(
             &mut tree.children[0],

@@ -154,7 +154,7 @@ impl<MSG> Widget<MSG> for Looper<MSG> {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: Event,
         layout: &Node,
         tree: &mut Tree<Self::State>,

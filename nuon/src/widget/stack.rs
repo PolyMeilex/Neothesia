@@ -40,10 +40,6 @@ impl<MSG> Widget<MSG> for Stack<MSG> {
         &self.children
     }
 
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.children
-    }
-
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         stack_layout(self, tree, parent, ctx)
     }

@@ -75,10 +75,6 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         &self.children
     }
 
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.children
-    }
-
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let minus = self.children[0].as_widget().layout(
             tree.children[0].remap_mut(),

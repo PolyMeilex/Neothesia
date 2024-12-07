@@ -103,20 +103,13 @@ pub trait WidgetAny<MSG> {
     fn state(&self) -> Box<dyn Any>;
 
     fn children(&self) -> &[Element<MSG>];
-    fn children_mut(&mut self) -> &mut [Element<MSG>];
     fn children_tree(&self) -> Vec<Tree>;
 
     fn diff(&self, tree: &mut Tree);
 
     fn layout(&self, tree: &mut Tree, avalilable: &ParentLayout, ctx: &LayoutCtx) -> Node;
     fn render(&self, renderer: &mut dyn Renderer, layout: &Node, tree: &Tree, ctx: &RenderCtx);
-    fn update(
-        &mut self,
-        event: input::Event,
-        layout: &Node,
-        tree: &mut Tree,
-        ctx: &mut UpdateCtx<MSG>,
-    );
+    fn update(&self, event: input::Event, layout: &Node, tree: &mut Tree, ctx: &mut UpdateCtx<MSG>);
 }
 
 impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
@@ -130,10 +123,6 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
 
     fn children(&self) -> &[Element<MSG>] {
         Widget::children(self)
-    }
-
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        Widget::children_mut(self)
     }
 
     fn children_tree(&self) -> Vec<Tree> {
@@ -153,7 +142,7 @@ impl<MSG, W: Widget<MSG>> WidgetAny<MSG> for W {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: input::Event,
         layout: &Node,
         tree: &mut Tree,
@@ -172,10 +161,6 @@ pub trait Widget<MSG> {
 
     fn children(&self) -> &[Element<MSG>] {
         &[]
-    }
-
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut []
     }
 
     fn children_tree(&self) -> Vec<Tree> {
@@ -204,7 +189,7 @@ pub trait Widget<MSG> {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: input::Event,
         layout: &Node,
         tree: &mut Tree<Self::State>,
@@ -236,20 +221,20 @@ pub fn default_render<MSG, W: Widget<MSG> + ?Sized>(
 }
 
 pub fn default_update<MSG, W: Widget<MSG> + ?Sized>(
-    this: &mut W,
+    this: &W,
     event: input::Event,
     layout: &Node,
     tree: &mut Tree<W::State>,
     ctx: &mut UpdateCtx<MSG>,
 ) {
     for ((ch, layout), tree) in this
-        .children_mut()
-        .iter_mut()
+        .children()
+        .iter()
         .zip(layout.children.iter())
         .zip(tree.children.iter_mut())
         .rev()
     {
-        ch.as_widget_mut().update(event.clone(), layout, tree, ctx);
+        ch.as_widget().update(event.clone(), layout, tree, ctx);
 
         if ctx.is_event_captured() {
             return;

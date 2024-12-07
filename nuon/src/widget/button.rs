@@ -140,7 +140,7 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: Event,
         layout: &Node,
         tree: &mut Tree<Self::State>,

@@ -47,10 +47,6 @@ impl<MSG> Widget<MSG> for Column<MSG> {
         &self.children
     }
 
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.children
-    }
-
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         column_layout(self, tree, parent, ctx, self.gap)
     }

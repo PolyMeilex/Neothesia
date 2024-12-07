@@ -101,7 +101,7 @@ impl<MSG: Clone> Widget<MSG> for ProgressBar<MSG> {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: Event,
         layout: &Node,
         tree: &mut Tree<Self::State>,

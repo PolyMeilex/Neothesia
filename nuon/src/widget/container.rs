@@ -65,10 +65,6 @@ impl<MSG> Widget<MSG> for Container<MSG> {
         &self.child
     }
 
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.child
-    }
-
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let parent = &ParentLayout {
             x: parent.x + self.x,

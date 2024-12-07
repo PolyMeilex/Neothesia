@@ -156,8 +156,8 @@ impl<'a, Message, Renderer, Direction> Wrap<'a, Message, Direction, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer, Direction> Widget<Message, Theme, Renderer>
-    for Wrap<'a, Message, Direction, Renderer>
+impl<Message, Renderer, Direction> Widget<Message, Theme, Renderer>
+    for Wrap<'_, Message, Direction, Renderer>
 where
     Self: WrapLayout<Renderer>,
     Renderer: core::Renderer,
@@ -317,7 +317,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer, Direction> Default for Wrap<'a, Message, Direction, Renderer> {
+impl<Message, Renderer, Direction> Default for Wrap<'_, Message, Direction, Renderer> {
     fn default() -> Self {
         Self {
             elements: vec![],

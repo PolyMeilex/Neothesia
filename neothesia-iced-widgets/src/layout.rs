@@ -8,7 +8,7 @@ pub struct Layout<'a, Message> {
     bottom: Option<Element<'a, Message>>,
 }
 
-impl<'a, M: 'static> Default for Layout<'a, M> {
+impl<M: 'static> Default for Layout<'_, M> {
     fn default() -> Self {
         Self {
             top: None,
@@ -75,7 +75,7 @@ pub struct BarLayout<'a, Message> {
     right: Option<Element<'a, Message>>,
 }
 
-impl<'a, M: 'static> Default for BarLayout<'a, M> {
+impl<M: 'static> Default for BarLayout<'_, M> {
     fn default() -> Self {
         Self {
             left: None,

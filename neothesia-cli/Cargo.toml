@@ -6,6 +6,12 @@ edition = "2021"
 [features]
 # Download and compile ffmpeg
 build-ffmpeg = ["mpeg_encoder/build"]
+default = ["oxi-synth", "soundfont"]
+synth = []
+fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
+oxi-synth = ["synth", "cpal", "oxisynth"]
+soundfont = ["fluid-synth"]
+profiling-on = ["profiling/profile-with-puffin"]
 
 [dependencies]
 neothesia-core.workspace = true
@@ -13,5 +19,8 @@ midi-file.workspace = true
 wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 futures.workspace = true
-
 mpeg_encoder = { path = "../mpeg_encoder" }
+oxisynth = { version = "0.0.6", optional = true }
+cpal = { version = "0.15", optional = true }
+fluidlite = { version = "0.3.0", optional = true }
+synthesizer-io-core = "0.2"

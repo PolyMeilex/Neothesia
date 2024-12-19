@@ -60,16 +60,25 @@ impl Recorder {
         });
         let args: Vec<String> = std::env::args().collect();
 
-        let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
-                eprintln!("Error loading MIDI file: {}", err);
-                std::process::exit(1);
-            })
-        } else {
+        if args.len() < 2 {
             eprintln!("No MIDI file provided.");
-            eprintln!("Usage: neothesia-cli <midi-file>");
+            eprintln!("Usage: neothesia-cli <midi-file> <soundfont-file>");
             std::process::exit(1);
-        };
+        }
+
+        let midi = midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
+            eprintln!("Error loading MIDI file: {}", err);
+            std::process::exit(1);
+        });
+
+        // Handle optional soundfont
+        if args.len() > 2 {
+            if let Err(err) = std::fs::metadata(&args[2]) {
+                eprintln!("Error loading soundfont file: {}", err);
+                std::process::exit(1);
+            }
+            std::env::set_var("SOUNDFONT", &args[2]);
+        }
 
         let config = Config::new();
 

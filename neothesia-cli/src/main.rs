@@ -221,7 +221,7 @@ impl Recorder {
             // Render audio for this frame (1/60th of a second)
             let samples_per_frame = (44100.0 * (1.0/60.0)) as usize;
             let mut frame_audio = vec![0.0f32; samples_per_frame * 2]; // Stereo
-            synth.write(&mut frame_audio).unwrap_or(0);
+            synth.write(&mut frame_audio[..]).ok(); // Pass slice instead of Vec
             self.audio_buffer.extend_from_slice(&frame_audio);
         }
 
@@ -355,7 +355,7 @@ fn main() {
         "./out/video.mp4",
         recorder.width as usize,
         recorder.height as usize,
-        Some(44100), // Set audio sample rate
+        Some(44100.0), // Use f32 for sample rate
         Some("medium"),
     );
 
@@ -389,11 +389,11 @@ fn main() {
                 } else {
                     &[]
                 };
-                encoder.encode_bgra_with_audio(1920, 1080, &mapping, audio_frame, false);
+                encoder.encode_frame(1920, 1080, &mapping, Some(audio_frame), false);
             }
 
             #[cfg(not(feature = "fluid-synth"))]
-            encoder.encode_bgra(1920, 1080, &mapping, false);
+            encoder.encode_frame(1920, 1080, &mapping, None, false);
 
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",

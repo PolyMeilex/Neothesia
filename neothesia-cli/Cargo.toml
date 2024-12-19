@@ -20,7 +20,7 @@ wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 futures.workspace = true
 mpeg_encoder = { path = "../mpeg_encoder" }
-oxisynth = { version = "0.0.6", optional = true }
+oxisynth = { version = "0.0.5", optional = true }
 cpal = { version = "0.15", optional = true }
 fluidlite = { version = "0.2.1", optional = true }
 synthesizer-io-core = "0.2"

@@ -88,11 +88,31 @@ impl Recorder {
         let synth = if args.len() > 2 {
             let settings = Settings::new().unwrap();
             let synth = Synth::new(settings).unwrap();
-            synth.sfload(&args[2], true).unwrap_or_else(|_| {
+            let sfont_id = synth.sfload(&args[2], true).unwrap_or_else(|_| {
                 eprintln!("Failed to load soundfont");
                 std::process::exit(1);
             });
-            synth.program_select(0, 0, 0, 0).unwrap();
+            
+            // Try to find a piano preset (usually bank 0, preset 0-3)
+            let presets = [(0, 0), (0, 1), (0, 2), (0, 3)];
+            let mut success = false;
+            
+            for (bank, preset) in presets {
+                if synth.program_select(0, sfont_id, bank, preset).is_ok() {
+                    success = true;
+                    break;
+                }
+            }
+
+            if !success {
+                eprintln!("Warning: Could not find piano preset, using first available preset");
+                // Try to select any available preset
+                if let Err(e) = synth.program_select(0, sfont_id, 0, 0) {
+                    eprintln!("Error selecting preset: {}", e);
+                    std::process::exit(1);
+                }
+            }
+
             Some(Arc::new(synth))
         } else {
             None

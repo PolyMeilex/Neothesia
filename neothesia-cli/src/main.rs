@@ -218,10 +218,10 @@ impl Recorder {
                 }
             }
 
-            // Render audio for this frame (1/60th of a second)
-            let samples_per_frame = (44100.0 * (1.0/60.0)) as usize;
+            // Render audio for this frame, using 1024 samples per frame for AAC
+            let samples_per_frame = 1024;
             let mut frame_audio = vec![0.0f32; samples_per_frame * 2]; // Stereo
-            synth.write(&mut frame_audio[..]).ok(); // Pass slice instead of Vec
+            synth.write(&mut frame_audio[..]).ok();
             self.audio_buffer.extend_from_slice(&frame_audio);
         }
 

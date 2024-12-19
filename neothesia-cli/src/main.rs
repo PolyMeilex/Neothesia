@@ -1,4 +1,6 @@
 use std::{default::Default, time::Duration};
+#[cfg(feature = "fluid-synth")]
+use {fluidlite::{Settings, Synth}, std::sync::Arc};
 
 use neothesia_core::{
     config::Config,
@@ -12,6 +14,8 @@ struct Recorder {
     transform_uniform: Uniform<TransformUniform>,
 
     playback: midi_file::PlaybackState,
+    #[cfg(feature = "fluid-synth")]
+    synth: Option<Arc<Synth>>,
 
     quad_pipeline: QuadPipeline,
     keyboard: KeyboardRenderer,
@@ -80,6 +84,20 @@ impl Recorder {
             std::env::set_var("SOUNDFONT", &args[2]);
         }
 
+        #[cfg(feature = "fluid-synth")]
+        let synth = if args.len() > 2 {
+            let settings = Settings::new().unwrap();
+            let synth = Synth::new(settings).unwrap();
+            synth.sfload(&args[2], 1).unwrap_or_else(|_| {
+                eprintln!("Failed to load soundfont");
+                std::process::exit(1);
+            });
+            synth.program_select(0, 0, 0, 0).unwrap();
+            Some(Arc::new(synth))
+        } else {
+            None
+        };
+
         let config = Config::new();
 
         let width = 1920;
@@ -135,6 +153,8 @@ impl Recorder {
             transform_uniform,
 
             playback,
+            #[cfg(feature = "fluid-synth")]
+            synth,
 
             quad_pipeline,
             keyboard,
@@ -150,6 +170,21 @@ impl Recorder {
 
     fn update(&mut self, delta: Duration) {
         let events = self.playback.update(delta);
+        #[cfg(feature = "fluid-synth")]
+        if let Some(ref synth) = self.synth {
+            for e in &events {
+                match e.message {
+                    midi_file::midly::MidiMessage::NoteOn { key, vel } => {
+                        synth.noteon(e.channel as i32, key.as_int() as i32, vel.as_int() as i32).ok();
+                    }
+                    midi_file::midly::MidiMessage::NoteOff { key, .. } => {
+                        synth.noteoff(e.channel as i32, key.as_int() as i32).ok();
+                    }
+                    _ => {}
+                }
+            }
+        }
+
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
         let time = time_without_lead_in(&self.playback);

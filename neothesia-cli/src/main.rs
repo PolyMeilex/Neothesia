@@ -88,7 +88,7 @@ impl Recorder {
         let synth = if args.len() > 2 {
             let settings = Settings::new().unwrap();
             let synth = Synth::new(settings).unwrap();
-            synth.sfload(&args[2], 1).unwrap_or_else(|_| {
+            synth.sfload(&args[2], true).unwrap_or_else(|_| {
                 eprintln!("Failed to load soundfont");
                 std::process::exit(1);
             });
@@ -175,10 +175,10 @@ impl Recorder {
             for e in &events {
                 match e.message {
                     midi_file::midly::MidiMessage::NoteOn { key, vel } => {
-                        synth.noteon(e.channel as i32, key.as_int() as i32, vel.as_int() as i32).ok();
+                        synth.note_on(e.channel as i32, key.as_int() as i32, vel.as_int() as i32).ok();
                     }
                     midi_file::midly::MidiMessage::NoteOff { key, .. } => {
-                        synth.noteoff(e.channel as i32, key.as_int() as i32).ok();
+                        synth.note_off(e.channel as i32, key.as_int() as i32).ok();
                     }
                     _ => {}
                 }

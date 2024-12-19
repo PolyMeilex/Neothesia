@@ -1,4 +1,9 @@
 use std::{default::Default, time::Duration};
+#[cfg(feature = "fluid-synth")]
+use {
+    fluidlite::{Settings, Synth},
+    std::sync::Arc,
+};
 
 use neothesia_core::{
     config::Config,
@@ -12,6 +17,8 @@ struct Recorder {
     transform_uniform: Uniform<TransformUniform>,
 
     playback: midi_file::PlaybackState,
+    #[cfg(feature = "fluid-synth")]
+    synth: Option<Arc<Synth>>,
 
     quad_pipeline: QuadPipeline,
     keyboard: KeyboardRenderer,
@@ -22,6 +29,8 @@ struct Recorder {
     config: Config,
     width: u32,
     height: u32,
+    #[cfg(feature = "fluid-synth")]
+    audio_buffer: Vec<f32>,
 }
 
 fn get_layout(
@@ -60,15 +69,58 @@ impl Recorder {
         });
         let args: Vec<String> = std::env::args().collect();
 
-        let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
-                eprintln!("Error loading MIDI file: {}", err);
-                std::process::exit(1);
-            })
-        } else {
+        if args.len() < 2 {
             eprintln!("No MIDI file provided.");
-            eprintln!("Usage: neothesia-cli <midi-file>");
+            eprintln!("Usage: neothesia-cli <midi-file> <soundfont-file>");
             std::process::exit(1);
+        }
+
+        let midi = midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
+            eprintln!("Error loading MIDI file: {}", err);
+            std::process::exit(1);
+        });
+
+        // Handle optional soundfont
+        if args.len() > 2 {
+            if let Err(err) = std::fs::metadata(&args[2]) {
+                eprintln!("Error loading soundfont file: {}", err);
+                std::process::exit(1);
+            }
+            std::env::set_var("SOUNDFONT", &args[2]);
+        }
+
+        #[cfg(feature = "fluid-synth")]
+        let synth = if args.len() > 2 {
+            let settings = Settings::new().unwrap();
+            let synth = Synth::new(settings).unwrap();
+            let sfont_id = synth.sfload(&args[2], true).unwrap_or_else(|_| {
+                eprintln!("Failed to load soundfont");
+                std::process::exit(1);
+            });
+            
+            // Try to find a piano preset (usually bank 0, preset 0-3)
+            let presets = [(0, 0), (0, 1), (0, 2), (0, 3)];
+            let mut success = false;
+            
+            for (bank, preset) in presets {
+                if synth.program_select(0, sfont_id, bank, preset).is_ok() {
+                    success = true;
+                    break;
+                }
+            }
+
+            if !success {
+                eprintln!("Warning: Could not find piano preset, using first available preset");
+                // Try to select any available preset
+                if let Err(e) = synth.program_select(0, sfont_id, 0, 0) {
+                    eprintln!("Error selecting preset: {}", e);
+                    std::process::exit(1);
+                }
+            }
+
+            Some(Arc::new(synth))
+        } else {
+            None
         };
 
         let config = Config::new();
@@ -126,6 +178,8 @@ impl Recorder {
             transform_uniform,
 
             playback,
+            #[cfg(feature = "fluid-synth")]
+            synth,
 
             quad_pipeline,
             keyboard,
@@ -136,11 +190,41 @@ impl Recorder {
             config,
             width,
             height,
+            #[cfg(feature = "fluid-synth")]
+            audio_buffer: Vec::with_capacity(44100 * 2 * 60 * 10), // 10 minutes stereo buffer
         }
     }
 
     fn update(&mut self, delta: Duration) {
         let events = self.playback.update(delta);
+        #[cfg(feature = "fluid-synth")]
+        if let Some(ref synth) = self.synth {
+            for e in &events {
+                match e.message {
+                    midi_file::midly::MidiMessage::NoteOn { key, vel } => {
+                        synth.note_on(
+                            e.channel as u32,
+                            key.as_int() as u32,
+                            vel.as_int() as u32
+                        ).ok();
+                    }
+                    midi_file::midly::MidiMessage::NoteOff { key, .. } => {
+                        synth.note_off(
+                            e.channel as u32,
+                            key.as_int() as u32
+                        ).ok();
+                    }
+                    _ => {}
+                }
+            }
+
+            // Render audio for this frame, using 1024 samples per frame for AAC
+            let samples_per_frame = 1024;
+            let mut frame_audio = vec![0.0f32; samples_per_frame * 2]; // Stereo
+            synth.write(&mut frame_audio[..]).ok();
+            self.audio_buffer.extend_from_slice(&frame_audio);
+        }
+
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
         let time = time_without_lead_in(&self.playback);
@@ -271,7 +355,7 @@ fn main() {
         "./out/video.mp4",
         recorder.width as usize,
         recorder.height as usize,
-        Some(0.0),
+        Some(44100.0), // Use f32 for sample rate
         Some("medium"),
     );
 
@@ -288,15 +372,28 @@ fn main() {
 
         {
             let slice = output_buffer.slice(..);
-
             slice.map_async(wgpu::MapMode::Read, move |_| {});
-
             recorder.gpu.device.poll(wgpu::Maintain::Wait);
-
             let mapping = slice.get_mapped_range();
 
-            let data: &[u8] = &mapping;
-            encoder.encode_bgra(1920, 1080, data, false);
+            // Encode video frame
+            encoder.encode_bgra(1920, 1080, &mapping, false);
+
+            #[cfg(feature = "fluid-synth")]
+            {
+                let samples_per_frame = (44100.0 * (1.0/60.0)) as usize;
+                let frame_start = (n - 1) * samples_per_frame * 2;
+                let frame_end = frame_start + samples_per_frame * 2;
+                let audio_frame = if frame_start < recorder.audio_buffer.len() {
+                    &recorder.audio_buffer[frame_start..std::cmp::min(frame_end, recorder.audio_buffer.len())]
+                } else {
+                    &[]
+                };
+                if !audio_frame.is_empty() {
+                    encoder.encode_audio(audio_frame);
+                }
+            }
+
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",
                 n,

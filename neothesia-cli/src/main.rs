@@ -1,5 +1,4 @@
 use std::{default::Default, time::Duration};
-use synthesizer_io_core::{midi, soundfont};
 
 use neothesia_core::{
     config::Config,
@@ -23,9 +22,6 @@ struct Recorder {
     config: Config,
     width: u32,
     height: u32,
-
-    synth: Option<soundfont::Synthesizer>,
-    sample_rate: u32,
 }
 
 fn get_layout(
@@ -64,29 +60,16 @@ impl Recorder {
         });
         let args: Vec<String> = std::env::args().collect();
 
-        if args.len() < 2 {
-            eprintln!("Usage: neothesia-cli <midi-file> [soundfont-file]");
-            std::process::exit(1);
-        }
-
-        let midi = midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
-            eprintln!("Error loading MIDI file: {}", err);
-            std::process::exit(1);
-        });
-
-        let synth = if args.len() > 2 {
-            match soundfont::Synthesizer::new(&args[2]) {
-                Ok(synth) => Some(synth),
-                Err(err) => {
-                    eprintln!("Error loading soundfont: {}", err);
-                    None
-                }
-            }
+        let midi = if args.len() > 1 {
+            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
+                eprintln!("Error loading MIDI file: {}", err);
+                std::process::exit(1);
+            })
         } else {
-            None
+            eprintln!("No MIDI file provided.");
+            eprintln!("Usage: neothesia-cli <midi-file>");
+            std::process::exit(1);
         };
-
-        let sample_rate = 44100;
 
         let config = Config::new();
 
@@ -153,39 +136,11 @@ impl Recorder {
             config,
             width,
             height,
-
-            synth,
-            sample_rate,
         }
     }
 
     fn update(&mut self, delta: Duration) {
         let events = self.playback.update(delta);
-
-        // Process audio if synth is available
-        if let Some(synth) = &mut self.synth {
-            for event in events.iter() {
-                use midi_file::midly::MidiMessage;
-                match event.message {
-                    MidiMessage::NoteOn { key, vel } => {
-                        synth.note_on(event.channel as u8, key.as_int(), vel.as_int());
-                    },
-                    MidiMessage::NoteOff { key, .. } => {
-                        synth.note_off(event.channel as u8, key.as_int());
-                    },
-                    _ => {}
-                }
-            }
-
-            // Generate audio samples for this frame
-            let frame_samples = (self.sample_rate as f32 / 60.0) as usize;
-            let mut buffer = vec![0.0; frame_samples * 2]; // Stereo
-            synth.render_stereo(&mut buffer);
-
-            // TODO: Add audio samples to video encoder
-            // This depends on the video encoder library's audio support
-        }
-
         file_midi_events(&mut self.keyboard, &self.config, &events);
 
         let time = time_without_lead_in(&self.playback);

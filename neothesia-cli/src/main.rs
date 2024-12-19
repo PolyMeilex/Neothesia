@@ -1,6 +1,9 @@
 use std::{default::Default, time::Duration};
 #[cfg(feature = "fluid-synth")]
-use {fluidlite::{Settings, Synth}, std::sync::Arc};
+use {
+    fluidlite::{Settings, Synth},
+    std::sync::Arc,
+};
 
 use neothesia_core::{
     config::Config,
@@ -26,6 +29,8 @@ struct Recorder {
     config: Config,
     width: u32,
     height: u32,
+    #[cfg(feature = "fluid-synth")]
+    audio_buffer: Vec<f32>,
 }
 
 fn get_layout(
@@ -185,6 +190,8 @@ impl Recorder {
             config,
             width,
             height,
+            #[cfg(feature = "fluid-synth")]
+            audio_buffer: Vec::with_capacity(44100 * 2 * 60 * 10), // 10 minutes stereo buffer
         }
     }
 
@@ -210,6 +217,12 @@ impl Recorder {
                     _ => {}
                 }
             }
+
+            // Render audio for this frame (1/60th of a second)
+            let samples_per_frame = (44100.0 * (1.0/60.0)) as usize;
+            let mut frame_audio = vec![0.0f32; samples_per_frame * 2]; // Stereo
+            synth.write(&mut frame_audio).unwrap_or(0);
+            self.audio_buffer.extend_from_slice(&frame_audio);
         }
 
         file_midi_events(&mut self.keyboard, &self.config, &events);
@@ -342,7 +355,7 @@ fn main() {
         "./out/video.mp4",
         recorder.width as usize,
         recorder.height as usize,
-        Some(0.0),
+        Some(44100), // Set audio sample rate
         Some("medium"),
     );
 
@@ -366,8 +379,22 @@ fn main() {
 
             let mapping = slice.get_mapped_range();
 
-            let data: &[u8] = &mapping;
-            encoder.encode_bgra(1920, 1080, data, false);
+            #[cfg(feature = "fluid-synth")]
+            {
+                let samples_per_frame = (44100.0 * (1.0/60.0)) as usize;
+                let frame_start = (n - 1) * samples_per_frame * 2;
+                let frame_end = frame_start + samples_per_frame * 2;
+                let audio_frame = if frame_start < recorder.audio_buffer.len() {
+                    &recorder.audio_buffer[frame_start..std::cmp::min(frame_end, recorder.audio_buffer.len())]
+                } else {
+                    &[]
+                };
+                encoder.encode_bgra_with_audio(1920, 1080, &mapping, audio_frame, false);
+            }
+
+            #[cfg(not(feature = "fluid-synth"))]
+            encoder.encode_bgra(1920, 1080, &mapping, false);
+
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",
                 n,

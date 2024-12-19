@@ -372,12 +372,12 @@ fn main() {
 
         {
             let slice = output_buffer.slice(..);
-
             slice.map_async(wgpu::MapMode::Read, move |_| {});
-
             recorder.gpu.device.poll(wgpu::Maintain::Wait);
-
             let mapping = slice.get_mapped_range();
+
+            // Encode video frame
+            encoder.encode_bgra(1920, 1080, &mapping, false);
 
             #[cfg(feature = "fluid-synth")]
             {
@@ -389,11 +389,10 @@ fn main() {
                 } else {
                     &[]
                 };
-                encoder.encode_frame(1920, 1080, &mapping, Some(audio_frame), false);
+                if !audio_frame.is_empty() {
+                    encoder.encode_audio(audio_frame);
+                }
             }
-
-            #[cfg(not(feature = "fluid-synth"))]
-            encoder.encode_frame(1920, 1080, &mapping, None, false);
 
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",

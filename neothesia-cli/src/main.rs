@@ -1,9 +1,6 @@
 use std::{default::Default, time::Duration};
 #[cfg(feature = "fluid-synth")]
-use {
-    fluidlite::{Settings, Synth, midi::Chan},
-    std::sync::Arc,
-};
+use {fluidlite::{Settings, Synth}, std::sync::Arc};
 
 use neothesia_core::{
     config::Config,
@@ -178,15 +175,17 @@ impl Recorder {
             for e in &events {
                 match e.message {
                     midi_file::midly::MidiMessage::NoteOn { key, vel } => {
-                        let chan = Chan::try_from(e.channel as u32).unwrap();
-                        let key = key.as_int() as u32;
-                        let vel = vel.as_int() as u32;
-                        synth.note_on(chan, key, vel).ok();
+                        synth.note_on(
+                            e.channel as u32,
+                            key.as_int() as u32,
+                            vel.as_int() as u32
+                        ).ok();
                     }
                     midi_file::midly::MidiMessage::NoteOff { key, .. } => {
-                        let chan = Chan::try_from(e.channel as u32).unwrap();
-                        let key = key.as_int() as u32;
-                        synth.note_off(chan, key).ok();
+                        synth.note_off(
+                            e.channel as u32,
+                            key.as_int() as u32
+                        ).ok();
                     }
                     _ => {}
                 }

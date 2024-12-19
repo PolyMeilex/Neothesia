@@ -22,6 +22,6 @@ futures.workspace = true
 mpeg_encoder = { path = "../mpeg_encoder" }
 oxisynth = { version = "0.0.6", optional = true }
 cpal = { version = "0.15", optional = true }
-fluidlite = { version = "0.3.0", optional = true }
+fluidlite = { version = "0.2.1", optional = true }
 synthesizer-io-core = "0.2"
 profiling = { version = "1.0", features = ["profile-with-puffin"] }

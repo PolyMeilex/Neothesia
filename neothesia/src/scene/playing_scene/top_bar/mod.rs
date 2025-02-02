@@ -1,15 +1,13 @@
 use std::time::{Duration, Instant};
 
-use neothesia_core::render::QuadInstance;
 use ui::{LooperMsg, ProgressBarMsg};
-use wgpu_jumpstart::Color;
 
 use crate::{context::Context, NeothesiaEvent};
 
 use super::{
     animation::{Animated, Easing},
     rewind_controller::RewindController,
-    PlayingScene, LAYER_FG,
+    PlayingScene,
 };
 
 mod renderer;
@@ -19,7 +17,7 @@ mod widget;
 use renderer::NuonRenderer;
 
 pub struct TopBar {
-    animation: Animated<bool, Instant>,
+    topbar_expand_animation: Animated<bool, Instant>,
     is_expanded: bool,
 
     settings_animation: Animated<bool, Instant>,
@@ -34,7 +32,7 @@ pub struct TopBar {
 impl TopBar {
     pub fn new() -> Self {
         Self {
-            animation: Animated::new(false)
+            topbar_expand_animation: Animated::new(false)
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
                 .delay(30.0),
@@ -138,19 +136,23 @@ impl TopBar {
     }
 
     #[profiling::function]
-    fn update_nuon(scene: &mut PlayingScene, ctx: &mut Context, _delta: Duration, y: f32) {
+    fn update_nuon(scene: &mut PlayingScene, ctx: &mut Context, _delta: Duration) {
         let globals = nuon::GlobalStore::with(|store| {
             store.insert(&scene.player);
         });
 
         let mut root = ui::top_bar(ui::UiData {
-            y,
+            window_size: ctx.window_state.logical_size,
             is_settings_open: scene.top_bar.settings_active,
             is_looper_on: scene.top_bar.is_looper_active(),
             speed: ctx.config.speed_multiplier(),
             player: &scene.player,
             loop_start: scene.top_bar.loop_start_timestamp(),
             loop_end: scene.top_bar.loop_end_timestamp(),
+
+            frame_timestamp: ctx.frame_timestamp,
+            topbar_expand_animation: &scene.top_bar.topbar_expand_animation,
+            settings_animation: &scene.top_bar.settings_animation,
         })
         .into();
 
@@ -213,64 +215,13 @@ impl TopBar {
         top_bar.is_expanded |= top_bar.settings_active;
         top_bar.is_expanded |= scene.nuon_event_queue.is_mouse_grabbed();
 
-        let now = ctx.frame_timestamp;
-
-        top_bar.animation.transition(top_bar.is_expanded, now);
+        top_bar
+            .topbar_expand_animation
+            .transition(top_bar.is_expanded, ctx.frame_timestamp);
         top_bar
             .settings_animation
-            .transition(top_bar.settings_active, now);
+            .transition(top_bar.settings_active, ctx.frame_timestamp);
 
-        let y = top_bar.animation.animate_bool(-h + 5.0, 0.0, now);
-
-        update_settings_card(scene, ctx, y);
-        Self::update_nuon(scene, ctx, delta, y);
-    }
-}
-
-fn update_settings_card(scene: &mut PlayingScene, ctx: &mut Context, y: f32) {
-    let PlayingScene {
-        top_bar,
-        quad_pipeline,
-        ..
-    } = scene;
-
-    let h = 75.0;
-    let w = ctx.window_state.logical_size.width;
-    let now = ctx.frame_timestamp;
-
-    if top_bar.settings_animation.in_progress(now) || top_bar.settings_animation.value {
-        let card_w = 300.0;
-        let card_x = top_bar.settings_animation.animate_bool(card_w, 0.0, now);
-
-        let bar_bg: Color = Color::from_rgba8(37, 35, 42, 1.0);
-
-        let x = card_x + w - card_w;
-        let y = y + h + 1.0;
-
-        let w = card_w;
-        let h = 100.0;
-
-        quad_pipeline.push(
-            LAYER_FG,
-            QuadInstance {
-                position: [x, y],
-                size: [w, h],
-                color: bar_bg.into_linear_rgba(),
-                border_radius: [10.0, 0.0, 10.0, 0.0],
-            },
-        );
-
-        fn cone_icon() -> &'static str {
-            "\u{F2D2}"
-        }
-
-        let size = 50.0;
-        let half_size = size / 2.0;
-        ctx.text_renderer
-            .queue_icon(x + w / 2.0 - half_size, y + 10.0, size, cone_icon());
-
-        let buffer = ctx.text_renderer.gen_buffer_bold(25.0, "WIP");
-        ctx.text_renderer
-            .queue_buffer_centered(x, y + size + 15.0, w, 25.0, buffer);
+        Self::update_nuon(scene, ctx, delta);
     }
 }

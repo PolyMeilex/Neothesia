@@ -75,13 +75,9 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         &self.children
     }
 
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.children
-    }
-
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
         let minus = self.children[0].as_widget().layout(
-            tree.children[0].remap_mut(),
+            &mut tree.children[0],
             &ParentLayout {
                 x: parent.x,
                 y: parent.y + 5.0,
@@ -91,7 +87,7 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
             ctx,
         );
         let plus = self.children[1].as_widget().layout(
-            tree.children[1].remap_mut(),
+            &mut tree.children[1],
             &ParentLayout {
                 x: parent.x + minus.w,
                 y: parent.y + 5.0,
@@ -117,7 +113,7 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         tree: &Tree<Self::State>,
         ctx: &RenderCtx,
     ) {
-        self.render_default(renderer, layout, tree, ctx);
+        nuon::default_render(self, renderer, layout, tree, ctx);
 
         let pad = 2.0;
 

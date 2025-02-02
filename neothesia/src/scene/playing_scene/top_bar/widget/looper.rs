@@ -123,7 +123,7 @@ impl<MSG> Widget<MSG> for Looper<MSG> {
         tree: &Tree<Self::State>,
         _ctx: &RenderCtx,
     ) {
-        let state = tree.state();
+        let state = tree.state.get();
 
         let bg = &layout.children[0];
 
@@ -154,13 +154,13 @@ impl<MSG> Widget<MSG> for Looper<MSG> {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: Event,
         layout: &Node,
         tree: &mut Tree<Self::State>,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        let state = tree.state_mut();
+        let state = tree.state.get_mut();
         let player = ctx.globals.get::<MidiPlayer>();
 
         match event {

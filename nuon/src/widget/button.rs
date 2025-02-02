@@ -111,7 +111,7 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
         tree: &Tree<Self::State>,
         _ctx: &RenderCtx,
     ) {
-        let state = tree.state();
+        let state = tree.state.get();
 
         renderer.rounded_quad(
             layout.x,
@@ -140,13 +140,13 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     }
 
     fn update(
-        &mut self,
+        &self,
         event: Event,
         layout: &Node,
         tree: &mut Tree<Self::State>,
         ctx: &mut UpdateCtx<MSG>,
     ) {
-        let state = tree.state_mut();
+        let state = tree.state.get_mut();
 
         match event {
             Event::CursorMoved { position } => {

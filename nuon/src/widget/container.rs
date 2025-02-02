@@ -3,6 +3,7 @@ use crate::{Color, Element, LayoutCtx, Node, ParentLayout, RenderCtx, Renderer, 
 pub struct Container<MSG> {
     child: [Element<MSG>; 1],
     background: Option<Color>,
+    border_radius: [f32; 4],
     x: f32,
     y: f32,
     width: Option<f32>,
@@ -20,6 +21,7 @@ impl<MSG: 'static> Container<MSG> {
         Self {
             child: [Element::null()],
             background: None,
+            border_radius: [0.0; 4],
             x: 0.0,
             y: 0.0,
             width: None,
@@ -34,6 +36,11 @@ impl<MSG: 'static> Container<MSG> {
 
     pub fn background(mut self, background: Color) -> Self {
         self.background = Some(background);
+        self
+    }
+
+    pub fn border_radius(mut self, radius: [f32; 4]) -> Self {
+        self.border_radius = radius;
         self
     }
 
@@ -63,10 +70,6 @@ impl<MSG> Widget<MSG> for Container<MSG> {
 
     fn children(&self) -> &[Element<MSG>] {
         &self.child
-    }
-
-    fn children_mut(&mut self) -> &mut [Element<MSG>] {
-        &mut self.child
     }
 
     fn layout(&self, tree: &mut Tree<Self::State>, parent: &ParentLayout, ctx: &LayoutCtx) -> Node {
@@ -108,9 +111,16 @@ impl<MSG> Widget<MSG> for Container<MSG> {
         ctx: &RenderCtx,
     ) {
         if let Some(bg) = self.background {
-            renderer.quad(layout.x, layout.y, layout.w, layout.h, bg);
+            renderer.rounded_quad(
+                layout.x,
+                layout.y,
+                layout.w,
+                layout.h,
+                bg,
+                self.border_radius,
+            );
         }
-        self.render_default(renderer, layout, tree, ctx);
+        crate::default_render(self, renderer, layout, tree, ctx);
     }
 }
 

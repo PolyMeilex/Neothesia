@@ -74,7 +74,7 @@ impl<'a, Message: Clone> NeoBtn<'a, Message> {
     }
 }
 
-impl<'a, Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'a, Message> {
+impl<Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'_, Message> {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
     }

@@ -21,6 +21,57 @@ mod tree;
 pub use input::{Event, MouseButton};
 pub use renderer::Renderer;
 
+pub struct State {
+    pub event_queue: input::EventQueue,
+    tree: Tree,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self {
+            event_queue: input::EventQueue::new(),
+            tree: Tree::null(),
+        }
+    }
+
+    pub fn update<MSG>(
+        &mut self,
+        root: &mut dyn WidgetAny<MSG>,
+        globals: &GlobalStore<'_>,
+        w: f32,
+        h: f32,
+        renderer: &mut dyn Renderer,
+    ) -> Vec<MSG> {
+        self.tree.diff(root);
+
+        let layout = {
+            profiling::scope!("nuon_layout");
+            root.layout(
+                &mut self.tree,
+                &ParentLayout {
+                    x: 0.0,
+                    y: 0.0,
+                    w,
+                    h,
+                },
+                &LayoutCtx { globals },
+            )
+        };
+
+        let mut messages = vec![];
+
+        self.event_queue
+            .dispatch_events(&mut messages, &mut self.tree, root, &layout, globals);
+
+        {
+            profiling::scope!("nuon_render");
+            root.render(renderer, &layout, &self.tree, &RenderCtx { globals });
+        }
+
+        messages
+    }
+}
+
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub r: f32,

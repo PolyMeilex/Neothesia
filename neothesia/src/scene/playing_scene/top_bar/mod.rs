@@ -156,44 +156,16 @@ impl TopBar {
         })
         .into();
 
-        scene.tree.diff(root.as_widget());
-
-        let layout = {
-            profiling::scope!("nuon_layout");
-            root.as_widget_mut().layout(
-                &mut scene.tree,
-                &nuon::ParentLayout {
-                    x: 0.0,
-                    y: 0.0,
-                    w: ctx.window_state.logical_size.width,
-                    h: ctx.window_state.logical_size.height,
-                },
-                &nuon::LayoutCtx { globals: &globals },
-            )
-        };
-
-        let mut messages = vec![];
-
-        scene.nuon_event_queue.dispatch_events(
-            &mut messages,
-            &mut scene.tree,
+        let messages = scene.nuon.update(
             root.as_widget_mut(),
-            &layout,
             &globals,
+            ctx.window_state.logical_size.width,
+            ctx.window_state.logical_size.height,
+            &mut NuonRenderer {
+                quads: &mut scene.quad_pipeline,
+                text: &mut ctx.text_renderer,
+            },
         );
-
-        {
-            profiling::scope!("nuon_render");
-            root.as_widget().render(
-                &mut NuonRenderer {
-                    quads: &mut scene.quad_pipeline,
-                    text: &mut ctx.text_renderer,
-                },
-                &layout,
-                &scene.tree,
-                &nuon::RenderCtx { globals: &globals },
-            );
-        }
 
         drop(root);
 
@@ -213,7 +185,7 @@ impl TopBar {
 
         top_bar.is_expanded = is_hovered;
         top_bar.is_expanded |= top_bar.settings_active;
-        top_bar.is_expanded |= scene.nuon_event_queue.is_mouse_grabbed();
+        top_bar.is_expanded |= scene.nuon.event_queue.is_mouse_grabbed();
 
         top_bar
             .topbar_expand_animation

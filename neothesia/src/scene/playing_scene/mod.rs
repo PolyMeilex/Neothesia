@@ -46,8 +46,7 @@ pub struct PlayingScene {
     glow_states: Vec<GlowState>,
     toast_manager: ToastManager,
 
-    nuon_event_queue: nuon::input::EventQueue,
-    tree: nuon::Tree,
+    nuon: nuon::State,
 
     top_bar: TopBar,
 }
@@ -113,8 +112,7 @@ impl PlayingScene {
             glow_states,
             toast_manager: ToastManager::default(),
 
-            nuon_event_queue: nuon::input::EventQueue::new(),
-            tree: nuon::Tree::null(),
+            nuon: nuon::State::new(),
 
             top_bar: TopBar::new(),
         }
@@ -227,7 +225,8 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
-        self.nuon_event_queue
+        self.nuon
+            .event_queue
             .push_winit_event(event, ctx.window_state.scale_factor);
 
         self.rewind_controller

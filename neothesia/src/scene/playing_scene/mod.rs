@@ -27,6 +27,8 @@ use toast_manager::ToastManager;
 mod animation;
 mod top_bar;
 
+pub use top_bar::NuonRenderer;
+
 const LAYER_BG: usize = 0;
 const LAYER_FG: usize = 1;
 

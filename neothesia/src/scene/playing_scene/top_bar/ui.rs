@@ -189,7 +189,7 @@ pub fn top_bar(data: UiData) -> impl Into<Element<Msg>> {
                     let half_size = size / 2.0;
 
                     renderer.icon(x + w / 2.0 - half_size, y + 10.0, size, cone_icon());
-                    renderer.centered_text(x, y + size + 15.0, w, 25.0, 25.0, "WIP");
+                    renderer.centered_text_bold(x, y + size + 15.0, w, 25.0, 25.0, "WIP");
                 }))
         })
 }

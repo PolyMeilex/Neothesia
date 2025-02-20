@@ -36,8 +36,14 @@ impl nuon::Renderer for NuonRenderer<'_> {
     }
 
     #[profiling::function]
-    fn centered_text(&mut self, x: f32, y: f32, w: f32, h: f32, size: f32, text: &str) {
+    fn centered_text_bold(&mut self, x: f32, y: f32, w: f32, h: f32, size: f32, text: &str) {
         let buffer = self.text.gen_buffer_bold(size, text);
+        self.text.queue_buffer_centered(x, y, w, h, buffer);
+    }
+
+    #[profiling::function]
+    fn centered_text(&mut self, x: f32, y: f32, w: f32, h: f32, size: f32, text: &str) {
+        let buffer = self.text.gen_buffer(size, text);
         self.text.queue_buffer_centered(x, y, w, h, buffer);
     }
 }

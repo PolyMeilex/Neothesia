@@ -17,5 +17,6 @@ pub trait Renderer {
 
     fn icon(&mut self, x: f32, y: f32, size: f32, icon: &str);
 
+    fn centered_text_bold(&mut self, x: f32, y: f32, w: f32, h: f32, size: f32, text: &str);
     fn centered_text(&mut self, x: f32, y: f32, w: f32, h: f32, size: f32, text: &str);
 }

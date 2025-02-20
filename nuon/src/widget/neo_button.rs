@@ -4,12 +4,12 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct ButtonState {
+pub struct NeoButtonState {
     is_hovered: bool,
     is_pressed: bool,
 }
 
-pub struct Button<MSG> {
+pub struct NeoButton<MSG> {
     w: Option<f32>,
     h: Option<f32>,
     color: Color,
@@ -21,13 +21,13 @@ pub struct Button<MSG> {
     label: Option<&'static str>,
 }
 
-impl<MSG: Clone> Default for Button<MSG> {
+impl<MSG: Clone> Default for NeoButton<MSG> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<MSG: Clone> Button<MSG> {
+impl<MSG: Clone> NeoButton<MSG> {
     pub fn new() -> Self {
         Self {
             w: None,
@@ -93,8 +93,8 @@ impl<MSG: Clone> Button<MSG> {
     }
 }
 
-impl<MSG: Clone> Widget<MSG> for Button<MSG> {
-    type State = ButtonState;
+impl<MSG: Clone> Widget<MSG> for NeoButton<MSG> {
+    type State = NeoButtonState;
 
     fn layout(
         &self,
@@ -120,18 +120,24 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     ) {
         let state = tree.state.get();
 
+        let colors = if state.is_hovered {
+            (
+                Color::new_u8(9, 9, 9, 0.6),
+                Color::new_u8(56, 145, 255, 1.0),
+            )
+        } else {
+            (
+                Color::new_u8(17, 17, 17, 0.6),
+                Color::new_u8(160, 81, 255, 1.0),
+            )
+        };
+
         renderer.rounded_quad(
             layout.x,
             layout.y,
             layout.w,
             layout.h,
-            if state.is_pressed {
-                self.preseed_color
-            } else if state.is_hovered {
-                self.hover_color
-            } else {
-                self.color
-            },
+            colors.0,
             self.border_radius,
         );
 
@@ -146,9 +152,19 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
         }
 
         if let Some(label) = self.label {
-            let icon_size = 20.0;
-            renderer.centered_text_bold(layout.x, layout.y, layout.w, layout.h, icon_size, label);
+            let font_size = 30.0;
+            renderer.centered_text(layout.x, layout.y, layout.w, layout.h, font_size, label);
         }
+
+        let h = 7.0;
+        renderer.rounded_quad(
+            layout.x,
+            layout.y + layout.h - h,
+            layout.w,
+            h,
+            colors.1,
+            [0.0, 0.0, 7.0, 7.0],
+        );
     }
 
     fn update(
@@ -192,8 +208,8 @@ impl<MSG: Clone> Widget<MSG> for Button<MSG> {
     }
 }
 
-impl<MSG: Clone + 'static> From<Button<MSG>> for Element<MSG> {
-    fn from(value: Button<MSG>) -> Self {
+impl<MSG: Clone + 'static> From<NeoButton<MSG>> for Element<MSG> {
+    fn from(value: NeoButton<MSG>) -> Self {
         Element::new(value)
     }
 }

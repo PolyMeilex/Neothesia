@@ -11,19 +11,19 @@ use crate::{
     context::Context,
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
-    scene::menu_scene::iced_menu::main::MainPage,
     song::Song,
     NeothesiaEvent,
 };
 
 mod exit;
-mod main;
+pub mod main;
 mod page;
 mod settings;
 mod theme;
 mod tracks;
 
 use exit::ExitPage;
+use main::MainPage;
 use page::Page;
 use settings::SettingsPage;
 use tracks::TracksPage;

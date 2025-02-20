@@ -133,7 +133,7 @@ impl<MSG: Clone> Widget<MSG> for SpeedPill<MSG> {
         }
 
         let label = format!("{}%", (self.speed * 100.0).round());
-        renderer.centered_text(layout.x, layout.y, layout.w, layout.h, 13.0, &label);
+        renderer.centered_text_bold(layout.x, layout.y, layout.w, layout.h, 13.0, &label);
     }
 }
 

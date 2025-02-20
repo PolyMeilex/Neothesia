@@ -49,18 +49,18 @@ impl Page for MainPage {
         _ctx: &Context,
     ) -> neothesia_iced_widgets::Element<'a, Self::Event> {
         let buttons = column![
-            NeoBtn::new_with_label("Select File")
-                .on_press(Event::MidiFilePicker(MidiFilePickerMessage::open()))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-            NeoBtn::new_with_label("Settings")
-                .on_press(Event::GoToPage(Step::Settings))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-            NeoBtn::new_with_label("Exit")
-                .on_press(Event::GoToPage(Step::Exit))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
+            // NeoBtn::new_with_label("Select File")
+            //     .on_press(Event::MidiFilePicker(MidiFilePickerMessage::open()))
+            //     .width(Length::Fill)
+            //     .height(Length::Fixed(80.0)),
+            // NeoBtn::new_with_label("Settings")
+            //     .on_press(Event::GoToPage(Step::Settings))
+            //     .width(Length::Fill)
+            //     .height(Length::Fixed(80.0)),
+            // NeoBtn::new_with_label("Exit")
+            //     .on_press(Event::GoToPage(Step::Exit))
+            //     .width(Length::Fill)
+            //     .height(Length::Fixed(80.0)),
         ]
         .width(Length::Fixed(450.0))
         .spacing(10);
@@ -141,7 +141,7 @@ pub enum MidiFilePickerMessage {
 }
 
 impl MidiFilePickerMessage {
-    pub(super) fn open() -> Self {
+    pub fn open() -> Self {
         Self::OpenMidiFilePicker
     }
 }

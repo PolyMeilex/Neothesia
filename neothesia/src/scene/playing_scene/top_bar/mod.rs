@@ -14,7 +14,7 @@ mod renderer;
 pub mod ui;
 mod widget;
 
-use renderer::NuonRenderer;
+pub use renderer::NuonRenderer;
 
 pub struct TopBar {
     topbar_expand_animation: Animated<bool, Instant>,

@@ -1,10 +1,6 @@
 use super::color::Color;
 use super::GpuInitError;
 
-pub fn default_backends() -> wgpu::Backends {
-    wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all())
-}
-
 pub struct Gpu {
     pub device: wgpu::Device,
 
@@ -20,12 +16,7 @@ impl Gpu {
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: crate::default_backends(),
-            dx12_shader_compiler: wgpu::Dx12Compiler::default(),
-            flags: wgpu::InstanceFlags::default(),
-            gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
-        });
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
 
         let surface = instance.create_surface(window.into())?;
         let gpu = Self::new(&instance, Some(&surface)).await?;
@@ -38,8 +29,8 @@ impl Gpu {
         instance: &wgpu::Instance,
         compatible_surface: Option<&wgpu::Surface<'static>>,
     ) -> Result<Self, GpuInitError> {
-        let power_preference = wgpu::util::power_preference_from_env()
-            .unwrap_or(wgpu::PowerPreference::HighPerformance);
+        let power_preference =
+            wgpu::PowerPreference::from_env().unwrap_or(wgpu::PowerPreference::HighPerformance);
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {

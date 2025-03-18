@@ -50,10 +50,7 @@ impl Recorder {
         )
         .init();
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu_jumpstart::default_backends(),
-            ..Default::default()
-        });
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
         let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
             eprintln!("Failed to initialize GPU: {}", err);
             std::process::exit(1);
@@ -205,15 +202,15 @@ impl Recorder {
             let u32_size = std::mem::size_of::<u32>() as u32;
 
             self.gpu.encoder.copy_texture_to_buffer(
-                wgpu::ImageCopyTexture {
+                wgpu::TexelCopyTextureInfo {
                     texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d::ZERO,
                     aspect: Default::default(),
                 },
-                wgpu::ImageCopyBuffer {
+                wgpu::TexelCopyBufferInfo {
                     buffer: output_buffer,
-                    layout: wgpu::ImageDataLayout {
+                    layout: wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(u32_size * self.width),
                         rows_per_image: Some(self.height),
@@ -254,6 +251,7 @@ fn main() {
         mip_level_count: None,
         base_array_layer: 0,
         array_layer_count: None,
+        usage: None,
     });
 
     let u32_size = std::mem::size_of::<u32>() as u32;

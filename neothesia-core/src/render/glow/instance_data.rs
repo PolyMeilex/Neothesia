@@ -22,8 +22,8 @@ impl Default for GlowInstance {
 }
 
 impl GlowInstance {
-    pub fn attributes() -> [wgpu::VertexAttribute; 4] {
-        vertex_attr_array!(1 => Float32x2, 2 => Float32x2, 3 => Float32x4, 4 => Float32x4)
+    pub fn attributes() -> [wgpu::VertexAttribute; 3] {
+        vertex_attr_array!(1 => Float32x2, 2 => Float32x2, 3 => Float32x4)
     }
 
     pub fn layout(attributes: &[wgpu::VertexAttribute]) -> wgpu::VertexBufferLayout {

@@ -184,7 +184,7 @@ where
     fn update(
         &mut self,
         state: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: Cursor,
         renderer: &Renderer,
@@ -198,14 +198,7 @@ where
             .zip(layout.children())
             .for_each(|((child, state), layout)| {
                 child.as_widget_mut().update(
-                    state,
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                    viewport,
+                    state, event, layout, cursor, renderer, clipboard, shell, viewport,
                 )
             });
     }

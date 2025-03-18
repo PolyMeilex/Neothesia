@@ -142,7 +142,7 @@ impl<Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'_, Message> {
     fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
@@ -277,7 +277,7 @@ impl<Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'_, Message> {
             theme,
             &Style {
                 text_color: if self.disabled {
-                    Color::new(0.3, 0.3, 0.3, 1.0)
+                    Color::from_rgba(0.3, 0.3, 0.3, 1.0)
                 } else {
                     Color::WHITE
                 },

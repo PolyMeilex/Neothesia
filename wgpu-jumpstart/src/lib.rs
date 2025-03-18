@@ -15,7 +15,7 @@ mod transform_uniform;
 pub use wgpu;
 pub use {
     color::Color,
-    gpu::{default_backends, Gpu, Surface},
+    gpu::{Gpu, Surface},
     instances::Instances,
     render_pipeline_builder::{
         default_color_target_state, default_fragment, default_render_pipeline, default_vertex,

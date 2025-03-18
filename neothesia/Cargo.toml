@@ -25,7 +25,7 @@ midi-file.workspace = true
 midi-io.workspace = true
 nuon.workspace = true
 
-image = { version = "0.24", features = ["png"], default-features = false }
+image = { version = "0.25", features = ["png"], default-features = false }
 iced_graphics.workspace = true
 iced_core.workspace = true
 iced_runtime.workspace = true

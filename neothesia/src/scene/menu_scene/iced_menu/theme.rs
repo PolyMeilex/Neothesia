@@ -150,16 +150,23 @@ pub fn scrollable(
     status: iced_widget::scrollable::Status,
 ) -> iced_widget::scrollable::Style {
     match status {
-        iced_widget::scrollable::Status::Active => scrollable(
+        iced_widget::scrollable::Status::Active {
+            is_horizontal_scrollbar_disabled,
+            is_vertical_scrollbar_disabled,
+        } => scrollable(
             _theme,
             iced_widget::scrollable::Status::Hovered {
                 is_horizontal_scrollbar_hovered: false,
                 is_vertical_scrollbar_hovered: false,
+                is_horizontal_scrollbar_disabled,
+                is_vertical_scrollbar_disabled,
             },
         ),
         iced_widget::scrollable::Status::Hovered {
             is_horizontal_scrollbar_hovered,
             is_vertical_scrollbar_hovered,
+            is_horizontal_scrollbar_disabled: _,
+            is_vertical_scrollbar_disabled: _,
         } => iced_widget::scrollable::Style {
             container: iced_widget::container::Style::default(),
             vertical_rail: iced_widget::scrollable::Rail {
@@ -195,11 +202,15 @@ pub fn scrollable(
         iced_widget::scrollable::Status::Dragged {
             is_horizontal_scrollbar_dragged,
             is_vertical_scrollbar_dragged,
+            is_horizontal_scrollbar_disabled,
+            is_vertical_scrollbar_disabled,
         } => scrollable(
             _theme,
             iced_widget::scrollable::Status::Hovered {
                 is_horizontal_scrollbar_hovered: is_horizontal_scrollbar_dragged,
                 is_vertical_scrollbar_hovered: is_vertical_scrollbar_dragged,
+                is_horizontal_scrollbar_disabled,
+                is_vertical_scrollbar_disabled,
             },
         ),
     }

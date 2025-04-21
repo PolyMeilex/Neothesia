@@ -52,7 +52,6 @@ impl MidiTrack {
         track_color_id: usize,
         tempo_track: &TempoTrack,
         track_events: &[TrackEvent],
-        separate_channels: bool,
     ) -> Self {
         let (
             events,
@@ -63,7 +62,7 @@ impl MidiTrack {
                 has_other_than_drums,
                 ..
             },
-        ) = build(track_id, track_color_id, tempo_track, track_events, separate_channels);
+        ) = build(track_id, track_color_id, tempo_track, track_events);
 
         Self {
             track_id,
@@ -193,7 +192,6 @@ fn build(
     track_color_id: usize,
     tempo_track: &TempoTrack,
     track_events: &[TrackEvent],
-    separate_channels: bool,
 ) -> (Vec<MidiEvent>, EventsBuilder) {
     let mut builder = EventsBuilder::default();
 
@@ -205,13 +203,7 @@ fn build(
             match event.kind {
                 TrackEventKind::Midi { channel, message } => {
                     let timestamp = tempo_track.pulses_to_duration(pulses);
-                    let mut color_channel = channel;
-                    
-                    if separate_channels {
-                        color_channel = u4::new(track_color_id as u8);
-                    }
-                    
-                    Some(builder.on_event(color_channel, message, timestamp, track_id, track_color_id))
+                    Some(builder.on_event(channel, message, timestamp, track_id, track_color_id))
                 }
                 _ => None,
             }

@@ -162,7 +162,7 @@ fn midi_file_picker_update(
             data.is_loading = true;
 
             return Task::perform(
-                open_midi_file_picker(ctx.config.separate_channels()),
+                open_midi_file_picker(),
                 MidiFilePickerMessage::MidiFileLoaded,
             );
         }
@@ -178,7 +178,7 @@ fn midi_file_picker_update(
     Task::none()
 }
 
-async fn open_midi_file_picker(separate_channels: bool) -> Option<(midi_file::MidiFile, PathBuf)> {
+async fn open_midi_file_picker() -> Option<(midi_file::MidiFile, PathBuf)> {
     let file = rfd::AsyncFileDialog::new()
         .add_filter("midi", &["mid", "midi"])
         .pick_file()
@@ -190,7 +190,7 @@ async fn open_midi_file_picker(separate_channels: bool) -> Option<(midi_file::Mi
         let thread = async_thread::Builder::new()
             .name("midi-loader".into())
             .spawn(move || {
-                let midi = midi_file::MidiFile::new(file.path(), separate_channels);
+                let midi = midi_file::MidiFile::new(file.path());
 
                 if let Err(e) = &midi {
                     log::error!("{}", e);

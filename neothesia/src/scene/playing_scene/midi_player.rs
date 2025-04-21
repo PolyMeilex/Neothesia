@@ -66,7 +66,7 @@ impl MidiPlayer {
             };
             match config.player {
                 PlayerConfig::Auto => {
-                    self.output
+                    self.output // TODO: Send to multiple outputs
                         .midi_event(u4::new(channel), event.message); //
                 }
                 PlayerConfig::Human => {

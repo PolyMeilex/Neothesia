@@ -252,7 +252,7 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
     let separate_channels_settings = mouse_area(
         ActionRow::new()
             .title("Separate Channels")
-            .subtitle("Assign different MIDI channel output to each track")
+            .subtitle("Assign different MIDI channel to each track")
             .suffix(separate_channels_toggler),
     )
         .on_press(Event::SeparateChannels(

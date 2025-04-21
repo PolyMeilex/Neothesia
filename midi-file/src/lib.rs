@@ -144,6 +144,6 @@ mod tests {
 
     #[test]
     fn load() {
-        let _midi = MidiFile::new("../test.mid").unwrap();
+        let _midi = MidiFile::new("../test.mid", false).unwrap();
     }
 }

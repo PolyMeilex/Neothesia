@@ -29,7 +29,7 @@ pub enum Event {
     SelectInput(InputDescriptor),
     VerticalGuidelines(bool),
     HorizontalGuidelines(bool),
-
+    SeparateChannels(bool),
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
 
@@ -71,6 +71,9 @@ impl Page for SettingsPage {
             Event::HorizontalGuidelines(v) => {
                 ctx.config.set_horizontal_guidelines(v);
             }
+            Event::SeparateChannels(v) => {
+                ctx.config.set_separate_channels(v);
+            }   
             Event::OpenSoundFontPicker => {
                 data.is_loading = true;
 
@@ -241,11 +244,27 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
             .suffix(counter(ctx.config.audio_gain(), Event::AudioGain))
     });
 
+
+    let separate_channels_toggler = toggler(ctx.config.separate_channels())
+        .on_toggle(Event::SeparateChannels)
+        .style(theme::toggler);
+
+    let separate_channels_settings = mouse_area(
+        ActionRow::new()
+            .title("Separate Channels")
+            .subtitle("Assign different MIDI channel output to each track")
+            .suffix(separate_channels_toggler),
+    )
+        .on_press(Event::SeparateChannels(
+            !ctx.config.separate_channels(),
+        ));
+
     PreferencesGroup::new()
         .title("Output")
         .push(output_settings)
         .push_maybe(synth_settings)
         .push_maybe(synth_gain_settings)
+        .push(separate_channels_settings)
         .build()
 }
 

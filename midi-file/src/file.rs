@@ -13,7 +13,7 @@ pub struct MidiFile {
 }
 
 impl MidiFile {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+    pub fn new<P: AsRef<Path>>(path: P, separate_channels: bool) -> Result<Self, String> {
         let name = path
             .as_ref()
             .file_name()
@@ -50,10 +50,10 @@ impl MidiFile {
             .iter()
             .enumerate()
             .map(|(id, events)| {
-                let track = MidiTrack::new(id, track_color_id, &tempo_track, events);
+                let track = MidiTrack::new(id, track_color_id, &tempo_track, events, separate_channels);
 
                 if !track.notes.is_empty() {
-                    track_color_id += 1;
+                    track_color_id += 1; // track_color_id is used to assign color to the track
                 }
 
                 track

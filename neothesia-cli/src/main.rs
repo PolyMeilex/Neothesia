@@ -58,7 +58,7 @@ impl Recorder {
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
+            midi_file::MidiFile::new(&args[1], false).unwrap_or_else(|err| {
                 eprintln!("Error loading MIDI file: {}", err);
                 std::process::exit(1);
             })

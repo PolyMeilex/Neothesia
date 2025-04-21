@@ -53,7 +53,7 @@ impl MidiFile {
                 let track = MidiTrack::new(id, track_color_id, &tempo_track, events);
 
                 if !track.notes.is_empty() {
-                    track_color_id += 1; // track_color_id is used to assign color to the track
+                    track_color_id += 1;
                 }
 
                 track

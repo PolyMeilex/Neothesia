@@ -67,7 +67,7 @@ impl MidiPlayer {
             match config.player {
                 PlayerConfig::Auto => {
                     self.output // TODO: Send to multiple outputs
-                        .midi_event(u4::new(channel), event.message); //
+                        .midi_event(u4::new(channel), event.message);
                 }
                 PlayerConfig::Human => {
                     // Let's play the sound, in case the user does not want it they can just set

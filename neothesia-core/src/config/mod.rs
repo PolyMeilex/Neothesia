@@ -118,6 +118,14 @@ impl Config {
         self.keyboard_layout.range.1 = start.min(127);
     }
 
+    pub fn set_separate_channels(&mut self, separate_channels: bool) {
+        self.devices.separate_channels = separate_channels;
+    }
+
+    pub fn separate_channels(&self) -> bool {
+        self.devices.separate_channels
+    }
+
     pub fn vertical_guidelines(&self) -> bool {
         self.appearance.vertical_guidelines
     }

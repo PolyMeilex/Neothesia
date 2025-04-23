@@ -86,6 +86,7 @@ impl PlayingScene {
             ctx.output_manager.connection().clone(),
             song,
             keyboard_layout.range.clone(),
+            ctx.config.separate_channels(),
         );
         waterfall.update(&ctx.gpu.queue, player.time_without_lead_in());
 

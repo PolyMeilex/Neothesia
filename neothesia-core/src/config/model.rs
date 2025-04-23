@@ -126,6 +126,9 @@ pub struct DevicesConfigV1 {
     #[serde(default = "default_output")]
     pub output: Option<String>,
     pub input: Option<String>,
+
+    #[serde(default = "default_separate_channels")]
+    pub separate_channels: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -138,6 +141,7 @@ impl Default for DevicesConfig {
         Self::V1(DevicesConfigV1 {
             output: default_output(),
             input: None,
+            separate_channels: default_separate_channels(),
         })
     }
 }
@@ -205,6 +209,10 @@ fn default_vertical_guidelines() -> bool {
 
 fn default_horizontal_guidelines() -> bool {
     true
+}
+
+fn default_separate_channels() -> bool {
+    false
 }
 
 fn default_color_schema() -> Vec<ColorSchemaV1> {

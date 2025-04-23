@@ -15,6 +15,7 @@ pub struct MidiPlayer {
     output: OutputConnection,
     song: Song,
     play_along: PlayAlong,
+    separate_channels: bool,
 }
 
 impl MidiPlayer {
@@ -22,6 +23,7 @@ impl MidiPlayer {
         output: OutputConnection,
         song: Song,
         user_keyboard_range: piano_layout::KeyboardRange,
+        separate_channels: bool,
     ) -> Self {
         let mut player = Self {
             playback: midi_file::PlaybackState::new(
@@ -31,6 +33,7 @@ impl MidiPlayer {
             output,
             play_along: PlayAlong::new(user_keyboard_range),
             song,
+            separate_channels,
         };
         // Let's reset programs,
         // for timestamp 0 most likely all programs will be 0, so this should clean any leftovers
@@ -56,10 +59,15 @@ impl MidiPlayer {
         events.iter().for_each(|event| {
             let config = &self.song.config.tracks[event.track_id];
 
+            let channel = if self.separate_channels {
+                event.track_color_id as u8
+            } else {
+                event.channel
+            };
             match config.player {
                 PlayerConfig::Auto => {
-                    self.output
-                        .midi_event(u4::new(event.channel), event.message);
+                    self.output // TODO: Send to multiple outputs
+                        .midi_event(u4::new(channel), event.message);
                 }
                 PlayerConfig::Human => {
                     // Let's play the sound, in case the user does not want it they can just set

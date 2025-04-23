@@ -19,10 +19,13 @@ hero:
 
 features:
   - title: MIDI Visualizer
+    icon: 🎹
     details: Learn how to play piano by watching falling blocks with your favorite songs
   - title: Connect your MIDI keyboard
+    icon: 🔌
     details: Play along on your keyboard or use the integrated synthetizer
   - title: Cross-platform
+    icon: 💻
     details: Available on Linux, Windows and MacOS
 ---
 

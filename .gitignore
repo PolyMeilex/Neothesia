@@ -2,3 +2,5 @@
 **/*.rs.bk
 /settings.ron
 /out
+.DS_Store
+node_modules

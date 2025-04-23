@@ -73,7 +73,7 @@ impl Page for SettingsPage {
             }
             Event::SeparateChannels(v) => {
                 ctx.config.set_separate_channels(v);
-            }   
+            }
             Event::OpenSoundFontPicker => {
                 data.is_loading = true;
 
@@ -244,23 +244,19 @@ fn output_group<'a>(data: &'a Data, ctx: &Context) -> Element<'a, Event> {
             .suffix(counter(ctx.config.audio_gain(), Event::AudioGain))
     });
 
-
     let is_midi = matches!(data.selected_output, Some(OutputDescriptor::MidiOut(_)));
     let separate_channels_toggler = toggler(ctx.config.separate_channels())
         .on_toggle(Event::SeparateChannels)
         .style(theme::toggler);
 
     let separate_channels_settings = mouse_area(
-            ActionRow::new()
-                .title("Separate Channels")
-                .subtitle("Assign different MIDI channel to each track")
-                .suffix(separate_channels_toggler),
-        )
-        .on_press(Event::SeparateChannels(
-            !ctx.config.separate_channels(),
-        )
-    );
-    let separate_channels_settings = is_midi.then(||separate_channels_settings);
+        ActionRow::new()
+            .title("Separate Channels")
+            .subtitle("Assign different MIDI channel to each track")
+            .suffix(separate_channels_toggler),
+    )
+    .on_press(Event::SeparateChannels(!ctx.config.separate_channels()));
+    let separate_channels_settings = is_midi.then_some(separate_channels_settings);
 
     PreferencesGroup::new()
         .title("Output")

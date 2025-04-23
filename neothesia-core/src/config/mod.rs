@@ -121,7 +121,7 @@ impl Config {
     pub fn set_separate_channels(&mut self, separate_channels: bool) {
         self.devices.separate_channels = separate_channels;
     }
-    
+
     pub fn separate_channels(&self) -> bool {
         self.devices.separate_channels
     }

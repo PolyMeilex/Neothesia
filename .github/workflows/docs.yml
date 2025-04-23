@@ -1,4 +1,4 @@
-name: Deploy VitePress site to GitHub Pages
+name: Website
 
 on:
   push:

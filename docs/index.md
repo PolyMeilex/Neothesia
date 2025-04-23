@@ -4,7 +4,7 @@ layout: home
 
 hero:
   name: "Neothesia"
-  text: "Flashy Synthesia Like Software"
+  text: "Flashy MIDI Visualizer"
   tagline: Free and open source
   image:
     src: neothesia-icon.png
@@ -23,7 +23,7 @@ features:
     details: Learn how to play piano by watching falling blocks with your favorite songs
   - title: Connect your MIDI keyboard
     icon: 🔌
-    details: Play along on your keyboard or use the integrated synthetizer
+    details: Play along on your keyboard or use the integrated synthesizer
   - title: Cross-platform
     icon: 💻
     details: Available on Linux, Windows and MacOS
@@ -34,9 +34,6 @@ features:
 Neothesia is a cross-platform MIDI visualizer, build completely in Rust.
 It helps people to quickly learn how to play piano.
 It takes music notes from a MIDI file as an input and displays them as colorful falling blocks on a virtual piano.
-
-Opensource Synthesia was abandoned in favour of [closed source commercial project](https://www.synthesiagame.com/)  
-Goal of this project is to bring back Opensource Synthesia to life, and make it look and work as good (or even better) than commercial Synthesia.
 
 If you have any questions, feel free to join my Discord
 
@@ -52,9 +49,3 @@ If you have any questions, feel free to join my Discord
 | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/ReE9nVuMCSE?si=nLhOAUIzc5w9DaTo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
-## Thanks to
-
-- [WGPU](https://wgpu.rs/)
-- [Linthesia](https://github.com/linthesia/linthesia)
-- [Synthesia](https://github.com/johndpope/pianogame)

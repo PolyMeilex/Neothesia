@@ -3,6 +3,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "Neothesia",
   description: "Flashy Synthesia Like Software For Linux, Windows and MacOs",
+  base: "/Neothesia/",
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },

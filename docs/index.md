@@ -7,7 +7,7 @@ hero:
   text: "Flashy Synthesia Like Software"
   tagline: Free and open source
   image:
-    src: ./neothesia-icon.png
+    src: neothesia-icon.png
     alt: Neothesia Logo
   actions:
     - theme: brand

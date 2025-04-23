@@ -116,6 +116,12 @@
   :root {
     --vp-home-hero-image-filter: blur(68px);
   }
+
+  .VPHero .VPImage {
+    max-width: 210px !important;
+    max-height: 210px !important;
+    transform: translate(-50%, -50%) rotate(-2deg) !important;
+  }
 }
 
 /**

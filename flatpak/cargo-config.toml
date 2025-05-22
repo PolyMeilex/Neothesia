@@ -1,18 +1,14 @@
 [source.crates-io]
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/PolyMeilex/mpeg_encoder_next.git"]
-git = "https://github.com/PolyMeilex/mpeg_encoder_next.git"
+[source."git+https://github.com/iced-rs/cryoglyph.git?rev=be2defe4a13fd7c97c6f4c81e8e085463eb578dc"]
+git = "https://github.com/iced-rs/cryoglyph.git"
+rev = "be2defe4a13fd7c97c6f4c81e8e085463eb578dc"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/grovesNL/glyphon.git?rev=2caa9fc5e5923c1d827d177c3619cab7e9885b85"]
-git = "https://github.com/grovesNL/glyphon.git"
-rev = "2caa9fc5e5923c1d827d177c3619cab7e9885b85"
-replace-with = "vendored-sources"
-
-[source."git+https://github.com/iced-rs/iced.git?rev=fc285d3e461626408c56bbc1605fcf0c974b2f69"]
+[source."git+https://github.com/iced-rs/iced.git?rev=892ac1ce722a809e73aecd8d47ed4e7254d156df"]
 git = "https://github.com/iced-rs/iced.git"
-rev = "fc285d3e461626408c56bbc1605fcf0c974b2f69"
+rev = "892ac1ce722a809e73aecd8d47ed4e7254d156df"
 replace-with = "vendored-sources"
 
 [source.vendored-sources]

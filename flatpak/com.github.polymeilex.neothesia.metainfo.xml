@@ -7,6 +7,9 @@
   <project_license>GPL-3.0-only</project_license>
 
   <releases>
+    <release version="0.3.0" date="2025-23-05" timestamp="1747954829">
+      <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.3.0</url>
+    </release>
     <release version="0.2.0" date="2024-14-01" timestamp="1705211142">
       <url>https://github.com/PolyMeilex/Neothesia/releases/tag/v0.2.0</url>
     </release>

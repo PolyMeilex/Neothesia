@@ -1,7 +1,7 @@
 {
   "app-id": "com.github.polymeilex.neothesia",
   "runtime": "org.freedesktop.Platform",
-  "runtime-version": "21.08",
+  "runtime-version": "24.08",
   "sdk": "org.freedesktop.Sdk",
   "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
   "command": "neothesia",
@@ -10,8 +10,7 @@
     "--socket=fallback-x11",
     "--socket=wayland",
     "--socket=pulseaudio",
-    "--device=all",
-    "--filesystem=xdg-config/neothesia"
+    "--device=dri"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",
@@ -24,21 +23,29 @@
       "name": "neothesia",
       "buildsystem": "simple",
       "build-commands": [
-        "cargo --offline fetch --manifest-path Cargo.toml",
-        "cargo --offline build",
+        "mkdir .cargo",
+        "cp ./flatpak/cargo-config.toml .cargo/config.toml",
+        "cargo --offline build --release",
         "mkdir -p /app/share/neothesia/",
         "cp -ap ./default.sf2 /app/share/neothesia/default.sf2",
-        "install -Dm755 ./target/debug/neothesia -t /app/bin/",
+        "install -Dm755 ./target/release/neothesia -t /app/bin/",
         "install -Dm644 ./flatpak/com.github.polymeilex.neothesia.metainfo.xml -t /app/share/metainfo/",
         "install -Dm644 ./flatpak/com.github.polymeilex.neothesia.desktop -t /app/share/applications/",
         "install -Dm644 ./flatpak/com.github.polymeilex.neothesia.png -t /app/share/icons/hicolor/256x256/apps/"
       ],
       "sources": [
         {
-          "type": "dir",
-          "path": "../"
+          "type": "git",
+          "url": "https://github.com/PolyMeilex/Neothesia.git",
+          "tag": "v0.3.0",
+          "commit": "..."
         },
-        "cargo-sources.json"
+        {
+          "type": "archive",
+          "url": "https://github.com/flathub/com.github.polymeilex.neothesia/releases/download/0.2.0-vendor/vendor.tar.xz",
+          "sha256": "bdb3ed37cf2174f7122a6d10d87fac4f5eef649264f7beda0e6a88288f7f6ffb",
+          "dest": "vendor"
+        }
       ]
     }
   ]

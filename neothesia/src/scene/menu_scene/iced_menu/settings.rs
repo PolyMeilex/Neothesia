@@ -29,6 +29,7 @@ pub enum Event {
     SelectInput(InputDescriptor),
     VerticalGuidelines(bool),
     HorizontalGuidelines(bool),
+    Glow(bool),
     SeparateChannels(bool),
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
@@ -70,6 +71,9 @@ impl Page for SettingsPage {
             }
             Event::HorizontalGuidelines(v) => {
                 ctx.config.set_horizontal_guidelines(v);
+            }
+            Event::Glow(v) => {
+                ctx.config.set_glow(v);
             }
             Event::SeparateChannels(v) => {
                 ctx.config.set_separate_channels(v);
@@ -326,6 +330,10 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         .on_toggle(Event::HorizontalGuidelines)
         .style(theme::toggler);
 
+    let glow = toggler(ctx.config.glow())
+        .on_toggle(Event::Glow)
+        .style(theme::toggler);
+
     PreferencesGroup::new()
         .title("Render")
         .push(
@@ -347,6 +355,15 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
             .on_press(Event::HorizontalGuidelines(
                 !ctx.config.horizontal_guidelines(),
             )),
+        )
+        .push(
+            mouse_area(
+                ActionRow::new()
+                    .title("Glow")
+                    .subtitle("Key glow effect")
+                    .suffix(glow),
+            )
+            .on_press(Event::Glow(!ctx.config.glow())),
         )
         .build()
 }

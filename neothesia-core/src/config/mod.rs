@@ -142,6 +142,14 @@ impl Config {
         self.appearance.horizontal_guidelines = horizontal_guidelines;
     }
 
+    pub fn glow(&self) -> bool {
+        self.appearance.glow
+    }
+
+    pub fn set_glow(&mut self, glow: bool) {
+        self.appearance.glow = glow;
+    }
+
     pub fn last_opened_song(&self) -> Option<&PathBuf> {
         self.history.last_opened_song.as_ref()
     }

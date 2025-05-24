@@ -165,6 +165,9 @@ pub struct AppearanceConfigV1 {
 
     #[serde(default = "default_horizontal_guidelines")]
     pub horizontal_guidelines: bool,
+
+    #[serde(default = "default_glow")]
+    pub glow: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -179,6 +182,7 @@ impl Default for AppearanceConfig {
             background_color: Default::default(),
             vertical_guidelines: default_vertical_guidelines(),
             horizontal_guidelines: default_horizontal_guidelines(),
+            glow: default_glow(),
         })
     }
 }
@@ -208,6 +212,10 @@ fn default_vertical_guidelines() -> bool {
 }
 
 fn default_horizontal_guidelines() -> bool {
+    true
+}
+
+fn default_glow() -> bool {
     true
 }
 

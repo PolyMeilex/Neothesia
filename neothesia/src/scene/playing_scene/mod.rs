@@ -34,6 +34,11 @@ struct GlowState {
     time: f32,
 }
 
+struct Glow {
+    pipeline: GlowPipeline,
+    states: Vec<GlowState>,
+}
+
 pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
@@ -42,8 +47,7 @@ pub struct PlayingScene {
     player: MidiPlayer,
     rewind_controller: RewindController,
     quad_pipeline: QuadPipeline,
-    glow_pipeline: GlowPipeline,
-    glow_states: Vec<GlowState>,
+    glow: Option<Glow>,
     toast_manager: ToastManager,
 
     nuon: nuon::State,
@@ -109,8 +113,10 @@ impl PlayingScene {
             player,
             rewind_controller: RewindController::new(),
             quad_pipeline,
-            glow_pipeline: GlowPipeline::new(&ctx.gpu, &ctx.transform),
-            glow_states,
+            glow: ctx.config.glow().then_some(Glow {
+                pipeline: GlowPipeline::new(&ctx.gpu, &ctx.transform),
+                states: glow_states,
+            }),
             toast_manager: ToastManager::default(),
 
             nuon: nuon::State::new(),
@@ -120,11 +126,15 @@ impl PlayingScene {
     }
 
     fn update_glow(&mut self, delta: Duration) {
-        self.glow_pipeline.clear();
+        let Some(glow) = &mut self.glow else {
+            return;
+        };
+
+        glow.pipeline.clear();
 
         let key_states = self.keyboard.key_states();
         for key in self.keyboard.layout().keys.iter() {
-            let glow_state = &mut self.glow_states[key.id()];
+            let glow_state = &mut glow.states[key.id()];
             let glow_w = 150.0 + glow_state.time.sin() * 10.0;
             let glow_h = 150.0 + glow_state.time.sin() * 10.0;
 
@@ -138,7 +148,7 @@ impl PlayingScene {
                 color[1] += v;
                 color[2] += v;
                 color[3] = 0.2;
-                self.glow_pipeline.instances().push(GlowInstance {
+                glow.pipeline.instances().push(GlowInstance {
                     position: [key.x() - glow_w / 2.0 + key.width() / 2.0, y - glow_w / 2.0],
                     size: [glow_w, glow_h],
                     color,
@@ -204,7 +214,9 @@ impl Scene for PlayingScene {
         TopBar::update(self, ctx, delta);
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
-        self.glow_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
+        if let Some(glow) = &mut self.glow {
+            glow.pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
+        }
 
         if self.player.is_finished() && !self.player.is_paused() {
             ctx.proxy
@@ -222,7 +234,9 @@ impl Scene for PlayingScene {
         self.quad_pipeline.render(LAYER_BG, transform, rpass);
         self.waterfall.render(transform, rpass);
         self.quad_pipeline.render(LAYER_FG, transform, rpass);
-        self.glow_pipeline.render(transform, rpass);
+        if let Some(glow) = &self.glow {
+            glow.pipeline.render(transform, rpass);
+        }
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

@@ -1,5 +1,7 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GlowInstance, GlowPipeline, GuidelineRenderer, QuadPipeline};
+use neothesia_core::render::{
+    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadPipeline,
+};
 use std::time::Duration;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::{
@@ -43,6 +45,7 @@ pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
     guidelines: GuidelineRenderer,
+    note_labels: NoteLabels,
 
     player: MidiPlayer,
     rewind_controller: RewindController,
@@ -86,6 +89,8 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
+        let note_labels = NoteLabels::new(&song.file.tracks, &hidden_tracks);
+
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
             song,
@@ -108,6 +113,7 @@ impl PlayingScene {
         Self {
             keyboard,
             guidelines,
+            note_labels,
 
             waterfall,
             player,
@@ -208,6 +214,12 @@ impl Scene for PlayingScene {
         );
         self.keyboard
             .update(&mut self.quad_pipeline, LAYER_FG, &mut ctx.text_renderer);
+        self.note_labels.update(
+            &mut ctx.text_renderer,
+            self.keyboard.renderer(),
+            ctx.config.animation_speed(),
+            time,
+        );
 
         self.update_glow(delta);
 

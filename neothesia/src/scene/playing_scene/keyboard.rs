@@ -45,6 +45,10 @@ impl Keyboard {
         }
     }
 
+    pub fn renderer(&self) -> &KeyboardRenderer {
+        &self.renderer
+    }
+
     pub fn key_states(&self) -> &[KeyboardKeyState] {
         self.renderer.key_states()
     }

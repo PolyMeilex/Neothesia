@@ -91,7 +91,7 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let note_labels = NoteLabels::new(*keyboard.pos(), &song.file.tracks, &hidden_tracks);
+        let note_labels = NoteLabels::new(*keyboard.pos(), waterfall.notes());
 
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),

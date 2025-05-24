@@ -1,11 +1,6 @@
-use midi_file::MidiNote;
-use midi_file::MidiTrack;
-
 use crate::utils::Point;
 
-use super::KeyboardRenderer;
-use super::TextRenderer;
-use super::TextRendererInstance;
+use super::{waterfall::NoteList, KeyboardRenderer, TextRenderer, TextRendererInstance};
 
 #[derive(Default)]
 struct LabelsCache {
@@ -66,23 +61,15 @@ impl LabelsCache {
 
 pub struct NoteLabels {
     pos: Point<f32>,
-    notes: Box<[MidiNote]>,
+    notes: NoteList,
     labels_cache: LabelsCache,
 }
 
 impl NoteLabels {
-    pub fn new(pos: Point<f32>, tracks: &[MidiTrack], hidden_tracks: &[usize]) -> Self {
-        let mut notes: Vec<_> = tracks
-            .iter()
-            .filter(|track| !hidden_tracks.contains(&track.track_id))
-            .flat_map(|track| track.notes.iter().cloned())
-            .collect();
-        // We want to render newer notes on top of old notes
-        notes.sort_unstable_by_key(|note| note.start);
-
+    pub fn new(pos: Point<f32>, notes: &NoteList) -> Self {
         Self {
             pos,
-            notes: notes.into(),
+            notes: notes.clone(),
             labels_cache: LabelsCache::default(),
         }
     }
@@ -106,7 +93,7 @@ impl NoteLabels {
 
         let labels = self.labels_cache.get(keyboard, text.font_system());
 
-        for note in self.notes.iter() {
+        for note in self.notes.inner.iter() {
             let x = layout.keys[note.note as usize - range_start].x();
             let label_buffer = &labels[(note.note % 12) as usize];
 

@@ -20,11 +20,16 @@ pub struct TextArea {
     pub default_color: glyphon::Color,
 }
 
+struct TextShared {
+    viewport: glyphon::Viewport,
+    atlas: glyphon::TextAtlas,
+    swash_cache: glyphon::SwashCache,
+}
+
 pub struct TextRendererInstance {
     text_renderer: glyphon::TextRenderer,
     queue: Vec<TextArea>,
-    viewport: Rc<RefCell<glyphon::Viewport>>,
-    atlas: Rc<RefCell<glyphon::TextAtlas>>,
+    shared: Rc<RefCell<TextShared>>,
 }
 
 impl TextRendererInstance {
@@ -38,6 +43,7 @@ impl TextRendererInstance {
         text_renderer: &mut TextRenderer,
         gpu: &mut Gpu,
     ) {
+        let shared = &mut *self.shared.borrow_mut();
         let elements = self.queue.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
             left: area.left,
@@ -47,7 +53,7 @@ impl TextRendererInstance {
             default_color: area.default_color,
         });
 
-        self.viewport.borrow_mut().update(
+        shared.viewport.update(
             &gpu.queue,
             glyphon::Resolution {
                 width: logical_size.0,
@@ -61,10 +67,10 @@ impl TextRendererInstance {
                 &gpu.queue,
                 &mut gpu.encoder,
                 &mut text_renderer.font_system,
-                &mut self.atlas.borrow_mut(),
-                &self.viewport.borrow(),
+                &mut shared.atlas,
+                &shared.viewport,
                 elements,
-                &mut text_renderer.swash_cache,
+                &mut shared.swash_cache,
             )
             .unwrap();
 
@@ -72,18 +78,17 @@ impl TextRendererInstance {
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+        let shared = self.shared.borrow();
         self.text_renderer
-            .render(&self.atlas.borrow(), &self.viewport.borrow(), render_pass)
+            .render(&shared.atlas, &shared.viewport, render_pass)
             .unwrap();
     }
 }
 
 pub struct TextRenderer {
-    viewport: Rc<RefCell<glyphon::Viewport>>,
-    atlas: Rc<RefCell<glyphon::TextAtlas>>,
+    shared: Rc<RefCell<TextShared>>,
 
     font_system: glyphon::FontSystem,
-    swash_cache: glyphon::SwashCache,
     _cache: glyphon::Cache,
     text_renderer: glyphon::TextRenderer,
 
@@ -113,10 +118,12 @@ impl TextRenderer {
         let viewport = glyphon::Viewport::new(&gpu.device, &cache);
 
         Self {
-            viewport: Rc::new(RefCell::new(viewport)),
-            atlas: Rc::new(RefCell::new(atlas)),
+            shared: Rc::new(RefCell::new(TextShared {
+                viewport,
+                atlas,
+                swash_cache,
+            })),
             font_system,
-            swash_cache,
             _cache: cache,
             text_renderer,
             queue: Vec::new(),
@@ -125,7 +132,7 @@ impl TextRenderer {
 
     pub fn new_renderer(&mut self, gpu: &Gpu) -> TextRendererInstance {
         let text_renderer = glyphon::TextRenderer::new(
-            &mut self.atlas.borrow_mut(),
+            &mut self.shared.borrow_mut().atlas,
             &gpu.device,
             wgpu::MultisampleState::default(),
             None,
@@ -134,8 +141,7 @@ impl TextRenderer {
         TextRendererInstance {
             text_renderer,
             queue: Vec::new(),
-            viewport: self.viewport.clone(),
-            atlas: self.atlas.clone(),
+            shared: self.shared.clone(),
         }
     }
 
@@ -301,7 +307,8 @@ impl TextRenderer {
             default_color: area.default_color,
         });
 
-        self.viewport.borrow_mut().update(
+        let shared = &mut *self.shared.borrow_mut();
+        shared.viewport.update(
             &gpu.queue,
             glyphon::Resolution {
                 width: logical_size.0,
@@ -315,10 +322,10 @@ impl TextRenderer {
                 &gpu.queue,
                 &mut gpu.encoder,
                 &mut self.font_system,
-                &mut self.atlas.borrow_mut(),
-                &self.viewport.borrow(),
+                &mut shared.atlas,
+                &shared.viewport,
                 elements,
-                &mut self.swash_cache,
+                &mut shared.swash_cache,
             )
             .unwrap();
 
@@ -326,12 +333,13 @@ impl TextRenderer {
     }
 
     pub fn end_frame(&mut self) {
-        self.atlas.borrow_mut().trim();
+        self.shared.borrow_mut().atlas.trim();
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+        let shared = self.shared.borrow();
         self.text_renderer
-            .render(&self.atlas.borrow(), &self.viewport.borrow(), render_pass)
+            .render(&shared.atlas, &shared.viewport, render_pass)
             .unwrap();
     }
 }

@@ -91,7 +91,7 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let note_labels = NoteLabels::new(&song.file.tracks, &hidden_tracks);
+        let note_labels = NoteLabels::new(*keyboard.pos(), &song.file.tracks, &hidden_tracks);
 
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
@@ -189,6 +189,7 @@ impl PlayingScene {
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
+        self.note_labels.set_pos(*self.keyboard.pos());
 
         self.waterfall.resize(
             &ctx.gpu.device,

@@ -1,6 +1,8 @@
 use midi_file::MidiNote;
 use midi_file::MidiTrack;
 
+use crate::utils::Point;
+
 use super::KeyboardRenderer;
 use super::TextRenderer;
 use super::TextRendererInstance;
@@ -63,12 +65,13 @@ impl LabelsCache {
 }
 
 pub struct NoteLabels {
+    pos: Point<f32>,
     notes: Box<[MidiNote]>,
     labels_cache: LabelsCache,
 }
 
 impl NoteLabels {
-    pub fn new(tracks: &[MidiTrack], hidden_tracks: &[usize]) -> Self {
+    pub fn new(pos: Point<f32>, tracks: &[MidiTrack], hidden_tracks: &[usize]) -> Self {
         let mut notes: Vec<_> = tracks
             .iter()
             .filter(|track| !hidden_tracks.contains(&track.track_id))
@@ -78,9 +81,14 @@ impl NoteLabels {
         notes.sort_unstable_by_key(|note| note.start);
 
         Self {
+            pos,
             notes: notes.into(),
             labels_cache: LabelsCache::default(),
         }
+    }
+
+    pub fn set_pos(&mut self, pos: Point<f32>) {
+        self.pos = pos;
     }
 
     #[profiling::function]
@@ -93,7 +101,6 @@ impl NoteLabels {
         time: f32,
     ) {
         let range_start = keyboard.range().start() as usize;
-        let full_height = keyboard.pos().y + keyboard.layout().height;
         let layout = keyboard.layout();
         let label_width = layout.sizing.sharp_width;
 
@@ -103,22 +110,20 @@ impl NoteLabels {
             let x = layout.keys[note.note as usize - range_start].x();
             let label_buffer = &labels[(note.note % 12) as usize];
 
-            let y = (note.start.as_secs_f32() - time) * animation_speed
-                + keyboard.layout().height
-                + label_width;
+            let y = self.pos.y - (note.start.as_secs_f32() - time) * animation_speed - label_width;
 
-            if y > full_height {
+            if y < 0.0 {
                 break;
             }
 
-            if full_height - y > keyboard.pos().y {
+            if y > keyboard.pos().y {
                 continue;
             }
 
             text_instance.queue(super::text::TextArea {
                 buffer: label_buffer.clone(),
                 left: x,
-                top: full_height - y,
+                top: y,
                 scale: 1.0,
                 bounds: glyphon::TextBounds {
                     left: 0,

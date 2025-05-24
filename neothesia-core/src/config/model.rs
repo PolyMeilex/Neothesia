@@ -28,6 +28,9 @@ pub struct WaterfallConfigV1 {
 
     #[serde(default = "default_animation_offset")]
     pub animation_offset: f32,
+
+    #[serde(default = "default_note_labels")]
+    pub note_labels: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -40,6 +43,7 @@ impl Default for WaterfallConfig {
         Self::V1(WaterfallConfigV1 {
             animation_speed: default_animation_speed(),
             animation_offset: default_animation_offset(),
+            note_labels: default_note_labels(),
         })
     }
 }
@@ -201,6 +205,10 @@ fn default_animation_speed() -> f32 {
 
 fn default_animation_offset() -> f32 {
     0.0
+}
+
+fn default_note_labels() -> bool {
+    false
 }
 
 fn default_audio_gain() -> f32 {

@@ -1,3 +1,5 @@
+use wgpu_jumpstart::Gpu;
+
 use crate::utils::Point;
 
 use super::{waterfall::NoteList, KeyboardRenderer, TextRenderer, TextRendererInstance};
@@ -63,14 +65,16 @@ pub struct NoteLabels {
     pos: Point<f32>,
     notes: NoteList,
     labels_cache: LabelsCache,
+    text_renderer: TextRendererInstance,
 }
 
 impl NoteLabels {
-    pub fn new(pos: Point<f32>, notes: &NoteList) -> Self {
+    pub fn new(pos: Point<f32>, notes: &NoteList, text_renderer: TextRendererInstance) -> Self {
         Self {
             pos,
             notes: notes.clone(),
             labels_cache: LabelsCache::default(),
+            text_renderer,
         }
     }
 
@@ -82,7 +86,8 @@ impl NoteLabels {
     pub fn update(
         &mut self,
         text: &mut TextRenderer,
-        text_instance: &mut TextRendererInstance,
+        gpu: &mut Gpu,
+        logical_size: (u32, u32),
         keyboard: &KeyboardRenderer,
         animation_speed: f32,
         time: f32,
@@ -107,7 +112,7 @@ impl NoteLabels {
                 continue;
             }
 
-            text_instance.queue(super::text::TextArea {
+            self.text_renderer.queue(super::text::TextArea {
                 buffer: label_buffer.clone(),
                 left: x,
                 top: y,
@@ -121,5 +126,11 @@ impl NoteLabels {
                 default_color: glyphon::Color::rgb(255, 255, 255),
             });
         }
+
+        self.text_renderer.update(logical_size, text, gpu);
+    }
+
+    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+        self.text_renderer.render(render_pass);
     }
 }

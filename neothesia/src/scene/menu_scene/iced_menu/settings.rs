@@ -30,6 +30,7 @@ pub enum Event {
     VerticalGuidelines(bool),
     HorizontalGuidelines(bool),
     Glow(bool),
+    NoteLabels(bool),
     SeparateChannels(bool),
     OpenSoundFontPicker,
     SoundFontFileLoaded(Option<PathBuf>),
@@ -74,6 +75,9 @@ impl Page for SettingsPage {
             }
             Event::Glow(v) => {
                 ctx.config.set_glow(v);
+            }
+            Event::NoteLabels(v) => {
+                ctx.config.set_note_labels(v);
             }
             Event::SeparateChannels(v) => {
                 ctx.config.set_separate_channels(v);
@@ -334,6 +338,10 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
         .on_toggle(Event::Glow)
         .style(theme::toggler);
 
+    let note_labels = toggler(ctx.config.note_labels())
+        .on_toggle(Event::NoteLabels)
+        .style(theme::toggler);
+
     PreferencesGroup::new()
         .title("Render")
         .push(
@@ -364,6 +372,15 @@ fn guidelines_group<'a>(_data: &'a Data, ctx: &Context) -> Element<'a, Event> {
                     .suffix(glow),
             )
             .on_press(Event::Glow(!ctx.config.glow())),
+        )
+        .push(
+            mouse_area(
+                ActionRow::new()
+                    .title("Note labels")
+                    .subtitle("Display waterfall note labels")
+                    .suffix(note_labels),
+            )
+            .on_press(Event::NoteLabels(!ctx.config.note_labels())),
         )
         .build()
 }

@@ -227,6 +227,14 @@ impl Config {
         }
     }
 
+    pub fn set_note_labels(&mut self, show: bool) {
+        self.waterfall.note_labels = show;
+    }
+
+    pub fn note_labels(&self) -> bool {
+        self.waterfall.note_labels
+    }
+
     pub fn speed_multiplier(&self) -> f32 {
         self.playback.speed_multiplier
     }

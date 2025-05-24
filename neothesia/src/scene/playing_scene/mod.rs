@@ -1,5 +1,7 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GlowInstance, GlowPipeline, GuidelineRenderer, QuadPipeline};
+use neothesia_core::render::{
+    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadPipeline,
+};
 use std::time::Duration;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::{
@@ -44,6 +46,8 @@ pub struct PlayingScene {
     waterfall: WaterfallRenderer,
     guidelines: GuidelineRenderer,
 
+    note_labels: Option<NoteLabels>,
+
     player: MidiPlayer,
     rewind_controller: RewindController,
     quad_pipeline: QuadPipeline,
@@ -56,7 +60,7 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(ctx: &Context, song: Song) -> Self {
+    pub fn new(ctx: &mut Context, song: Song) -> Self {
         let keyboard = Keyboard::new(ctx, song.config.clone());
 
         let keyboard_layout = keyboard.layout();
@@ -86,6 +90,12 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
+        let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
+            *keyboard.pos(),
+            waterfall.notes(),
+            ctx.text_renderer.new_renderer(&ctx.gpu),
+        ));
+
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
             song,
@@ -108,6 +118,7 @@ impl PlayingScene {
         Self {
             keyboard,
             guidelines,
+            note_labels,
 
             waterfall,
             player,
@@ -180,6 +191,9 @@ impl PlayingScene {
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.set_pos(*self.keyboard.pos());
+        }
 
         self.waterfall.resize(
             &ctx.gpu.device,
@@ -208,6 +222,16 @@ impl Scene for PlayingScene {
         );
         self.keyboard
             .update(&mut self.quad_pipeline, LAYER_FG, &mut ctx.text_renderer);
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.update(
+                &mut ctx.text_renderer,
+                &mut ctx.gpu,
+                ctx.window_state.logical_size.into(),
+                self.keyboard.renderer(),
+                ctx.config.animation_speed(),
+                time,
+            );
+        }
 
         self.update_glow(delta);
 
@@ -233,6 +257,9 @@ impl Scene for PlayingScene {
     ) {
         self.quad_pipeline.render(LAYER_BG, transform, rpass);
         self.waterfall.render(transform, rpass);
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.render(rpass);
+        }
         self.quad_pipeline.render(LAYER_FG, transform, rpass);
         if let Some(glow) = &self.glow {
             glow.pipeline.render(transform, rpass);

@@ -142,7 +142,7 @@ impl Neothesia {
             NeothesiaEvent::Play(song) => {
                 self.context.iced_manager.renderer.clear();
 
-                let to = playing_scene::PlayingScene::new(&self.context, song);
+                let to = playing_scene::PlayingScene::new(&mut self.context, song);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MainMenu(song) => {
@@ -236,11 +236,10 @@ impl Neothesia {
             .iced_manager
             .engine
             .submit(&self.context.gpu.queue, encoder);
-        self.context.text_renderer.end_frame();
 
         frame.present();
 
-        self.context.text_renderer.atlas().trim();
+        self.context.text_renderer.end_frame();
     }
 }
 

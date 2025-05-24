@@ -1,17 +1,40 @@
-use crate::config::Config;
-use crate::TransformUniform;
-use crate::Uniform;
-use midi_file::MidiNote;
-use midi_file::MidiTrack;
-use wgpu_jumpstart::Color;
-use wgpu_jumpstart::Gpu;
+use std::rc::Rc;
+
+use crate::{config::Config, TransformUniform, Uniform};
+use midi_file::{MidiNote, MidiTrack};
+use wgpu_jumpstart::{Color, Gpu};
 
 mod pipeline;
 use pipeline::{NoteInstance, WaterfallPipeline};
 
+#[derive(Clone)]
+pub struct NoteList {
+    pub(crate) inner: Rc<[MidiNote]>,
+}
+
+impl NoteList {
+    fn new(tracks: &[MidiTrack], hidden_tracks: &[usize]) -> Self {
+        let mut notes: Vec<_> = tracks
+            .iter()
+            .filter(|track| !hidden_tracks.contains(&track.track_id))
+            .flat_map(|track| track.notes.iter().cloned())
+            .collect();
+        // We want to render newer notes on top of old notes
+        notes.sort_unstable_by_key(|note| note.start);
+
+        Self {
+            inner: notes.into(),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
 pub struct WaterfallRenderer {
     notes_pipeline: WaterfallPipeline,
-    notes: Box<[MidiNote]>,
+    notes: NoteList,
 }
 
 impl WaterfallRenderer {
@@ -23,18 +46,12 @@ impl WaterfallRenderer {
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_layout::KeyboardLayout,
     ) -> Self {
-        let mut notes: Vec<_> = tracks
-            .iter()
-            .filter(|track| !hidden_tracks.contains(&track.track_id))
-            .flat_map(|track| track.notes.iter().cloned())
-            .collect();
-        // We want to render newer notes on top of old notes
-        notes.sort_unstable_by_key(|note| note.start);
+        let notes = NoteList::new(tracks, hidden_tracks);
 
         let notes_pipeline = WaterfallPipeline::new(gpu, transform_uniform, notes.len());
         let mut notes = Self {
             notes_pipeline,
-            notes: notes.into(),
+            notes,
         };
         notes
             .notes_pipeline
@@ -45,6 +62,10 @@ impl WaterfallRenderer {
 
     pub fn pipeline(&mut self) -> &mut WaterfallPipeline {
         &mut self.notes_pipeline
+    }
+
+    pub fn notes(&self) -> &NoteList {
+        &self.notes
     }
 
     pub fn resize(
@@ -59,7 +80,7 @@ impl WaterfallRenderer {
         self.notes_pipeline.clear();
 
         let mut longer_than_range = false;
-        for note in self.notes.iter() {
+        for note in self.notes.inner.iter() {
             if layout.range.contains(note.note) && note.channel != 9 {
                 let key = &layout.keys[note.note as usize - range_start];
 

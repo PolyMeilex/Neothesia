@@ -237,6 +237,7 @@ impl Neothesia {
             .engine
             .submit(&self.context.gpu.queue, encoder);
 
+        self.context.window.pre_present_notify();
         frame.present();
 
         self.context.text_renderer.end_frame();

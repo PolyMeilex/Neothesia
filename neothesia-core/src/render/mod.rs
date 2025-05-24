@@ -13,5 +13,5 @@ pub use guidelines::GuidelineRenderer;
 pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};
 pub use note_labels::NoteLabels;
 pub use quad::{QuadInstance, QuadPipeline};
-pub use text::TextRenderer;
+pub use text::{TextRenderer, TextRendererInstance};
 pub use waterfall::WaterfallRenderer;

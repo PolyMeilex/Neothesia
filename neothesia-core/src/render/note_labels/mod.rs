@@ -3,6 +3,7 @@ use midi_file::MidiTrack;
 
 use super::KeyboardRenderer;
 use super::TextRenderer;
+use super::TextRendererInstance;
 
 pub struct NoteLabels {
     notes: Box<[MidiNote]>,
@@ -68,6 +69,7 @@ impl NoteLabels {
     pub fn update(
         &mut self,
         text: &mut TextRenderer,
+        text_instance: &mut TextRendererInstance,
         keyboard: &KeyboardRenderer,
         animation_speed: f32,
         time: f32,
@@ -95,7 +97,7 @@ impl NoteLabels {
                 continue;
             }
 
-            text.queue(super::text::TextArea {
+            text_instance.queue(super::text::TextArea {
                 buffer: label_buffer.clone(),
                 left: x,
                 top: full_height - y,

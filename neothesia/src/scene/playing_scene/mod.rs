@@ -1,6 +1,6 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
-    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadPipeline,
+    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadPipeline, TextRendererInstance,
 };
 use std::time::Duration;
 use wgpu_jumpstart::{TransformUniform, Uniform};
@@ -45,6 +45,8 @@ pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
     guidelines: GuidelineRenderer,
+
+    note_labels_text: TextRendererInstance,
     note_labels: NoteLabels,
 
     player: MidiPlayer,
@@ -59,7 +61,7 @@ pub struct PlayingScene {
 }
 
 impl PlayingScene {
-    pub fn new(ctx: &Context, song: Song) -> Self {
+    pub fn new(ctx: &mut Context, song: Song) -> Self {
         let keyboard = Keyboard::new(ctx, song.config.clone());
 
         let keyboard_layout = keyboard.layout();
@@ -113,6 +115,7 @@ impl PlayingScene {
         Self {
             keyboard,
             guidelines,
+            note_labels_text: ctx.text_renderer.new_renderer(&ctx.gpu),
             note_labels,
 
             waterfall,
@@ -216,9 +219,15 @@ impl Scene for PlayingScene {
             .update(&mut self.quad_pipeline, LAYER_FG, &mut ctx.text_renderer);
         self.note_labels.update(
             &mut ctx.text_renderer,
+            &mut self.note_labels_text,
             self.keyboard.renderer(),
             ctx.config.animation_speed(),
             time,
+        );
+        self.note_labels_text.update(
+            ctx.window_state.logical_size.into(),
+            &mut ctx.text_renderer,
+            &mut ctx.gpu,
         );
 
         self.update_glow(delta);
@@ -245,6 +254,7 @@ impl Scene for PlayingScene {
     ) {
         self.quad_pipeline.render(LAYER_BG, transform, rpass);
         self.waterfall.render(transform, rpass);
+        self.note_labels_text.render(rpass);
         self.quad_pipeline.render(LAYER_FG, transform, rpass);
         if let Some(glow) = &self.glow {
             glow.pipeline.render(transform, rpass);

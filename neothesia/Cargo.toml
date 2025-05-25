@@ -33,10 +33,10 @@ iced_wgpu.workspace = true
 iced_widget.workspace = true
 iced_renderer = { workspace = true, features = ["wgpu"]}
 
-lilt = "0.7"
+lilt = "0.8"
 fps_ticker = "1"
 winit = { version = "0.30", features = ["rwh_05"] }
-rfd = "0.14"
+rfd = "0.15"
 async-thread = "0.1"
 
 cpal = { version = "0.15", optional = true }
@@ -51,5 +51,5 @@ puffin_http = "0.16"
 name = "neothesia"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
-image = "0.24"
-embed-resource = "2.4"
+image = "0.25"
+embed-resource = "3.0"

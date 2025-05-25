@@ -287,9 +287,12 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         let window_state = WindowState::new(&window);
         let size = window.inner_size();
         let window = Arc::new(window);
-        let (gpu, surface) =
-            futures::executor::block_on(Gpu::for_window(window.clone(), size.width, size.height))
-                .unwrap();
+        let (gpu, surface) = futures::executor::block_on(Gpu::for_window(
+            || window.clone().into(),
+            size.width,
+            size.height,
+        ))
+        .unwrap();
 
         let ctx = Context::new(window, window_state, self.1.clone(), gpu);
 
@@ -327,7 +330,7 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
 
 fn main() {
     env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("warn, wgpu_hal=error, oxisynth=error"),
+        env_logger::Env::default().default_filter_or("info, wgpu_hal=error, oxisynth=error"),
     )
     .init();
 

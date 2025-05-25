@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ron = "0.8"
+ron = "0.10"
 serde = { version = "1", features = ["serde_derive"] }
 
 log.workspace = true

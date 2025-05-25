@@ -32,7 +32,7 @@ where
 
     pub fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         if self.capacity < self.data.len() {
-            log::warn!(
+            log::trace!(
                 "Dynamically growing instances buffer from {} to {}",
                 self.capacity,
                 self.data.len()

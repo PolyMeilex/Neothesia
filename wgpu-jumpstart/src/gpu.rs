@@ -11,15 +11,68 @@ pub struct Gpu {
 }
 
 impl Gpu {
+    async fn try_init(
+        window: wgpu::SurfaceTarget<'static>,
+        desc: &wgpu::InstanceDescriptor,
+    ) -> Result<(Self, wgpu::Surface<'static>), GpuInitError> {
+        log::info!("Trying to initialize GPU with: {:?}", desc.backends);
+
+        let instance = wgpu::Instance::new(desc);
+        let surface = instance.create_surface(window)?;
+
+        Ok((Self::new(&instance, Some(&surface)).await?, surface))
+    }
+
     pub async fn for_window(
-        window: impl Into<wgpu::SurfaceTarget<'static>>,
+        window: impl Fn() -> wgpu::SurfaceTarget<'static>,
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+        enum FallbackStateMachine {
+            DefaultOrEnv,
+            Dx12,
+            Vulkan,
+            Gl,
+        }
 
-        let surface = instance.create_surface(window.into())?;
-        let gpu = Self::new(&instance, Some(&surface)).await?;
+        let mut state_machine = FallbackStateMachine::DefaultOrEnv;
+        let mut desc = wgpu::InstanceDescriptor::from_env_or_default();
+
+        let (gpu, surface) = loop {
+            let res = Self::try_init(window(), &desc).await;
+
+            match res {
+                Ok(res) => break res,
+                Err(err) if cfg!(target_os = "macos") => return Err(err),
+                // Wgpu backend picking leaves much to be desired, so let's bruteforce all possible
+                // backend options manually before giving up
+                Err(err) => match state_machine {
+                    FallbackStateMachine::DefaultOrEnv => {
+                        if cfg!(target_os = "windows") {
+                            log::error!("'{err}': fallbacking to DX12");
+                            desc.backends = wgpu::Backends::DX12;
+                            state_machine = FallbackStateMachine::Dx12;
+                        } else {
+                            log::error!("'{err}': fallbacking to Vulkan");
+                            desc.backends = wgpu::Backends::VULKAN;
+                            state_machine = FallbackStateMachine::Vulkan;
+                        }
+                    }
+                    FallbackStateMachine::Dx12 => {
+                        log::error!("'{err}': fallbacking to Vulkan");
+                        desc.backends = wgpu::Backends::VULKAN;
+                        state_machine = FallbackStateMachine::Vulkan;
+                    }
+                    FallbackStateMachine::Vulkan => {
+                        log::error!("'{err}': fallbacking to OpenGl");
+                        desc.backends = wgpu::Backends::GL;
+                        state_machine = FallbackStateMachine::Gl;
+                    }
+                    FallbackStateMachine::Gl => return Err(err),
+                },
+            }
+        };
+
         let surface = Surface::new(&gpu.device, surface, gpu.texture_format, width, height);
 
         Ok((gpu, surface))

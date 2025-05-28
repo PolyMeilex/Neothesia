@@ -7,7 +7,7 @@ edition = "2021"
 iced_graphics.workspace = true
 
 bytemuck.workspace = true
-cryoglyph.workspace = true
+glyphon.workspace = true
 guillotiere.workspace = true
 log.workspace = true
 rustc-hash.workspace = true

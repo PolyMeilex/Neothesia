@@ -14,6 +14,7 @@ members = [
   "iced-widget",
   "iced-wgpu",
   "iced-runtime",
+  "iced-graphics",
 ]
 
 default-members = ["neothesia"]
@@ -23,7 +24,6 @@ resolver = "2"
 wgpu = "24"
 glyphon = { package = "cryoglyph", git = "https://github.com/iced-rs/cryoglyph.git", rev = "a456d1c17bbcf33afcca41d9e5e299f9f1193819" }
 
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "a456d1c17bbcf33afcca41d9e5e299f9f1193819" }
 glam = "0.30"
 guillotiere = "0.6"
 rustc-hash = "2.0"
@@ -47,10 +47,15 @@ unicode-segmentation = "1.12.0"
 
 profiling = "1.0"
 
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45", features = [
+iced_graphics = { path = "./iced-graphics", features = [
   "image",
 ] }
 iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45" }
 iced_runtime = { path  = "./iced-runtime" }
 iced_wgpu = { path = "./iced-wgpu" }
 iced_widget = { path = "./iced-widget" }
+
+half = "2.2"
+cosmic-text = "0.14"
+image = { version = "0.25", default-features = false }
+thiserror = "2.0"

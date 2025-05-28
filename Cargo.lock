@@ -1613,35 +1613,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "iced_futures"
-version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?rev=f929a20d29689af4ac873c1b34282c1f37f38f45#f929a20d29689af4ac873c1b34282c1f37f38f45"
-dependencies = [
- "futures",
- "iced_core",
- "log",
- "rustc-hash 2.1.1",
- "wasm-bindgen-futures",
- "wasmtimer",
-]
-
-[[package]]
 name = "iced_graphics"
-version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?rev=f929a20d29689af4ac873c1b34282c1f37f38f45#f929a20d29689af4ac873c1b34282c1f37f38f45"
+version = "0.0.0"
 dependencies = [
- "bitflags 2.9.1",
  "bytemuck",
  "cosmic-text",
  "half",
  "iced_core",
- "iced_futures",
  "image",
- "kamadak-exif",
  "log",
- "raw-window-handle 0.6.2",
  "rustc-hash 2.1.1",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "unicode-segmentation",
 ]
 
@@ -1956,15 +1938,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kamadak-exif"
-version = "0.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef4fc70d0ab7e5b6bafa30216a6b48705ea964cdfc29c050f2412295eba58077"
-dependencies = [
- "mutate_once",
-]
-
-[[package]]
 name = "khronos-egl"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2246,12 +2219,6 @@ version = "0.2.1"
 dependencies = [
  "ffmpeg-sys-next",
 ]
-
-[[package]]
-name = "mutate_once"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16cf681a23b4d0a43fc35024c176437f9dcd818db34e0f42ab456a0ee5ad497b"
 
 [[package]]
 name = "naga"
@@ -4589,20 +4556,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "wasmtimer"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0048ad49a55b9deb3953841fa1fc5858f0efbcb7a18868c899a360269fac1b23"
-dependencies = [
- "futures",
- "js-sys",
- "parking_lot",
- "pin-utils",
- "slab",
- "wasm-bindgen",
 ]
 
 [[package]]

@@ -46,7 +46,7 @@ impl LabelsCache {
                 buffer.set_text(
                     font_system,
                     label,
-                    glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+                    &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                     glyphon::Shaping::Basic,
                 );
                 buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));

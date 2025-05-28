@@ -160,7 +160,7 @@ impl TextRenderer {
         buffer.set_text(
             &mut self.font_system,
             text,
-            glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+            &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
         buffer.shape_until_scroll(&mut self.font_system, false);
@@ -215,7 +215,7 @@ impl TextRenderer {
         let mut buffer =
             glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));
         buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
-        buffer.set_text(&mut self.font_system, text, attrs, glyphon::Shaping::Basic);
+        buffer.set_text(&mut self.font_system, text, &attrs, glyphon::Shaping::Basic);
         buffer.shape_until_scroll(&mut self.font_system, false);
         buffer
     }
@@ -258,7 +258,7 @@ impl TextRenderer {
         buffer.set_text(
             &mut self.font_system,
             icon,
-            glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
+            &glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
             glyphon::Shaping::Basic,
         );
         buffer.shape_until_scroll(&mut self.font_system, false);
@@ -281,7 +281,7 @@ impl TextRenderer {
         buffer.set_text(
             &mut self.font_system,
             &text,
-            glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+            &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
         buffer.shape_until_scroll(&mut self.font_system, false);

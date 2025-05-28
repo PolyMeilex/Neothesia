@@ -144,7 +144,7 @@ impl KeyboardRenderer {
             buffer.set_text(
                 font_system,
                 &format!("C{}", oct_number as i8 - 1),
-                glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+                &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                 glyphon::Shaping::Basic,
             );
             buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));

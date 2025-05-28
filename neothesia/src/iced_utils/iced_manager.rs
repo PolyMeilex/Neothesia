@@ -1,7 +1,6 @@
 pub struct IcedManager {
     pub renderer: iced_wgpu::Renderer,
     pub viewport: iced_wgpu::graphics::Viewport,
-    // pub debug: iced_runtime::debug::Debug,
     pub engine: iced_wgpu::Engine,
 }
 
@@ -14,8 +13,6 @@ impl IcedManager {
         physical_size: (u32, u32),
         scale_factor: f64,
     ) -> Self {
-        // let debug = iced_runtime::Debug::new();
-
         let engine =
             iced_wgpu::Engine::new(adapter, device.clone(), queue.clone(), texture_format, None);
 

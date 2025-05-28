@@ -1,0 +1,7 @@
+[package]
+name = "iced_runtime"
+description = "A renderer-agnostic runtime for iced"
+edition = "2021"
+
+[dependencies]
+iced_core.workspace = true

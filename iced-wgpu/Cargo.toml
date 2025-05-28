@@ -1,0 +1,14 @@
+[package]
+name = "iced_wgpu"
+description = "A renderer for iced on top of wgpu"
+edition = "2021"
+
+[dependencies]
+iced_graphics.workspace = true
+
+bytemuck.workspace = true
+cryoglyph.workspace = true
+guillotiere.workspace = true
+log.workspace = true
+rustc-hash.workspace = true
+wgpu.workspace = true

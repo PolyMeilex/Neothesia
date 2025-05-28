@@ -219,23 +219,15 @@ impl Neothesia {
             self.context.text_renderer.render(&mut rpass);
         }
 
+        let encoder = self.context.gpu.take();
+        self.context.gpu.queue.submit([encoder.finish()]);
+
         self.context.iced_manager.renderer.present(
-            &mut self.context.iced_manager.engine,
-            &self.context.gpu.device,
-            &self.context.gpu.queue,
-            &mut self.context.gpu.encoder,
             None,
             self.context.gpu.texture_format,
             view,
             &self.context.iced_manager.viewport,
-            &self.context.iced_manager.debug.overlay(),
         );
-
-        let encoder = self.context.gpu.take();
-        self.context
-            .iced_manager
-            .engine
-            .submit(&self.context.gpu.queue, encoder);
 
         self.context.window.pre_present_notify();
         frame.present();

@@ -57,7 +57,6 @@ where
     cache: Option<user_interface::Cache>,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
-    mouse_interaction: mouse::Interaction,
 }
 
 impl<P> State<P>
@@ -81,7 +80,6 @@ where
             cache,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
-            mouse_interaction: mouse::Interaction::Idle,
         }
     }
 
@@ -140,7 +138,7 @@ where
         messages.append(&mut self.queued_messages);
         self.queued_events.clear();
 
-        self.mouse_interaction = user_interface.draw(
+        user_interface.draw(
             &mut ctx.iced_manager.renderer,
             &Theme::Dark,
             &iced_core::renderer::Style {

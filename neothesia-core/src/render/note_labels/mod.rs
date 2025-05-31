@@ -92,13 +92,17 @@ impl NoteLabels {
         animation_speed: f32,
         time: f32,
     ) {
-        let range_start = keyboard.range().start() as usize;
         let layout = keyboard.layout();
+        let range_start = layout.range.start() as usize;
         let label_width = layout.sizing.sharp_width;
 
         let labels = self.labels_cache.get(keyboard, text.font_system());
 
         for note in self.notes.inner.iter() {
+            if !layout.range.contains(note.note) || note.channel == 9 {
+                continue;
+            }
+
             let x = layout.keys[note.note as usize - range_start].x();
             let label_buffer = &labels[(note.note % 12) as usize];
 

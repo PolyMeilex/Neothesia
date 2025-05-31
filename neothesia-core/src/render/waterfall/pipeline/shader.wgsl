@@ -39,30 +39,34 @@ struct VertexOutput {
 @vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     let speed = time_uniform.speed / view_uniform.scale;
+
     let size = vec2<f32>(note.size.x, note.size.y * abs(speed));
 
-    let keyboard_start_y = view_uniform.size.y - view_uniform.size.y / 5.0;
-    let y = keyboard_start_y - size.y / 2.0;
-    var pos = vec2<f32>(note.n_position.x, y) - vec2<f32>(0.0, size.y / 2.0);
+    // In an ideal world this should not be hard-coded
+    let keyboard_h = view_uniform.size.y / 5.0;
+    let keyboard_y = view_uniform.size.y - keyboard_h;
 
-    // If notes are falling from down to top, we need to adjust the position,
-    // as their start is on top of the quad rather than down
-    if speed < 0.0 {
-        pos.y += size.y;
+    var pos = vec2<f32>(note.n_position.x, keyboard_y);
+
+    if speed > 0.0 {
+        // If notes are falling from top to down, we need to adjust the position,
+        // as their start is on bottom of the quad rather than top
+        pos.y -= size.y;
     }
 
-    let offset = vec2<f32>(0.0, -(note.n_position.y - time_uniform.time) * speed);
+    // Offset position by playback time
+    pos.y -= (note.n_position.y - time_uniform.time) * speed;
 
     let transform = mat4x4<f32>(
-        vec4<f32>(size.x, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, size.y, 0.0, 0.0),
-        vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(pos + offset, 0.0, 1.0)
+        vec4<f32>(size.x, 0.0,    0.0, 0.0),
+        vec4<f32>(0.0,    size.y, 0.0, 0.0),
+        vec4<f32>(0.0,    0.0,    1.0, 0.0),
+        vec4<f32>(pos.x,  pos.y,  0.0, 1.0)
     );
 
     var out: VertexOutput;
     out.position = view_uniform.transform * transform * vec4<f32>(vertex.position, 0.0, 1.0);
-    out.note_pos = pos + offset;
+    out.note_pos = pos;
 
     out.src_position = vertex.position;
     out.size = size;

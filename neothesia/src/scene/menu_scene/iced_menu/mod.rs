@@ -151,11 +151,7 @@ impl Program for AppUi {
         }
     }
 
-    fn keyboard_input(
-        &self,
-        event: &iced_runtime::keyboard::Event,
-        ctx: &Context,
-    ) -> Option<Message> {
+    fn keyboard_input(&self, event: &iced_core::keyboard::Event, ctx: &Context) -> Option<Message> {
         match self.current() {
             Step::Exit => ExitPage::keyboard_input(event, ctx),
             Step::Main => MainPage::keyboard_input(event, ctx),

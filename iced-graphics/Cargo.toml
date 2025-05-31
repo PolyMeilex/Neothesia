@@ -1,0 +1,21 @@
+[package]
+name = "iced_graphics"
+description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for iced"
+edition = "2021"
+
+[features]
+image = ["dep:image"]
+
+[dependencies]
+iced_core.workspace = true
+
+bytemuck.workspace = true
+cosmic-text.workspace = true
+half.workspace = true
+log.workspace = true
+rustc-hash.workspace = true
+thiserror.workspace = true
+unicode-segmentation.workspace = true
+
+image.workspace = true
+image.optional = true

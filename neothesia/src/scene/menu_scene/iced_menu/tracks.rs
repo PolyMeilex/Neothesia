@@ -213,8 +213,8 @@ impl Page for TracksPage {
             .into()
     }
 
-    fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {
-        use iced_runtime::keyboard::{key::Named, Event, Key};
+    fn keyboard_input(event: &iced_core::keyboard::Event, _ctx: &Context) -> Option<Message> {
+        use iced_core::keyboard::{key::Named, Event, Key};
 
         match event {
             Event::KeyPressed {

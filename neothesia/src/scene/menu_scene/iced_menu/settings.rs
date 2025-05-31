@@ -85,8 +85,10 @@ impl Page for SettingsPage {
             Event::OpenSoundFontPicker => {
                 data.is_loading = true;
 
-                let cmd = Task::perform(open_sound_font_picker(), Event::SoundFontFileLoaded)
-                    .map(Message::SettingsPage);
+                let cmd = Task::future(async {
+                    Event::SoundFontFileLoaded(open_sound_font_picker().await)
+                })
+                .map(Message::SettingsPage);
                 return PageMessage::Command(cmd);
             }
             Event::SoundFontFileLoaded(font) => {
@@ -196,8 +198,8 @@ impl Page for SettingsPage {
             .into()
     }
 
-    fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {
-        use iced_runtime::keyboard::{key::Named, Event, Key};
+    fn keyboard_input(event: &iced_core::keyboard::Event, _ctx: &Context) -> Option<Message> {
+        use iced_core::keyboard::{key::Named, Event, Key};
 
         match event {
             Event::KeyPressed {

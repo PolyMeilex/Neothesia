@@ -111,7 +111,7 @@ where
     ///
     /// Returns the [`Command`] obtained from [`Program`] after updating it,
     /// only if an update was necessary.
-    pub fn update(&mut self, ctx: &mut Context) -> Option<Task<P::Message>> {
+    pub fn update(&mut self, ctx: &mut Context) -> Option<Vec<Task<P::Message>>> {
         let bounds = ctx.iced_manager.viewport.logical_size();
         let cursor_position = iced_conversion::cursor_position(
             ctx.window_state.cursor_physical_position,
@@ -154,8 +154,9 @@ where
         } else {
             let commands = messages
                 .into_iter()
-                .map(|message| self.program.update(ctx, message));
-            Some(Task::batch(commands))
+                .map(|message| self.program.update(ctx, message))
+                .collect();
+            Some(commands)
         }
     }
 }

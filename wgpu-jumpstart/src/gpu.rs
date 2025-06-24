@@ -91,27 +91,23 @@ impl Gpu {
                 compatible_surface,
                 force_fallback_adapter: false,
             })
-            .await
-            .ok_or(GpuInitError::AdapterRequest)?;
+            .await?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits {
-                        max_compute_workgroup_storage_size: 0,
-                        max_compute_invocations_per_workgroup: 0,
-                        max_compute_workgroup_size_x: 0,
-                        max_compute_workgroup_size_y: 0,
-                        max_compute_workgroup_size_z: 0,
-                        max_compute_workgroups_per_dimension: 0,
-                        ..wgpu::Limits::downlevel_defaults()
-                    }
-                    .using_resolution(adapter.limits()),
-                    ..Default::default()
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits {
+                    max_compute_workgroup_storage_size: 0,
+                    max_compute_invocations_per_workgroup: 0,
+                    max_compute_workgroup_size_x: 0,
+                    max_compute_workgroup_size_y: 0,
+                    max_compute_workgroup_size_z: 0,
+                    max_compute_workgroups_per_dimension: 0,
+                    ..wgpu::Limits::downlevel_defaults()
+                }
+                .using_resolution(adapter.limits()),
+                ..Default::default()
+            })
             .await
             .map_err(GpuInitError::DeviceRequest)?;
 

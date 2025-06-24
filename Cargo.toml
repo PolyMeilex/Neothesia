@@ -22,7 +22,7 @@ resolver = "2"
 
 [workspace.dependencies]
 wgpu = "25"
-glyphon = { package = "cryoglyph", git = "https://github.com/sunsided/cryoglyph.git", rev = "1b72c1fe9ec53c481f12fed847bbbc1dca13add7" }
+glyphon = "0.9.0"
 
 glam = "0.30"
 guillotiere = "0.6"

@@ -894,18 +894,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 
 [[package]]
-name = "cryoglyph"
-version = "0.1.0"
-source = "git+https://github.com/sunsided/cryoglyph.git?rev=1b72c1fe9ec53c481f12fed847bbbc1dca13add7#1b72c1fe9ec53c481f12fed847bbbc1dca13add7"
-dependencies = [
- "cosmic-text",
- "etagere",
- "lru",
- "rustc-hash 2.1.1",
- "wgpu",
-]
-
-[[package]]
 name = "cursor-icon"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1487,6 +1475,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "glyphon"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c6a289ad2a23656ccf4306fc818cef6776471a136d909123fd26c0f2ecb44ba"
+dependencies = [
+ "cosmic-text",
+ "etagere",
+ "lru",
+ "rustc-hash 2.1.1",
+ "wgpu",
+]
+
+[[package]]
 name = "gpu-alloc"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1641,7 +1642,7 @@ name = "iced_wgpu"
 version = "0.0.0"
 dependencies = [
  "bytemuck",
- "cryoglyph",
+ "glyphon",
  "guillotiere",
  "iced_graphics",
  "log",
@@ -2071,9 +2072,9 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.13.0"
+version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "227748d55f2f0ab4735d87fd623798cb6b664512fe979705f829c9f81c934465"
+checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
 
 [[package]]
 name = "lz4_flex"
@@ -2382,8 +2383,8 @@ name = "neothesia-core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "cryoglyph",
  "euclid",
+ "glyphon",
  "log",
  "midi-file",
  "objc",

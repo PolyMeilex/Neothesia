@@ -435,7 +435,7 @@ fn prepare(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     viewport: &cryoglyph::Viewport,
-    encoder: &mut wgpu::CommandEncoder,
+    _encoder: &mut wgpu::CommandEncoder,
     renderer: &mut cryoglyph::TextRenderer,
     atlas: &mut cryoglyph::TextAtlas,
     buffer_cache: &mut BufferCache,
@@ -604,13 +604,13 @@ fn prepare(
                     bottom: (clip_bounds.y + clip_bounds.height) as i32,
                 },
                 default_color: to_color(color),
+                custom_glyphs: &[],
             })
         });
 
     renderer.prepare(
         device,
         queue,
-        encoder,
         font_system,
         atlas,
         viewport,

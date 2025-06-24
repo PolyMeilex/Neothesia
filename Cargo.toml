@@ -11,6 +11,10 @@ members = [
   "midi-io",
   "neothesia-iced-widgets",
   "nuon",
+  "iced-widget",
+  "iced-wgpu",
+  "iced-runtime",
+  "iced-graphics",
 ]
 
 default-members = ["neothesia"]
@@ -19,7 +23,11 @@ resolver = "2"
 [workspace.dependencies]
 wgpu = "24"
 glyphon = { package = "cryoglyph", git = "https://github.com/iced-rs/cryoglyph.git", rev = "a456d1c17bbcf33afcca41d9e5e299f9f1193819" }
-# glyphon = "0.5"
+
+glam = "0.30"
+guillotiere = "0.6"
+rustc-hash = "2.0"
+
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.11"
@@ -34,16 +42,20 @@ midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
 piano-layout = { path = "./piano-layout" }
 nuon = { path = "./nuon" }
+num-traits = "0.2"
+unicode-segmentation = "1.12.0"
 
 profiling = "1.0"
 
-iced_graphics = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45", features = ["image"]}
+iced_graphics = { path = "./iced-graphics", features = [
+  "image",
+] }
 iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45" }
-iced_runtime = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45" }
-iced_renderer = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45" }
-iced_wgpu = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45", features = [
-  "image",
-] }
-iced_widget = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45", features = [
-  "image",
-] }
+iced_runtime = { path  = "./iced-runtime" }
+iced_wgpu = { path = "./iced-wgpu" }
+iced_widget = { path = "./iced-widget" }
+
+half = "2.2"
+cosmic-text = "0.14"
+image = { version = "0.25", default-features = false }
+thiserror = "2.0"

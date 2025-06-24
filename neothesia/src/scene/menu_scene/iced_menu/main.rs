@@ -108,8 +108,8 @@ impl Page for MainPage {
         layout.into()
     }
 
-    fn keyboard_input(event: &iced_runtime::keyboard::Event, _ctx: &Context) -> Option<Message> {
-        use iced_runtime::keyboard::{key::Named, Event, Key};
+    fn keyboard_input(event: &iced_core::keyboard::Event, _ctx: &Context) -> Option<Message> {
+        use iced_core::keyboard::{key::Named, Event, Key};
 
         match event {
             Event::KeyPressed {
@@ -161,10 +161,9 @@ fn midi_file_picker_update(
         MidiFilePickerMessage::OpenMidiFilePicker => {
             data.is_loading = true;
 
-            return Task::perform(
-                open_midi_file_picker(),
-                MidiFilePickerMessage::MidiFileLoaded,
-            );
+            return Task::future(async {
+                MidiFilePickerMessage::MidiFileLoaded(open_midi_file_picker().await)
+            });
         }
         MidiFilePickerMessage::MidiFileLoaded(midi) => {
             if let Some((midi, path)) = midi {

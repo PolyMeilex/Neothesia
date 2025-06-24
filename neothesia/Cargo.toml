@@ -31,7 +31,6 @@ iced_core.workspace = true
 iced_runtime.workspace = true
 iced_wgpu.workspace = true
 iced_widget.workspace = true
-iced_renderer = { workspace = true, features = ["wgpu"]}
 
 lilt = "0.8"
 fps_ticker = "1"

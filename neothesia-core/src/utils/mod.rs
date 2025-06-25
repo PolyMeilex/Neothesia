@@ -1,3 +1,4 @@
+pub mod fps_ticker;
 pub mod resources;
 
 pub type Rect<T = f32> = euclid::default::Rect<T>;

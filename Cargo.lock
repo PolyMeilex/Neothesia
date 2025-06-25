@@ -1271,12 +1271,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fps_ticker"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe164905ff69757d4bdc4c61d7df2930e47e2f5b4a132895a8f995990b2b9219"
-
-[[package]]
 name = "futures-channel"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2282,7 +2276,6 @@ dependencies = [
  "embed-resource",
  "env_logger",
  "fluidlite",
- "fps_ticker",
  "iced_core",
  "iced_graphics",
  "iced_runtime",

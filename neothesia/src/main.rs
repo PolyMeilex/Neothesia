@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use context::Context;
 use iced_core::Renderer;
+use neothesia_core::utils::fps_ticker;
 use scene::{menu_scene, playing_scene, Scene};
 use song::Song;
 use utils::window::WindowState;

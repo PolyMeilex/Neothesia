@@ -156,14 +156,16 @@ impl TopBar {
         })
         .into();
 
+        use iced_core::Renderer;
+        ctx.iced_manager.renderer.clear();
+
         let messages = scene.nuon.update(
             root.as_widget_mut(),
             &globals,
             ctx.window_state.logical_size.width,
             ctx.window_state.logical_size.height,
             &mut NuonRenderer {
-                quads: &mut scene.quad_pipeline,
-                text: &mut ctx.text_renderer,
+                renderer: &mut ctx.iced_manager.renderer,
             },
         );
 

@@ -186,23 +186,17 @@ async fn open_midi_file_picker() -> Option<(midi_file::MidiFile, PathBuf)> {
     if let Some(file) = file {
         log::info!("File path = {:?}", file.path());
 
-        let thread = async_thread::Builder::new()
-            .name("midi-loader".into())
-            .spawn(move || {
-                let midi = midi_file::MidiFile::new(file.path());
+        let thread = iced_runtime::task::thread::spawn("midi-loader".into(), move || {
+            let midi = midi_file::MidiFile::new(file.path());
 
-                if let Err(e) = &midi {
-                    log::error!("{}", e);
-                }
+            if let Err(e) = &midi {
+                log::error!("{}", e);
+            }
 
-                midi.map(|midi| (midi, file.path().to_path_buf())).ok()
-            });
+            midi.map(|midi| (midi, file.path().to_path_buf())).ok()
+        });
 
-        if let Ok(thread) = thread {
-            thread.join().await.ok().flatten()
-        } else {
-            None
-        }
+        thread.join().await.ok().flatten()
     } else {
         log::info!("User canceled dialog");
         None

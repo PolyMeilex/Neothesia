@@ -36,7 +36,6 @@ lilt = "0.8"
 fps_ticker = "1"
 winit = { version = "0.30", features = ["rwh_05"] }
 rfd = "0.15"
-async-thread = "0.1"
 
 cpal = { version = "0.15", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }

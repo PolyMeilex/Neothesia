@@ -374,15 +374,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b75356056920673b02621b35afd0f7dda9306d03c79a30f5c56c44cf256e3de"
 
 [[package]]
-name = "async-thread"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f8127d0634ad2b788f12e8c8623f91c584c2eb7496157b2e0cada5b01e0fbfd"
-dependencies = [
- "futures-channel",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1599,6 +1590,7 @@ dependencies = [
 name = "iced_runtime"
 version = "0.0.0"
 dependencies = [
+ "async-channel",
  "iced_core",
 ]
 
@@ -2286,7 +2278,6 @@ dependencies = [
 name = "neothesia"
 version = "0.3.0"
 dependencies = [
- "async-thread",
  "cpal",
  "embed-resource",
  "env_logger",

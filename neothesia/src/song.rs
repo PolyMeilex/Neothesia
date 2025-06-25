@@ -55,17 +55,9 @@ impl Song {
     pub fn from_env(ctx: &Context) -> Option<Self> {
         let args: Vec<String> = std::env::args().collect();
         let midi_file = if args.len() > 1 {
-            if let Ok(midi) = midi_file::MidiFile::new(&args[1]) {
-                Some(midi)
-            } else {
-                None
-            }
+            midi_file::MidiFile::new(&args[1]).ok()
         } else if let Some(last) = ctx.config.last_opened_song() {
-            if let Ok(midi) = midi_file::MidiFile::new(last) {
-                Some(midi)
-            } else {
-                None
-            }
+            midi_file::MidiFile::new(last).ok()
         } else {
             None
         };

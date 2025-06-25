@@ -21,8 +21,8 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.dependencies]
-wgpu = "24"
-glyphon = { package = "cryoglyph", git = "https://github.com/iced-rs/cryoglyph.git", rev = "a456d1c17bbcf33afcca41d9e5e299f9f1193819" }
+wgpu = "25"
+glyphon = "0.9.0"
 
 glam = "0.30"
 guillotiere = "0.6"

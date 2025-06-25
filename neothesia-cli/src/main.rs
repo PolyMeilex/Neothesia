@@ -289,7 +289,7 @@ fn main() {
 
             slice.map_async(wgpu::MapMode::Read, move |_| {});
 
-            recorder.gpu.device.poll(wgpu::Maintain::Wait);
+            recorder.gpu.device.poll(wgpu::PollType::Wait).unwrap();
 
             let mapping = slice.get_mapped_range();
 

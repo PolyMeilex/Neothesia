@@ -51,6 +51,7 @@ impl TextRendererInstance {
             scale: area.scale,
             bounds: area.bounds,
             default_color: area.default_color,
+            custom_glyphs: &[],
         });
 
         shared.viewport.update(
@@ -65,7 +66,6 @@ impl TextRendererInstance {
             .prepare(
                 &gpu.device,
                 &gpu.queue,
-                &mut gpu.encoder,
                 &mut text_renderer.font_system,
                 &mut shared.atlas,
                 &shared.viewport,
@@ -305,6 +305,7 @@ impl TextRenderer {
             scale: area.scale,
             bounds: area.bounds,
             default_color: area.default_color,
+            custom_glyphs: &[],
         });
 
         let shared = &mut *self.shared.borrow_mut();
@@ -320,7 +321,6 @@ impl TextRenderer {
             .prepare(
                 &gpu.device,
                 &gpu.queue,
-                &mut gpu.encoder,
                 &mut self.font_system,
                 &mut shared.atlas,
                 &shared.viewport,

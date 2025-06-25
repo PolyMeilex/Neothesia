@@ -21,6 +21,8 @@ use crate::{
     song::Song,
 };
 
+use std::task::Waker;
+
 type Renderer = iced_wgpu::Renderer;
 
 pub struct MenuScene {
@@ -41,7 +43,7 @@ impl MenuScene {
             bg_pipeline: BgPipeline::new(&ctx.gpu),
             iced_state,
 
-            context: std::task::Context::from_waker(futures::task::noop_waker_ref()),
+            context: std::task::Context::from_waker(noop_waker_ref()),
             futures: Vec::new(),
         }
     }
@@ -105,4 +107,29 @@ impl Scene for MenuScene {
             }
         }
     }
+}
+
+fn noop_waker_ref() -> &'static Waker {
+    use std::ptr::null;
+    use std::task::{RawWaker, RawWakerVTable};
+
+    unsafe fn noop_clone(_data: *const ()) -> RawWaker {
+        noop_raw_waker()
+    }
+
+    unsafe fn noop(_data: *const ()) {}
+
+    const NOOP_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(noop_clone, noop, noop, noop);
+
+    const fn noop_raw_waker() -> RawWaker {
+        RawWaker::new(null(), &NOOP_WAKER_VTABLE)
+    }
+
+    struct SyncRawWaker(RawWaker);
+    unsafe impl Sync for SyncRawWaker {}
+
+    static NOOP_WAKER_INSTANCE: SyncRawWaker = SyncRawWaker(noop_raw_waker());
+
+    // SAFETY: `Waker` is #[repr(transparent)] over its `RawWaker`.
+    unsafe { &*(&NOOP_WAKER_INSTANCE.0 as *const RawWaker as *const Waker) }
 }

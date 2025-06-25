@@ -31,7 +31,7 @@ rustc-hash = "2.0"
 log = "0.4"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.11"
-futures = "0.3"
+pollster = "0.4"
 euclid = "0.22"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia = { path = "./neothesia", default-features = false }

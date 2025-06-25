@@ -279,7 +279,7 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         let window_state = WindowState::new(&window);
         let size = window.inner_size();
         let window = Arc::new(window);
-        let (gpu, surface) = futures::executor::block_on(Gpu::for_window(
+        let (gpu, surface) = pollster::block_on(Gpu::for_window(
             || window.clone().into(),
             size.width,
             size.height,

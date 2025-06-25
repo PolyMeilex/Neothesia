@@ -14,7 +14,7 @@ fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
 oxi-synth = ["synth", "cpal", "oxisynth"]
 
 [dependencies]
-futures.workspace = true
+pollster.workspace = true
 log.workspace = true
 env_logger.workspace = true
 wgpu.workspace = true

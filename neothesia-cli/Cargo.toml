@@ -12,6 +12,6 @@ neothesia-core.workspace = true
 midi-file.workspace = true
 wgpu-jumpstart.workspace = true
 env_logger.workspace = true
-futures.workspace = true
+pollster.workspace = true
 
 mpeg_encoder = { path = "../mpeg_encoder" }

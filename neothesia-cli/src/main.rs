@@ -51,7 +51,7 @@ impl Recorder {
         .init();
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
-        let gpu = futures::executor::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
+        let gpu = pollster::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
             eprintln!("Failed to initialize GPU: {}", err);
             std::process::exit(1);
         });

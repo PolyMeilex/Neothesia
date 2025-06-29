@@ -240,20 +240,42 @@ impl Scene for PlayingScene {
         TopBar::update(self, ctx, delta);
 
         {
-            self.nuon_ui.pointer_pos = nuon::v2::Point::new(
-                ctx.window_state.cursor_logical_position.x,
-                ctx.window_state.cursor_logical_position.y,
-            );
+            use nuon::v2 as nuon;
+            let ui = &mut self.nuon_ui;
 
-            if self.nuon_ui.button(0.0, "1") {
+            if nuon::button()
+                .size(50.0, 50.0)
+                .border_radius([5.0; 4])
+                .icon("\u{F3E5}")
+                .build(ui)
+            {
                 dbg!("click1");
             }
 
-            if self.nuon_ui.button(60.0, "2") {
+            if nuon::button()
+                .size(50.0, 50.0)
+                .border_radius([5.0; 4])
+                .icon("\u{F2D2}")
+                .y(60.0)
+                .build(ui)
+            {
                 dbg!("click2");
             }
 
-            for (rect, color) in self.nuon_ui.quads.iter() {
+            let percentage = self.player.percentage();
+
+            let new_percentage = {
+                let mut proggres = percentage * ctx.window_state.logical_size.width;
+                nuon::slider(ui, &mut proggres);
+                proggres / ctx.window_state.logical_size.width
+            };
+
+            if percentage != new_percentage {
+                self.player.set_percentage_time(new_percentage);
+                self.keyboard.reset_notes();
+            }
+
+            for (rect, color) in ui.quads.iter() {
                 self.quad_pipeline.push(
                     LAYER_FG,
                     neothesia_core::render::QuadInstance {
@@ -266,11 +288,11 @@ impl Scene for PlayingScene {
                 )
             }
 
-            for (pos, text) in self.nuon_ui.text.iter() {
+            for (pos, text) in ui.text.iter() {
                 ctx.text_renderer.queue_icon(pos.x, pos.y, 20.0, text);
             }
 
-            self.nuon_ui.done();
+            ui.done();
         }
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
@@ -320,6 +342,13 @@ impl Scene for PlayingScene {
 
         if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
             self.resize(ctx)
+        }
+
+        if let WindowEvent::CursorMoved { .. } = event {
+            self.nuon_ui.mouse_move(
+                ctx.window_state.cursor_logical_position.x,
+                ctx.window_state.cursor_logical_position.y,
+            );
         }
 
         if let WindowEvent::MouseInput { state, .. } = event {

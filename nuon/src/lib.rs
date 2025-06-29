@@ -1,3 +1,5 @@
+pub mod v2;
+
 pub mod widget;
 use std::{
     any::{Any, TypeId},

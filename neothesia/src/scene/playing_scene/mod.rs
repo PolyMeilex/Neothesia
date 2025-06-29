@@ -55,6 +55,7 @@ pub struct PlayingScene {
     toast_manager: ToastManager,
 
     nuon: nuon::State,
+    nuon_ui: nuon::v2::Ui,
 
     top_bar: TopBar,
 }
@@ -131,6 +132,7 @@ impl PlayingScene {
             toast_manager: ToastManager::default(),
 
             nuon: nuon::State::new(),
+            nuon_ui: nuon::v2::Ui::new(),
 
             top_bar: TopBar::new(),
         }
@@ -237,6 +239,40 @@ impl Scene for PlayingScene {
 
         TopBar::update(self, ctx, delta);
 
+        {
+            self.nuon_ui.pointer_pos = nuon::v2::Point::new(
+                ctx.window_state.cursor_logical_position.x,
+                ctx.window_state.cursor_logical_position.y,
+            );
+
+            if self.nuon_ui.button(0.0, "1") {
+                dbg!("click1");
+            }
+
+            if self.nuon_ui.button(60.0, "2") {
+                dbg!("click2");
+            }
+
+            for (rect, color) in self.nuon_ui.quads.iter() {
+                self.quad_pipeline.push(
+                    LAYER_FG,
+                    neothesia_core::render::QuadInstance {
+                        position: rect.origin.into(),
+                        size: rect.size.into(),
+                        color: wgpu_jumpstart::Color::new(color.r, color.g, color.b, color.a)
+                            .into_linear_rgba(),
+                        border_radius: [0.0; 4],
+                    },
+                )
+            }
+
+            for (pos, text) in self.nuon_ui.text.iter() {
+                ctx.text_renderer.queue_icon(pos.x, pos.y, 20.0, text);
+            }
+
+            self.nuon_ui.done();
+        }
+
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         if let Some(glow) = &mut self.glow {
             glow.pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
@@ -284,6 +320,13 @@ impl Scene for PlayingScene {
 
         if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
             self.resize(ctx)
+        }
+
+        if let WindowEvent::MouseInput { state, .. } = event {
+            match state {
+                ElementState::Pressed => self.nuon_ui.mouse_down(),
+                ElementState::Released => self.nuon_ui.mouse_up(),
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use crate::Color;
+pub use crate::Color;
 
 pub type Point = euclid::default::Point2D<f32>;
 pub type Size = euclid::default::Size2D<f32>;
@@ -16,6 +16,12 @@ pub enum TextJustify {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Id(u64);
+
+impl<H: Hash> From<H> for Id {
+    fn from(value: H) -> Self {
+        Self::hash(value)
+    }
+}
 
 impl Id {
     pub fn hash(v: impl Hash) -> Self {
@@ -40,13 +46,13 @@ impl TranslationStack {
 }
 
 pub struct Ui {
-    hovered: Option<Id>,
-    active: Option<Id>,
+    pub hovered: Option<Id>,
+    pub active: Option<Id>,
 
     pointer_pos: Point,
     pointer_pos_delta: Point,
-    mouse_pressed: bool,
-    mouse_down: bool,
+    pub mouse_pressed: bool,
+    pub mouse_down: bool,
 
     translation_stack: TranslationStack,
 
@@ -140,32 +146,33 @@ pub fn translate() -> Translate {
 }
 
 #[derive(Debug, Clone)]
-pub struct ClickArea {
-    id: Id,
+pub struct Quad {
     rect: Rect,
+    color: Color,
+    border_radius: [f32; 4],
 }
 
-pub fn click_area(id: Id) -> ClickArea {
-    ClickArea::new(id)
+pub fn quad() -> Quad {
+    Quad::new()
 }
 
-impl ClickArea {
-    pub fn new(id: Id) -> Self {
+impl Default for Quad {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Quad {
+    pub fn new() -> Self {
         Self {
-            id,
             rect: Rect::zero(),
+            color: Color::new_u8(0, 0, 0, 0.0),
+            border_radius: [0.0; 4],
         }
     }
 
-    pub fn rect(mut self, rect: Rect) -> Self {
-        self.rect = rect;
-        self
-    }
-
-    pub fn pos(mut self, x: f32, y: f32) -> Self {
-        self.rect.origin.x = x;
-        self.rect.origin.y = y;
-        self
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
     }
 
     pub fn x(mut self, x: f32) -> Self {
@@ -178,10 +185,8 @@ impl ClickArea {
         self
     }
 
-    pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.rect.size.width = width;
-        self.rect.size.height = height;
-        self
+    pub fn size(self, width: f32, height: f32) -> Self {
+        self.width(width).height(height)
     }
 
     pub fn width(mut self, width: f32) -> Self {
@@ -194,10 +199,103 @@ impl ClickArea {
         self
     }
 
-    pub fn build(&self, ui: &mut Ui) -> bool {
-        let id = self.id;
+    pub fn color(mut self, color: impl Into<Color>) -> Self {
+        self.color = color.into();
+        self
+    }
 
-        let mouseover = self.rect.contains(ui.pointer_pos);
+    pub fn border_radius(mut self, border_radius: [f32; 4]) -> Self {
+        self.border_radius = border_radius;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui) {
+        let rect = Rect::new(
+            ui.translation_stack.translate(self.rect.origin),
+            self.rect.size,
+        );
+
+        ui.quads.push((rect, self.border_radius, self.color));
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ClickArea {
+    id: Id,
+    rect: Rect,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ClickAreaEvent {
+    Idle { hovered: bool },
+    PressStart,
+    PressEnd { clicked: bool },
+}
+
+impl ClickAreaEvent {
+    pub fn is_clicked(&self) -> bool {
+        *self == ClickAreaEvent::PressEnd { clicked: true }
+    }
+}
+
+pub fn click_area(id: impl Into<Id>) -> ClickArea {
+    ClickArea::new(id)
+}
+
+impl ClickArea {
+    pub fn new(id: impl Into<Id>) -> Self {
+        Self {
+            id: id.into(),
+            rect: Rect::zero(),
+        }
+    }
+
+    pub fn rect(mut self, rect: Rect) -> Self {
+        self.rect = rect;
+        self
+    }
+
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.rect.origin.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.rect.origin.y = y;
+        self
+    }
+
+    pub fn size(self, width: f32, height: f32) -> Self {
+        self.width(width).height(height)
+    }
+
+    pub fn width(mut self, width: f32) -> Self {
+        self.rect.size.width = width;
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.rect.size.height = height;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui) -> ClickAreaEvent {
+        Self::check(
+            ui,
+            self.id,
+            Rect::new(
+                ui.translation_stack.translate(self.rect.origin),
+                self.rect.size,
+            ),
+        )
+    }
+
+    fn check(ui: &mut Ui, id: Id, rect: Rect) -> ClickAreaEvent {
+        let mouseover = rect.contains(ui.pointer_pos);
 
         if mouseover {
             ui.hovered = Some(id);
@@ -205,15 +303,16 @@ impl ClickArea {
             ui.hovered = None;
         }
 
-        if ui.mouse_pressed && ui.hovered == Some(id) {
+        if ui.mouse_pressed && mouseover {
             ui.active = Some(id);
+            return ClickAreaEvent::PressStart;
         }
 
         if !ui.mouse_down && ui.active == Some(id) {
             ui.active = None;
-            mouseover
+            ClickAreaEvent::PressEnd { clicked: mouseover }
         } else {
-            false
+            ClickAreaEvent::Idle { hovered: mouseover }
         }
     }
 }
@@ -261,10 +360,8 @@ impl Button {
         self
     }
 
-    pub fn pos(mut self, x: f32, y: f32) -> Self {
-        self.pos.x = x;
-        self.pos.y = y;
-        self
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
     }
 
     pub fn x(mut self, x: f32) -> Self {
@@ -345,7 +442,7 @@ impl Button {
         let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
 
         let id = self.gen_id();
-        let clicked = click_area(id).rect(rect).build(ui);
+        let clicked = ClickArea::check(ui, id, rect).is_clicked();
 
         let color = self.calc_bg_color(ui, id);
 
@@ -382,7 +479,7 @@ pub fn slider(ui: &mut Ui, x: &mut f32) -> bool {
 
     let id = Id::hash(x as *const f32);
 
-    let clicked = click_area(id).rect(rect).build(ui);
+    let clicked = ClickArea::check(ui, id, rect).is_clicked();
 
     if ui.active == Some(id) {
         *x += ui.pointer_pos_delta.x;
@@ -431,10 +528,8 @@ impl Label {
         }
     }
 
-    pub fn pos(mut self, x: f32, y: f32) -> Self {
-        self.pos.x = x;
-        self.pos.y = y;
-        self
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
     }
 
     pub fn x(mut self, x: f32) -> Self {
@@ -447,10 +542,8 @@ impl Label {
         self
     }
 
-    pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.size.width = width;
-        self.size.height = height;
-        self
+    pub fn size(self, width: f32, height: f32) -> Self {
+        self.width(width).height(height)
     }
 
     pub fn width(mut self, width: f32) -> Self {

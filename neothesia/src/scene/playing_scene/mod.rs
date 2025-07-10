@@ -393,6 +393,56 @@ impl Scene for PlayingScene {
                                 self.player.pause_resume();
                             }
                         });
+
+                    // ProggressBar
+                    nuon::translate().y(30.0).build(ui, |ui| {
+                        let h = 45.0;
+                        let w = ctx.window_state.logical_size.width;
+                        let progress_w = w * self.player.percentage();
+
+                        match nuon::click_area("ProggressBar").size(w, h).build(ui) {
+                            nuon::ClickAreaEvent::PressStart => {
+                                if !self.rewind_controller.is_rewinding() {
+                                    self.rewind_controller.start_mouse_rewind(&mut self.player);
+
+                                    let x = ctx.window_state.cursor_logical_position.x;
+                                    let w = ctx.window_state.logical_size.width;
+
+                                    let p = x / w;
+                                    self.player.set_percentage_time(p);
+                                    self.keyboard.reset_notes();
+                                }
+                            }
+                            nuon::ClickAreaEvent::PressEnd { .. } => {
+                                self.rewind_controller.stop_rewind(&mut self.player);
+                            }
+                            nuon::ClickAreaEvent::Idle { .. } => {}
+                        }
+
+                        nuon::quad()
+                            .size(progress_w, h)
+                            .color([56, 145, 255])
+                            .build(ui);
+
+                        for m in self.player.song().file.measures.iter() {
+                            let length = self.player.length().as_secs_f32();
+                            let start = self.player.leed_in().as_secs_f32() / length;
+                            let measure = m.as_secs_f32() / length;
+
+                            let x = (start + measure) * w;
+
+                            let light_measure = nuon::Color::new(1.0, 1.0, 1.0, 0.5);
+                            let dark_measure = nuon::Color::new(0.4, 0.4, 0.4, 1.0);
+
+                            let color = if x < progress_w {
+                                light_measure
+                            } else {
+                                dark_measure
+                            };
+
+                            nuon::quad().x(x).size(1.0, h).color(color).build(ui);
+                        }
+                    });
                 });
 
             // let percentage = self.player.percentage();

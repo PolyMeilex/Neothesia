@@ -135,12 +135,12 @@ pub fn top_bar(data: UiData) -> impl Into<Element<Msg>> {
     let timeline = Container::new().height(45.0).child(
         Row::new().push(
             Stack::new()
-                .push(
-                    ProgressBar::new()
-                        .color(Color::new_u8(56, 145, 255, 1.0))
-                        .on_press(Msg::ProggresBar(ProgressBarMsg::Pressed))
-                        .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
-                )
+                // .push(
+                //     ProgressBar::new()
+                //         .color(Color::new_u8(56, 145, 255, 1.0))
+                //         .on_press(Msg::ProggresBar(ProgressBarMsg::Pressed))
+                //         .on_release(Msg::ProggresBar(ProgressBarMsg::Released)),
+                // )
                 .when(data.is_looper_on, |stack| {
                     stack.push(
                         Looper::new()

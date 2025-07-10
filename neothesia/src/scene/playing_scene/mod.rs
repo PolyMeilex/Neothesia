@@ -285,124 +285,115 @@ impl Scene for PlayingScene {
             use nuon::v2 as nuon;
             let ui = &mut self.nuon_ui;
 
-            let y = self.top_bar.topbar_expand_animation.animate_bool(
-                -75.0 + 5.0,
-                0.0,
-                ctx.frame_timestamp,
-            );
+            nuon::translate()
+                .y(self.top_bar.topbar_expand_animation.animate_bool(
+                    -75.0 + 5.0,
+                    0.0,
+                    ctx.frame_timestamp,
+                ))
+                .build(ui, |ui| {
+                    // Left
+                    if nuon::button()
+                        .size(30.0, 30.0)
+                        .border_radius([5.0; 4])
+                        .icon(icons::left_arrow_icon())
+                        .build(ui)
+                    {
+                        ctx.proxy
+                            .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
+                            .ok();
+                    }
 
-            // Left
-            {
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .y(y)
-                    .border_radius([5.0; 4])
-                    .icon(icons::left_arrow_icon())
-                    .build(ui)
-                {
-                    ctx.proxy
-                        .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
-                        .ok();
-                }
-            }
+                    // Center
+                    nuon::translate()
+                        .x({
+                            let pill_w = 45.0 * 2.0;
+                            let win_w = ctx.window_state.logical_size.width;
+                            win_w / 2.0 - pill_w / 2.0
+                        })
+                        .y(5.0)
+                        .build(ui, |ui| {
+                            if nuon::button()
+                                .size(45.0, 20.0)
+                                .color([67, 67, 67])
+                                .hover_color([87, 87, 87])
+                                .preseed_color([97, 97, 97])
+                                .border_radius([10.0, 0.0, 10.0, 0.0])
+                                .icon(icons::minus_icon())
+                                .text_justify(nuon::TextJustify::Left)
+                                .build(ui)
+                            {
+                                ctx.config
+                                    .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
+                            }
 
-            // Center
-            {
-                let pill_w = 45.0 * 2.0;
-                let win_w = ctx.window_state.logical_size.width;
+                            nuon::label()
+                                .text(format!(
+                                    "{}%",
+                                    (ctx.config.speed_multiplier() * 100.0).round()
+                                ))
+                                .size(45.0 * 2.0, 20.0)
+                                .build(ui);
 
-                let x = win_w / 2.0 - pill_w / 2.0;
-                let y = y + 5.0;
+                            if nuon::button()
+                                .size(45.0, 20.0)
+                                .x(45.0)
+                                .color([67, 67, 67])
+                                .hover_color([87, 87, 87])
+                                .preseed_color([97, 97, 97])
+                                .border_radius([0.0, 10.0, 0.0, 10.0])
+                                .icon(icons::plus_icon())
+                                .text_justify(nuon::TextJustify::Right)
+                                .build(ui)
+                            {
+                                ctx.config
+                                    .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
+                            }
+                        });
 
-                if nuon::button()
-                    .size(45.0, 20.0)
-                    .pos(x, y)
-                    .color([67, 67, 67])
-                    .hover_color([87, 87, 87])
-                    .preseed_color([97, 97, 97])
-                    .border_radius([10.0, 0.0, 10.0, 0.0])
-                    .icon(icons::minus_icon())
-                    .text_justify(nuon::TextJustify::Left)
-                    .build(ui)
-                {
-                    ctx.config
-                        .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
-                }
+                    // Right
+                    nuon::translate()
+                        .x(ctx.window_state.logical_size.width - 30.0)
+                        .build(ui, |ui| {
+                            if nuon::button()
+                                .size(30.0, 30.0)
+                                .x(0.0)
+                                .border_radius([5.0; 4])
+                                .icon(if self.top_bar.settings_active {
+                                    icons::gear_fill_icon()
+                                } else {
+                                    icons::gear_icon()
+                                })
+                                .build(ui)
+                            {
+                                self.top_bar.settings_active = !self.top_bar.settings_active;
+                            }
 
-                nuon::label()
-                    .text(format!(
-                        "{}%",
-                        (ctx.config.speed_multiplier() * 100.0).round()
-                    ))
-                    .pos(x, y)
-                    .size(45.0 * 2.0, 20.0)
-                    .build(ui);
+                            if nuon::button()
+                                .size(30.0, 30.0)
+                                .x(-30.0)
+                                .border_radius([5.0; 4])
+                                .icon(icons::repeat_icon())
+                                .build(ui)
+                            {
+                                dbg!("loop");
+                            }
 
-                if nuon::button()
-                    .size(45.0, 20.0)
-                    .color([67, 67, 67])
-                    .hover_color([87, 87, 87])
-                    .preseed_color([97, 97, 97])
-                    .pos(x + 45.0, y)
-                    .border_radius([0.0, 10.0, 0.0, 10.0])
-                    .icon(icons::plus_icon())
-                    .text_justify(nuon::TextJustify::Right)
-                    .build(ui)
-                {
-                    ctx.config
-                        .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
-                }
-            }
-
-            // Right
-            {
-                let mut x = ctx.window_state.logical_size.width - 30.0;
-
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .y(y)
-                    .x(x)
-                    .border_radius([5.0; 4])
-                    .icon(if self.top_bar.settings_active {
-                        icons::gear_fill_icon()
-                    } else {
-                        icons::gear_icon()
-                    })
-                    .build(ui)
-                {
-                    self.top_bar.settings_active = !self.top_bar.settings_active;
-                }
-
-                x -= 30.0;
-
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .y(y)
-                    .x(x)
-                    .border_radius([5.0; 4])
-                    .icon(icons::repeat_icon())
-                    .build(ui)
-                {
-                    dbg!("loop");
-                }
-
-                x -= 30.0;
-
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .y(y)
-                    .x(x)
-                    .border_radius([5.0; 4])
-                    .icon(if self.player.is_paused() {
-                        icons::play_icon()
-                    } else {
-                        icons::pause_icon()
-                    })
-                    .build(ui)
-                {
-                    self.player.pause_resume();
-                }
-            }
+                            if nuon::button()
+                                .size(30.0, 30.0)
+                                .x(-60.0)
+                                .border_radius([5.0; 4])
+                                .icon(if self.player.is_paused() {
+                                    icons::play_icon()
+                                } else {
+                                    icons::pause_icon()
+                                })
+                                .build(ui)
+                            {
+                                self.player.pause_resume();
+                            }
+                        });
+                });
 
             // let percentage = self.player.percentage();
             //

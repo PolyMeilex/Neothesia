@@ -25,6 +25,20 @@ impl Id {
     }
 }
 
+#[derive(Default, Debug)]
+pub struct TranslationStack(Vec<Point>);
+
+impl TranslationStack {
+    pub fn offset(&self) -> Point {
+        self.0.last().copied().unwrap_or(Point::zero())
+    }
+
+    pub fn translate(&self, point: Point) -> Point {
+        let offset = self.offset();
+        Point::new(point.x + offset.x, point.y + offset.y)
+    }
+}
+
 pub struct Ui {
     hovered: Option<Id>,
     active: Option<Id>,
@@ -33,6 +47,8 @@ pub struct Ui {
     pointer_pos_delta: Point,
     mouse_pressed: bool,
     mouse_down: bool,
+
+    translation_stack: TranslationStack,
 
     pub quads: Vec<(Rect, [f32; 4], Color)>,
     pub icons: Vec<(Point, String)>,
@@ -48,6 +64,7 @@ impl Ui {
             pointer_pos_delta: Point::new(0.0, 0.0),
             mouse_pressed: false,
             mouse_down: false,
+            translation_stack: TranslationStack::default(),
             quads: Vec::new(),
             icons: Vec::new(),
             text: Vec::new(),
@@ -83,11 +100,49 @@ impl Ui {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Translate {
+    origin: Point,
+}
+
+impl Translate {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.origin.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.origin.y = y;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+        let offset = self.origin;
+        let prev = ui.translation_stack.offset();
+        ui.translation_stack
+            .0
+            .push(Point::new(prev.x + offset.x, prev.y + offset.y));
+        build(ui);
+        ui.translation_stack.0.pop();
+    }
+}
+
+pub fn translate() -> Translate {
+    Translate::new()
+}
+
 #[derive(Debug, Clone)]
 pub struct ClickArea {
     id: Id,
-    pos: Point,
-    size: Size,
+    rect: Rect,
 }
 
 pub fn click_area(id: Id) -> ClickArea {
@@ -98,49 +153,51 @@ impl ClickArea {
     pub fn new(id: Id) -> Self {
         Self {
             id,
-            pos: Point::zero(),
-            size: Size::new(50.0, 50.0),
+            rect: Rect::zero(),
         }
     }
 
+    pub fn rect(mut self, rect: Rect) -> Self {
+        self.rect = rect;
+        self
+    }
+
     pub fn pos(mut self, x: f32, y: f32) -> Self {
-        self.pos.x = x;
-        self.pos.y = y;
+        self.rect.origin.x = x;
+        self.rect.origin.y = y;
         self
     }
 
     pub fn x(mut self, x: f32) -> Self {
-        self.pos.x = x;
+        self.rect.origin.x = x;
         self
     }
 
     pub fn y(mut self, y: f32) -> Self {
-        self.pos.y = y;
+        self.rect.origin.y = y;
         self
     }
 
     pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.size.width = width;
-        self.size.height = height;
+        self.rect.size.width = width;
+        self.rect.size.height = height;
         self
     }
 
     pub fn width(mut self, width: f32) -> Self {
-        self.size.width = width;
+        self.rect.size.width = width;
         self
     }
 
     pub fn height(mut self, height: f32) -> Self {
-        self.size.height = height;
+        self.rect.size.height = height;
         self
     }
 
     pub fn build(&self, ui: &mut Ui) -> bool {
-        let rect = Rect::new(self.pos, self.size);
-
         let id = self.id;
 
-        let mouseover = rect.contains(ui.pointer_pos);
+        let mouseover = self.rect.contains(ui.pointer_pos);
 
         if mouseover {
             ui.hovered = Some(id);
@@ -285,15 +342,12 @@ impl Button {
     }
 
     pub fn build(&self, ui: &mut Ui) -> bool {
+        let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
+
         let id = self.gen_id();
-        let clicked = click_area(id)
-            .pos(self.pos.x, self.pos.y)
-            .size(self.size.width, self.size.height)
-            .build(ui);
+        let clicked = click_area(id).rect(rect).build(ui);
 
         let color = self.calc_bg_color(ui, id);
-
-        let rect = Rect::new(self.pos, self.size);
 
         ui.quads.push((rect, self.border_radius, color));
 
@@ -322,16 +376,13 @@ impl Button {
 }
 
 pub fn slider(ui: &mut Ui, x: &mut f32) -> bool {
-    let pos = Point::new(*x, 100.0);
+    let pos = ui.translation_stack.translate(Point::new(*x, 100.0));
     let size = Size::new(50.0, 50.0);
     let rect = Rect::new(pos, size);
 
     let id = Id::hash(x as *const f32);
 
-    let clicked = click_area(id)
-        .size(size.width, size.height)
-        .pos(pos.x, pos.y)
-        .build(ui);
+    let clicked = click_area(id).rect(rect).build(ui);
 
     if ui.active == Some(id) {
         *x += ui.pointer_pos_delta.x;
@@ -418,7 +469,7 @@ impl Label {
     }
 
     pub fn build(&self, ui: &mut Ui) {
-        let rect = Rect::new(self.pos, self.size);
+        let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
         ui.text
             .push((rect, TextJustify::Center, self.text.to_string()));
     }

@@ -84,6 +84,84 @@ impl Ui {
 }
 
 #[derive(Debug, Clone)]
+pub struct ClickArea {
+    id: Id,
+    pos: Point,
+    size: Size,
+}
+
+pub fn click_area(id: Id) -> ClickArea {
+    ClickArea::new(id)
+}
+
+impl ClickArea {
+    pub fn new(id: Id) -> Self {
+        Self {
+            id,
+            pos: Point::zero(),
+            size: Size::new(50.0, 50.0),
+        }
+    }
+
+    pub fn pos(mut self, x: f32, y: f32) -> Self {
+        self.pos.x = x;
+        self.pos.y = y;
+        self
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.pos.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.pos.y = y;
+        self
+    }
+
+    pub fn size(mut self, width: f32, height: f32) -> Self {
+        self.size.width = width;
+        self.size.height = height;
+        self
+    }
+
+    pub fn width(mut self, width: f32) -> Self {
+        self.size.width = width;
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.size.height = height;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui) -> bool {
+        let rect = Rect::new(self.pos, self.size);
+
+        let id = self.id;
+
+        let mouseover = rect.contains(ui.pointer_pos);
+
+        if mouseover {
+            ui.hovered = Some(id);
+        } else if ui.hovered == Some(id) {
+            ui.hovered = None;
+        }
+
+        if ui.mouse_pressed && ui.hovered == Some(id) {
+            ui.active = Some(id);
+        }
+
+        if !ui.mouse_down && ui.active == Some(id) {
+            ui.active = None;
+            mouseover
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Button {
     id: Option<&'static str>,
     pos: Point,
@@ -196,33 +274,6 @@ impl Button {
         }
     }
 
-    fn handle_input(&self, ui: &mut Ui) -> (Id, bool) {
-        let rect = Rect::new(self.pos, self.size);
-
-        let id = self.gen_id();
-
-        let mouseover = rect.contains(ui.pointer_pos);
-
-        if mouseover {
-            ui.hovered = Some(id);
-        } else if ui.hovered == Some(id) {
-            ui.hovered = None;
-        }
-
-        if ui.mouse_pressed && ui.hovered == Some(id) {
-            ui.active = Some(id);
-        }
-
-        let clicked = if !ui.mouse_down && ui.active == Some(id) {
-            ui.active = None;
-            mouseover
-        } else {
-            false
-        };
-
-        (id, clicked)
-    }
-
     fn calc_bg_color(&self, ui: &mut Ui, id: Id) -> Color {
         if ui.active == Some(id) {
             self.preseed_color
@@ -234,7 +285,12 @@ impl Button {
     }
 
     pub fn build(&self, ui: &mut Ui) -> bool {
-        let (id, clicked) = self.handle_input(ui);
+        let id = self.gen_id();
+        let clicked = click_area(id)
+            .pos(self.pos.x, self.pos.y)
+            .size(self.size.width, self.size.height)
+            .build(ui);
+
         let color = self.calc_bg_color(ui, id);
 
         let rect = Rect::new(self.pos, self.size);
@@ -272,24 +328,10 @@ pub fn slider(ui: &mut Ui, x: &mut f32) -> bool {
 
     let id = Id::hash(x as *const f32);
 
-    let mouseover = rect.contains(ui.pointer_pos);
-
-    if mouseover {
-        ui.hovered = Some(id);
-    } else if ui.hovered == Some(id) {
-        ui.hovered = None;
-    }
-
-    if ui.mouse_pressed && ui.hovered == Some(id) {
-        ui.active = Some(id);
-    }
-
-    let clicked = if !ui.mouse_down && ui.active == Some(id) {
-        ui.active = None;
-        mouseover
-    } else {
-        false
-    };
+    let clicked = click_area(id)
+        .size(size.width, size.height)
+        .pos(pos.x, pos.y)
+        .build(ui);
 
     if ui.active == Some(id) {
         *x += ui.pointer_pos_delta.x;

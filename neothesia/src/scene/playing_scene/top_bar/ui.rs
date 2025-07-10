@@ -82,50 +82,49 @@ pub struct UiData<'a> {
 
 fn header(data: &UiData) -> impl Into<Element<Msg>> {
     Container::new().height(30.0).child(
-        TriLayout::new()
-            .start(
-                Row::new().push(
-                    Button::new()
-                        .icon(left_arrow_icon())
-                        .width(30.0)
-                        .on_click(Msg::GoBack),
-                ),
-            )
-            .center(
-                SpeedPill::new()
-                    .speed(data.speed)
-                    .on_minus(Msg::SpeedDown)
-                    .on_plus(Msg::SpeedUp),
-            )
-            .end(
-                Row::new()
-                    .push(
-                        Button::new()
-                            .icon(if data.player.is_paused() {
-                                play_icon()
-                            } else {
-                                pause_icon()
-                            })
-                            .width(30.0)
-                            .on_click(Msg::PauseResume),
-                    )
-                    .push(
-                        Button::new()
-                            .icon(repeat_icon())
-                            .width(30.0)
-                            .on_click(Msg::Looper(LooperMsg::Toggle)),
-                    )
-                    .push(
-                        Button::new()
-                            .icon(if data.is_settings_open {
-                                gear_fill_icon()
-                            } else {
-                                gear_icon()
-                            })
-                            .width(30.0)
-                            .on_click(Msg::SettingsToggle),
-                    ),
-            ),
+        TriLayout::new(), // .start(
+                          //     Row::new().push(
+                          //         Button::new()
+                          //             .icon(left_arrow_icon())
+                          //             .width(30.0)
+                          //             .on_click(Msg::GoBack),
+                          //     ),
+                          // )
+                          // .center(
+                          //     SpeedPill::new()
+                          //         .speed(data.speed)
+                          //         .on_minus(Msg::SpeedDown)
+                          //         .on_plus(Msg::SpeedUp),
+                          // )
+                          // .end(
+                          //     Row::new()
+                          //         .push(
+                          //             Button::new()
+                          //                 .icon(if data.player.is_paused() {
+                          //                     play_icon()
+                          //                 } else {
+                          //                     pause_icon()
+                          //                 })
+                          //                 .width(30.0)
+                          //                 .on_click(Msg::PauseResume),
+                          //         )
+                          //         .push(
+                          //             Button::new()
+                          //                 .icon(repeat_icon())
+                          //                 .width(30.0)
+                          //                 .on_click(Msg::Looper(LooperMsg::Toggle)),
+                          //         )
+                          //         .push(
+                          //             Button::new()
+                          //                 .icon(if data.is_settings_open {
+                          //                     gear_fill_icon()
+                          //                 } else {
+                          //                     gear_icon()
+                          //                 })
+                          //                 .width(30.0)
+                          //                 .on_click(Msg::SettingsToggle),
+                          //         ),
+                          // ),
     )
 }
 

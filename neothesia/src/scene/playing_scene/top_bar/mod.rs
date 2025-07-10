@@ -17,12 +17,12 @@ mod widget;
 use renderer::NuonRenderer;
 
 pub struct TopBar {
-    topbar_expand_animation: Animated<bool, Instant>,
+    pub topbar_expand_animation: Animated<bool, Instant>,
     is_expanded: bool,
 
     settings_animation: Animated<bool, Instant>,
 
-    settings_active: bool,
+    pub settings_active: bool,
 
     looper_active: bool,
     loop_start: Duration,

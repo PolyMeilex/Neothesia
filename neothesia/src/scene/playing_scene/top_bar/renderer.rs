@@ -1,4 +1,5 @@
 use neothesia_core::render::{QuadPipeline, TextRenderer};
+use nuon::Rect;
 
 use crate::scene::playing_scene::LAYER_FG;
 
@@ -38,6 +39,7 @@ impl nuon::Renderer for NuonRenderer<'_> {
     #[profiling::function]
     fn centered_text(&mut self, x: f32, y: f32, w: f32, h: f32, size: f32, text: &str) {
         let buffer = self.text.gen_buffer_bold(size, text);
-        self.text.queue_buffer_centered(x, y, w, h, buffer);
+        self.text
+            .queue_buffer_centered(Rect::new((x, y).into(), (w, h).into()), buffer);
     }
 }

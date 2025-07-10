@@ -29,6 +29,48 @@ use toast_manager::ToastManager;
 mod animation;
 mod top_bar;
 
+mod icons {
+    pub fn cone_icon() -> &'static str {
+        "\u{F2D2}"
+    }
+
+    pub fn gear_icon() -> &'static str {
+        "\u{F3E5}"
+    }
+
+    pub fn gear_fill_icon() -> &'static str {
+        "\u{F3E2}"
+    }
+
+    pub fn repeat_icon() -> &'static str {
+        "\u{f130}"
+    }
+
+    pub fn play_icon() -> &'static str {
+        "\u{f4f4}"
+    }
+
+    pub fn pause_icon() -> &'static str {
+        "\u{f4c3}"
+    }
+
+    pub fn left_arrow_icon() -> &'static str {
+        "\u{f12f}"
+    }
+
+    pub fn right_arrow_icon() -> &'static str {
+        "\u{f138}"
+    }
+
+    pub fn minus_icon() -> &'static str {
+        "\u{F2EA}"
+    }
+
+    pub fn plus_icon() -> &'static str {
+        "\u{F4FE}"
+    }
+}
+
 const LAYER_BG: usize = 0;
 const LAYER_FG: usize = 1;
 
@@ -243,39 +285,151 @@ impl Scene for PlayingScene {
             use nuon::v2 as nuon;
             let ui = &mut self.nuon_ui;
 
-            if nuon::button()
-                .size(50.0, 50.0)
-                .border_radius([5.0; 4])
-                .icon("\u{F3E5}")
-                .build(ui)
+            let y = self.top_bar.topbar_expand_animation.animate_bool(
+                -75.0 + 5.0,
+                0.0,
+                ctx.frame_timestamp,
+            );
+
+            // Left
             {
-                dbg!("click1");
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .y(y)
+                    .border_radius([5.0; 4])
+                    .icon(icons::left_arrow_icon())
+                    .build(ui)
+                {
+                    ctx.proxy
+                        .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
+                        .ok();
+                }
             }
 
-            if nuon::button()
-                .size(50.0, 50.0)
-                .border_radius([5.0; 4])
-                .icon("\u{F2D2}")
-                .y(60.0)
-                .build(ui)
+            // Center
             {
-                dbg!("click2");
+                let pill_w = 45.0 * 2.0;
+                let win_w = ctx.window_state.logical_size.width;
+
+                let x = win_w / 2.0 - pill_w / 2.0;
+                let y = y + 5.0;
+
+                if nuon::button()
+                    .size(45.0, 20.0)
+                    .pos(x, y)
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .border_radius([10.0, 0.0, 10.0, 0.0])
+                    .icon(icons::minus_icon())
+                    .text_justify(nuon::TextJustify::Left)
+                    .build(ui)
+                {
+                    ctx.config
+                        .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
+                }
+
+                nuon::label()
+                    .text(format!(
+                        "{}%",
+                        (ctx.config.speed_multiplier() * 100.0).round()
+                    ))
+                    .pos(x, y)
+                    .size(45.0 * 2.0, 20.0)
+                    .build(ui);
+
+                if nuon::button()
+                    .size(45.0, 20.0)
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .pos(x + 45.0, y)
+                    .border_radius([0.0, 10.0, 0.0, 10.0])
+                    .icon(icons::plus_icon())
+                    .text_justify(nuon::TextJustify::Right)
+                    .build(ui)
+                {
+                    ctx.config
+                        .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
+                }
             }
 
-            let percentage = self.player.percentage();
+            // Right
+            {
+                let mut x = ctx.window_state.logical_size.width - 30.0;
 
-            let new_percentage = {
-                let mut proggres = percentage * ctx.window_state.logical_size.width;
-                nuon::slider(ui, &mut proggres);
-                proggres / ctx.window_state.logical_size.width
-            };
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .y(y)
+                    .x(x)
+                    .border_radius([5.0; 4])
+                    .icon(if self.top_bar.settings_active {
+                        icons::gear_fill_icon()
+                    } else {
+                        icons::gear_icon()
+                    })
+                    .build(ui)
+                {
+                    self.top_bar.settings_active = !self.top_bar.settings_active;
+                }
 
-            if percentage != new_percentage {
-                self.player.set_percentage_time(new_percentage);
-                self.keyboard.reset_notes();
+                x -= 30.0;
+
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .y(y)
+                    .x(x)
+                    .border_radius([5.0; 4])
+                    .icon(icons::repeat_icon())
+                    .build(ui)
+                {
+                    dbg!("loop");
+                }
+
+                x -= 30.0;
+
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .y(y)
+                    .x(x)
+                    .border_radius([5.0; 4])
+                    .icon(if self.player.is_paused() {
+                        icons::play_icon()
+                    } else {
+                        icons::pause_icon()
+                    })
+                    .build(ui)
+                {
+                    self.player.pause_resume();
+                }
             }
 
-            for (rect, color) in ui.quads.iter() {
+            // let percentage = self.player.percentage();
+            //
+            // if percentage > 0.5 {
+            //     if nuon::button()
+            //         .size(50.0, 50.0)
+            //         .border_radius([5.0; 4])
+            //         .icon("\u{F2D2}")
+            //         .y(200.0)
+            //         .build(ui)
+            //     {
+            //         dbg!("click3");
+            //     }
+            // }
+
+            // let new_percentage = {
+            //     let mut proggres = percentage * ctx.window_state.logical_size.width;
+            //     nuon::slider(ui, &mut proggres);
+            //     proggres / ctx.window_state.logical_size.width
+            // };
+            //
+            // if percentage != new_percentage {
+            //     self.player.set_percentage_time(new_percentage);
+            //     self.keyboard.reset_notes();
+            // }
+
+            for (rect, border_radius, color) in ui.quads.iter() {
                 self.quad_pipeline.push(
                     LAYER_FG,
                     neothesia_core::render::QuadInstance {
@@ -283,13 +437,29 @@ impl Scene for PlayingScene {
                         size: rect.size.into(),
                         color: wgpu_jumpstart::Color::new(color.r, color.g, color.b, color.a)
                             .into_linear_rgba(),
-                        border_radius: [0.0; 4],
+                        border_radius: *border_radius,
                     },
-                )
+                );
             }
 
-            for (pos, text) in ui.text.iter() {
-                ctx.text_renderer.queue_icon(pos.x, pos.y, 20.0, text);
+            for (pos, icon) in ui.icons.iter() {
+                ctx.text_renderer.queue_icon(pos.x, pos.y, 20.0, icon);
+            }
+
+            for (rect, justify, text) in ui.text.iter() {
+                let buffer = ctx.text_renderer.gen_buffer_bold(13.0, text);
+
+                match justify {
+                    nuon::TextJustify::Left => {
+                        ctx.text_renderer.queue_buffer_left(*rect, buffer);
+                    }
+                    nuon::TextJustify::Right => {
+                        ctx.text_renderer.queue_buffer_right(*rect, buffer);
+                    }
+                    nuon::TextJustify::Center => {
+                        ctx.text_renderer.queue_buffer_centered(*rect, buffer);
+                    }
+                }
             }
 
             ui.done();

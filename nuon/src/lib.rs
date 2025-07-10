@@ -94,6 +94,18 @@ impl From<[f32; 4]> for Color {
     }
 }
 
+impl From<[u8; 3]> for Color {
+    fn from([r, g, b]: [u8; 3]) -> Self {
+        Self::new_u8(r, g, b, 1.0)
+    }
+}
+
+impl From<[u8; 4]> for Color {
+    fn from([r, g, b, a]: [u8; 4]) -> Self {
+        Self::new_u8(r, g, b, a as f32 / 255.0)
+    }
+}
+
 impl Color {
     pub const WHITE: Self = Self {
         r: 1.0,

@@ -2,10 +2,7 @@ use std::hash::{Hash, Hasher};
 
 pub use crate::Color;
 
-pub type Point = euclid::default::Point2D<f32>;
-pub type Size = euclid::default::Size2D<f32>;
-pub type Box2D = euclid::default::Box2D<f32>;
-pub type Rect = euclid::default::Rect<f32>;
+use super::{Point, Rect, Size};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextJustify {
@@ -59,6 +56,12 @@ pub struct Ui {
     pub quads: Vec<(Rect, [f32; 4], Color)>,
     pub icons: Vec<(Point, String)>,
     pub text: Vec<(Rect, TextJustify, String)>,
+}
+
+impl Default for Ui {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Ui {

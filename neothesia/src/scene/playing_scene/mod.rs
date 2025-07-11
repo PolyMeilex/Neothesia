@@ -54,8 +54,7 @@ pub struct PlayingScene {
     glow: Option<Glow>,
     toast_manager: ToastManager,
 
-    nuon: nuon::State,
-    nuon_ui: nuon::v2::Ui,
+    nuon: nuon::Ui,
 
     top_bar: TopBar,
 }
@@ -131,8 +130,7 @@ impl PlayingScene {
             }),
             toast_manager: ToastManager::default(),
 
-            nuon: nuon::State::new(),
-            nuon_ui: nuon::v2::Ui::new(),
+            nuon: nuon::Ui::new(),
 
             top_bar: TopBar::new(),
         }
@@ -240,8 +238,7 @@ impl Scene for PlayingScene {
         TopBar::update(self, ctx);
 
         {
-            use nuon::v2 as nuon;
-            let ui = &mut self.nuon_ui;
+            let ui = &mut self.nuon;
 
             for (rect, border_radius, color) in ui.quads.iter() {
                 self.quad_pipeline.push(
@@ -309,10 +306,6 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
-        self.nuon
-            .event_queue
-            .push_winit_event(event, ctx.window_state.scale_factor);
-
         self.rewind_controller
             .handle_window_event(ctx, event, &mut self.player);
 
@@ -329,7 +322,7 @@ impl Scene for PlayingScene {
         }
 
         if let WindowEvent::CursorMoved { .. } = event {
-            self.nuon_ui.mouse_move(
+            self.nuon.mouse_move(
                 ctx.window_state.cursor_logical_position.x,
                 ctx.window_state.cursor_logical_position.y,
             );
@@ -337,8 +330,8 @@ impl Scene for PlayingScene {
 
         if let WindowEvent::MouseInput { state, .. } = event {
             match state {
-                ElementState::Pressed => self.nuon_ui.mouse_down(),
-                ElementState::Released => self.nuon_ui.mouse_up(),
+                ElementState::Pressed => self.nuon.mouse_down(),
+                ElementState::Released => self.nuon.mouse_up(),
             }
         }
     }

@@ -7,8 +7,6 @@ use super::{
     PlayingScene,
 };
 
-use nuon::v2 as nuon;
-
 mod icons {
     #[allow(unused)]
     pub fn cone_icon() -> &'static str {
@@ -105,7 +103,6 @@ impl TopBar {
 
         top_bar.is_expanded = is_hovered;
         top_bar.is_expanded |= top_bar.settings_active;
-        top_bar.is_expanded |= scene.nuon.event_queue.is_mouse_grabbed();
 
         top_bar
             .topbar_expand_animation
@@ -119,7 +116,7 @@ impl TopBar {
 
     #[profiling::function]
     pub fn ui(this: &mut PlayingScene, ctx: &mut Context) {
-        let mut ui = std::mem::replace(&mut this.nuon_ui, nuon::Ui::new());
+        let mut ui = std::mem::replace(&mut this.nuon, nuon::Ui::new());
 
         nuon::translate()
             .y(this.top_bar.topbar_expand_animation.animate_bool(
@@ -131,7 +128,7 @@ impl TopBar {
                 Self::panel(this, ctx, ui);
             });
 
-        this.nuon_ui = ui;
+        this.nuon = ui;
     }
 
     fn button() -> nuon::Button {

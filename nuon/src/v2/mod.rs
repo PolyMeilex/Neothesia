@@ -227,7 +227,7 @@ pub struct ClickArea {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ClickAreaEvent {
-    Idle { hovered: bool },
+    Idle { hovered: bool, pressed: bool },
     PressStart,
     PressEnd { clicked: bool },
 }
@@ -235,6 +235,17 @@ pub enum ClickAreaEvent {
 impl ClickAreaEvent {
     pub fn is_clicked(&self) -> bool {
         *self == ClickAreaEvent::PressEnd { clicked: true }
+    }
+
+    pub fn is_pressed(&self) -> bool {
+        matches!(
+            self,
+            ClickAreaEvent::PressStart | ClickAreaEvent::Idle { pressed: true, .. }
+        )
+    }
+
+    pub fn is_hovered(&self) -> bool {
+        matches!(self, ClickAreaEvent::Idle { hovered: true, .. })
     }
 }
 
@@ -303,16 +314,21 @@ impl ClickArea {
             ui.hovered = None;
         }
 
-        if ui.mouse_pressed && mouseover {
+        if ui.mouse_pressed && mouseover && ui.active.is_none() {
             ui.active = Some(id);
             return ClickAreaEvent::PressStart;
         }
 
-        if !ui.mouse_down && ui.active == Some(id) {
+        let pressed = ui.active == Some(id);
+
+        if !ui.mouse_down && pressed {
             ui.active = None;
             ClickAreaEvent::PressEnd { clicked: mouseover }
         } else {
-            ClickAreaEvent::Idle { hovered: mouseover }
+            ClickAreaEvent::Idle {
+                hovered: mouseover && ui.active.is_none(),
+                pressed,
+            }
         }
     }
 }

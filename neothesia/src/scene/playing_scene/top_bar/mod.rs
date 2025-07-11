@@ -1,19 +1,11 @@
 use std::time::{Duration, Instant};
 
-use ui::LooperMsg;
-
 use crate::context::Context;
 
 use super::{
     animation::{Animated, Easing},
     PlayingScene,
 };
-
-mod renderer;
-pub mod ui;
-mod widget;
-
-use renderer::NuonRenderer;
 
 pub struct TopBar {
     pub topbar_expand_animation: Animated<bool, Instant>,
@@ -61,56 +53,6 @@ impl TopBar {
         self.loop_end
     }
 
-    fn on_msg(scene: &mut PlayingScene, _ctx: &mut Context, msg: &ui::Msg) {
-        use ui::Msg;
-        match msg {
-            Msg::Looper(msg) => match msg {
-                LooperMsg::MoveStart(t) => {
-                    scene.top_bar.loop_start = *t;
-                }
-                LooperMsg::MoveEnd(t) => {
-                    scene.top_bar.loop_end = *t;
-                }
-            },
-        }
-    }
-
-    #[profiling::function]
-    fn update_nuon(scene: &mut PlayingScene, ctx: &mut Context, _delta: Duration) {
-        let globals = nuon::GlobalStore::with(|store| {
-            store.insert(&scene.player);
-        });
-
-        let mut root = ui::top_bar(ui::UiData {
-            window_size: ctx.window_state.logical_size,
-            is_looper_on: scene.top_bar.is_looper_active(),
-            loop_start: scene.top_bar.loop_start_timestamp(),
-            loop_end: scene.top_bar.loop_end_timestamp(),
-
-            frame_timestamp: ctx.frame_timestamp,
-            topbar_expand_animation: &scene.top_bar.topbar_expand_animation,
-            settings_animation: &scene.top_bar.settings_animation,
-        })
-        .into();
-
-        let messages = scene.nuon.update(
-            root.as_widget_mut(),
-            &globals,
-            ctx.window_state.logical_size.width,
-            ctx.window_state.logical_size.height,
-            &mut NuonRenderer {
-                quads: &mut scene.quad_pipeline,
-                text: &mut ctx.text_renderer,
-            },
-        );
-
-        drop(root);
-
-        for msg in messages.iter() {
-            Self::on_msg(scene, ctx, msg);
-        }
-    }
-
     #[profiling::function]
     pub fn update(scene: &mut PlayingScene, ctx: &mut Context, delta: Duration) {
         let PlayingScene { top_bar, .. } = scene;
@@ -130,7 +72,5 @@ impl TopBar {
         top_bar
             .settings_animation
             .transition(top_bar.settings_active, ctx.frame_timestamp);
-
-        Self::update_nuon(scene, ctx, delta);
     }
 }

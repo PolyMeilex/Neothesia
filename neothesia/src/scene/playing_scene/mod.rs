@@ -275,6 +275,8 @@ impl Scene for PlayingScene {
 
         self.update_glow(delta);
 
+        TopBar::update(self, ctx, delta);
+
         {
             use nuon::v2 as nuon;
             let ui = &mut self.nuon_ui;
@@ -409,6 +411,53 @@ impl Scene for PlayingScene {
                         let w = ctx.window_state.logical_size.width;
                         let progress_w = w * self.player.percentage();
 
+                        let loop_start = self.top_bar.loop_start;
+                        let loop_start = self.player.time_to_percentage(&loop_start) * w;
+
+                        let loop_end = self.top_bar.loop_end;
+                        let loop_end = self.player.time_to_percentage(&loop_end) * w;
+
+                        let loop_h = h + 10.0;
+
+                        let (loop_start_active, loop_end_active) = if self.top_bar.looper_active {
+                            let loop_start_ev = nuon::click_area("LooperStart")
+                                .x(loop_start)
+                                .width(5.0)
+                                .height(loop_h)
+                                .build(ui);
+                            if loop_start_ev.is_pressed() {
+                                let x = ctx.window_state.cursor_logical_position.x;
+                                let w = ctx.window_state.logical_size.width;
+                                let p = x / w;
+
+                                if p * w < loop_end - 10.0 {
+                                    self.top_bar.loop_start = self.player.percentage_to_time(p);
+                                }
+                            }
+
+                            let loop_end_ev = nuon::click_area("LooperEnd")
+                                .x(loop_end)
+                                .width(5.0)
+                                .height(loop_h)
+                                .build(ui);
+                            if loop_end_ev.is_pressed() {
+                                let x = ctx.window_state.cursor_logical_position.x;
+                                let w = ctx.window_state.logical_size.width;
+                                let p = x / w;
+
+                                if p * w > loop_start + 10.0 {
+                                    self.top_bar.loop_end = self.player.percentage_to_time(p);
+                                }
+                            }
+
+                            (
+                                loop_start_ev.is_hovered() || loop_start_ev.is_pressed(),
+                                loop_end_ev.is_hovered() || loop_end_ev.is_pressed(),
+                            )
+                        } else {
+                            (false, false)
+                        };
+
                         match nuon::click_area("ProggressBar").size(w, h).build(ui) {
                             nuon::ClickAreaEvent::PressStart => {
                                 if !self.rewind_controller.is_rewinding() {
@@ -451,6 +500,32 @@ impl Scene for PlayingScene {
 
                             nuon::quad().x(x).size(1.0, h).color(color).build(ui);
                         }
+
+                        if self.top_bar.looper_active {
+                            let color = [255, 56, 187];
+                            let white = [255; 3];
+
+                            nuon::quad()
+                                .x(loop_start)
+                                .width(loop_end - loop_start)
+                                .height(loop_h)
+                                .color([255, 56, 187, 90])
+                                .build(ui);
+
+                            nuon::quad()
+                                .x(loop_start)
+                                .width(5.0)
+                                .height(loop_h)
+                                .color(if loop_start_active { white } else { color })
+                                .build(ui);
+
+                            nuon::quad()
+                                .x(loop_end)
+                                .width(5.0)
+                                .height(loop_h)
+                                .color(if loop_end_active { white } else { color })
+                                .build(ui);
+                        }
                     });
                 });
 
@@ -489,8 +564,6 @@ impl Scene for PlayingScene {
 
             ui.done();
         }
-
-        TopBar::update(self, ctx, delta);
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         if let Some(glow) = &mut self.glow {

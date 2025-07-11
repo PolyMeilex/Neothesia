@@ -1,12 +1,11 @@
 use std::time::{Duration, Instant};
 
-use ui::{LooperMsg, ProgressBarMsg};
+use ui::LooperMsg;
 
-use crate::{context::Context, NeothesiaEvent};
+use crate::context::Context;
 
 use super::{
     animation::{Animated, Easing},
-    rewind_controller::RewindController,
     PlayingScene,
 };
 
@@ -62,28 +61,9 @@ impl TopBar {
         self.loop_end
     }
 
-    fn on_msg(scene: &mut PlayingScene, ctx: &mut Context, msg: &ui::Msg) {
+    fn on_msg(scene: &mut PlayingScene, _ctx: &mut Context, msg: &ui::Msg) {
         use ui::Msg;
         match msg {
-            Msg::PauseResume => {
-                scene.player.pause_resume();
-            }
-            Msg::SpeedUp => {
-                ctx.config
-                    .set_speed_multiplier(ctx.config.speed_multiplier() + 0.1);
-            }
-            Msg::SpeedDown => {
-                ctx.config
-                    .set_speed_multiplier(ctx.config.speed_multiplier() - 0.1);
-            }
-            Msg::SettingsToggle => {
-                scene.top_bar.settings_active = !scene.top_bar.settings_active;
-            }
-            Msg::GoBack => {
-                ctx.proxy
-                    .send_event(NeothesiaEvent::MainMenu(Some(scene.player.song().clone())))
-                    .ok();
-            }
             Msg::Looper(msg) => match msg {
                 LooperMsg::Toggle => {
                     scene.top_bar.looper_active = !scene.top_bar.looper_active;
@@ -104,34 +84,6 @@ impl TopBar {
                     scene.top_bar.loop_end = *t;
                 }
             },
-            Msg::ProggresBar(msg) => {
-                let PlayingScene {
-                    player,
-                    keyboard,
-                    rewind_controller,
-                    ..
-                } = scene;
-
-                match msg {
-                    ProgressBarMsg::Pressed => {
-                        if !rewind_controller.is_rewinding() {
-                            rewind_controller.start_mouse_rewind(player);
-
-                            let x = ctx.window_state.cursor_logical_position.x;
-                            let w = ctx.window_state.logical_size.width;
-
-                            let p = x / w;
-                            player.set_percentage_time(p);
-                            keyboard.reset_notes();
-                        }
-                    }
-                    ProgressBarMsg::Released => {
-                        if let RewindController::Mouse { .. } = rewind_controller {
-                            rewind_controller.stop_rewind(player);
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -143,10 +95,7 @@ impl TopBar {
 
         let mut root = ui::top_bar(ui::UiData {
             window_size: ctx.window_state.logical_size,
-            is_settings_open: scene.top_bar.settings_active,
             is_looper_on: scene.top_bar.is_looper_active(),
-            speed: ctx.config.speed_multiplier(),
-            player: &scene.player,
             loop_start: scene.top_bar.loop_start_timestamp(),
             loop_end: scene.top_bar.loop_end_timestamp(),
 

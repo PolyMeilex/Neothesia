@@ -58,10 +58,6 @@ mod icons {
         "\u{f12f}"
     }
 
-    pub fn right_arrow_icon() -> &'static str {
-        "\u{f138}"
-    }
-
     pub fn minus_icon() -> &'static str {
         "\u{F2EA}"
     }
@@ -284,6 +280,7 @@ impl Scene for PlayingScene {
         {
             use nuon::v2 as nuon;
             let ui = &mut self.nuon_ui;
+            let win_w = ctx.window_state.logical_size.width;
 
             nuon::translate()
                 .y(self.top_bar.topbar_expand_animation.animate_bool(
@@ -292,6 +289,11 @@ impl Scene for PlayingScene {
                     ctx.frame_timestamp,
                 ))
                 .build(ui, |ui| {
+                    nuon::quad()
+                        .size(win_w, 30.0 + 45.0)
+                        .color([37, 35, 42])
+                        .build(ui);
+
                     // Left
                     if nuon::button()
                         .size(30.0, 30.0)
@@ -308,7 +310,6 @@ impl Scene for PlayingScene {
                     nuon::translate()
                         .x({
                             let pill_w = 45.0 * 2.0;
-                            let win_w = ctx.window_state.logical_size.width;
                             win_w / 2.0 - pill_w / 2.0
                         })
                         .y(5.0)
@@ -444,31 +445,6 @@ impl Scene for PlayingScene {
                         }
                     });
                 });
-
-            // let percentage = self.player.percentage();
-            //
-            // if percentage > 0.5 {
-            //     if nuon::button()
-            //         .size(50.0, 50.0)
-            //         .border_radius([5.0; 4])
-            //         .icon("\u{F2D2}")
-            //         .y(200.0)
-            //         .build(ui)
-            //     {
-            //         dbg!("click3");
-            //     }
-            // }
-
-            // let new_percentage = {
-            //     let mut proggres = percentage * ctx.window_state.logical_size.width;
-            //     nuon::slider(ui, &mut proggres);
-            //     proggres / ctx.window_state.logical_size.width
-            // };
-            //
-            // if percentage != new_percentage {
-            //     self.player.set_percentage_time(new_percentage);
-            //     self.keyboard.reset_notes();
-            // }
 
             for (rect, border_radius, color) in ui.quads.iter() {
                 self.quad_pipeline.push(

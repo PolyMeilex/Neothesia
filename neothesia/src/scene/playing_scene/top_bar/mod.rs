@@ -303,44 +303,41 @@ impl TopBar {
 
         let looper_active = this.top_bar.looper_active;
 
-        let (loop_start_active, loop_end_active) = if looper_active {
+        let (loop_start_ev, loop_end_ev) = if looper_active {
             let loop_start_ev = nuon::click_area("LooperStart")
                 .x(loop_start)
                 .width(5.0)
                 .height(loop_h)
                 .build(ui);
-            if loop_start_ev.is_pressed() {
-                let x = ctx.window_state.cursor_logical_position.x;
-                let w = ctx.window_state.logical_size.width;
-                let p = x / w;
-
-                if p * w < loop_end - 10.0 {
-                    this.top_bar.loop_start = this.player.percentage_to_time(p);
-                }
-            }
-
             let loop_end_ev = nuon::click_area("LooperEnd")
                 .x(loop_end)
                 .width(5.0)
                 .height(loop_h)
                 .build(ui);
-            if loop_end_ev.is_pressed() {
-                let x = ctx.window_state.cursor_logical_position.x;
-                let w = ctx.window_state.logical_size.width;
-                let p = x / w;
-
-                if p * w > loop_start + 10.0 {
-                    this.top_bar.loop_end = this.player.percentage_to_time(p);
-                }
-            }
-
-            (
-                loop_start_ev.is_hovered() || loop_start_ev.is_pressed(),
-                loop_end_ev.is_hovered() || loop_end_ev.is_pressed(),
-            )
+            (loop_start_ev, loop_end_ev)
         } else {
-            (false, false)
+            (nuon::ClickAreaEvent::null(), nuon::ClickAreaEvent::null())
         };
+
+        if loop_start_ev.is_pressed() {
+            let x = ctx.window_state.cursor_logical_position.x;
+            let w = ctx.window_state.logical_size.width;
+            let p = x / w;
+
+            if p * w < loop_end - 10.0 {
+                this.top_bar.loop_start = this.player.percentage_to_time(p);
+            }
+        }
+
+        if loop_end_ev.is_pressed() {
+            let x = ctx.window_state.cursor_logical_position.x;
+            let w = ctx.window_state.logical_size.width;
+            let p = x / w;
+
+            if p * w > loop_start + 10.0 {
+                this.top_bar.loop_end = this.player.percentage_to_time(p);
+            }
+        }
 
         // render
         move |ui| {
@@ -362,14 +359,24 @@ impl TopBar {
                 .x(loop_start)
                 .width(5.0)
                 .height(loop_h)
-                .color(if loop_start_active { white } else { color })
+                .color(
+                    if loop_start_ev.is_hovered() || loop_start_ev.is_pressed() {
+                        white
+                    } else {
+                        color
+                    },
+                )
                 .build(ui);
 
             nuon::quad()
                 .x(loop_end)
                 .width(5.0)
                 .height(loop_h)
-                .color(if loop_end_active { white } else { color })
+                .color(if loop_end_ev.is_hovered() || loop_end_ev.is_pressed() {
+                    white
+                } else {
+                    color
+                })
                 .build(ui);
         }
     }

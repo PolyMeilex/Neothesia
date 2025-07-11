@@ -236,6 +236,13 @@ pub enum ClickAreaEvent {
 }
 
 impl ClickAreaEvent {
+    pub fn null() -> Self {
+        Self::Idle {
+            hovered: false,
+            pressed: false,
+        }
+    }
+
     pub fn is_clicked(&self) -> bool {
         *self == ClickAreaEvent::PressEnd { clicked: true }
     }

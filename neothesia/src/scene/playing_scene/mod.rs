@@ -275,8 +275,6 @@ impl Scene for PlayingScene {
 
         self.update_glow(delta);
 
-        TopBar::update(self, ctx, delta);
-
         {
             use nuon::v2 as nuon;
             let ui = &mut self.nuon_ui;
@@ -377,7 +375,17 @@ impl Scene for PlayingScene {
                                 .icon(icons::repeat_icon())
                                 .build(ui)
                             {
-                                dbg!("loop");
+                                self.top_bar.looper_active = !self.top_bar.looper_active;
+
+                                // Looper enabled for the first time
+                                if self.top_bar.looper_active
+                                    && self.top_bar.loop_start.is_zero()
+                                    && self.top_bar.loop_end.is_zero()
+                                {
+                                    self.top_bar.loop_start = self.player.time();
+                                    self.top_bar.loop_end =
+                                        self.player.time() + Duration::from_secs(5);
+                                }
                             }
 
                             if nuon::button()
@@ -481,6 +489,8 @@ impl Scene for PlayingScene {
 
             ui.done();
         }
+
+        TopBar::update(self, ctx, delta);
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         if let Some(glow) = &mut self.glow {

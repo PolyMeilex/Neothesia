@@ -23,9 +23,9 @@ pub struct TopBar {
 
     pub settings_active: bool,
 
-    looper_active: bool,
-    loop_start: Duration,
-    loop_end: Duration,
+    pub looper_active: bool,
+    pub loop_start: Duration,
+    pub loop_end: Duration,
 }
 
 impl TopBar {
@@ -65,18 +65,6 @@ impl TopBar {
         use ui::Msg;
         match msg {
             Msg::Looper(msg) => match msg {
-                LooperMsg::Toggle => {
-                    scene.top_bar.looper_active = !scene.top_bar.looper_active;
-
-                    // Looper enabled for the first time
-                    if scene.top_bar.looper_active
-                        && scene.top_bar.loop_start.is_zero()
-                        && scene.top_bar.loop_end.is_zero()
-                    {
-                        scene.top_bar.loop_start = scene.player.time();
-                        scene.top_bar.loop_end = scene.player.time() + Duration::from_secs(5);
-                    }
-                }
                 LooperMsg::MoveStart(t) => {
                     scene.top_bar.loop_start = *t;
                 }

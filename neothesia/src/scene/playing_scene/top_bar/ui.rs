@@ -13,7 +13,6 @@ use super::widget::looper::Looper;
 pub enum LooperMsg {
     MoveStart(Duration),
     MoveEnd(Duration),
-    Toggle,
 }
 
 #[derive(Clone, Debug)]

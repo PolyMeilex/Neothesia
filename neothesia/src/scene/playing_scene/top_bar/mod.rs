@@ -192,10 +192,11 @@ impl TopBar {
 
     fn panel_right(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
         nuon::translate()
-            .x(ctx.window_state.logical_size.width - 30.0)
+            .x(ctx.window_state.logical_size.width)
             .build(ui, |ui| {
+                nuon::translate().x(-30.0).add_to_current(ui);
+
                 if Self::button()
-                    .x(0.0)
                     .icon(if this.top_bar.settings_active {
                         icons::gear_fill_icon()
                     } else {
@@ -206,7 +207,9 @@ impl TopBar {
                     this.top_bar.settings_active = !this.top_bar.settings_active;
                 }
 
-                if Self::button().x(-30.0).icon(icons::repeat_icon()).build(ui) {
+                nuon::translate().x(-30.0).add_to_current(ui);
+
+                if Self::button().icon(icons::repeat_icon()).build(ui) {
                     this.top_bar.looper_active = !this.top_bar.looper_active;
 
                     // Looper enabled for the first time
@@ -219,8 +222,9 @@ impl TopBar {
                     }
                 }
 
+                nuon::translate().x(-30.0).add_to_current(ui);
+
                 if Self::button()
-                    .x(-60.0)
                     .icon(if this.player.is_paused() {
                         icons::play_icon()
                     } else {

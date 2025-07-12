@@ -193,6 +193,12 @@ impl Translate {
         build(ui);
         ui.translation_stack.0.pop();
     }
+
+    pub fn add_to_current(&self, ui: &mut Ui) {
+        if let Some(current) = ui.translation_stack.0.last_mut() {
+            *current = Point::new(current.x + self.origin.x, current.y + self.origin.y);
+        }
+    }
 }
 
 pub fn translate() -> Translate {

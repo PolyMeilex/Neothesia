@@ -54,7 +54,7 @@ pub struct PlayingScene {
     glow: Option<Glow>,
     toast_manager: ToastManager,
 
-    nuon: nuon::State,
+    nuon: nuon::Ui,
 
     top_bar: TopBar,
 }
@@ -130,7 +130,7 @@ impl PlayingScene {
             }),
             toast_manager: ToastManager::default(),
 
-            nuon: nuon::State::new(),
+            nuon: nuon::Ui::new(),
 
             top_bar: TopBar::new(),
         }
@@ -235,7 +235,46 @@ impl Scene for PlayingScene {
 
         self.update_glow(delta);
 
-        TopBar::update(self, ctx, delta);
+        TopBar::update(self, ctx);
+
+        {
+            let ui = &mut self.nuon;
+
+            for (rect, border_radius, color) in ui.quads.iter() {
+                self.quad_pipeline.push(
+                    LAYER_FG,
+                    neothesia_core::render::QuadInstance {
+                        position: rect.origin.into(),
+                        size: rect.size.into(),
+                        color: wgpu_jumpstart::Color::new(color.r, color.g, color.b, color.a)
+                            .into_linear_rgba(),
+                        border_radius: *border_radius,
+                    },
+                );
+            }
+
+            for (pos, icon) in ui.icons.iter() {
+                ctx.text_renderer.queue_icon(pos.x, pos.y, 20.0, icon);
+            }
+
+            for (rect, justify, text) in ui.text.iter() {
+                let buffer = ctx.text_renderer.gen_buffer_bold(13.0, text);
+
+                match justify {
+                    nuon::TextJustify::Left => {
+                        ctx.text_renderer.queue_buffer_left(*rect, buffer);
+                    }
+                    nuon::TextJustify::Right => {
+                        ctx.text_renderer.queue_buffer_right(*rect, buffer);
+                    }
+                    nuon::TextJustify::Center => {
+                        ctx.text_renderer.queue_buffer_centered(*rect, buffer);
+                    }
+                }
+            }
+
+            ui.done();
+        }
 
         self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         if let Some(glow) = &mut self.glow {
@@ -267,10 +306,6 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
-        self.nuon
-            .event_queue
-            .push_winit_event(event, ctx.window_state.scale_factor);
-
         self.rewind_controller
             .handle_window_event(ctx, event, &mut self.player);
 
@@ -284,6 +319,20 @@ impl Scene for PlayingScene {
 
         if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
             self.resize(ctx)
+        }
+
+        if let WindowEvent::CursorMoved { .. } = event {
+            self.nuon.mouse_move(
+                ctx.window_state.cursor_logical_position.x,
+                ctx.window_state.cursor_logical_position.y,
+            );
+        }
+
+        if let WindowEvent::MouseInput { state, .. } = event {
+            match state {
+                ElementState::Pressed => self.nuon.mouse_down(),
+                ElementState::Released => self.nuon.mouse_up(),
+            }
         }
     }
 

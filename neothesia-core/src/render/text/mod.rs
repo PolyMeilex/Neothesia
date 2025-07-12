@@ -4,6 +4,8 @@ use wgpu_jumpstart::Gpu;
 
 pub use glyphon;
 
+use crate::utils::Rect;
+
 #[derive(Debug, Clone)]
 pub struct TextArea {
     pub buffer: glyphon::Buffer,
@@ -231,46 +233,53 @@ impl TextRenderer {
         });
     }
 
-    pub fn queue_buffer_centered(
-        &mut self,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        buffer: glyphon::Buffer,
-    ) {
+    pub fn queue_buffer_left(&mut self, rect: Rect, buffer: glyphon::Buffer) {
+        let (_text_w, text_h) = Self::measure(&buffer);
+
+        let origin = rect.origin;
+        let size = rect.size;
+
+        self.queue_buffer(
+            origin.x,
+            origin.y + size.height / 2.0 - text_h / 2.0,
+            buffer,
+        );
+    }
+
+    pub fn queue_buffer_right(&mut self, rect: Rect, buffer: glyphon::Buffer) {
         let (text_w, text_h) = Self::measure(&buffer);
 
-        self.queue(TextArea {
+        let origin = rect.origin;
+        let size = rect.size;
+
+        self.queue_buffer(
+            origin.x + size.width - text_w,
+            origin.y + size.height / 2.0 - text_h / 2.0,
             buffer,
-            left: x + w / 2.0 - text_w / 2.0,
-            top: y + h / 2.0 - text_h / 2.0,
-            scale: 1.0,
-            bounds: glyphon::TextBounds::default(),
-            default_color: glyphon::Color::rgb(255, 255, 255),
-        });
+        );
+    }
+
+    pub fn queue_buffer_centered(&mut self, rect: Rect, buffer: glyphon::Buffer) {
+        let (text_w, text_h) = Self::measure(&buffer);
+
+        let origin = rect.origin;
+        let size = rect.size;
+
+        self.queue_buffer(
+            origin.x + size.width / 2.0 - text_w / 2.0,
+            origin.y + size.height / 2.0 - text_h / 2.0,
+            buffer,
+        );
     }
 
     pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str) {
-        let mut buffer =
-            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));
-        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
-        buffer.set_text(
-            &mut self.font_system,
+        let buffer = self.gen_buffer_with_attr(
+            size,
             icon,
-            &glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
-            glyphon::Shaping::Basic,
+            glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
         );
-        buffer.shape_until_scroll(&mut self.font_system, false);
 
-        self.queue(TextArea {
-            buffer,
-            left: x,
-            top: y,
-            scale: 1.0,
-            bounds: glyphon::TextBounds::default(),
-            default_color: glyphon::Color::rgb(255, 255, 255),
-        });
+        self.queue_buffer(x, y, buffer);
     }
 
     pub fn queue_fps(&mut self, fps: f64) {

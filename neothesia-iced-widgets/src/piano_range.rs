@@ -91,6 +91,7 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                             color: Color::TRANSPARENT,
                         },
                         shadow: Default::default(),
+                        snap: false,
                     },
                     Background::Color(Color::WHITE),
                 );
@@ -113,6 +114,7 @@ impl<M, R: iced_core::Renderer> Widget<M, Theme, R> for PianoRange {
                             color: Color::TRANSPARENT,
                         },
                         shadow: Default::default(),
+                        snap: false,
                     },
                     Background::Color(Color::BLACK),
                 );

@@ -239,6 +239,7 @@ impl<Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'_, Message> {
                     color: Color::TRANSPARENT,
                 },
                 shadow: iced_core::Shadow::default(),
+                snap: false,
             },
             Background::Color(colors.0),
         );
@@ -260,6 +261,7 @@ impl<Message: Clone> Widget<Message, Theme, Renderer> for NeoBtn<'_, Message> {
                     color: Color::TRANSPARENT,
                 },
                 shadow: iced_core::Shadow::default(),
+                snap: false,
             },
             Background::Color(colors.1),
         );

@@ -359,6 +359,7 @@ where
                     bounds,
                     border: style.border,
                     shadow: style.shadow,
+                    snap: false,
                 },
                 style
                     .background

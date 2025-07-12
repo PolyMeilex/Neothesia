@@ -293,6 +293,7 @@ fn render<Renderer, Handle>(
             filter_method,
             rotation: rotation.radians(),
             opacity,
+            snap: false,
         },
         drawing_bounds,
     );

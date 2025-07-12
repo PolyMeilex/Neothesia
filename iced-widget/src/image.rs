@@ -25,8 +25,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
-    Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -163,8 +162,7 @@ where
 {
     // The raw w/h of the underlying image
     let image_size = renderer.measure_image(handle);
-    let image_size =
-        Size::new(image_size.width as f32, image_size.height as f32);
+    let image_size = Size::new(image_size.width as f32, image_size.height as f32);
 
     // The rotated size of the image
     let rotated_size = rotation.apply(image_size);
@@ -251,8 +249,7 @@ pub fn draw<Renderer, Handle>(
     Handle: Clone,
 {
     let bounds = layout.bounds();
-    let drawing_bounds =
-        drawing_bounds(renderer, bounds, handle, content_fit, rotation, scale);
+    let drawing_bounds = drawing_bounds(renderer, bounds, handle, content_fit, rotation, scale);
 
     if must_clip(bounds, drawing_bounds) {
         if let Some(bounds) = bounds.intersection(viewport) {
@@ -301,8 +298,7 @@ fn render<Renderer, Handle>(
     );
 }
 
-impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
-    for Image<Handle>
+impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,

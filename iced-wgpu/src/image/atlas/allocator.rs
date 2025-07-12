@@ -16,8 +16,7 @@ impl Allocator {
     }
 
     pub fn allocate(&mut self, width: u32, height: u32) -> Option<Region> {
-        let allocation =
-            self.raw.allocate(Size::new(width as i32, height as i32))?;
+        let allocation = self.raw.allocate(Size::new(width as i32, height as i32))?;
 
         self.allocations += 1;
 

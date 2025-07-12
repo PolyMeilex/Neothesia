@@ -86,8 +86,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Space>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Space> for Element<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
     Message: 'a,

@@ -5,8 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
-    Widget,
+    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that displays children on top of each other.
@@ -18,8 +17,7 @@ use crate::core::{
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
 #[allow(missing_debug_implementations)]
-pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-{
+pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     width: Length,
     height: Length,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -55,9 +53,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Stack::width`] or [`Stack::height`] accordingly.
-    pub fn from_vec(
-        children: Vec<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             width: Length::Shrink,
             height: Length::Shrink,
@@ -78,10 +74,7 @@ where
     }
 
     /// Adds an element to the [`Stack`].
-    pub fn push(
-        mut self,
-        child: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
 
         if self.children.is_empty() {
@@ -154,28 +147,23 @@ where
         let limits = limits.width(self.width).height(self.height);
 
         if self.children.is_empty() {
-            return layout::Node::new(limits.resolve(
-                self.width,
-                self.height,
-                Size::ZERO,
-            ));
+            return layout::Node::new(limits.resolve(self.width, self.height, Size::ZERO));
         }
 
-        let base = self.children[0].as_widget().layout(
-            &mut tree.children[0],
-            renderer,
-            &limits,
-        );
+        let base = self.children[0]
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, &limits);
 
         let size = limits.resolve(self.width, self.height, base.size());
         let limits = layout::Limits::new(Size::ZERO, size);
 
         let nodes = std::iter::once(base)
-            .chain(self.children[1..].iter().zip(&mut tree.children[1..]).map(
-                |(layer, tree)| {
-                    layer.as_widget().layout(tree, renderer, &limits)
-                },
-            ))
+            .chain(
+                self.children[1..]
+                    .iter()
+                    .zip(&mut tree.children[1..])
+                    .map(|(layer, tree)| layer.as_widget().layout(tree, renderer, &limits)),
+            )
             .collect();
 
         layout::Node::with_children(size, nodes)
@@ -224,8 +212,7 @@ where
             .enumerate()
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
-                viewport,
+                state, event, layout, cursor, renderer, clipboard, shell, viewport,
             );
 
             if shell.is_event_captured() {
@@ -233,9 +220,9 @@ where
             }
 
             if i < end && is_over && !cursor.is_levitating() {
-                let interaction = child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                );
+                let interaction = child
+                    .as_widget()
+                    .mouse_interaction(state, layout, cursor, viewport, renderer);
 
                 if interaction != mouse::Interaction::None {
                     cursor = cursor.levitate();
@@ -258,9 +245,9 @@ where
             .zip(tree.children.iter().rev())
             .zip(layout.children().rev())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+                child
+                    .as_widget()
+                    .mouse_interaction(state, layout, cursor, viewport, renderer)
             })
             .find(|&interaction| interaction != mouse::Interaction::None)
             .unwrap_or_default()
@@ -284,9 +271,9 @@ where
                     .zip(tree.children.iter().rev())
                     .zip(layout.children().rev())
                     .position(|((layer, state), layout)| {
-                        let interaction = layer.as_widget().mouse_interaction(
-                            state, layout, cursor, viewport, renderer,
-                        );
+                        let interaction = layer
+                            .as_widget()
+                            .mouse_interaction(state, layout, cursor, viewport, renderer);
 
                         interaction != mouse::Interaction::None
                     })
@@ -306,11 +293,7 @@ where
             let layers = layers.by_ref();
 
             let mut draw_layer =
-                |i,
-                 layer: &Element<'a, Message, Theme, Renderer>,
-                 state,
-                 layout,
-                 cursor| {
+                |i, layer: &Element<'a, Message, Theme, Renderer>, state, layout, cursor| {
                     if i > 0 {
                         renderer.with_layer(clipped_viewport, |renderer| {
                             layer.as_widget().draw(

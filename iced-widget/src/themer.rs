@@ -3,11 +3,11 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::Operation;
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 use std::marker::PhantomData;
@@ -29,8 +29,7 @@ where
     old_theme: PhantomData<Theme>,
 }
 
-impl<'a, Message, Theme, NewTheme, F, Renderer>
-    Themer<'a, Message, Theme, NewTheme, F, Renderer>
+impl<'a, Message, Theme, NewTheme, F, Renderer> Themer<'a, Message, Theme, NewTheme, F, Renderer>
 where
     F: Fn(&Theme) -> NewTheme,
     Renderer: crate::core::Renderer,
@@ -188,17 +187,12 @@ where
             content: overlay::Element<'a, Message, NewTheme, Renderer>,
         }
 
-        impl<Message, Theme, NewTheme, Renderer>
-            overlay::Overlay<Message, Theme, Renderer>
+        impl<Message, Theme, NewTheme, Renderer> overlay::Overlay<Message, Theme, Renderer>
             for Overlay<'_, Message, Theme, NewTheme, Renderer>
         where
             Renderer: crate::core::Renderer,
         {
-            fn layout(
-                &mut self,
-                renderer: &Renderer,
-                bounds: Size,
-            ) -> layout::Node {
+            fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
                 self.content.as_overlay_mut().layout(renderer, bounds)
             }
 
@@ -259,8 +253,7 @@ where
                 &'b mut self,
                 layout: Layout<'b>,
                 renderer: &Renderer,
-            ) -> Option<overlay::Element<'b, Message, Theme, Renderer>>
-            {
+            ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
                 self.content
                     .as_overlay_mut()
                     .overlay(layout, renderer)

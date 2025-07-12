@@ -4,20 +4,14 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
-use crate::core::widget::{Operation, Tree, tree};
+use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// Emit messages on mouse events.
 #[allow(missing_debug_implementations)]
-pub struct MouseArea<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> {
+pub struct MouseArea<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     on_release: Option<Message>,
@@ -94,10 +88,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when scroll wheel is used
     #[must_use]
-    pub fn on_scroll(
-        mut self,
-        on_scroll: impl Fn(mouse::ScrollDelta) -> Message + 'a,
-    ) -> Self {
+    pub fn on_scroll(mut self, on_scroll: impl Fn(mouse::ScrollDelta) -> Message + 'a) -> Self {
         self.on_scroll = Some(Box::new(on_scroll));
         self
     }
@@ -142,9 +133,7 @@ struct State {
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// Creates a [`MouseArea`] with the given content.
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         MouseArea {
             content: content.into(),
             on_press: None,
@@ -207,12 +196,9 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.content.as_widget().operate(
-            &mut tree.children[0],
-            layout,
-            renderer,
-            operation,
-        );
+        self.content
+            .as_widget()
+            .operate(&mut tree.children[0], layout, renderer, operation);
     }
 
     fn update(
@@ -261,9 +247,7 @@ where
         );
 
         match (self.interaction, content_interaction) {
-            (Some(interaction), mouse::Interaction::None)
-                if cursor.is_over(layout.bounds()) =>
-            {
+            (Some(interaction), mouse::Interaction::None) if cursor.is_over(layout.bounds()) => {
                 interaction
             }
             _ => content_interaction,
@@ -379,11 +363,8 @@ fn update<Message: Clone, Theme, Renderer>(
 
             if let Some(position) = cursor_position {
                 if let Some(message) = widget.on_double_click.as_ref() {
-                    let new_click = mouse::Click::new(
-                        position,
-                        mouse::Button::Left,
-                        state.previous_click,
-                    );
+                    let new_click =
+                        mouse::Click::new(position, mouse::Button::Left, state.previous_click);
 
                     if new_click.kind() == mouse::click::Kind::Double {
                         shell.publish(message.clone());

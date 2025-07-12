@@ -1,11 +1,9 @@
-use crate::core::{
-    self, Background, Color, Point, Rectangle, Svg, Transformation, renderer,
-};
+use crate::core::{self, renderer, Background, Color, Point, Rectangle, Svg, Transformation};
 use crate::graphics;
-use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph};
+use crate::graphics::Mesh;
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
@@ -110,8 +108,7 @@ impl Layer {
             bounds: Rectangle::new(position, text.bounds) * transformation,
             color,
             size: text.size * transformation.scale_factor(),
-            line_height: text.line_height.to_absolute(text.size)
-                * transformation.scale_factor(),
+            line_height: text.line_height.to_absolute(text.size) * transformation.scale_factor(),
             font: text.font,
             align_x: text.align_x,
             align_y: text.align_y,
@@ -144,22 +141,13 @@ impl Layer {
         self.images.push(image);
     }
 
-    pub fn draw_svg(
-        &mut self,
-        svg: Svg,
-        bounds: Rectangle,
-        transformation: Transformation,
-    ) {
+    pub fn draw_svg(&mut self, svg: Svg, bounds: Rectangle, transformation: Transformation) {
         let svg = Image::Vector(svg, bounds * transformation);
 
         self.images.push(svg);
     }
 
-    pub fn draw_mesh(
-        &mut self,
-        mut mesh: Mesh,
-        transformation: Transformation,
-    ) {
+    pub fn draw_mesh(&mut self, mut mesh: Mesh, transformation: Transformation) {
         match &mut mesh {
             Mesh::Solid {
                 transformation: local_transformation,
@@ -176,11 +164,7 @@ impl Layer {
         self.pending_meshes.push(mesh);
     }
 
-    pub fn draw_mesh_group(
-        &mut self,
-        meshes: Vec<Mesh>,
-        transformation: Transformation,
-    ) {
+    pub fn draw_mesh_group(&mut self, meshes: Vec<Mesh>, transformation: Transformation) {
         self.flush_meshes();
 
         self.triangles.push(triangle::Item::Group {
@@ -189,11 +173,7 @@ impl Layer {
         });
     }
 
-    pub fn draw_mesh_cache(
-        &mut self,
-        cache: triangle::Cache,
-        transformation: Transformation,
-    ) {
+    pub fn draw_mesh_cache(&mut self, cache: triangle::Cache, transformation: Transformation) {
         self.flush_meshes();
 
         self.triangles.push(triangle::Item::Cached {
@@ -202,11 +182,7 @@ impl Layer {
         });
     }
 
-    pub fn draw_text_group(
-        &mut self,
-        text: Vec<Text>,
-        transformation: Transformation,
-    ) {
+    pub fn draw_text_group(&mut self, text: Vec<Text>, transformation: Transformation) {
         self.flush_text();
 
         self.text.push(text::Item::Group {
@@ -215,11 +191,7 @@ impl Layer {
         });
     }
 
-    pub fn draw_text_cache(
-        &mut self,
-        cache: text::Cache,
-        transformation: Transformation,
-    ) {
+    pub fn draw_text_cache(&mut self, cache: text::Cache, transformation: Transformation) {
         self.flush_text();
 
         self.text.push(text::Item::Cached {

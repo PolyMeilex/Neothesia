@@ -69,15 +69,14 @@ impl Atlas {
             ..Default::default()
         });
 
-        let texture_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image texture atlas bind group"),
-                layout: &texture_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                }],
-            });
+        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image texture atlas bind group"),
+            layout: &texture_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&texture_view),
+            }],
+        });
 
         Atlas {
             backend,
@@ -132,9 +131,8 @@ impl Atlas {
         for row in 0..height as usize {
             let offset = row * padded_width;
 
-            padded_data[offset..offset + 4 * width as usize].copy_from_slice(
-                &data[row * 4 * width as usize..(row + 1) * 4 * width as usize],
-            );
+            padded_data[offset..offset + 4 * width as usize]
+                .copy_from_slice(&data[row * 4 * width as usize..(row + 1) * 4 * width as usize]);
         }
 
         match &entry {
@@ -260,18 +258,12 @@ impl Atlas {
                     if let Some(region) = allocator.allocate(width, height) {
                         *layer = Layer::Busy(allocator);
 
-                        return Some(Entry::Contiguous(Allocation::Partial {
-                            region,
-                            layer: i,
-                        }));
+                        return Some(Entry::Contiguous(Allocation::Partial { region, layer: i }));
                     }
                 }
                 Layer::Busy(allocator) => {
                     if let Some(region) = allocator.allocate(width, height) {
-                        return Some(Entry::Contiguous(Allocation::Partial {
-                            region,
-                            layer: i,
-                        }));
+                        return Some(Entry::Contiguous(Allocation::Partial { region, layer: i }));
                     }
                 }
                 Layer::Full => {}
@@ -338,12 +330,11 @@ impl Atlas {
             depth_or_array_layers: 1,
         };
 
-        let buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("image upload buffer"),
-                contents: data,
-                usage: wgpu::BufferUsages::COPY_SRC,
-            });
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("image upload buffer"),
+            contents: data,
+            usage: wgpu::BufferUsages::COPY_SRC,
+        });
 
         encoder.copy_buffer_to_texture(
             wgpu::TexelCopyBufferInfo {
@@ -368,12 +359,7 @@ impl Atlas {
         );
     }
 
-    fn grow(
-        &mut self,
-        amount: usize,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-    ) {
+    fn grow(&mut self, amount: usize, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
         if amount == 0 {
             return;
         }
@@ -411,9 +397,7 @@ impl Atlas {
 
         let amount_to_copy = self.layers.len() - amount;
 
-        for (i, layer) in
-            self.layers.iter_mut().take(amount_to_copy).enumerate()
-        {
+        for (i, layer) in self.layers.iter_mut().take(amount_to_copy).enumerate() {
             if layer.is_empty() {
                 continue;
             }
@@ -448,22 +432,18 @@ impl Atlas {
         }
 
         self.texture = new_texture;
-        self.texture_view =
-            self.texture.create_view(&wgpu::TextureViewDescriptor {
-                dimension: Some(wgpu::TextureViewDimension::D2Array),
-                ..Default::default()
-            });
+        self.texture_view = self.texture.create_view(&wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2Array),
+            ..Default::default()
+        });
 
-        self.texture_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image texture atlas bind group"),
-                layout: &self.texture_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.texture_view,
-                    ),
-                }],
-            });
+        self.texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image texture atlas bind group"),
+            layout: &self.texture_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&self.texture_view),
+            }],
+        });
     }
 }

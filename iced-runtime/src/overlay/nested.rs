@@ -17,20 +17,14 @@ where
     Renderer: renderer::Renderer,
 {
     /// Creates a nested overlay from the provided [`overlay::Element`]
-    pub fn new(
-        element: overlay::Element<'a, Message, Theme, Renderer>,
-    ) -> Self {
+    pub fn new(element: overlay::Element<'a, Message, Theme, Renderer>) -> Self {
         Self { overlay: element }
     }
 
     /// Returns the layout [`Node`] of the [`Nested`] overlay.
     ///
     /// [`Node`]: layout::Node
-    pub fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-    ) -> layout::Node {
+    pub fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             renderer: &Renderer,
@@ -48,10 +42,7 @@ where
                 .map(|nested| recurse(nested, renderer, bounds));
 
             if let Some(nested_node) = nested_node {
-                layout::Node::with_children(
-                    node.size(),
-                    vec![node, nested_node],
-                )
+                layout::Node::with_children(node.size(), vec![node, nested_node])
             } else {
                 layout::Node::with_children(node.size(), vec![node])
             }
@@ -116,14 +107,7 @@ where
                 if let Some((mut nested, nested_layout)) =
                     overlay.overlay(layout, renderer).zip(nested_layout)
                 {
-                    recurse(
-                        &mut nested,
-                        nested_layout,
-                        renderer,
-                        theme,
-                        style,
-                        cursor,
-                    );
+                    recurse(&mut nested, nested_layout, renderer, theme, style, cursor);
                 }
             }
         }
@@ -281,9 +265,7 @@ where
                     .and_then(|(mut overlay, layout)| {
                         recurse(&mut overlay, layout, cursor, renderer)
                     })
-                    .unwrap_or_else(|| {
-                        overlay.mouse_interaction(layout, cursor, renderer)
-                    }),
+                    .unwrap_or_else(|| overlay.mouse_interaction(layout, cursor, renderer)),
             )
         }
 

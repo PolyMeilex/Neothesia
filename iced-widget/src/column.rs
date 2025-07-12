@@ -6,8 +6,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -33,8 +33,7 @@ use crate::core::{
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-{
+pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
     width: Length,
@@ -75,9 +74,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Column::width`] or [`Column::height`] accordingly.
-    pub fn from_vec(
-        children: Vec<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -138,10 +135,7 @@ where
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(
-        mut self,
-        child: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
         let child_size = child.as_widget().size_hint();
 
@@ -183,14 +177,9 @@ where
 }
 
 impl<'a, Message, Theme, Renderer: crate::core::Renderer>
-    FromIterator<Element<'a, Message, Theme, Renderer>>
-    for Column<'a, Message, Theme, Renderer>
+    FromIterator<Element<'a, Message, Theme, Renderer>> for Column<'a, Message, Theme, Renderer>
 {
-    fn from_iter<
-        T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    >(
-        iter: T,
-    ) -> Self {
+    fn from_iter<T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
@@ -275,8 +264,7 @@ where
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
-                viewport,
+                state, event, layout, cursor, renderer, clipboard, shell, viewport,
             );
         }
     }
@@ -294,9 +282,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+                child
+                    .as_widget()
+                    .mouse_interaction(state, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -326,9 +314,9 @@ where
                 .zip(layout.children())
                 .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
-                child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, viewport,
-                );
+                child
+                    .as_widget()
+                    .draw(state, renderer, theme, style, layout, cursor, viewport);
             }
         }
     }

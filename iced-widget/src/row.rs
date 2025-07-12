@@ -6,8 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -73,9 +72,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Row::width`] or [`Row::height`] accordingly.
-    pub fn from_vec(
-        children: Vec<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -129,10 +126,7 @@ where
     }
 
     /// Adds an [`Element`] to the [`Row`].
-    pub fn push(
-        mut self,
-        child: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
         let child_size = child.as_widget().size_hint();
 
@@ -184,14 +178,9 @@ where
 }
 
 impl<'a, Message, Theme, Renderer: crate::core::Renderer>
-    FromIterator<Element<'a, Message, Theme, Renderer>>
-    for Row<'a, Message, Theme, Renderer>
+    FromIterator<Element<'a, Message, Theme, Renderer>> for Row<'a, Message, Theme, Renderer>
 {
-    fn from_iter<
-        T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    >(
-        iter: T,
-    ) -> Self {
+    fn from_iter<T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
@@ -274,8 +263,7 @@ where
             .zip(layout.children())
         {
             child.as_widget_mut().update(
-                state, event, layout, cursor, renderer, clipboard, shell,
-                viewport,
+                state, event, layout, cursor, renderer, clipboard, shell, viewport,
             );
         }
     }
@@ -293,9 +281,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state, layout, cursor, viewport, renderer,
-                )
+                child
+                    .as_widget()
+                    .mouse_interaction(state, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -325,9 +313,9 @@ where
                 .zip(layout.children())
                 .filter(|(_, layout)| layout.bounds().intersects(viewport))
             {
-                child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, viewport,
-                );
+                child
+                    .as_widget()
+                    .draw(state, renderer, theme, style, layout, cursor, viewport);
             }
         }
     }
@@ -370,12 +358,7 @@ where
 ///
 /// The original alignment of the [`Row`] is preserved per row wrapped.
 #[allow(missing_debug_implementations)]
-pub struct Wrapping<
-    'a,
-    Message,
-    Theme = crate::Theme,
-    Renderer = crate::Renderer,
-> {
+pub struct Wrapping<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     row: Row<'a, Message, Theme, Renderer>,
     vertical_spacing: Option<f32>,
 }
@@ -440,20 +423,15 @@ where
                 for node in &mut children[row_start] {
                     let height = node.size().height;
 
-                    node.translate_mut(Vector::new(
-                        0.0,
-                        (row_height - height) / align_factor,
-                    ));
+                    node.translate_mut(Vector::new(0.0, (row_height - height) / align_factor));
                 }
             }
         };
 
         for (i, child) in self.row.children.iter().enumerate() {
-            let node = child.as_widget().layout(
-                &mut tree.children[i],
-                renderer,
-                &limits,
-            );
+            let node = child
+                .as_widget()
+                .layout(&mut tree.children[i], renderer, &limits);
 
             let child_size = node.size();
 
@@ -470,10 +448,7 @@ where
 
             row_height = row_height.max(child_size.height);
 
-            children.push(node.move_to((
-                x + self.row.padding.left,
-                y + self.row.padding.top,
-            )));
+            children.push(node.move_to((x + self.row.padding.left, y + self.row.padding.top)));
 
             x += child_size.width + spacing;
         }
@@ -485,8 +460,7 @@ where
         intrinsic_size.height = y + row_height;
         align(row_start..children.len(), row_height, &mut children);
 
-        let size =
-            limits.resolve(self.row.width, self.row.height, intrinsic_size);
+        let size = limits.resolve(self.row.width, self.row.height, intrinsic_size);
 
         layout::Node::with_children(size.expand(self.row.padding), children)
     }

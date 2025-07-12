@@ -4,8 +4,8 @@ pub(crate) use cache::Cache;
 mod atlas;
 mod raster;
 
-use crate::Buffer;
 use crate::core::{Rectangle, Size, Transformation};
+use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
 

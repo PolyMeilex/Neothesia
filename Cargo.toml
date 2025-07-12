@@ -21,8 +21,8 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.dependencies]
-wgpu = "25"
-glyphon = "0.9.0"
+wgpu = "26"
+glyphon = { git = "https://github.com/PolyMeilex/glyphon", rev = "993e3ac221e60fcf1733f9f9740a04b1317772d5" }
 
 glam = "0.30"
 guillotiere = "0.6"
@@ -48,11 +48,9 @@ unicode-segmentation = "1.12.0"
 
 profiling = "1.0"
 
-iced_graphics = { path = "./iced-graphics", features = [
-  "image",
-] }
+iced_graphics = { path = "./iced-graphics", features = ["image"] }
 iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "f929a20d29689af4ac873c1b34282c1f37f38f45" }
-iced_runtime = { path  = "./iced-runtime" }
+iced_runtime = { path = "./iced-runtime" }
 iced_wgpu = { path = "./iced-wgpu" }
 iced_widget = { path = "./iced-widget" }
 

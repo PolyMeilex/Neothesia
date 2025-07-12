@@ -209,6 +209,7 @@ impl Neothesia {
                                 load: wgpu::LoadOp::Clear(bg_color),
                                 store: wgpu::StoreOp::Store,
                             },
+                            depth_slice: None,
                         })],
 
                         depth_stencil_attachment: None,

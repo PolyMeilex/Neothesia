@@ -131,6 +131,24 @@ impl TopBar {
         this.nuon = ui;
     }
 
+    fn panel(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
+        let win_w = ctx.window_state.logical_size.width;
+
+        nuon::quad()
+            .size(win_w, 30.0 + 45.0)
+            .color([37, 35, 42])
+            .build(ui);
+
+        Self::panel_left(this, ctx, ui);
+        Self::panel_center(this, ctx, ui);
+        Self::panel_right(this, ctx, ui);
+
+        // ProggressBar
+        nuon::translate().y(30.0).build(ui, |ui| {
+            Self::proggress_bar(this, ctx, ui);
+        });
+    }
+
     fn button() -> nuon::Button {
         nuon::button().size(30.0, 30.0).border_radius([5.0; 4])
     }
@@ -235,6 +253,17 @@ impl TopBar {
                     this.player.pause_resume();
                 }
             });
+    }
+
+    fn proggress_bar(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
+        let h = 45.0;
+        let w = ctx.window_state.logical_size.width;
+
+        let render_looper = Self::proggress_bar_looper(this, ctx, ui, w, h);
+
+        Self::proggress_bar_bg(this, ctx, ui, w, h);
+
+        render_looper(ui);
     }
 
     fn proggress_bar_bg(
@@ -383,34 +412,5 @@ impl TopBar {
                 })
                 .build(ui);
         }
-    }
-
-    fn proggress_bar(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
-        let h = 45.0;
-        let w = ctx.window_state.logical_size.width;
-
-        let render_looper = Self::proggress_bar_looper(this, ctx, ui, w, h);
-
-        Self::proggress_bar_bg(this, ctx, ui, w, h);
-
-        render_looper(ui);
-    }
-
-    fn panel(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
-        let win_w = ctx.window_state.logical_size.width;
-
-        nuon::quad()
-            .size(win_w, 30.0 + 45.0)
-            .color([37, 35, 42])
-            .build(ui);
-
-        Self::panel_left(this, ctx, ui);
-        Self::panel_center(this, ctx, ui);
-        Self::panel_right(this, ctx, ui);
-
-        // ProggressBar
-        nuon::translate().y(30.0).build(ui, |ui| {
-            Self::proggress_bar(this, ctx, ui);
-        });
     }
 }

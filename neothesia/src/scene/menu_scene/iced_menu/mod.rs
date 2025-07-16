@@ -17,7 +17,7 @@ use crate::{
 };
 
 mod exit;
-mod main;
+pub mod main;
 mod page;
 mod settings;
 mod theme;
@@ -27,6 +27,8 @@ use exit::ExitPage;
 use page::Page;
 use settings::SettingsPage;
 use tracks::TracksPage;
+
+pub use main::MidiFilePickerMessage;
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -80,6 +82,14 @@ impl AppUi {
                 song,
             },
         }
+    }
+
+    pub fn song(&self) -> Option<&Song> {
+        self.data.song.as_ref()
+    }
+
+    pub fn is_loading(&self) -> bool {
+        self.data.is_loading
     }
 
     pub fn current(&self) -> &Step {
@@ -209,7 +219,7 @@ impl Program for AppUi {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Step {
     Exit,
     Main,

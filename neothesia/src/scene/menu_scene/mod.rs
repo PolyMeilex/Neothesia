@@ -4,12 +4,13 @@ mod icons;
 
 use std::time::Duration;
 
+use iced_core::image::Handle as ImageHandle;
 use iced_menu::AppUi;
 use iced_runtime::task::BoxFuture;
-use neothesia_core::render::BgPipeline;
+use neothesia_core::render::{BgPipeline, QuadPipeline};
 
 use wgpu_jumpstart::{TransformUniform, Uniform};
-use winit::event::WindowEvent;
+use winit::event::{ElementState, MouseButton, WindowEvent};
 
 use crate::{
     context::Context,
@@ -23,7 +24,24 @@ use crate::{
 
 use std::task::Waker;
 
+mod nuon_icons {
+    pub fn play_icon() -> &'static str {
+        "\u{f4f4}"
+    }
+
+    pub fn note_list_icon() -> &'static str {
+        "\u{f49f}"
+    }
+
+    #[allow(unused)]
+    pub fn left_arrow_icon() -> &'static str {
+        "\u{f12f}"
+    }
+}
+
 type Renderer = iced_wgpu::Renderer;
+
+const LAYER_FG: usize = 0;
 
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
@@ -31,6 +49,11 @@ pub struct MenuScene {
 
     context: std::task::Context<'static>,
     futures: Vec<BoxFuture<iced_menu::Message>>,
+
+    logo_handle: ImageHandle,
+
+    quad_pipeline: QuadPipeline,
+    nuon: nuon::Ui,
 }
 
 impl MenuScene {
@@ -39,19 +62,181 @@ impl MenuScene {
         let iced_state =
             iced_state::State::new(menu, ctx.iced_manager.viewport.logical_size(), ctx);
 
+        let mut quad_pipeline = QuadPipeline::new(&ctx.gpu, &ctx.transform);
+        quad_pipeline.init_layer(&ctx.gpu, 150); // FG
+
         Self {
             bg_pipeline: BgPipeline::new(&ctx.gpu),
             iced_state,
 
             context: std::task::Context::from_waker(noop_waker_ref()),
             futures: Vec::new(),
+
+            logo_handle: ImageHandle::from_bytes(include_bytes!("./img/banner.png").to_vec()),
+
+            quad_pipeline,
+            nuon: nuon::Ui::new(),
         }
     }
+
+    fn main_ui(&mut self, ctx: &mut Context) {
+        if self.iced_state.program().is_loading() {
+            return;
+        }
+
+        if self.iced_state.program().current() != &iced_menu::Step::Main {
+            return;
+        }
+
+        let ui = &mut self.nuon;
+
+        let win_w = ctx.window_state.logical_size.width;
+        let win_h = ctx.window_state.logical_size.height;
+
+        let w = 450.0;
+        let h = 80.0;
+        let gap = 10.0;
+
+        let logo_w = 650.0;
+        let logo_h = 115.0;
+        let post_logo_gap = 40.0;
+
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(win_h / 5.0)
+            .build(ui, |ui| {
+                nuon::image(self.logo_handle.clone())
+                    .x(-logo_w / 2.0)
+                    .size(logo_w, logo_h)
+                    .build(ui);
+
+                nuon::translate()
+                    .x(-w / 2.0)
+                    .y(logo_h + post_logo_gap)
+                    .build(ui, |ui| {
+                        if neo_btn(ui, w, h, "Select File") {
+                            self.iced_state
+                                .queue_message(iced_menu::MidiFilePickerMessage::open().into());
+                        }
+
+                        nuon::translate().y(h + gap).add_to_current(ui);
+
+                        if neo_btn(ui, w, h, "Settings") {
+                            self.iced_state.queue_message(iced_menu::Message::GoToPage(
+                                iced_menu::Step::Settings,
+                            ));
+                        }
+
+                        nuon::translate().y(h + gap).add_to_current(ui);
+
+                        if neo_btn(ui, w, h, "Exit") {
+                            self.iced_state.queue_message(iced_menu::Message::GoBack);
+                        }
+                    });
+            });
+
+        nuon::translate().x(0.0).y(win_h).build(ui, |ui| {
+            let Some(song) = self.iced_state.program().song() else {
+                return;
+            };
+
+            // Bottom Margin
+            nuon::translate().y(-10.0).add_to_current(ui);
+
+            nuon::translate().y(-60.0).add_to_current(ui);
+
+            nuon::label()
+                .text(&song.file.name)
+                .size(win_w, 60.0)
+                .font_size(16.0)
+                .build(ui);
+
+            let gap = 10.0;
+            let w = 80.0;
+            let h = 60.0;
+
+            nuon::translate().x(win_w).build(ui, |ui| {
+                nuon::translate().x(-w - gap).add_to_current(ui);
+
+                if neo_btn_icon(ui, w, h, nuon_icons::play_icon()) {
+                    self.iced_state
+                        .queue_message(iced_menu::Message::MainPage(iced_menu::main::Event::Play));
+                }
+
+                nuon::translate().x(-w - gap).add_to_current(ui);
+
+                if neo_btn_icon(ui, w, h, nuon_icons::note_list_icon()) {
+                    self.iced_state.queue_message(iced_menu::Message::GoToPage(
+                        iced_menu::Step::TrackSelection,
+                    ));
+                }
+            });
+        });
+    }
+}
+
+fn neo_btn(ui: &mut nuon::Ui, w: f32, h: f32, label: &str) -> bool {
+    neo_btn_child(ui, label, w, h, |ui| {
+        nuon::label()
+            .text(label)
+            .size(w, h)
+            .font_size(30.0)
+            .build(ui);
+    })
+}
+
+fn neo_btn_icon(ui: &mut nuon::Ui, w: f32, h: f32, icon: &str) -> bool {
+    neo_btn_child(ui, icon, w, h, |ui| {
+        nuon::label()
+            .icon(icon)
+            .size(w, h)
+            .font_size(30.0)
+            .build(ui);
+    })
+}
+
+fn neo_btn_child(
+    ui: &mut nuon::Ui,
+    id: impl Into<nuon::Id>,
+    w: f32,
+    h: f32,
+    child: impl FnOnce(&mut nuon::Ui),
+) -> bool {
+    let event = nuon::click_area(id).size(w, h).build(ui);
+
+    let (bg, accent) = if event.is_hovered() || event.is_pressed() {
+        (
+            nuon::Color::new_u8(9, 9, 9, 0.6),
+            nuon::Color::new_u8(56, 145, 255, 1.0),
+        )
+    } else {
+        (
+            nuon::Color::new_u8(17, 17, 17, 0.6),
+            nuon::Color::new_u8(160, 81, 255, 1.0),
+        )
+    };
+
+    nuon::quad()
+        .size(w, h)
+        .color(bg)
+        .border_radius([7.0; 4])
+        .build(ui);
+    nuon::quad()
+        .size(w, 7.0)
+        .y(h - 7.0)
+        .color(accent)
+        .border_radius([0.0, 0.0, 7.0, 7.0])
+        .build(ui);
+
+    child(ui);
+
+    event.is_clicked()
 }
 
 impl Scene for MenuScene {
     #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
+        self.quad_pipeline.clear();
         self.bg_pipeline.update_time(&mut ctx.gpu, delta);
         self.iced_state.tick(ctx);
 
@@ -69,15 +254,28 @@ impl Scene for MenuScene {
                 self.futures.push(fut);
             }
         }
+
+        self.main_ui(ctx);
+
+        super::render_nuon(
+            &mut self.nuon,
+            &mut self.quad_pipeline,
+            LAYER_FG,
+            &mut ctx.text_renderer,
+            &mut ctx.iced_manager.renderer,
+        );
+
+        self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
     }
 
     #[profiling::function]
     fn render<'pass>(
         &'pass mut self,
-        _transform: &'pass Uniform<TransformUniform>,
+        transform: &'pass Uniform<TransformUniform>,
         rpass: &mut wgpu::RenderPass<'pass>,
     ) {
         self.bg_pipeline.render(rpass);
+        self.quad_pipeline.render(LAYER_FG, transform, rpass);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
@@ -104,6 +302,25 @@ impl Scene for MenuScene {
                     }
                 }
                 _ => {}
+            }
+        }
+
+        if let WindowEvent::CursorMoved { .. } = event {
+            self.nuon.mouse_move(
+                ctx.window_state.cursor_logical_position.x,
+                ctx.window_state.cursor_logical_position.y,
+            );
+        }
+
+        if let WindowEvent::MouseInput {
+            state,
+            button: MouseButton::Left,
+            ..
+        } = event
+        {
+            match state {
+                ElementState::Pressed => self.nuon.mouse_down(),
+                ElementState::Released => self.nuon.mouse_up(),
             }
         }
     }

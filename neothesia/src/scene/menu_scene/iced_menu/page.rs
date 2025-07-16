@@ -3,7 +3,7 @@ use neothesia_iced_widgets::Element;
 
 use crate::context::Context;
 
-use super::{Data, Message, Step};
+use super::{Data, Message};
 
 pub enum PageMessage {
     Message(Message),
@@ -14,10 +14,6 @@ pub enum PageMessage {
 impl PageMessage {
     pub fn go_back() -> Self {
         Self::message(Message::GoBack)
-    }
-
-    pub fn go_to_page(step: Step) -> Self {
-        Self::message(Message::GoToPage(step))
     }
 
     pub fn none() -> Self {

@@ -2509,6 +2509,7 @@ version = "0.1.0"
 dependencies = [
  "dpi",
  "euclid",
+ "iced_core",
  "profiling",
  "smallvec",
  "thunderdome",

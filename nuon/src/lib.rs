@@ -93,6 +93,35 @@ impl TranslationStack {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct QuadRenderElement {
+    pub rect: Rect,
+    pub border_radius: [f32; 4],
+    pub color: Color,
+}
+
+#[derive(Debug, Clone)]
+pub struct IconRenderElement {
+    pub origin: Point,
+    pub size: f32,
+    pub icon: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextRenderElement {
+    pub rect: Rect,
+    pub text_justify: TextJustify,
+    pub size: f32,
+    pub bold: bool,
+    pub text: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ImageRenderElement {
+    pub rect: Rect,
+    pub image: iced_core::image::Handle,
+}
+
 pub struct Ui {
     pub hovered: Option<Id>,
     pub active: Option<Id>,
@@ -104,9 +133,10 @@ pub struct Ui {
 
     translation_stack: TranslationStack,
 
-    pub quads: Vec<(Rect, [f32; 4], Color)>,
-    pub icons: Vec<(Point, String)>,
-    pub text: Vec<(Rect, TextJustify, String)>,
+    pub quads: Vec<QuadRenderElement>,
+    pub icons: Vec<IconRenderElement>,
+    pub text: Vec<TextRenderElement>,
+    pub images: Vec<ImageRenderElement>,
 }
 
 impl Default for Ui {
@@ -128,6 +158,7 @@ impl Ui {
             quads: Vec::new(),
             icons: Vec::new(),
             text: Vec::new(),
+            images: Vec::new(),
         }
     }
 
@@ -155,6 +186,7 @@ impl Ui {
         self.quads.clear();
         self.icons.clear();
         self.text.clear();
+        self.images.clear();
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
     }
@@ -275,7 +307,69 @@ impl Quad {
             self.rect.size,
         );
 
-        ui.quads.push((rect, self.border_radius, self.color));
+        ui.quads.push(QuadRenderElement {
+            rect,
+            border_radius: self.border_radius,
+            color: self.color,
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Image {
+    rect: Rect,
+    handle: iced_core::image::Handle,
+}
+
+pub fn image(handle: iced_core::image::Handle) -> Image {
+    Image::new(handle)
+}
+
+impl Image {
+    pub fn new(handle: iced_core::image::Handle) -> Self {
+        Self {
+            rect: Rect::zero(),
+            handle,
+        }
+    }
+
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.rect.origin.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.rect.origin.y = y;
+        self
+    }
+
+    pub fn size(self, width: f32, height: f32) -> Self {
+        self.width(width).height(height)
+    }
+
+    pub fn width(mut self, width: f32) -> Self {
+        self.rect.size.width = width;
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.rect.size.height = height;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui) {
+        let rect = Rect::new(
+            ui.translation_stack.translate(self.rect.origin),
+            self.rect.size,
+        );
+        ui.images.push(ImageRenderElement {
+            rect,
+            image: self.handle.clone(),
+        });
     }
 }
 
@@ -529,27 +623,37 @@ impl Button {
 
         let color = self.calc_bg_color(ui, id);
 
-        ui.quads.push((rect, self.border_radius, color));
+        ui.quads.push(QuadRenderElement {
+            rect,
+            border_radius: self.border_radius,
+            color,
+        });
+
+        let icon_size = 20.0;
+        let half_size = icon_size / 2.0;
 
         let (x, y) = match self.text_justify {
             TextJustify::Left => {
-                let y = rect.origin.y + rect.size.height / 2.0 - 10.0;
+                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
                 (rect.origin.x + 2.0, y)
             }
             TextJustify::Right => {
-                let icon_size = 20.0;
                 let x = rect.origin.x + rect.size.width - icon_size;
-                let y = rect.origin.y + rect.size.height / 2.0 - 10.0;
+                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
                 (x - 2.0, y)
             }
             TextJustify::Center => {
-                let x = rect.origin.x + rect.size.width / 2.0 - 10.0;
-                let y = rect.origin.y + rect.size.height / 2.0 - 10.0;
+                let x = rect.origin.x + rect.size.width / 2.0 - half_size;
+                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
                 (x, y)
             }
         };
 
-        ui.icons.push((Point::new(x, y), self.icon.to_string()));
+        ui.icons.push(IconRenderElement {
+            origin: Point::new(x, y),
+            size: icon_size,
+            icon: self.icon.to_string(),
+        });
 
         clicked
     }
@@ -559,7 +663,10 @@ impl Button {
 pub struct Label {
     pos: Point,
     size: Size,
+    font_size: f32,
     text: String,
+    icon: String,
+    bold: bool,
 }
 
 pub fn label() -> Label {
@@ -577,7 +684,10 @@ impl Label {
         Self {
             pos: Point::zero(),
             size: Size::new(50.0, 50.0),
+            font_size: 13.0,
             text: String::new(),
+            icon: String::new(),
+            bold: false,
         }
     }
 
@@ -609,14 +719,51 @@ impl Label {
         self
     }
 
+    pub fn font_size(mut self, font_size: f32) -> Self {
+        self.font_size = font_size;
+        self
+    }
+
     pub fn text(mut self, text: impl Into<String>) -> Self {
         self.text = text.into();
         self
     }
 
+    pub fn icon(mut self, icon: impl Into<String>) -> Self {
+        self.icon = icon.into();
+        self
+    }
+
+    pub fn bold(mut self, bold: bool) -> Self {
+        self.bold = bold;
+        self
+    }
+
     pub fn build(&self, ui: &mut Ui) {
         let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
-        ui.text
-            .push((rect, TextJustify::Center, self.text.to_string()));
+        if !self.text.is_empty() {
+            ui.text.push(TextRenderElement {
+                rect,
+                text_justify: TextJustify::Center,
+                size: self.font_size,
+                bold: self.bold,
+                text: self.text.to_string(),
+            });
+        }
+
+        if !self.icon.is_empty() {
+            let (x, y) = {
+                let half_size = self.font_size / 2.0;
+                let x = rect.origin.x + rect.size.width / 2.0 - half_size;
+                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
+                (x, y)
+            };
+
+            ui.icons.push(IconRenderElement {
+                origin: Point::new(x, y),
+                size: self.font_size,
+                icon: self.icon.to_string(),
+            });
+        }
     }
 }

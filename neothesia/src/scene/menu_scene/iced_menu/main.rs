@@ -1,21 +1,18 @@
 use std::path::PathBuf;
 
-use iced_core::{alignment::Horizontal, Alignment, Length, Padding};
 use iced_runtime::Task;
-use iced_widget::{column, container, image, row, text};
-use neothesia_iced_widgets::{BarLayout, Layout, NeoBtn};
+use neothesia_iced_widgets::Layout;
 
-use crate::{context::Context, scene::menu_scene::icons, song::Song};
+use crate::{context::Context, song::Song};
 
 use super::{
     page::{Page, PageMessage},
-    top_padded, Data, Message, Step,
+    Data, Message, Step,
 };
 
 #[derive(Debug, Clone)]
 pub enum Event {
     Play,
-    GoToPage(Step),
     MidiFilePicker(MidiFilePickerMessage),
 }
 
@@ -28,9 +25,6 @@ impl Page for MainPage {
         match msg {
             Event::Play => {
                 super::play(data, ctx);
-            }
-            Event::GoToPage(step) => {
-                return PageMessage::go_to_page(step);
             }
             Event::MidiFilePicker(msg) => {
                 return PageMessage::Command(
@@ -45,67 +39,10 @@ impl Page for MainPage {
     }
 
     fn view<'a>(
-        data: &'a Data,
+        _data: &'a Data,
         _ctx: &Context,
     ) -> neothesia_iced_widgets::Element<'a, Self::Event> {
-        let buttons = column![
-            NeoBtn::new_with_label("Select File")
-                .on_press(Event::MidiFilePicker(MidiFilePickerMessage::open()))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-            NeoBtn::new_with_label("Settings")
-                .on_press(Event::GoToPage(Step::Settings))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-            NeoBtn::new_with_label("Exit")
-                .on_press(Event::GoToPage(Step::Exit))
-                .width(Length::Fill)
-                .height(Length::Fixed(80.0)),
-        ]
-        .width(Length::Fixed(450.0))
-        .spacing(10);
-
-        let column = column![image(data.logo_handle.clone()), buttons]
-            .spacing(40)
-            .align_x(Alignment::Center);
-
-        let mut layout = Layout::new().body(top_padded(column));
-
-        if let Some(song) = data.song.as_ref() {
-            let tracks = NeoBtn::new(icons::note_list_icon().size(30.0).center())
-                .height(Length::Fixed(60.0))
-                .min_width(80.0)
-                .on_press(Event::GoToPage(Step::TrackSelection));
-
-            let play = NeoBtn::new(icons::play_icon().size(30.0).center())
-                .height(Length::Fixed(60.0))
-                .min_width(80.0)
-                .on_press(Event::Play);
-
-            let row = row![tracks, play].spacing(10).align_y(Alignment::Center);
-
-            let container = container(row)
-                .width(Length::Fill)
-                .align_x(Horizontal::Right)
-                .padding(Padding {
-                    top: 0.0,
-                    right: 10.0,
-                    bottom: 10.0,
-                    left: 0.0,
-                });
-
-            layout = layout.bottom(
-                BarLayout::new()
-                    .center(
-                        text(song.file.name.to_string())
-                            .width(Length::Fill)
-                            .center(),
-                    )
-                    .right(container),
-            );
-        }
-
-        layout.into()
+        Layout::new().into()
     }
 
     fn keyboard_input(event: &iced_core::keyboard::Event, _ctx: &Context) -> Option<Message> {
@@ -141,7 +78,7 @@ pub enum MidiFilePickerMessage {
 }
 
 impl MidiFilePickerMessage {
-    pub(super) fn open() -> Self {
+    pub fn open() -> Self {
         Self::OpenMidiFilePicker
     }
 }

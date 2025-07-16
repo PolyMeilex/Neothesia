@@ -2088,13 +2088,13 @@ dependencies = [
 name = "neothesia"
 version = "0.3.0"
 dependencies = [
+ "async-channel",
  "cpal",
  "embed-resource",
  "env_logger",
  "fluidlite",
  "iced_core",
  "iced_graphics",
- "iced_runtime",
  "iced_wgpu",
  "iced_widget",
  "image",
@@ -2103,9 +2103,9 @@ dependencies = [
  "midi-file",
  "midi-io",
  "neothesia-core",
- "neothesia-iced-widgets",
  "nuon",
  "oxisynth",
+ "piano-layout",
  "pollster",
  "profiling",
  "puffin",
@@ -2162,17 +2162,6 @@ dependencies = [
  "serde",
  "wgpu",
  "wgpu-jumpstart",
-]
-
-[[package]]
-name = "neothesia-iced-widgets"
-version = "0.1.0"
-dependencies = [
- "iced_core",
- "iced_graphics",
- "iced_wgpu",
- "iced_widget",
- "piano-layout",
 ]
 
 [[package]]

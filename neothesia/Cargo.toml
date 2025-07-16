@@ -20,15 +20,14 @@ env_logger.workspace = true
 wgpu.workspace = true
 wgpu-jumpstart.workspace = true
 neothesia-core.workspace = true
-neothesia-iced-widgets.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
 nuon.workspace = true
 image.workspace = true
+async-channel.workspace = true
 
 iced_graphics.workspace = true
 iced_core.workspace = true
-iced_runtime.workspace = true
 iced_wgpu.workspace = true
 iced_widget.workspace = true
 
@@ -43,6 +42,7 @@ oxisynth = { workspace = true, optional = true }
 profiling.workspace = true
 puffin.workspace = true
 puffin_http.workspace = true
+piano-layout.workspace = true
 
 [[bin]]
 name = "neothesia"

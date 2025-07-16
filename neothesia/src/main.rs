@@ -239,6 +239,10 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
                 height: 720.0,
             })
             .with_title("Neothesia")
+            .with_min_inner_size(winit::dpi::LogicalSize {
+                width: 670.0,
+                height: 620.0,
+            })
             .with_theme(Some(winit::window::Theme::Dark));
 
         #[cfg(all(unix, not(target_os = "macos")))]

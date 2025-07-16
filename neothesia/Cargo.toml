@@ -39,6 +39,7 @@ rfd = "0.15"
 cpal = { version = "0.15", optional = true }
 fluidlite = { version = "0.2", features = ["builtin"], optional = true }
 oxisynth = { version = "0.1.0", optional = true }
+bytes = "1"
 
 profiling.workspace = true
 puffin = "0.19"

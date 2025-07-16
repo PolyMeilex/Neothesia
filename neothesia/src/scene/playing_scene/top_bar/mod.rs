@@ -188,6 +188,7 @@ impl TopBar {
                         "{}%",
                         (ctx.config.speed_multiplier() * 100.0).round()
                     ))
+                    .bold(true)
                     .size(45.0 * 2.0, 20.0)
                     .build(ui);
 

@@ -93,6 +93,35 @@ impl TranslationStack {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct QuadRenderElement {
+    pub rect: Rect,
+    pub border_radius: [f32; 4],
+    pub color: Color,
+}
+
+#[derive(Debug, Clone)]
+pub struct IconRenderElement {
+    pub origin: Point,
+    pub size: f32,
+    pub icon: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextRenderElement {
+    pub rect: Rect,
+    pub text_justify: TextJustify,
+    pub size: f32,
+    pub bold: bool,
+    pub text: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ImageRenderElement {
+    pub rect: Rect,
+    pub image: iced_core::image::Handle,
+}
+
 pub struct Ui {
     pub hovered: Option<Id>,
     pub active: Option<Id>,
@@ -104,10 +133,10 @@ pub struct Ui {
 
     translation_stack: TranslationStack,
 
-    pub quads: Vec<(Rect, [f32; 4], Color)>,
-    pub icons: Vec<(Point, f32, String)>,
-    pub text: Vec<(Rect, TextJustify, f32, bool, String)>,
-    pub images: Vec<(Rect, iced_core::image::Handle)>,
+    pub quads: Vec<QuadRenderElement>,
+    pub icons: Vec<IconRenderElement>,
+    pub text: Vec<TextRenderElement>,
+    pub images: Vec<ImageRenderElement>,
 }
 
 impl Default for Ui {
@@ -278,7 +307,11 @@ impl Quad {
             self.rect.size,
         );
 
-        ui.quads.push((rect, self.border_radius, self.color));
+        ui.quads.push(QuadRenderElement {
+            rect,
+            border_radius: self.border_radius,
+            color: self.color,
+        });
     }
 }
 
@@ -333,7 +366,10 @@ impl Image {
             ui.translation_stack.translate(self.rect.origin),
             self.rect.size,
         );
-        ui.images.push((rect, self.handle.clone()));
+        ui.images.push(ImageRenderElement {
+            rect,
+            image: self.handle.clone(),
+        });
     }
 }
 
@@ -587,7 +623,11 @@ impl Button {
 
         let color = self.calc_bg_color(ui, id);
 
-        ui.quads.push((rect, self.border_radius, color));
+        ui.quads.push(QuadRenderElement {
+            rect,
+            border_radius: self.border_radius,
+            color,
+        });
 
         let icon_size = 20.0;
         let half_size = icon_size / 2.0;
@@ -609,8 +649,11 @@ impl Button {
             }
         };
 
-        ui.icons
-            .push((Point::new(x, y), icon_size, self.icon.to_string()));
+        ui.icons.push(IconRenderElement {
+            origin: Point::new(x, y),
+            size: icon_size,
+            icon: self.icon.to_string(),
+        });
 
         clicked
     }
@@ -699,13 +742,13 @@ impl Label {
     pub fn build(&self, ui: &mut Ui) {
         let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
         if !self.text.is_empty() {
-            ui.text.push((
+            ui.text.push(TextRenderElement {
                 rect,
-                TextJustify::Center,
-                self.font_size,
-                self.bold,
-                self.text.to_string(),
-            ));
+                text_justify: TextJustify::Center,
+                size: self.font_size,
+                bold: self.bold,
+                text: self.text.to_string(),
+            });
         }
 
         if !self.icon.is_empty() {
@@ -716,8 +759,11 @@ impl Label {
                 (x, y)
             };
 
-            ui.icons
-                .push((Point::new(x, y), self.font_size, self.icon.to_string()));
+            ui.icons.push(IconRenderElement {
+                origin: Point::new(x, y),
+                size: self.font_size,
+                icon: self.icon.to_string(),
+            });
         }
     }
 }

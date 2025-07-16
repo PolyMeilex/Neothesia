@@ -2293,7 +2293,6 @@ dependencies = [
 name = "neothesia"
 version = "0.3.0"
 dependencies = [
- "bytes",
  "cpal",
  "embed-resource",
  "env_logger",
@@ -2508,7 +2507,6 @@ dependencies = [
 name = "nuon"
 version = "0.1.0"
 dependencies = [
- "bytes",
  "dpi",
  "euclid",
  "iced_core",

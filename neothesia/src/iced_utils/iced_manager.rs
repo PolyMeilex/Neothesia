@@ -1,7 +1,6 @@
 pub struct IcedManager {
     pub renderer: iced_wgpu::Renderer,
     pub viewport: iced_wgpu::graphics::Viewport,
-    pub engine: iced_wgpu::Engine,
 }
 
 impl IcedManager {
@@ -17,7 +16,7 @@ impl IcedManager {
             iced_wgpu::Engine::new(adapter, device.clone(), queue.clone(), texture_format, None);
 
         let renderer = iced_wgpu::Renderer::new(
-            engine.clone(),
+            engine,
             iced_core::Font::with_name("Roboto"),
             iced_core::Pixels(16.0),
         );
@@ -27,12 +26,7 @@ impl IcedManager {
             scale_factor,
         );
 
-        Self {
-            renderer,
-            viewport,
-            // debug,
-            engine,
-        }
+        Self { renderer, viewport }
     }
 
     pub fn resize(&mut self, physical_size: (u32, u32), scale_factor: f64) {

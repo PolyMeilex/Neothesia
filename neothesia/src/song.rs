@@ -2,7 +2,7 @@ use midi_file::MidiTrack;
 
 use crate::context::Context;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum PlayerConfig {
     Mute,
     Auto,

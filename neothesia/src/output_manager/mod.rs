@@ -22,6 +22,24 @@ pub enum OutputDescriptor {
     DummyOutput,
 }
 
+impl OutputDescriptor {
+    pub fn is_dummy(&self) -> bool {
+        matches!(self, Self::DummyOutput)
+    }
+
+    pub fn is_not_dummy(&self) -> bool {
+        !self.is_dummy()
+    }
+
+    pub fn is_midi(&self) -> bool {
+        matches!(self, OutputDescriptor::MidiOut(_))
+    }
+
+    pub fn is_synth(&self) -> bool {
+        matches!(self, OutputDescriptor::Synth(_))
+    }
+}
+
 impl Display for OutputDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

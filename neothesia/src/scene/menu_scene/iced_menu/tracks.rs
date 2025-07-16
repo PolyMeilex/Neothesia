@@ -4,8 +4,8 @@ use iced_core::{
 };
 use iced_widget::{button, column as col, container, row, vertical_space};
 
-use crate::{context::Context, scene::menu_scene::icons, song::PlayerConfig};
-use neothesia_iced_widgets::{BarLayout, Element, Layout, NeoBtn};
+use crate::{context::Context, song::PlayerConfig};
+use neothesia_iced_widgets::{BarLayout, Element, Layout};
 
 use super::{
     centered_text,
@@ -18,7 +18,6 @@ pub enum Event {
     AllTracksPlayer(PlayerConfig),
     TrackPlayer(usize, PlayerConfig),
     TrackVisibility(usize, bool),
-    GoBack,
     Play,
 }
 
@@ -45,9 +44,6 @@ impl Page for TracksPage {
                 if let Some(song) = data.song.as_mut() {
                     song.config.tracks[track].visible = visible;
                 }
-            }
-            Event::GoBack => {
-                return PageMessage::go_back();
             }
             Event::Play => {
                 super::play(data, ctx);
@@ -134,23 +130,8 @@ impl Page for TracksPage {
 
         let column = iced_widget::scrollable(column);
 
-        let right = {
-            let play = NeoBtn::new(icons::play_icon().size(30.0).center())
-                .height(Length::Fixed(60.0))
-                .min_width(80.0)
-                .on_press(Event::Play);
-
-            if data.song.is_some() {
-                row![play]
-            } else {
-                row![]
-            }
-            .spacing(10)
-            .width(Length::Shrink)
-            .align_y(Alignment::Center)
-        };
-
-        let right = container(right)
+        let right = container(row![])
+            .height(60.0)
             .width(Length::Fill)
             .align_x(Horizontal::Right)
             .align_y(Vertical::Center)
@@ -161,16 +142,8 @@ impl Page for TracksPage {
                 left: 0.0,
             });
 
-        let left = {
-            let back = NeoBtn::new(icons::left_arrow_icon().size(30.0).center())
-                .height(Length::Fixed(60.0))
-                .min_width(80.0)
-                .on_press(Event::GoBack);
-
-            row![back].align_y(Alignment::Start)
-        };
-
-        let left = container(left)
+        let left = container(row![])
+            .height(60.0)
             .width(Length::Fill)
             .align_x(Horizontal::Left)
             .align_y(Vertical::Center)

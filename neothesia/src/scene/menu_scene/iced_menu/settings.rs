@@ -7,9 +7,9 @@ use iced_core::{
 };
 use iced_runtime::Task;
 use iced_widget::{button, column as col, container, mouse_area, pick_list, row, toggler};
-use neothesia_iced_widgets::{ActionRow, BarLayout, Element, Layout, NeoBtn, PreferencesGroup};
+use neothesia_iced_widgets::{ActionRow, BarLayout, Element, Layout, PreferencesGroup};
 
-use crate::{context::Context, output_manager::OutputDescriptor, scene::menu_scene::icons};
+use crate::{context::Context, output_manager::OutputDescriptor};
 
 use super::{
     centered_text,
@@ -38,7 +38,6 @@ pub enum Event {
     RangeStart(RangeUpdateKind),
     RangeEnd(RangeUpdateKind),
     AudioGain(RangeUpdateKind),
-    GoBack,
 }
 
 pub struct SettingsPage;
@@ -134,9 +133,6 @@ impl Page for SettingsPage {
                 ctx.config
                     .set_audio_gain((ctx.config.audio_gain() * 10.0).round() / 10.0);
             }
-            Event::GoBack => {
-                return PageMessage::go_back();
-            }
         }
 
         PageMessage::none()
@@ -160,19 +156,8 @@ impl Page for SettingsPage {
         .width(Length::Fill)
         .align_x(Alignment::Center);
 
-        let left = {
-            let back = NeoBtn::new(icons::left_arrow_icon().size(30.0).center())
-                .height(Length::Fixed(60.0))
-                .min_width(80.0)
-                .on_press(Event::GoBack);
-
-            row![back]
-                .spacing(10)
-                .width(Length::Shrink)
-                .align_y(Alignment::Center)
-        };
-
-        let left = container(left)
+        let left = container(row![])
+            .height(60.0)
             .width(Length::Fill)
             .align_x(Horizontal::Left)
             .align_y(Vertical::Center)

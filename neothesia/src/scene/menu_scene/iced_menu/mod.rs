@@ -5,25 +5,21 @@ use self::page::PageMessage;
 use super::Renderer;
 use iced_core::{image::Handle as ImageHandle, Alignment, Length, Theme};
 use iced_runtime::Task;
-use iced_widget::{column as col, container, image, text, vertical_space};
+use iced_widget::{column as col, container, image, row, text, vertical_space};
 
 use crate::{
     context::Context,
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
-    scene::menu_scene::iced_menu::main::MainPage,
     song::Song,
     NeothesiaEvent,
 };
 
-mod exit;
-mod main;
 mod page;
-mod settings;
+pub mod settings;
 mod theme;
 mod tracks;
 
-use exit::ExitPage;
 use page::Page;
 use settings::SettingsPage;
 use tracks::TracksPage;
@@ -35,8 +31,6 @@ pub enum Message {
     GoToPage(Step),
     GoBack,
 
-    MainPage(<MainPage as Page>::Event),
-    ExitPage(<ExitPage as Page>::Event),
     SettingsPage(<SettingsPage as Page>::Event),
     TracksPage(<TracksPage as Page>::Event),
 }
@@ -48,15 +42,15 @@ pub struct Data {
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
 
-    is_loading: bool,
+    pub is_loading: bool,
 
     logo_handle: ImageHandle,
 
-    song: Option<Song>,
+    pub song: Option<Song>,
 }
 
 pub struct AppUi {
-    data: Data,
+    pub data: Data,
     page_stack: VecDeque<Step>,
 }
 
@@ -82,6 +76,14 @@ impl AppUi {
         }
     }
 
+    pub fn song(&self) -> Option<&Song> {
+        self.data.song.as_ref()
+    }
+
+    pub fn is_loading(&self) -> bool {
+        self.data.is_loading
+    }
+
     pub fn current(&self) -> &Step {
         self.page_stack.front().unwrap()
     }
@@ -102,9 +104,8 @@ impl AppUi {
         }
     }
 
-    fn handle_page_msg(&mut self, ctx: &mut Context, msg: PageMessage) -> Task<Message> {
+    fn handle_page_msg(&mut self, _ctx: &mut Context, msg: PageMessage) -> Task<Message> {
         match msg {
-            PageMessage::Message(msg) => self.update(ctx, msg),
             PageMessage::Command(cmd) => cmd,
             PageMessage::None => Task::none(),
         }
@@ -122,20 +123,12 @@ impl Program for AppUi {
             Message::GoBack => {
                 self.go_back();
             }
-            Message::MainPage(msg) => {
-                let msg = MainPage::update(&mut self.data, msg, ctx);
-                return self.handle_page_msg(ctx, msg);
-            }
             Message::SettingsPage(msg) => {
                 let msg = SettingsPage::update(&mut self.data, msg, ctx);
                 return self.handle_page_msg(ctx, msg);
             }
             Message::TracksPage(msg) => {
                 let msg = TracksPage::update(&mut self.data, msg, ctx);
-                return self.handle_page_msg(ctx, msg);
-            }
-            Message::ExitPage(msg) => {
-                let msg = ExitPage::update(&mut self.data, msg, ctx);
                 return self.handle_page_msg(ctx, msg);
             }
         }
@@ -153,8 +146,8 @@ impl Program for AppUi {
 
     fn keyboard_input(&self, event: &iced_core::keyboard::Event, ctx: &Context) -> Option<Message> {
         match self.current() {
-            Step::Exit => ExitPage::keyboard_input(event, ctx),
-            Step::Main => MainPage::keyboard_input(event, ctx),
+            Step::Exit => None,
+            Step::Main => None,
             Step::Settings => SettingsPage::keyboard_input(event, ctx),
             Step::TrackSelection => TracksPage::keyboard_input(event, ctx),
         }
@@ -166,8 +159,8 @@ impl Program for AppUi {
         }
 
         match self.current() {
-            Step::Exit => ExitPage::view(&self.data, ctx).map(Message::ExitPage),
-            Step::Main => MainPage::view(&self.data, ctx).map(Message::MainPage),
+            Step::Exit => row![].into(),
+            Step::Main => row![].into(),
             Step::Settings => SettingsPage::view(&self.data, ctx).map(Message::SettingsPage),
             Step::TrackSelection => TracksPage::view(&self.data, ctx).map(Message::TracksPage),
         }
@@ -209,7 +202,7 @@ impl Program for AppUi {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Step {
     Exit,
     Main,
@@ -217,7 +210,7 @@ pub enum Step {
     TrackSelection,
 }
 
-fn play(data: &Data, ctx: &mut Context) {
+pub fn play(data: &Data, ctx: &mut Context) {
     let Some(song) = data.song.as_ref() else {
         return;
     };

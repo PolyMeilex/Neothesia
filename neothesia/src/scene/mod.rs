@@ -22,66 +22,68 @@ pub trait Scene {
 fn render_nuon(
     ui: &mut nuon::Ui,
     quad_pipeline: &mut QuadPipeline,
-    layer: usize,
+    layer_idx: usize,
     text_renderer: &mut TextRenderer,
     renderer: &mut impl iced_core::image::Renderer<Handle = iced_core::image::Handle>,
 ) {
-    for quad in ui.quads.iter() {
-        quad_pipeline.push(
-            layer,
-            neothesia_core::render::QuadInstance {
-                position: quad.rect.origin.into(),
-                size: quad.rect.size.into(),
-                color: wgpu_jumpstart::Color::new(
-                    quad.color.r,
-                    quad.color.g,
-                    quad.color.b,
-                    quad.color.a,
-                )
-                .into_linear_rgba(),
-                border_radius: quad.border_radius,
-            },
-        );
-    }
+    for layer in ui.layers.0.iter() {
+        for quad in layer.quads.iter() {
+            quad_pipeline.push(
+                layer_idx,
+                neothesia_core::render::QuadInstance {
+                    position: quad.rect.origin.into(),
+                    size: quad.rect.size.into(),
+                    color: wgpu_jumpstart::Color::new(
+                        quad.color.r,
+                        quad.color.g,
+                        quad.color.b,
+                        quad.color.a,
+                    )
+                    .into_linear_rgba(),
+                    border_radius: quad.border_radius,
+                },
+            );
+        }
 
-    for img in ui.images.iter() {
-        renderer.draw_image(
-            iced_core::Image {
-                handle: img.image.clone(),
-                filter_method: iced_core::image::FilterMethod::default(),
-                rotation: iced_core::Radians(0.0),
-                opacity: 1.0,
-                snap: false,
-            },
-            iced_core::Rectangle {
-                x: img.rect.origin.x,
-                y: img.rect.origin.y,
-                width: img.rect.size.width,
-                height: img.rect.size.height,
-            },
-        );
-    }
+        for img in layer.images.iter() {
+            renderer.draw_image(
+                iced_core::Image {
+                    handle: img.image.clone(),
+                    filter_method: iced_core::image::FilterMethod::default(),
+                    rotation: iced_core::Radians(0.0),
+                    opacity: 1.0,
+                    snap: false,
+                },
+                iced_core::Rectangle {
+                    x: img.rect.origin.x,
+                    y: img.rect.origin.y,
+                    width: img.rect.size.width,
+                    height: img.rect.size.height,
+                },
+            );
+        }
 
-    for icon in ui.icons.iter() {
-        text_renderer.queue_icon(icon.origin.x, icon.origin.y, icon.size, &icon.icon);
-    }
+        for icon in layer.icons.iter() {
+            text_renderer.queue_icon(icon.origin.x, icon.origin.y, icon.size, &icon.icon);
+        }
 
-    for text in ui.text.iter() {
-        let buffer = if text.bold {
-            text_renderer.gen_buffer_bold(text.size, &text.text)
-        } else {
-            text_renderer.gen_buffer(text.size, &text.text)
-        };
+        for text in layer.text.iter() {
+            let buffer = if text.bold {
+                text_renderer.gen_buffer_bold(text.size, &text.text)
+            } else {
+                text_renderer.gen_buffer(text.size, &text.text)
+            };
 
-        match text.text_justify {
-            nuon::TextJustify::Left => {
-                text_renderer.queue_buffer_left(text.rect, buffer);
-            }
-            nuon::TextJustify::Right => {
-                text_renderer.queue_buffer_right(text.rect, buffer);
-            }
-            nuon::TextJustify::Center => {
-                text_renderer.queue_buffer_centered(text.rect, buffer);
+            match text.text_justify {
+                nuon::TextJustify::Left => {
+                    text_renderer.queue_buffer_left(text.rect, buffer);
+                }
+                nuon::TextJustify::Right => {
+                    text_renderer.queue_buffer_right(text.rect, buffer);
+                }
+                nuon::TextJustify::Center => {
+                    text_renderer.queue_buffer_centered(text.rect, buffer);
+                }
             }
         }
     }

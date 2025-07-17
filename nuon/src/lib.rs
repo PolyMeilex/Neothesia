@@ -93,6 +93,76 @@ impl TranslationStack {
     }
 }
 
+#[derive(Default, Debug)]
+pub struct LayerData {
+    pub scissor_rect: Rect,
+    pub quads: Vec<QuadRenderElement>,
+    pub icons: Vec<IconRenderElement>,
+    pub text: Vec<TextRenderElement>,
+    pub images: Vec<ImageRenderElement>,
+}
+
+impl LayerData {
+    fn clear(&mut self) {
+        self.quads.clear();
+        self.icons.clear();
+        self.text.clear();
+        self.images.clear();
+    }
+}
+
+#[derive(Debug)]
+pub struct LayerStack {
+    layers: Vec<LayerData>,
+    history_stack: Vec<usize>,
+    curr: usize,
+}
+
+impl LayerStack {
+    fn new() -> Self {
+        LayerStack {
+            layers: vec![LayerData::default()],
+            history_stack: vec![],
+            curr: 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
+        self.layers.len()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &LayerData> {
+        self.layers.iter()
+    }
+
+    pub fn current_mut(&mut self) -> &mut LayerData {
+        &mut self.layers[self.curr]
+    }
+
+    pub fn push(&mut self) {
+        self.history_stack.push(self.curr);
+        self.curr = self.layers.len();
+        self.layers.push(LayerData::default());
+    }
+
+    pub fn pop(&mut self) {
+        if let Some(prev) = self.history_stack.pop() {
+            self.curr = prev;
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.layers[0].clear();
+        // TODO: Reuse the memory from all dropped layers
+        self.layers.drain(1..);
+        self.curr = 0;
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct QuadRenderElement {
     pub rect: Rect,
@@ -131,12 +201,9 @@ pub struct Ui {
     pub mouse_pressed: bool,
     pub mouse_down: bool,
 
-    translation_stack: TranslationStack,
+    pub translation_stack: TranslationStack,
 
-    pub quads: Vec<QuadRenderElement>,
-    pub icons: Vec<IconRenderElement>,
-    pub text: Vec<TextRenderElement>,
-    pub images: Vec<ImageRenderElement>,
+    pub layers: LayerStack,
 }
 
 impl Default for Ui {
@@ -155,11 +222,16 @@ impl Ui {
             mouse_pressed: false,
             mouse_down: false,
             translation_stack: TranslationStack::default(),
-            quads: Vec::new(),
-            icons: Vec::new(),
-            text: Vec::new(),
-            images: Vec::new(),
+            layers: LayerStack::new(),
         }
+    }
+
+    pub fn set_scissor_rect(&mut self, x: f32, y: f32, w: f32, h: f32) {
+        let layer = self.layers.current_mut();
+        layer.scissor_rect.origin.x = x;
+        layer.scissor_rect.origin.y = y;
+        layer.scissor_rect.size.width = w;
+        layer.scissor_rect.size.height = h;
     }
 
     pub fn mouse_move(&mut self, x: f32, y: f32) {
@@ -183,10 +255,7 @@ impl Ui {
     }
 
     pub fn done(&mut self) {
-        self.quads.clear();
-        self.icons.clear();
-        self.text.clear();
-        self.images.clear();
+        self.layers.clear();
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
     }
@@ -235,6 +304,34 @@ impl Translate {
 
 pub fn translate() -> Translate {
     Translate::new()
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Layer {
+    rect: Rect,
+}
+
+impl Layer {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn scissor_rect(mut self, rect: Rect) -> Self {
+        self.rect = rect;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+        ui.layers.push();
+        ui.layers.current_mut().scissor_rect = self.rect;
+
+        build(ui);
+        ui.layers.pop();
+    }
+}
+
+pub fn layer() -> Layer {
+    Layer::new()
 }
 
 #[derive(Debug, Clone)]
@@ -307,7 +404,7 @@ impl Quad {
             self.rect.size,
         );
 
-        ui.quads.push(QuadRenderElement {
+        ui.layers.current_mut().quads.push(QuadRenderElement {
             rect,
             border_radius: self.border_radius,
             color: self.color,
@@ -366,7 +463,7 @@ impl Image {
             ui.translation_stack.translate(self.rect.origin),
             self.rect.size,
         );
-        ui.images.push(ImageRenderElement {
+        ui.layers.current_mut().images.push(ImageRenderElement {
             rect,
             image: self.handle.clone(),
         });
@@ -623,7 +720,8 @@ impl Button {
 
         let color = self.calc_bg_color(ui, id);
 
-        ui.quads.push(QuadRenderElement {
+        let layer = ui.layers.current_mut();
+        layer.quads.push(QuadRenderElement {
             rect,
             border_radius: self.border_radius,
             color,
@@ -649,7 +747,7 @@ impl Button {
             }
         };
 
-        ui.icons.push(IconRenderElement {
+        layer.icons.push(IconRenderElement {
             origin: Point::new(x, y),
             size: icon_size,
             icon: self.icon.to_string(),
@@ -740,9 +838,11 @@ impl Label {
     }
 
     pub fn build(&self, ui: &mut Ui) {
+        let layer = ui.layers.current_mut();
         let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
+
         if !self.text.is_empty() {
-            ui.text.push(TextRenderElement {
+            layer.text.push(TextRenderElement {
                 rect,
                 text_justify: TextJustify::Center,
                 size: self.font_size,
@@ -759,7 +859,7 @@ impl Label {
                 (x, y)
             };
 
-            ui.icons.push(IconRenderElement {
+            layer.icons.push(IconRenderElement {
                 origin: Point::new(x, y),
                 size: self.font_size,
                 icon: self.icon.to_string(),

@@ -10,7 +10,7 @@ use winit::{
 
 use self::top_bar::TopBar;
 
-use super::Scene;
+use super::{NuonRenderer, Scene};
 use crate::{context::Context, render::WaterfallRenderer, song::Song, NeothesiaEvent};
 
 mod keyboard;
@@ -42,6 +42,7 @@ pub struct PlayingScene {
     waterfall: WaterfallRenderer,
     guidelines: GuidelineRenderer,
     text_renderer: TextRenderer,
+    nuon_renderer: NuonRenderer,
 
     note_labels: Option<NoteLabels>,
 
@@ -119,6 +120,7 @@ impl PlayingScene {
             guidelines,
             note_labels,
             text_renderer,
+            nuon_renderer: NuonRenderer::default(),
 
             waterfall,
             player,
@@ -232,12 +234,7 @@ impl Scene for PlayingScene {
 
         TopBar::update(self, ctx);
 
-        super::render_nuon(
-            &mut self.nuon,
-            &mut self.quad_renderer_fg,
-            &mut self.text_renderer,
-            &mut ctx.iced_manager.renderer,
-        );
+        super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
 
         self.quad_renderer_bg.prepare();
         self.quad_renderer_fg.prepare();
@@ -275,6 +272,8 @@ impl Scene for PlayingScene {
             glow.pipeline.render(rpass);
         }
         self.text_renderer.render(rpass);
+
+        self.nuon_renderer.render(rpass);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

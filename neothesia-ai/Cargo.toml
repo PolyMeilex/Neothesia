@@ -5,12 +5,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-midly = "0.5"
-ndarray = "0.16"
-rten = "0.20"
-rten-tensor = "0.20"
-serde = "1"
-serde_json = "1"
-symphonia = { version = "0.5", features = ["mp3"] }
-symphonium = { version = "0.6", features = ["mp3"] }
+anyhow.workspace = true
+midly.workspace = true
+ndarray.workspace = true
+rten.workspace = true
+rten-tensor.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+symphonia.workspace = true
+symphonium.workspace = true

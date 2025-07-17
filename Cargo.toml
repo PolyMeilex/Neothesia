@@ -21,32 +21,14 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.dependencies]
-wgpu = "26"
-glyphon = { git = "https://github.com/PolyMeilex/glyphon", rev = "993e3ac221e60fcf1733f9f9740a04b1317772d5" }
-
-glam = "0.30"
-guillotiere = "0.6"
-rustc-hash = "2.0"
-
-log = "0.4"
-bytemuck = { version = "1.5", features = ["derive"] }
-env_logger = "0.11"
-pollster = "0.4"
-async-channel = "2"
-euclid = "0.22"
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
-neothesia = { path = "./neothesia", default-features = false }
 neothesia-core = { path = "./neothesia-core" }
 neothesia-iced-widgets = { path = "./neothesia-iced-widgets" }
-
 midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
 piano-layout = { path = "./piano-layout" }
+mpeg_encoder = { path = "./mpeg_encoder" }
 nuon = { path = "./nuon" }
-num-traits = "0.2"
-unicode-segmentation = "1.12.0"
-
-profiling = "1.0"
 
 iced_graphics = { path = "./iced-graphics", features = ["image"] }
 iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "283d0e74a8050ea625da25e0b9180b65f11d1843" }
@@ -54,7 +36,55 @@ iced_runtime = { path = "./iced-runtime" }
 iced_wgpu = { path = "./iced-wgpu" }
 iced_widget = { path = "./iced-widget" }
 
+anyhow = "1"
+thiserror = "2.0"
+log = "0.4"
+
+wgpu = "26"
+glyphon = { git = "https://github.com/PolyMeilex/glyphon", rev = "993e3ac221e60fcf1733f9f9740a04b1317772d5" }
+
+glam = "0.30"
+guillotiere = "0.6"
+rustc-hash = "2.0"
+
+bytemuck = { version = "1.5", features = ["derive"] }
+env_logger = "0.11"
+pollster = "0.4"
+async-channel = "2"
+euclid = "0.22"
+
+num-traits = "0.2"
+unicode-segmentation = "1.12.0"
+
+lilt = "0.8"
+winit = "0.30"
+rfd = "0.15"
+cpal = "0.16"
+fluidlite = { version = "0.2", features = ["builtin"] }
+oxisynth = "0.1.0"
+embed-resource = "3.0"
+midir = "0.10"
+objc = "0.2"
+ron = "0.10"
+serde = "1"
+raw-window-handle = "0.6.0"
+
+profiling = "1.0"
+puffin = "0.19"
+puffin_http = "0.16"
+
 half = "2.2"
 cosmic-text = "0.14"
-image = { version = "0.25", default-features = false }
-thiserror = "2.0"
+image = { version = "0.25", features = ["png"], default-features = false }
+midly = "0.5"
+
+# neothesia-cli deps
+ffmpeg-sys = { package = "ffmpeg-sys-next", version = "7.0.3", default-features = false }
+
+# neothesia-ai deps
+ndarray = "0.16"
+rten = "0.20"
+rten-tensor = "0.20"
+serde_json = "1"
+symphonia = { version = "0.5", features = ["mp3"] }
+symphonium = { version = "0.6", features = ["mp3"] }

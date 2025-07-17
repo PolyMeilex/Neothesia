@@ -7,15 +7,12 @@ edition = "2021"
 description = "A simple ffmpeg video encoder."
 repository = "https://github.com/sebcrozet/mpeg_encoder"
 readme = "README.md"
-keywords = [ "encoder", "ffmpeg", "mpeg", "video" ]
+keywords = ["encoder", "ffmpeg", "mpeg", "video"]
 license = "BSD-3-Clause"
 
 [features]
 default = []
-build=["ffmpeg-sys/build"]
+build = ["ffmpeg-sys/build"]
 
-[dependencies.ffmpeg-sys]
-package = "ffmpeg-sys-next"
-version = "7.0.3"
-default-features = false
-features = [ "avformat", "swscale" ]
+[dependencies]
+ffmpeg-sys = { workspace = true, features = ["avformat", "swscale"] }

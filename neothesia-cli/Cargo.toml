@@ -13,5 +13,4 @@ midi-file.workspace = true
 wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 pollster.workspace = true
-
-mpeg_encoder = { path = "../mpeg_encoder" }
+mpeg_encoder.workspace = true

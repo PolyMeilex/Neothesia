@@ -24,29 +24,29 @@ neothesia-iced-widgets.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
 nuon.workspace = true
+image.workspace = true
 
-image = { version = "0.25", features = ["png"], default-features = false }
 iced_graphics.workspace = true
 iced_core.workspace = true
 iced_runtime.workspace = true
 iced_wgpu.workspace = true
 iced_widget.workspace = true
 
-lilt = "0.8"
-winit = { version = "0.30", features = ["rwh_05"] }
-rfd = "0.15"
+lilt.workspace = true
+winit.workspace = true
+rfd.workspace = true
 
-cpal = { version = "0.16", optional = true }
-fluidlite = { version = "0.2", features = ["builtin"], optional = true }
-oxisynth = { version = "0.1.0", optional = true }
+cpal = { workspace = true, optional = true }
+fluidlite = { workspace = true, optional = true }
+oxisynth = { workspace = true, optional = true }
 
 profiling.workspace = true
-puffin = "0.19"
-puffin_http = "0.16"
+puffin.workspace = true
+puffin_http.workspace = true
 
 [[bin]]
 name = "neothesia"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
-image = "0.25"
-embed-resource = "3.0"
+image = { workspace = true, features = ["png", "ico"]}
+embed-resource.workspace = true

@@ -5,7 +5,7 @@ authors = ["Poly <bartek.marynczak@op.pl>"]
 edition = "2021"
 
 [dependencies]
-midly = "0.5"
+midly.workspace = true
 
 [dev-dependencies]
 midi-io.workspace = true

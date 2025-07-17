@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ron = "0.10"
-serde = { version = "1", features = ["serde_derive"] }
-
+serde = { workspace = true, features = ["serde_derive"] }
+ron.workspace = true
 log.workspace = true
 bytemuck.workspace = true
 wgpu.workspace = true
@@ -18,4 +17,5 @@ profiling.workspace = true
 euclid.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc = "0.2"
+# TODO: Port to `objc2`
+objc.workspace = true

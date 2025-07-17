@@ -1146,6 +1146,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af9673d8203fcb076b19dfd17e38b3d4ae9f44959416ea532ce72415a6020365"
 
 [[package]]
+name = "fast-interleave"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a7e05e2b3c97d4516fa5c177133f3e4decf9c8318841e1545b260535311e3a5"
+
+[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1172,6 +1178,17 @@ dependencies = [
  "num_cpus",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "fixed-resample"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aec969062ed48a59113e902870e5d6ba3991a8ca3afe78d01708a62af5ed229c"
+dependencies = [
+ "arrayvec",
+ "fast-interleave",
+ "rubato",
 ]
 
 [[package]]
@@ -3969,12 +3986,12 @@ dependencies = [
 
 [[package]]
 name = "symphonium"
-version = "0.2.2"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4fd880864edb2723b8ae56852ce0f7cb98d8246e8cd8ec3d6881344ac1ffcd0"
+checksum = "97f008dd002293fd7b2f1dd5bc2d4dd8068fd00158ae3389cc0aafc40d589c72"
 dependencies = [
+ "fixed-resample",
  "log",
- "rubato",
  "symphonia",
 ]
 

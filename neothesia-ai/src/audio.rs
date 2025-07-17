@@ -9,7 +9,7 @@ pub fn load(path: impl AsRef<Path>) -> anyhow::Result<Vec<f32>> {
     let mut loader = SymphoniumLoader::new();
 
     let mut audio_data_f32 = loader
-        .load_f32(path, Some(SAMPLE_RATE), ResampleQuality::Normal, None)
+        .load_f32(path, Some(SAMPLE_RATE), ResampleQuality::High, None)
         .unwrap();
 
     let left = audio_data_f32.data.remove(0);

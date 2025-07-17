@@ -3424,12 +3424,11 @@ checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "rten"
-version = "0.13.1"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52026aa6d9bc40ac0d52bfeb4bc81d4fd5b7866825af1826ed7a4d74bd7574c4"
+checksum = "c8ac93363e1c4aef88f95d18cd8b6d80d3bf00e4d6e0970b48b941cf7cb4fc35"
 dependencies = [
  "flatbuffers",
- "libm",
  "num_cpus",
  "rayon",
  "rten-simd",
@@ -3442,24 +3441,26 @@ dependencies = [
 
 [[package]]
 name = "rten-simd"
-version = "0.11.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f1bb63fc8a157699e42a501cf43512871b20d3bea755f3ffac3ab63f1af10c4"
+checksum = "a67ab2fe1b3f595bbdd5aadad924c364dd71f260c95b8891f3729bbac72ae9f4"
 
 [[package]]
 name = "rten-tensor"
-version = "0.13.1"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "575ec5dbc7e7059eb4271bca1c06420d240e8a377593cbac41a0c7227ec8645d"
+checksum = "eae3589e7df13ca15c82a7cea41b6dd7b907aabd9315c3c0ef210c779032c895"
 dependencies = [
+ "rayon",
  "smallvec",
+ "typeid",
 ]
 
 [[package]]
 name = "rten-vecmath"
-version = "0.11.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af98a4e48d69c5aa2167d3adb7a8c1585602486a1aedd1ee8b3d684f98059396"
+checksum = "6efdc585b888e701e56610463629605fed817755925cf3be4367f90cae7501ea"
 dependencies = [
  "rten-simd",
 ]
@@ -4255,6 +4256,12 @@ name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+
+[[package]]
+name = "typeid"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "uds_windows"

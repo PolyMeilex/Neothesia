@@ -47,7 +47,7 @@ mod icons {
 }
 
 pub struct TopBar {
-    topbar_expand_animation: Animated<bool, Instant>,
+    pub topbar_expand_animation: Animated<bool, Instant>,
     is_expanded: bool,
 
     settings_animation: Animated<bool, Instant>,

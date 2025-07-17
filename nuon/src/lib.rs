@@ -93,6 +93,33 @@ impl TranslationStack {
     }
 }
 
+#[derive(Default, Debug)]
+pub struct Layer {
+    pub scissor_rect: Rect,
+    pub quads: Vec<QuadRenderElement>,
+    pub icons: Vec<IconRenderElement>,
+    pub text: Vec<TextRenderElement>,
+    pub images: Vec<ImageRenderElement>,
+}
+
+impl Layer {
+    fn clear(&mut self) {
+        self.quads.clear();
+        self.icons.clear();
+        self.text.clear();
+        self.images.clear();
+    }
+}
+
+#[derive(Debug)]
+pub struct LayerStack(pub Vec<Layer>);
+
+impl LayerStack {
+    pub fn current_mut(&mut self) -> &mut Layer {
+        self.0.last_mut().unwrap()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct QuadRenderElement {
     pub rect: Rect,
@@ -133,10 +160,7 @@ pub struct Ui {
 
     translation_stack: TranslationStack,
 
-    pub quads: Vec<QuadRenderElement>,
-    pub icons: Vec<IconRenderElement>,
-    pub text: Vec<TextRenderElement>,
-    pub images: Vec<ImageRenderElement>,
+    pub layers: LayerStack,
 }
 
 impl Default for Ui {
@@ -155,10 +179,7 @@ impl Ui {
             mouse_pressed: false,
             mouse_down: false,
             translation_stack: TranslationStack::default(),
-            quads: Vec::new(),
-            icons: Vec::new(),
-            text: Vec::new(),
-            images: Vec::new(),
+            layers: LayerStack(vec![Layer::default()]),
         }
     }
 
@@ -183,10 +204,10 @@ impl Ui {
     }
 
     pub fn done(&mut self) {
-        self.quads.clear();
-        self.icons.clear();
-        self.text.clear();
-        self.images.clear();
+        self.layers.0[0].clear();
+        // TODO: Reuse the memory from all dropped layers
+        self.layers.0.drain(1..);
+
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
     }
@@ -307,7 +328,7 @@ impl Quad {
             self.rect.size,
         );
 
-        ui.quads.push(QuadRenderElement {
+        ui.layers.current_mut().quads.push(QuadRenderElement {
             rect,
             border_radius: self.border_radius,
             color: self.color,
@@ -366,7 +387,7 @@ impl Image {
             ui.translation_stack.translate(self.rect.origin),
             self.rect.size,
         );
-        ui.images.push(ImageRenderElement {
+        ui.layers.current_mut().images.push(ImageRenderElement {
             rect,
             image: self.handle.clone(),
         });
@@ -623,7 +644,8 @@ impl Button {
 
         let color = self.calc_bg_color(ui, id);
 
-        ui.quads.push(QuadRenderElement {
+        let layer = ui.layers.current_mut();
+        layer.quads.push(QuadRenderElement {
             rect,
             border_radius: self.border_radius,
             color,
@@ -649,7 +671,7 @@ impl Button {
             }
         };
 
-        ui.icons.push(IconRenderElement {
+        layer.icons.push(IconRenderElement {
             origin: Point::new(x, y),
             size: icon_size,
             icon: self.icon.to_string(),
@@ -740,9 +762,11 @@ impl Label {
     }
 
     pub fn build(&self, ui: &mut Ui) {
+        let layer = ui.layers.current_mut();
         let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
+
         if !self.text.is_empty() {
-            ui.text.push(TextRenderElement {
+            layer.text.push(TextRenderElement {
                 rect,
                 text_justify: TextJustify::Center,
                 size: self.font_size,
@@ -759,7 +783,7 @@ impl Label {
                 (x, y)
             };
 
-            ui.icons.push(IconRenderElement {
+            layer.icons.push(IconRenderElement {
                 origin: Point::new(x, y),
                 size: self.font_size,
                 icon: self.icon.to_string(),

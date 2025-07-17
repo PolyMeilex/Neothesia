@@ -27,7 +27,7 @@ impl Display for OutputDescriptor {
         match self {
             #[cfg(feature = "synth")]
             OutputDescriptor::Synth(_) => write!(f, "Buildin Synth"),
-            OutputDescriptor::MidiOut(info) => write!(f, "{}", info),
+            OutputDescriptor::MidiOut(info) => write!(f, "{info}"),
             OutputDescriptor::DummyOutput => write!(f, "No Output"),
         }
     }
@@ -87,7 +87,7 @@ impl OutputManager {
         let synth_backend = match SynthBackend::new() {
             Ok(synth_backend) => Some(synth_backend),
             Err(err) => {
-                log::error!("{:?}", err);
+                log::error!("{err:?}");
                 None
             }
         };
@@ -95,7 +95,7 @@ impl OutputManager {
         let midi_backend = match MidiBackend::new() {
             Ok(midi_device_manager) => Some(midi_device_manager),
             Err(e) => {
-                log::error!("{}", e);
+                log::error!("{e}");
                 None
             }
         };

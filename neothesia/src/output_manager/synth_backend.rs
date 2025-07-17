@@ -51,7 +51,7 @@ impl SynthBackend {
         #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
         let mut next_value = oxisynth_adapter(self, rx, path, self.gain);
 
-        let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+        let err_fn = |err| eprintln!("an error occurred on stream: {err}");
 
         let channels = self.stream_config.channels as usize;
 

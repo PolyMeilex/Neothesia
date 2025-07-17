@@ -27,7 +27,7 @@ impl std::fmt::Display for GpuInitError {
             AdapterRequest(err) => write!(f, "Failed to create adapter: {err}"),
             #[cfg(target_arch = "wasm32")]
             AppendToBody => write!(f, "Couldn't append canvas to document body"),
-            _ => write!(f, "{:?}", self),
+            _ => write!(f, "{self:?}"),
         }
     }
 }

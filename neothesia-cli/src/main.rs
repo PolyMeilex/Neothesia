@@ -52,14 +52,14 @@ impl Recorder {
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
         let gpu = pollster::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
-            eprintln!("Failed to initialize GPU: {}", err);
+            eprintln!("Failed to initialize GPU: {err}");
             std::process::exit(1);
         });
         let args: Vec<String> = std::env::args().collect();
 
         let midi = if args.len() > 1 {
             midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
-                eprintln!("Error loading MIDI file: {}", err);
+                eprintln!("Error loading MIDI file: {err}");
                 std::process::exit(1);
             })
         } else {

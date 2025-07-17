@@ -131,7 +131,6 @@ impl RewindController {
             let w = &window_state.logical_size.width;
 
             let p = x / w;
-            log::debug!("Progressbar: x:{},p:{}", x, p);
             player.set_percentage_time(p);
         }
     }

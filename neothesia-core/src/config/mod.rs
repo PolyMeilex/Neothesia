@@ -21,7 +21,7 @@ impl Model {
                 match ron_options().from_str(&file) {
                     Ok(config) => Some(config),
                     Err(err) => {
-                        log::error!("{:#?}", err);
+                        log::error!("{err:#?}");
                         None
                     }
                 }

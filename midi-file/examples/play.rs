@@ -16,7 +16,7 @@ fn connect_midi_out() -> MidiOutputConnection {
         _ => {
             println!("\nAvailable output ports:");
             for (i, p) in out_ports.iter().enumerate() {
-                println!("{}: {}", i, p);
+                println!("{i}: {p}");
             }
             print!("Please select output port: ");
             std::io::stdout().flush().unwrap();

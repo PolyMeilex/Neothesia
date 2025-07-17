@@ -26,7 +26,7 @@ impl ToastManager {
     }
 
     pub fn animation_speed_toast(&mut self, speed: f32) {
-        self.toast(format!("Animation Speed: {}", speed));
+        self.toast(format!("Animation Speed: {speed}"));
     }
 
     pub fn offset_toast(&mut self, offset: f32) {

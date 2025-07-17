@@ -4,7 +4,6 @@ use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
-use neothesia_core::utils::fps_ticker;
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;
 
@@ -30,7 +29,7 @@ pub struct Context {
     pub frame_timestamp: std::time::Instant,
 
     #[cfg(debug_assertions)]
-    pub fps_ticker: fps_ticker::Fps,
+    pub fps_ticker: neothesia_core::utils::fps_ticker::Fps,
 }
 
 impl Drop for Context {
@@ -81,7 +80,7 @@ impl Context {
             frame_timestamp: std::time::Instant::now(),
 
             #[cfg(debug_assertions)]
-            fps_ticker: fps_ticker::Fps::default(),
+            fps_ticker: Default::default(),
         }
     }
 

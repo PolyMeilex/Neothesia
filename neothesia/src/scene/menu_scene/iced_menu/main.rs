@@ -190,7 +190,7 @@ async fn open_midi_file_picker() -> Option<(midi_file::MidiFile, PathBuf)> {
             let midi = midi_file::MidiFile::new(file.path());
 
             if let Err(e) = &midi {
-                log::error!("{}", e);
+                log::error!("{e}");
             }
 
             midi.map(|midi| (midi, file.path().to_path_buf())).ok()

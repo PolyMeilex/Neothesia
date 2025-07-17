@@ -171,7 +171,7 @@ impl Neothesia {
             let swap_chain_output = self.surface.get_current_texture();
             match swap_chain_output {
                 Ok(s) => break s,
-                Err(err) => log::warn!("{:?}", err),
+                Err(err) => log::warn!("{err:?}"),
             }
         };
 
@@ -258,7 +258,7 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         let window = event_loop.create_window(attributes).unwrap();
 
         if let Err(err) = set_window_icon(&window) {
-            log::error!("Failed to load window icon: {}", err);
+            log::error!("Failed to load window icon: {err}");
         }
 
         let window_state = WindowState::new(&window);

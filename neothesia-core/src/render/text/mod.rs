@@ -282,7 +282,7 @@ impl TextRenderer {
         self.queue_buffer(x, y, buffer);
     }
 
-    pub fn queue_fps(&mut self, fps: f64) {
+    pub fn queue_fps(&mut self, fps: f64, y: f32) {
         let text = format!("FPS: {}", fps.round() as u32);
         let mut buffer =
             glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
@@ -298,7 +298,7 @@ impl TextRenderer {
         self.queue(TextArea {
             buffer,
             left: 0.0,
-            top: 5.0,
+            top: y,
             scale: 1.0,
             bounds: glyphon::TextBounds::default(),
             default_color: glyphon::Color::rgb(255, 255, 255),

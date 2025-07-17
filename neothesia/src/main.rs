@@ -13,7 +13,6 @@ use std::time::Duration;
 
 use context::Context;
 use iced_core::Renderer;
-use neothesia_core::utils::fps_ticker;
 use scene::{menu_scene, playing_scene, Scene};
 use song::Song;
 use utils::window::WindowState;
@@ -46,9 +45,6 @@ struct Neothesia {
     game_scene: Box<dyn Scene>,
     // We are dropping surface last, because of some wgpu internal ref-counting errors that cause libwayland crasch
     surface: Surface,
-
-    #[cfg(debug_assertions)]
-    fps_ticker: fps_ticker::Fps,
 }
 
 impl Neothesia {
@@ -63,9 +59,6 @@ impl Neothesia {
             context,
             surface,
             game_scene: Box::new(game_scene),
-
-            #[cfg(debug_assertions)]
-            fps_ticker: fps_ticker::Fps::default(),
         }
     }
 
@@ -167,16 +160,9 @@ impl Neothesia {
     #[profiling::function]
     fn update(&mut self, delta: Duration) {
         #[cfg(debug_assertions)]
-        {
-            self.fps_ticker.tick();
-            self.context.text_renderer.queue_fps(self.fps_ticker.avg());
-        }
+        self.context.fps_ticker.tick();
 
         self.game_scene.update(&mut self.context, delta);
-        self.context.text_renderer.update(
-            self.context.window_state.logical_size.into(),
-            &mut self.context.gpu,
-        );
     }
 
     #[profiling::function]
@@ -218,7 +204,6 @@ impl Neothesia {
                     });
 
             self.game_scene.render(&self.context.transform, &mut rpass);
-            self.context.text_renderer.render(&mut rpass);
         }
 
         let encoder = self.context.gpu.take();
@@ -233,8 +218,6 @@ impl Neothesia {
 
         self.context.window.pre_present_notify();
         frame.present();
-
-        self.context.text_renderer.end_frame();
     }
 }
 

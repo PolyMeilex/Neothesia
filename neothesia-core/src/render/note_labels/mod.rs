@@ -128,7 +128,7 @@ impl NoteLabels {
             });
         }
 
-        self.text_renderer.update(logical_size, text);
+        self.text_renderer.update(logical_size, text.font_system());
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {

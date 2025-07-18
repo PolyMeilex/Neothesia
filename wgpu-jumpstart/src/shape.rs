@@ -2,6 +2,7 @@ use wgpu::util::DeviceExt;
 
 use bytemuck::{Pod, Zeroable};
 
+#[derive(Clone)]
 pub struct Shape {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,

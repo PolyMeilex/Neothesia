@@ -1,7 +1,7 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::{
     piano_layout,
-    render::{KeyboardKeyState, QuadPipeline, TextRenderer},
+    render::{KeyboardKeyState, QuadRenderer, TextRenderer},
     utils::Point,
 };
 use piano_layout::KeyboardRange;
@@ -85,7 +85,7 @@ impl Keyboard {
         self.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
     }
 
-    pub fn update(&mut self, quads: &mut QuadPipeline, layer: usize, brush: &mut TextRenderer) {
+    pub fn update(&mut self, quads: &mut QuadRenderer, layer: usize, brush: &mut TextRenderer) {
         self.renderer.update(quads, layer, brush)
     }
 

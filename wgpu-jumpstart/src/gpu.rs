@@ -157,7 +157,7 @@ impl Gpu {
         });
     }
 
-    pub fn take(&mut self) -> wgpu::CommandEncoder {
+    fn take_encoder(&mut self) -> wgpu::CommandEncoder {
         let new_encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -168,7 +168,7 @@ impl Gpu {
     }
 
     pub fn submit(&mut self) {
-        let encoder = self.take();
+        let encoder = self.take_encoder();
         self.queue.submit(Some(encoder.finish()));
     }
 }

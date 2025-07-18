@@ -1,6 +1,6 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
-    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadPipeline, TextRenderer,
+    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
 };
 use std::time::Duration;
 use wgpu_jumpstart::{TransformUniform, Uniform};
@@ -51,7 +51,7 @@ pub struct PlayingScene {
 
     player: MidiPlayer,
     rewind_controller: RewindController,
-    quad_pipeline: QuadPipeline,
+    quad_pipeline: QuadRenderer,
     glow: Option<Glow>,
     toast_manager: ToastManager,
 
@@ -107,9 +107,9 @@ impl PlayingScene {
         );
         waterfall.update(&ctx.gpu.queue, player.time_without_lead_in());
 
-        let mut quad_pipeline = QuadPipeline::new(&ctx.gpu, &ctx.transform);
-        quad_pipeline.init_layer(&ctx.gpu, 50); // BG
-        quad_pipeline.init_layer(&ctx.gpu, 150); // FG
+        let mut quad_pipeline = QuadRenderer::new(&ctx.gpu, &ctx.transform);
+        quad_pipeline.init_layer(50); // BG
+        quad_pipeline.init_layer(150); // FG
 
         let glow_states: Vec<GlowState> = keyboard
             .layout()
@@ -250,7 +250,7 @@ impl Scene for PlayingScene {
             &mut ctx.iced_manager.renderer,
         );
 
-        self.quad_pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
+        self.quad_pipeline.prepare();
         if let Some(glow) = &mut self.glow {
             glow.pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
         }

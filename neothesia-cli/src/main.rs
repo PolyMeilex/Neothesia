@@ -3,7 +3,7 @@ use std::{default::Default, time::Duration};
 use neothesia_core::{
     config::Config,
     piano_layout,
-    render::{GuidelineRenderer, KeyboardRenderer, QuadPipeline, TextRenderer, WaterfallRenderer},
+    render::{GuidelineRenderer, KeyboardRenderer, QuadRenderer, TextRenderer, WaterfallRenderer},
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
@@ -13,7 +13,7 @@ struct Recorder {
 
     playback: midi_file::PlaybackState,
 
-    quad_pipeline: QuadPipeline,
+    quad_pipeline: QuadRenderer,
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
     text: TextRenderer,
@@ -82,9 +82,9 @@ impl Recorder {
             wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
         );
 
-        let mut quad_pipeline = QuadPipeline::new(&gpu, &transform_uniform);
-        quad_pipeline.init_layer(&gpu, 30); // BG
-        quad_pipeline.init_layer(&gpu, 150); // FG
+        let mut quad_pipeline = QuadRenderer::new(&gpu, &transform_uniform);
+        quad_pipeline.init_layer(30); // BG
+        quad_pipeline.init_layer(150); // FG
 
         let keyboard_layout = get_layout(
             width as f32,
@@ -155,8 +155,7 @@ impl Recorder {
 
         self.keyboard
             .update(&mut self.quad_pipeline, 1, &mut self.text);
-        self.quad_pipeline
-            .prepare(&self.gpu.device, &self.gpu.queue);
+        self.quad_pipeline.prepare();
 
         self.text.update((self.width, self.height), &mut self.gpu);
     }

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    render::{QuadInstance, QuadPipeline},
+    render::{QuadInstance, QuadRenderer},
     utils::Point,
 };
 
@@ -80,7 +80,7 @@ impl GuidelineRenderer {
     #[profiling::function]
     fn update_horizontal_guidelines(
         &mut self,
-        quads: &mut QuadPipeline,
+        quads: &mut QuadRenderer,
         layer: usize,
         animation_speed: f32,
         time: f32,
@@ -100,7 +100,7 @@ impl GuidelineRenderer {
                 break;
             }
 
-            quads.instances(layer).push(QuadInstance {
+            quads.layer(layer).push(QuadInstance {
                 position: [x, y],
                 size: [w, h],
                 color: [0.05, 0.05, 0.05, 1.0],
@@ -112,7 +112,7 @@ impl GuidelineRenderer {
     #[profiling::function]
     pub fn update(
         &mut self,
-        quads: &mut QuadPipeline,
+        quads: &mut QuadRenderer,
         layer: usize,
         animation_speed: f32,
         time: f32,
@@ -125,6 +125,6 @@ impl GuidelineRenderer {
             self.update_horizontal_guidelines(quads, layer, animation_speed, time);
         }
 
-        quads.instances(layer).extend(&self.cache);
+        quads.layer(layer).extend(&self.cache);
     }
 }

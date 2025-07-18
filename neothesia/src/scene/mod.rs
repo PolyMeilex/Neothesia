@@ -3,7 +3,7 @@ pub mod playing_scene;
 
 use crate::context::Context;
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{QuadPipeline, TextRenderer};
+use neothesia_core::render::{QuadRenderer, TextRenderer};
 use std::time::Duration;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::event::WindowEvent;
@@ -21,7 +21,7 @@ pub trait Scene {
 
 fn render_nuon(
     ui: &mut nuon::Ui,
-    quad_pipeline: &mut QuadPipeline,
+    quad_pipeline: &mut QuadRenderer,
     layer: usize,
     text_renderer: &mut TextRenderer,
     renderer: &mut impl iced_core::image::Renderer<Handle = iced_core::image::Handle>,

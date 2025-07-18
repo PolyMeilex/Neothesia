@@ -206,8 +206,7 @@ impl Neothesia {
             self.game_scene.render(&self.context.transform, &mut rpass);
         }
 
-        let encoder = self.context.gpu.take();
-        self.context.gpu.queue.submit([encoder.finish()]);
+        self.context.gpu.submit();
 
         self.context.iced_manager.renderer.present(
             None,

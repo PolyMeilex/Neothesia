@@ -178,16 +178,12 @@ impl KeyboardRenderer {
 
         {
             profiling::scope!("push quads from cache");
-            for quad in self.cache.iter() {
-                quads.instances(layer).push(*quad);
-            }
+            quads.instances(layer).extend(&self.cache);
         }
 
         {
             profiling::scope!("push text from cache");
-            for buffer in self.text_cache.iter() {
-                text.queue(buffer.clone());
-            }
+            text.queue_mut().extend_from_slice(&self.text_cache);
         }
     }
 }

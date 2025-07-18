@@ -95,28 +95,4 @@ impl<'a> QuadPipeline {
             instances.update(device, queue);
         }
     }
-
-    pub fn update_instance_buffer(
-        &mut self,
-        batch_id: usize,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        instances: Vec<QuadInstance>,
-    ) {
-        let batch = &mut self.instances[batch_id];
-        batch.data = instances;
-        batch.update(device, queue);
-    }
-
-    pub fn with_instances_mut<F: FnOnce(&mut Vec<QuadInstance>)>(
-        &mut self,
-        batch_id: usize,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        cb: F,
-    ) {
-        let batch = &mut self.instances[batch_id];
-        cb(&mut batch.data);
-        batch.update(device, queue);
-    }
 }

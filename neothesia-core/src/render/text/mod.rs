@@ -151,6 +151,10 @@ impl TextRenderer {
         &mut self.font_system
     }
 
+    pub fn queue_mut(&mut self) -> &mut Vec<TextArea> {
+        &mut self.queue
+    }
+
     pub fn queue(&mut self, area: TextArea) {
         self.queue.push(area);
     }

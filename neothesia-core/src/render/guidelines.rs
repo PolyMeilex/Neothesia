@@ -125,8 +125,6 @@ impl GuidelineRenderer {
             self.update_horizontal_guidelines(quads, layer, animation_speed, time);
         }
 
-        for quad in self.cache.iter() {
-            quads.instances(layer).push(*quad);
-        }
+        quads.instances(layer).extend(&self.cache);
     }
 }

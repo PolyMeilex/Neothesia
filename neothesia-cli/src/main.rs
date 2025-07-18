@@ -114,7 +114,7 @@ impl Recorder {
 
         let playback = midi_file::PlaybackState::new(Duration::from_secs(3), midi.tracks.clone());
 
-        waterfall.update(&gpu.queue, time_without_lead_in(&playback));
+        waterfall.update(time_without_lead_in(&playback));
 
         let text = TextRenderer::new(&gpu);
 
@@ -151,13 +151,13 @@ impl Recorder {
             time,
         );
 
-        self.waterfall.update(&self.gpu.queue, time);
+        self.waterfall.update(time);
 
         self.keyboard
             .update(&mut self.quad_pipeline, 1, &mut self.text);
         self.quad_pipeline.prepare();
 
-        self.text.update((self.width, self.height), &mut self.gpu);
+        self.text.update((self.width, self.height));
     }
 
     fn render(

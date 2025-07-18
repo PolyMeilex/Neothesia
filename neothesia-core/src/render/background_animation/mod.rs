@@ -10,6 +10,7 @@ pub struct BgPipeline {
     fullscreen_quad: Shape,
 
     time_uniform: Uniform<TimeUniform>,
+    queue: wgpu::Queue,
 }
 
 impl BgPipeline {
@@ -56,6 +57,7 @@ impl BgPipeline {
             render_pipeline,
             fullscreen_quad,
             time_uniform,
+            queue: gpu.queue.clone(),
         }
     }
 
@@ -73,9 +75,9 @@ impl BgPipeline {
         render_pass.draw_indexed(0..self.fullscreen_quad.indices_len, 0, 0..1);
     }
 
-    pub fn update_time(&mut self, gpu: &mut Gpu, delta: Duration) {
+    pub fn update_time(&mut self, delta: Duration) {
         self.time_uniform.data.time += delta.as_secs_f32();
-        self.time_uniform.update(&gpu.queue);
+        self.time_uniform.update(&self.queue);
     }
 }
 

@@ -96,7 +96,7 @@ impl PlayingScene {
         let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
             waterfall.notes(),
-            text_renderer.new_renderer(&ctx.gpu),
+            text_renderer.new_renderer(),
         ));
 
         let player = MidiPlayer::new(
@@ -105,7 +105,7 @@ impl PlayingScene {
             keyboard_layout.range.clone(),
             ctx.config.separate_channels(),
         );
-        waterfall.update(&ctx.gpu.queue, player.time_without_lead_in());
+        waterfall.update(player.time_without_lead_in());
 
         let mut quad_pipeline = QuadRenderer::new(&ctx.gpu, &ctx.transform);
         quad_pipeline.init_layer(50); // BG
@@ -199,12 +199,8 @@ impl PlayingScene {
             note_labels.set_pos(*self.keyboard.pos());
         }
 
-        self.waterfall.resize(
-            &ctx.gpu.device,
-            &ctx.gpu.queue,
-            &ctx.config,
-            self.keyboard.layout().clone(),
-        );
+        self.waterfall
+            .resize(&ctx.config, self.keyboard.layout().clone());
     }
 }
 
@@ -218,7 +214,7 @@ impl Scene for PlayingScene {
         self.toast_manager.update(&mut self.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);
-        self.waterfall.update(&ctx.gpu.queue, time);
+        self.waterfall.update(time);
         self.guidelines.update(
             &mut self.quad_pipeline,
             LAYER_BG,
@@ -230,7 +226,6 @@ impl Scene for PlayingScene {
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.update(
                 &mut self.text_renderer,
-                &mut ctx.gpu,
                 ctx.window_state.logical_size.into(),
                 self.keyboard.renderer(),
                 ctx.config.animation_speed(),
@@ -252,7 +247,7 @@ impl Scene for PlayingScene {
 
         self.quad_pipeline.prepare();
         if let Some(glow) = &mut self.glow {
-            glow.pipeline.prepare(&ctx.gpu.device, &ctx.gpu.queue);
+            glow.pipeline.prepare();
         }
 
         #[cfg(debug_assertions)]
@@ -263,7 +258,7 @@ impl Scene for PlayingScene {
                 .animate_bool(5.0, 80.0, ctx.frame_timestamp),
         );
         self.text_renderer
-            .update(ctx.window_state.logical_size.into(), &mut ctx.gpu);
+            .update(ctx.window_state.logical_size.into());
 
         if self.player.is_finished() && !self.player.is_paused() {
             ctx.proxy

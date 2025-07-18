@@ -52,7 +52,7 @@ impl MenuScene {
 impl Scene for MenuScene {
     #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
-        self.bg_pipeline.update_time(&mut ctx.gpu, delta);
+        self.bg_pipeline.update_time(delta);
         self.iced_state.tick(ctx);
 
         self.futures

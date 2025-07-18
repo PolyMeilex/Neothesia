@@ -32,6 +32,8 @@ pub struct TextRendererInstance {
     text_renderer: glyphon::TextRenderer,
     queue: Vec<TextArea>,
     shared: Rc<RefCell<TextShared>>,
+    device: wgpu::Device,
+    wgpu_queue: wgpu::Queue,
 }
 
 impl TextRendererInstance {
@@ -39,12 +41,7 @@ impl TextRendererInstance {
         self.queue.push(area);
     }
 
-    pub fn update(
-        &mut self,
-        logical_size: (u32, u32),
-        text_renderer: &mut TextRenderer,
-        gpu: &mut Gpu,
-    ) {
+    pub fn update(&mut self, logical_size: (u32, u32), text_renderer: &mut TextRenderer) {
         let shared = &mut *self.shared.borrow_mut();
         let elements = self.queue.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
@@ -57,7 +54,7 @@ impl TextRendererInstance {
         });
 
         shared.viewport.update(
-            &gpu.queue,
+            &self.wgpu_queue,
             glyphon::Resolution {
                 width: logical_size.0,
                 height: logical_size.1,
@@ -66,8 +63,8 @@ impl TextRendererInstance {
 
         self.text_renderer
             .prepare(
-                &gpu.device,
-                &gpu.queue,
+                &self.device,
+                &self.wgpu_queue,
                 &mut text_renderer.font_system,
                 &mut shared.atlas,
                 &shared.viewport,
@@ -95,6 +92,8 @@ pub struct TextRenderer {
     text_renderer: glyphon::TextRenderer,
 
     queue: Vec<TextArea>,
+    device: wgpu::Device,
+    wgpu_queue: wgpu::Queue,
 }
 
 impl TextRenderer {
@@ -129,13 +128,15 @@ impl TextRenderer {
             _cache: cache,
             text_renderer,
             queue: Vec::new(),
+            device: gpu.device.clone(),
+            wgpu_queue: gpu.queue.clone(),
         }
     }
 
-    pub fn new_renderer(&mut self, gpu: &Gpu) -> TextRendererInstance {
+    pub fn new_renderer(&mut self) -> TextRendererInstance {
         let text_renderer = glyphon::TextRenderer::new(
             &mut self.shared.borrow_mut().atlas,
-            &gpu.device,
+            &self.device,
             wgpu::MultisampleState::default(),
             None,
         );
@@ -144,6 +145,8 @@ impl TextRenderer {
             text_renderer,
             queue: Vec::new(),
             shared: self.shared.clone(),
+            device: self.device.clone(),
+            wgpu_queue: self.wgpu_queue.clone(),
         }
     }
 
@@ -310,7 +313,7 @@ impl TextRenderer {
     }
 
     #[profiling::function]
-    pub fn update(&mut self, logical_size: (u32, u32), gpu: &mut Gpu) {
+    pub fn update(&mut self, logical_size: (u32, u32)) {
         let elements = self.queue.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
             left: area.left,
@@ -323,7 +326,7 @@ impl TextRenderer {
 
         let shared = &mut *self.shared.borrow_mut();
         shared.viewport.update(
-            &gpu.queue,
+            &self.wgpu_queue,
             glyphon::Resolution {
                 width: logical_size.0,
                 height: logical_size.1,
@@ -332,8 +335,8 @@ impl TextRenderer {
 
         self.text_renderer
             .prepare(
-                &gpu.device,
-                &gpu.queue,
+                &self.device,
+                &self.wgpu_queue,
                 &mut self.font_system,
                 &mut shared.atlas,
                 &shared.viewport,

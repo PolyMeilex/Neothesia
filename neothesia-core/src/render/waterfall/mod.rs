@@ -35,6 +35,8 @@ impl NoteList {
 pub struct WaterfallRenderer {
     notes_pipeline: WaterfallPipeline,
     notes: NoteList,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
 }
 
 impl WaterfallRenderer {
@@ -52,11 +54,13 @@ impl WaterfallRenderer {
         let mut notes = Self {
             notes_pipeline,
             notes,
+            device: gpu.device.clone(),
+            queue: gpu.queue.clone(),
         };
         notes
             .notes_pipeline
             .set_speed(&gpu.queue, config.animation_speed());
-        notes.resize(&gpu.device, &gpu.queue, config, layout);
+        notes.resize(config, layout);
         notes
     }
 
@@ -68,13 +72,7 @@ impl WaterfallRenderer {
         &self.notes
     }
 
-    pub fn resize(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        config: &Config,
-        layout: piano_layout::KeyboardLayout,
-    ) {
+    pub fn resize(&mut self, config: &Config, layout: piano_layout::KeyboardLayout) {
         let range_start = layout.range.start() as usize;
 
         self.notes_pipeline.clear();
@@ -118,11 +116,11 @@ impl WaterfallRenderer {
             );
         }
 
-        self.notes_pipeline.prepare(device, queue);
+        self.notes_pipeline.prepare(&self.device, &self.queue);
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, time: f32) {
-        self.notes_pipeline.update_time(queue, time);
+    pub fn update(&mut self, time: f32) {
+        self.notes_pipeline.update_time(&self.queue, time);
     }
 
     #[profiling::function]

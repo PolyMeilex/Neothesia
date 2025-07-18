@@ -7,6 +7,8 @@ pub struct GlowPipeline {
     render_pipeline: wgpu::RenderPipeline,
     quad: Shape,
     instances: Instances<GlowInstance>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
 }
 
 impl<'a> GlowPipeline {
@@ -48,10 +50,10 @@ impl<'a> GlowPipeline {
 
         Self {
             render_pipeline,
-
             quad,
-
             instances,
+            device: gpu.device.clone(),
+            queue: gpu.queue.clone(),
         }
     }
 
@@ -79,27 +81,7 @@ impl<'a> GlowPipeline {
         &mut self.instances.data
     }
 
-    pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        self.instances.update(device, queue);
-    }
-
-    pub fn update_instance_buffer(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        instances: Vec<GlowInstance>,
-    ) {
-        self.instances.data = instances;
-        self.instances.update(device, queue);
-    }
-
-    pub fn with_instances_mut<F: FnOnce(&mut Vec<GlowInstance>)>(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        cb: F,
-    ) {
-        cb(&mut self.instances.data);
-        self.instances.update(device, queue);
+    pub fn prepare(&mut self) {
+        self.instances.update(&self.device, &self.queue);
     }
 }

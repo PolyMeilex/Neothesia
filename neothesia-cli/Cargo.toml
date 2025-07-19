@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 # Download and compile ffmpeg
-build-ffmpeg = ["mpeg_encoder/build"]
+build-ffmpeg = ["ffmpeg_encoder/build"]
 
 [dependencies]
 neothesia-core.workspace = true
@@ -13,4 +13,5 @@ midi-file.workspace = true
 wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 pollster.workspace = true
-mpeg_encoder.workspace = true
+ffmpeg_encoder.workspace = true
+oxisynth = { workspace = true }

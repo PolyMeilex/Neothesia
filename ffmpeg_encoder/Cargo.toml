@@ -1,0 +1,14 @@
+[package]
+name = "ffmpeg_encoder"
+version = "0.0.0"
+edition = "2021"
+readme = "README.md"
+
+[features]
+default = []
+build = ["ffmpeg/build"]
+
+[dependencies]
+ffmpeg = { workspace = true, features = ["avformat", "swscale", "swresample"] }
+libc = "0.2"
+oxisynth = { workspace = true }

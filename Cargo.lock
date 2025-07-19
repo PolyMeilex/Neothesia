@@ -1079,6 +1079,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ffmpeg_encoder"
+version = "0.0.0"
+dependencies = [
+ "ffmpeg-sys-next",
+ "libc",
+ "oxisynth",
+]
+
+[[package]]
 name = "fixed-resample"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1979,13 +1988,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mpeg_encoder"
-version = "0.2.1"
-dependencies = [
- "ffmpeg-sys-next",
-]
-
-[[package]]
 name = "naga"
 version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2108,9 +2110,10 @@ name = "neothesia-cli"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "ffmpeg_encoder",
  "midi-file",
- "mpeg_encoder",
  "neothesia-core",
+ "oxisynth",
  "pollster",
  "wgpu-jumpstart",
 ]

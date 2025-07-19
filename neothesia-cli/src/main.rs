@@ -21,6 +21,8 @@ struct Recorder {
     config: Config,
     width: u32,
     height: u32,
+
+    synth: oxisynth::Synth,
 }
 
 fn get_layout(
@@ -117,6 +119,19 @@ impl Recorder {
 
         let text = TextRenderer::new(&gpu);
 
+        let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
+            sample_rate: 44100.0,
+            gain: 0.5,
+            ..Default::default()
+        })
+        .unwrap();
+
+        {
+            let mut file = std::fs::File::open("./default.sf2").unwrap();
+            let font = oxisynth::SoundFont::load(&mut file).unwrap();
+            synth.add_font(font, true);
+        }
+
         Self {
             gpu,
 
@@ -131,12 +146,14 @@ impl Recorder {
             config,
             width,
             height,
+
+            synth,
         }
     }
 
     fn update(&mut self, delta: Duration) {
         let events = self.playback.update(delta);
-        file_midi_events(&mut self.keyboard, &self.config, &events);
+        file_midi_events(&mut self.synth, &mut self.keyboard, &self.config, &events);
 
         let time = time_without_lead_in(&self.playback);
 
@@ -261,24 +278,47 @@ fn main() {
     };
 
     std::fs::create_dir("./out").ok();
-    let mut encoder = mpeg_encoder::Encoder::new(
+
+    let mut encoder = ffmpeg_encoder::new(
         "./out/video.mp4",
-        recorder.width as usize,
-        recorder.height as usize,
-        Some(0.0),
-        Some("medium"),
+        // recorder.width as usize,
+        // recorder.height as usize,
+        // Some(0.0),
+        // Some("medium"),
+        // Some(44100),
     );
 
     let start = std::time::Instant::now();
+
+    let frame_time = Duration::from_secs(1) / 60;
+    const SAMPLE_TIME: usize = 44100 / 60;
+    const FRAME_SIZE: usize = 1024;
+
+    let mut audio_buffer_l: Vec<f32> = Vec::with_capacity(FRAME_SIZE);
+    let mut audio_buffer_r: Vec<f32> = Vec::with_capacity(FRAME_SIZE);
 
     println!("Encoding started:");
     let mut n = 1;
     while recorder.playback.percentage() * 100.0 < 101.0 {
         let output_buffer = recorder.gpu.device.create_buffer(&output_buffer_desc);
 
-        let frame_time = Duration::from_secs(1) / 60;
         recorder.update(frame_time);
         recorder.render(&texture, view, &texture_desc, &output_buffer);
+
+        for _ in 0..SAMPLE_TIME {
+            let val = recorder.synth.read_next();
+            audio_buffer_l.push(val.0);
+            audio_buffer_r.push(val.0);
+        }
+
+        if audio_buffer_l.len() >= FRAME_SIZE {
+            encoder(ffmpeg_encoder::Frame::Audio(
+                &audio_buffer_l[..FRAME_SIZE],
+                &audio_buffer_r[..FRAME_SIZE],
+            ));
+            audio_buffer_l.drain(..FRAME_SIZE);
+            audio_buffer_r.drain(..FRAME_SIZE);
+        }
 
         {
             let slice = output_buffer.slice(..);
@@ -290,7 +330,9 @@ fn main() {
             let mapping = slice.get_mapped_range();
 
             let data: &[u8] = &mapping;
-            encoder.encode_bgra(1920, 1080, data, false);
+
+            encoder(ffmpeg_encoder::Frame::Vide(data));
+
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",
                 n,
@@ -302,9 +344,19 @@ fn main() {
 
         n += 1;
     }
+
+    for (l, r) in audio_buffer_l
+        .chunks(FRAME_SIZE)
+        .zip(audio_buffer_r.chunks(FRAME_SIZE))
+    {
+        encoder(ffmpeg_encoder::Frame::Audio(l, r));
+    }
+
+    encoder(ffmpeg_encoder::Frame::Terminator);
 }
 
 fn file_midi_events(
+    synth: &mut oxisynth::Synth,
     keyboard: &mut KeyboardRenderer,
     config: &Config,
     events: &[&midi_file::MidiEvent],
@@ -312,11 +364,25 @@ fn file_midi_events(
     use midi_file::midly::MidiMessage;
 
     for e in events {
-        let (is_on, key) = match e.message {
-            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
-            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+        let (is_on, key, vel) = match e.message {
+            MidiMessage::NoteOn { key, vel, .. } => (true, key.as_int(), vel),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int(), 0.into()),
             _ => continue,
         };
+
+        if is_on {
+            synth
+                .send_event(oxisynth::MidiEvent::NoteOn {
+                    channel: 1,
+                    key,
+                    vel: vel.as_int(),
+                })
+                .unwrap();
+        } else {
+            synth
+                .send_event(oxisynth::MidiEvent::NoteOff { channel: 1, key })
+                .unwrap();
+        }
 
         let range_start = keyboard.range().start() as usize;
         if keyboard.range().contains(key) && e.channel != 9 {

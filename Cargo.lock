@@ -1983,6 +1983,7 @@ name = "mpeg_encoder"
 version = "0.2.1"
 dependencies = [
  "ffmpeg-sys-next",
+ "libc",
 ]
 
 [[package]]

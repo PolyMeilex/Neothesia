@@ -267,6 +267,7 @@ fn main() {
         recorder.height as usize,
         Some(0.0),
         Some("medium"),
+        None,
     );
 
     let start = std::time::Instant::now();

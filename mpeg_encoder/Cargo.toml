@@ -16,3 +16,4 @@ build = ["ffmpeg-sys/build"]
 
 [dependencies]
 ffmpeg-sys = { workspace = true, features = ["avformat", "swscale"] }
+libc = "0.2"

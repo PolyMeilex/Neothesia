@@ -267,10 +267,38 @@ fn main() {
         recorder.height as usize,
         Some(0.0),
         Some("medium"),
-        None,
+        Some(44100),
     );
 
     let start = std::time::Instant::now();
+
+    /// Generate a sine wave of a given frequency, duration, and amplitude.
+    ///
+    /// # Parameters
+    /// - `frequency`: Frequency of the sine wave in Hz (e.g., 440.0 for A4).
+    /// - `duration_secs`: Duration of the wave in seconds.
+    /// - `amplitude`: Amplitude of the wave (typically 0.0 to 1.0).
+    ///
+    /// # Returns
+    /// A `Vec<f32>` containing the audio samples at 44,100 Hz sample rate.
+    pub fn generate_sine_wave(frequency: f32, duration_secs: f32, amplitude: f32) -> Vec<f32> {
+        use std::f32::consts::PI;
+
+        let sample_rate = 44_100.0;
+        let sample_count = (duration_secs * sample_rate) as usize;
+        let two_pi_f = 2.0 * PI * frequency;
+
+        (0..sample_count)
+            .map(|i| {
+                let t = i as f32 / sample_rate;
+                amplitude * (two_pi_f * t).sin()
+            })
+            .collect()
+    }
+
+    let sine_wave = generate_sine_wave(440.0, 0.5, 0.5);
+    encoder.encode_audio_f32(&sine_wave, &sine_wave);
+    encoder.encode_audio_f32(&sine_wave, &sine_wave);
 
     println!("Encoding started:");
     let mut n = 1;

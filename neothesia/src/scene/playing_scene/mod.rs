@@ -3,7 +3,6 @@ use neothesia_core::render::{
     GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
 };
 use std::time::Duration;
-use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::{
     event::{ElementState, KeyEvent, MouseButton, WindowEvent},
     keyboard::{Key, NamedKey},
@@ -268,19 +267,15 @@ impl Scene for PlayingScene {
     }
 
     #[profiling::function]
-    fn render<'pass>(
-        &'pass mut self,
-        transform: &'pass Uniform<TransformUniform>,
-        rpass: &mut wgpu::RenderPass<'pass>,
-    ) {
-        self.quad_pipeline.render(LAYER_BG, transform, rpass);
-        self.waterfall.render(transform, rpass);
+    fn render<'pass>(&'pass mut self, rpass: &mut wgpu::RenderPass<'pass>) {
+        self.quad_pipeline.render(LAYER_BG, rpass);
+        self.waterfall.render(rpass);
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.render(rpass);
         }
-        self.quad_pipeline.render(LAYER_FG, transform, rpass);
+        self.quad_pipeline.render(LAYER_FG, rpass);
         if let Some(glow) = &self.glow {
-            glow.pipeline.render(transform, rpass);
+            glow.pipeline.render(rpass);
         }
         self.text_renderer.render(rpass);
     }

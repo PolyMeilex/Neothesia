@@ -203,7 +203,7 @@ impl Neothesia {
                         occlusion_query_set: None,
                     });
 
-            self.game_scene.render(&self.context.transform, &mut rpass);
+            self.game_scene.render(&mut rpass);
         }
 
         self.context.gpu.submit();

@@ -8,6 +8,7 @@ type QuadsLayer = Instances<QuadInstance>;
 #[derive(Clone)]
 pub struct QuadPipeline {
     render_pipeline: wgpu::RenderPipeline,
+    transform_uniform_bind_group: wgpu::BindGroup,
     quad: Shape,
 }
 
@@ -48,6 +49,7 @@ impl QuadPipeline {
 
         Self {
             render_pipeline,
+            transform_uniform_bind_group: transform_uniform.bind_group.clone(),
             quad: Shape::new_quad(&gpu.device),
         }
     }
@@ -57,14 +59,9 @@ impl QuadPipeline {
     }
 
     #[profiling::function]
-    pub fn render<'a>(
-        &'a self,
-        transform_uniform: &'a Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        instances: &QuadsLayer,
-    ) {
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, instances: &QuadsLayer) {
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &transform_uniform.bind_group, &[]);
+        render_pass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, instances.buffer.slice(..));
@@ -98,14 +95,8 @@ impl<'a> QuadRenderer {
     }
 
     #[profiling::function]
-    pub fn render(
-        &'a self,
-        layer_id: usize,
-        transform_uniform: &'a Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        self.pipeline
-            .render(transform_uniform, render_pass, &self.layers[layer_id]);
+    pub fn render(&'a self, layer_id: usize, render_pass: &mut wgpu::RenderPass<'a>) {
+        self.pipeline.render(render_pass, &self.layers[layer_id]);
     }
 
     pub fn clear(&mut self) {

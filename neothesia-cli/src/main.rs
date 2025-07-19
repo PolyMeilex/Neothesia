@@ -9,7 +9,6 @@ use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
 struct Recorder {
     gpu: Gpu,
-    transform_uniform: Uniform<TransformUniform>,
 
     playback: midi_file::PlaybackState,
 
@@ -120,7 +119,6 @@ impl Recorder {
 
         Self {
             gpu,
-            transform_uniform,
 
             playback,
 
@@ -190,11 +188,9 @@ impl Recorder {
                     occlusion_query_set: None,
                 });
 
-            self.quad_pipeline
-                .render(0, &self.transform_uniform, &mut rpass);
-            self.waterfall.render(&self.transform_uniform, &mut rpass);
-            self.quad_pipeline
-                .render(1, &self.transform_uniform, &mut rpass);
+            self.quad_pipeline.render(0, &mut rpass);
+            self.waterfall.render(&mut rpass);
+            self.quad_pipeline.render(1, &mut rpass);
             self.text.render(&mut rpass);
         }
 

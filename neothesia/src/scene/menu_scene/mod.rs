@@ -8,7 +8,6 @@ use iced_menu::AppUi;
 use iced_runtime::task::BoxFuture;
 use neothesia_core::render::BgPipeline;
 
-use wgpu_jumpstart::{TransformUniform, Uniform};
 use winit::event::WindowEvent;
 
 use crate::{
@@ -72,11 +71,7 @@ impl Scene for MenuScene {
     }
 
     #[profiling::function]
-    fn render<'pass>(
-        &'pass mut self,
-        _transform: &'pass Uniform<TransformUniform>,
-        rpass: &mut wgpu::RenderPass<'pass>,
-    ) {
+    fn render<'pass>(&'pass mut self, rpass: &mut wgpu::RenderPass<'pass>) {
         self.bg_pipeline.render(rpass);
     }
 

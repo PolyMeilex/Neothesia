@@ -124,11 +124,7 @@ impl WaterfallRenderer {
     }
 
     #[profiling::function]
-    pub fn render<'rpass>(
-        &'rpass mut self,
-        transform_uniform: &'rpass Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'rpass>,
-    ) {
-        self.notes_pipeline.render(transform_uniform, render_pass);
+    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+        self.notes_pipeline.render(render_pass);
     }
 }

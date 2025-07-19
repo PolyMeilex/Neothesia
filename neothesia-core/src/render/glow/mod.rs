@@ -9,6 +9,7 @@ pub struct GlowPipeline {
     instances: Instances<GlowInstance>,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    transform_uniform_bind_group: wgpu::BindGroup,
 }
 
 impl<'a> GlowPipeline {
@@ -54,16 +55,13 @@ impl<'a> GlowPipeline {
             instances,
             device: gpu.device.clone(),
             queue: gpu.queue.clone(),
+            transform_uniform_bind_group: transform_uniform.bind_group.clone(),
         }
     }
 
-    pub fn render(
-        &'a self,
-        transform_uniform: &'a Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
+    pub fn render(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &transform_uniform.bind_group, &[]);
+        render_pass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instances.buffer.slice(..));

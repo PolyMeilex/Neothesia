@@ -13,9 +13,10 @@ pub struct WaterfallPipeline {
 
     instances: Instances<NoteInstance>,
     time_uniform: Uniform<TimeUniform>,
+    transform_uniform_bind_group: wgpu::BindGroup,
 }
 
-impl<'a> WaterfallPipeline {
+impl WaterfallPipeline {
     pub fn new(
         gpu: &Gpu,
         transform_uniform: &Uniform<TransformUniform>,
@@ -71,16 +72,13 @@ impl<'a> WaterfallPipeline {
             quad,
             instances,
             time_uniform,
+            transform_uniform_bind_group: transform_uniform.bind_group.clone(),
         }
     }
 
-    pub fn render(
-        &'a self,
-        transform_uniform: &'a Uniform<TransformUniform>,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_bind_group(0, &transform_uniform.bind_group, &[]);
+        render_pass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
         render_pass.set_bind_group(1, &self.time_uniform.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));

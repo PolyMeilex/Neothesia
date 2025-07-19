@@ -136,7 +136,6 @@ fn init_context(
 pub struct Encoder {
     tmp_frame_buf: Vec<u8>,
     _frame_buf: Vec<u8>,
-    curr_frame_index: usize,
     target_width: usize,
     target_height: usize,
     tmp_frame: NonNull<AVFrame>,
@@ -291,7 +290,6 @@ impl Encoder {
 
         Self {
             tmp_frame_buf: Vec::new(),
-            curr_frame_index: 0,
             target_width,
             target_height,
             tmp_frame,
@@ -433,7 +431,6 @@ impl Encoder {
                 (*self.context.as_ptr()).time_base,
                 (*self.video_st.as_ptr()).time_base,
             );
-            self.curr_frame_index += self.curr_frame_index;
         }
     }
 }

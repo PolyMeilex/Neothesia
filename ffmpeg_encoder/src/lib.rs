@@ -38,16 +38,12 @@ pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>) {
 
             video_stream.write_frame(format_context, Some(input_frame));
         } else {
-            let (mut video_stream, audio_stream, format_context) =
+            let (mut video_stream, _audio_stream, format_context) =
                 ctx.take().expect("Encoder should not be closed");
 
             video_stream.write_frame(&format_context, None);
 
             format_context.write_trailer();
-
-            std::mem::drop(video_stream);
-            std::mem::drop(audio_stream);
-            std::mem::drop(format_context);
         }
     }
 }

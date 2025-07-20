@@ -1,6 +1,6 @@
 use std::cell::OnceCell;
 
-use ffmpeg::{AVCodecID, AVRational, AVERROR, AVERROR_EOF, EAGAIN};
+use ffmpeg::{AVCodecID, AVRational};
 
 use crate::{ff, FRAME_RATE, SRC_STREAM_PIX_FMT, STREAM_PIX_FMT};
 
@@ -167,32 +167,12 @@ impl VideoOutputStream {
             self.next_frame(frame_bytes);
         }
 
-        let codec_ctx = &self.codec_ctx;
-        let stream = &self.stream;
-        let frame = frame_bytes.is_some().then_some(&self.frame);
-        let packet = &self.tmp_pkt;
-
-        // Send the frame to the encoder
-        codec_ctx.send_frame(frame);
-
-        let mut ret = 0;
-        while ret >= 0 {
-            ret = codec_ctx.receive_packet(packet);
-
-            if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
-                break;
-            } else if ret < 0 {
-                panic!("Error encoding a frame",);
-            }
-
-            // Rescale output packet timestamp values from codec to stream timebase
-            packet.rescale_ts(codec_ctx.time_base(), stream.time_base());
-            packet.set_stream_index(stream.index());
-
-            // Write the compressed frame to the media file.
-            format_ctx.interleaved_write_frame(packet);
-        }
-
-        ret == AVERROR_EOF
+        super::write_frame(
+            &self.codec_ctx,
+            &self.stream,
+            &self.tmp_pkt,
+            format_ctx,
+            frame_bytes.is_some().then_some(&self.frame),
+        )
     }
 }

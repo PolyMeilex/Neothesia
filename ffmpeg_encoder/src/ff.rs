@@ -226,6 +226,10 @@ impl CodecContext {
         }
     }
 
+    pub fn sample_rate(&self) -> i32 {
+        unsafe { (*self.0.as_ptr()).sample_rate }
+    }
+
     pub fn time_base(&self) -> AVRational {
         unsafe { (*self.0.as_ptr()).time_base }
     }

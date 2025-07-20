@@ -3,7 +3,7 @@
 use std::ffi::CString;
 use std::path::Path;
 
-use ffmpeg::AVPixelFormat;
+use ffmpeg::{AVPixelFormat, AVERROR, AVERROR_EOF, EAGAIN};
 
 mod audio;
 mod ff;
@@ -12,6 +12,39 @@ mod video;
 const FRAME_RATE: i32 = 60;
 const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
 const SRC_STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_BGRA;
+
+/// Encode one frame and send it to the muxer.
+/// Returns true when encoding is finished, false otherwise.
+fn write_frame(
+    codec_ctx: &ff::CodecContext,
+    stream: &ff::Stream,
+    packet: &ff::Packet,
+    format_ctx: &ff::FormatContext,
+    frame: Option<&ff::Frame>,
+) -> bool {
+    // Send the frame to the encoder
+    codec_ctx.send_frame(frame);
+
+    let mut ret = 0;
+    while ret >= 0 {
+        ret = codec_ctx.receive_packet(packet);
+
+        if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
+            break;
+        } else if ret < 0 {
+            panic!("Error encoding a frame",);
+        }
+
+        // Rescale output packet timestamp values from codec to stream timebase
+        packet.rescale_ts(codec_ctx.time_base(), stream.time_base());
+        packet.set_stream_index(stream.index());
+
+        // Write the compressed frame to the media file.
+        format_ctx.interleaved_write_frame(packet);
+    }
+
+    ret == AVERROR_EOF
+}
 
 pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>) {
     let path = path.as_ref().to_str().unwrap();

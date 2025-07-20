@@ -1,8 +1,9 @@
 use std::{ffi::c_void, ptr};
 
 use ffmpeg::{
-    AVChannelLayout, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodecID, AVRational,
-    AVSampleFormat, AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
+    av_rescale_q, swr_convert, swr_get_delay, AVChannelLayout, AVChannelLayout__bindgen_ty_1,
+    AVChannelOrder, AVCodecID, AVRational, AVSampleFormat, AV_CH_LAYOUT_STEREO,
+    AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
 };
 
 use crate::ff;
@@ -16,6 +17,13 @@ pub struct AudioOutputStream {
     pub tmp_frame: ff::Frame,
 
     pub swr_ctx: ff::SwrContext,
+
+    next_pts: i64,
+    samples_count: i64,
+
+    t: f32,
+    tincr: f32,
+    tincr2: f32,
 }
 
 pub fn new_audio_streams(
@@ -158,6 +166,12 @@ pub fn new_audio_streams(
             );
         }
 
+        // Init signal generator
+        let t = 0.0;
+        let tincr = 2.0 * std::f32::consts::PI * 110.0 / codec_context.sample_rate() as f32;
+        let tincr2 = 2.0 * std::f32::consts::PI * 110.0
+            / (codec_context.sample_rate() as f32 * codec_context.sample_rate() as f32);
+
         swr_ctx.init();
 
         AudioOutputStream {
@@ -167,6 +181,86 @@ pub fn new_audio_streams(
             frame,
             tmp_frame,
             swr_ctx,
+
+            next_pts: 0,
+            samples_count: 0,
+
+            t,
+            tincr,
+            tincr2,
         }
+    }
+}
+
+#[allow(unused)]
+impl AudioOutputStream {
+    /// Prepare a 16-bit dummy audio frame.
+    unsafe fn next_frame(&mut self) {
+        let ost = self;
+        let frame = &ost.tmp_frame;
+
+        let nb_samples = (*frame.as_ptr()).nb_samples as usize;
+        let nb_channels = (*ost.codec_ctx.as_ptr()).ch_layout.nb_channels as usize;
+        let q = (*frame.as_ptr()).data[0] as *mut i16;
+
+        for j in 0..nb_samples {
+            let v = (ost.t.sin() * 10000.0) as i16;
+            for i in 0..nb_channels {
+                q.add(j * nb_channels + i).write(v);
+            }
+            ost.t += ost.tincr;
+            ost.tincr += ost.tincr2;
+        }
+
+        (*frame.as_ptr()).pts = ost.next_pts;
+        ost.next_pts += (*frame.as_ptr()).nb_samples as i64;
+    }
+
+    /// Encode one audio frame and send it to the muxer.
+    pub fn write_frame(&mut self, format_ctx: &ff::FormatContext) -> bool {
+        unsafe { self.next_frame() };
+
+        let frame = self.frame.as_ptr();
+
+        unsafe {
+            let dst_nb_samples =
+                swr_get_delay(self.swr_ctx.as_ptr(), self.codec_ctx.sample_rate() as i64)
+                    + (*self.frame.as_ptr()).nb_samples as i64;
+
+            assert_eq!(dst_nb_samples, (*frame).nb_samples as i64);
+
+            self.frame.make_writable();
+
+            let ret = swr_convert(
+                self.swr_ctx.as_ptr(),
+                (*frame).data.as_mut_ptr(),
+                dst_nb_samples as i32,
+                (*frame).data.as_ptr() as *const *const u8,
+                (*frame).nb_samples,
+            );
+            if ret < 0 {
+                panic!("Error while converting audio");
+            }
+
+            let time_base = AVRational {
+                num: 1,
+                den: self.codec_ctx.sample_rate(),
+            };
+
+            self.frame.set_presentation_timestamp(av_rescale_q(
+                self.samples_count,
+                time_base,
+                self.codec_ctx.time_base(),
+            ));
+            self.samples_count += dst_nb_samples;
+        }
+
+        super::write_frame(
+            &self.codec_ctx,
+            &self.stream,
+            &self.tmp_pkt,
+            format_ctx,
+            Some(&self.frame),
+        )
     }
 }

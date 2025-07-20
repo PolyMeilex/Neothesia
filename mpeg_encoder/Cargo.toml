@@ -15,5 +15,5 @@ default = []
 build = ["ffmpeg-sys/build"]
 
 [dependencies]
-ffmpeg-sys = { workspace = true, features = ["avformat", "swscale"] }
+ffmpeg-sys = { workspace = true, features = ["avformat", "swscale", "swresample"] }
 libc = "0.2"

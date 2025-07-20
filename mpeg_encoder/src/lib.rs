@@ -14,18 +14,20 @@ use std::ptr::{self, NonNull};
 
 #[derive(PartialEq)]
 enum ColorFormat {
-    Rgb,
-    Rgba,
-    Bgr,
     Bgra,
+}
+
+impl ColorFormat {
+    fn has_alpha(&self) -> bool {
+        match self {
+            Self::Bgra => true,
+        }
+    }
 }
 
 impl From<&ColorFormat> for AVPixelFormat {
     fn from(v: &ColorFormat) -> AVPixelFormat {
         match v {
-            ColorFormat::Rgb => AVPixelFormat::AV_PIX_FMT_RGB24,
-            ColorFormat::Rgba => AVPixelFormat::AV_PIX_FMT_RGBA,
-            ColorFormat::Bgr => AVPixelFormat::AV_PIX_FMT_BGR24,
             ColorFormat::Bgra => AVPixelFormat::AV_PIX_FMT_BGRA,
         }
     }
@@ -129,8 +131,12 @@ struct AudioCtx {
 pub struct Encoder {
     tmp_frame_buf: Vec<u8>,
     _frame_buf: Vec<u8>,
-    target_width: usize,
-    target_height: usize,
+
+    _target_width: usize,
+    _target_height: usize,
+    src_width: usize,
+    src_height: usize,
+
     tmp_frame: NonNull<AVFrame>,
     frame: NonNull<AVFrame>,
     context: NonNull<AVCodecContext>,
@@ -144,8 +150,8 @@ pub struct Encoder {
 impl Encoder {
     pub fn new(
         path: impl AsRef<Path>,
-        width: usize,
-        height: usize,
+        src_width: usize,
+        src_height: usize,
         crf: Option<f32>,
         preset: Option<&str>,
         audio_sample_rate: Option<u32>,
@@ -160,15 +166,23 @@ impl Encoder {
         let pix_fmt = AVPixelFormat::AV_PIX_FMT_YUV420P;
 
         // width and height must be a multiple of two.
-        let target_width = if width % 2 == 0 { width } else { width + 1 };
-        let target_height = if height % 2 == 0 { height } else { height + 1 };
+        let target_width = if src_width % 2 == 0 {
+            src_width
+        } else {
+            src_width + 1
+        };
+        let target_height = if src_height % 2 == 0 {
+            src_height
+        } else {
+            src_height + 1
+        };
 
         // sws scaling context
         let scale_context = unsafe {
             NonNull::new(ffmpeg_sys::sws_getContext(
-                target_width as i32,
-                target_height as i32,
-                AVPixelFormat::AV_PIX_FMT_RGB24,
+                src_width as i32,
+                src_height as i32,
+                (&ColorFormat::Bgra).into(),
                 target_width as i32,
                 target_height as i32,
                 pix_fmt,
@@ -315,8 +329,12 @@ impl Encoder {
 
         Self {
             tmp_frame_buf: Vec::new(),
-            target_width,
-            target_height,
+
+            _target_width: target_width,
+            _target_height: target_height,
+            src_width,
+            src_height,
+
             tmp_frame,
 
             frame,
@@ -330,44 +348,12 @@ impl Encoder {
         }
     }
 
-    /// Adds a image with a RGB pixel format to the video.
-    pub fn encode_rgb(&mut self, width: usize, height: usize, data: &[u8], vertical_flip: bool) {
-        assert_eq!(data.len(), width * height * 3);
-        self.encode(width, height, data, ColorFormat::Rgb, vertical_flip)
-    }
-
-    /// Adds a image with a RGBA pixel format to the video.
-    pub fn encode_rgba(&mut self, width: usize, height: usize, data: &[u8], vertical_flip: bool) {
-        assert_eq!(data.len(), width * height * 4);
-        self.encode(width, height, data, ColorFormat::Rgba, vertical_flip)
-    }
-
     /// Adds a image with a BGRA pixel format to the video.
-    pub fn encode_bgr(&mut self, width: usize, height: usize, data: &[u8], vertical_flip: bool) {
-        assert_eq!(data.len(), width * height * 3);
-        self.encode(width, height, data, ColorFormat::Bgr, vertical_flip)
-    }
-
-    /// Adds a image with a BGRA pixel format to the video.
-    pub fn encode_bgra(&mut self, width: usize, height: usize, data: &[u8], vertical_flip: bool) {
-        assert_eq!(data.len(), width * height * 4);
-        self.encode(width, height, data, ColorFormat::Bgra, vertical_flip)
-    }
-
-    fn encode(
-        &mut self,
-        width: usize,
-        height: usize,
-        data: &[u8],
-        color_format: ColorFormat,
-        vertical_flip: bool,
-    ) {
-        let has_alpha = color_format == ColorFormat::Rgba || color_format == ColorFormat::Bgra;
-
-        assert!(
-            (has_alpha && data.len() == width * height * 4)
-                || (!has_alpha && data.len() == width * height * 3)
-        );
+    pub fn encode_bgra(&mut self, data: &[u8]) {
+        let width: usize = self.src_width;
+        let height: usize = self.src_height;
+        let color_format = ColorFormat::Bgra;
+        let has_alpha = color_format.has_alpha();
 
         let mut pkt = unsafe {
             let mut pkt: mem::MaybeUninit<AVPacket> = mem::MaybeUninit::uninit();
@@ -379,22 +365,18 @@ impl Encoder {
         pkt.size = 0;
 
         // Fill the snapshot frame.
-        //
-        //
         let pixel_len = if has_alpha { 4 } else { 3 };
 
-        self.tmp_frame_buf.resize(width * height * pixel_len, 0);
-        self.tmp_frame_buf.clone_from_slice(data);
+        assert_eq!(data.len(), width * height * pixel_len);
 
-        if vertical_flip {
-            vflip(self.tmp_frame_buf.as_mut_slice(), width * pixel_len, height);
-        }
+        self.tmp_frame_buf.resize(data.len(), 0);
+        self.tmp_frame_buf.clone_from_slice(data);
 
         unsafe {
             (*self.tmp_frame.as_ptr()).width = width as i32;
             (*self.tmp_frame.as_ptr()).height = height as i32;
 
-            let _ = ffmpeg_sys::av_image_fill_arrays(
+            ffmpeg_sys::av_image_fill_arrays(
                 (*self.tmp_frame.as_ptr()).data.as_mut_ptr(),
                 (*self.tmp_frame.as_ptr()).linesize.as_mut_ptr(),
                 self.tmp_frame_buf.as_ptr(),
@@ -406,24 +388,8 @@ impl Encoder {
         }
 
         // Convert the snapshot frame to the right format for the destination frame.
-        //
         unsafe {
-            self.scale_context = NonNull::new(ffmpeg_sys::sws_getCachedContext(
-                self.scale_context.as_ptr(),
-                width as i32,
-                height as i32,
-                (&color_format).into(),
-                self.target_width as i32,
-                self.target_height as i32,
-                AVPixelFormat::AV_PIX_FMT_YUV420P,
-                ffmpeg_sys::SWS_BICUBIC,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                ptr::null(),
-            ))
-            .unwrap();
-
-            let _ = ffmpeg_sys::sws_scale(
+            ffmpeg_sys::sws_scale(
                 self.scale_context.as_ptr(),
                 &(*self.tmp_frame.as_ptr()).data[0] as *const *mut u8 as *const *const u8,
                 &(*self.tmp_frame.as_ptr()).linesize[0],
@@ -431,8 +397,8 @@ impl Encoder {
                 height as i32,
                 &(*self.frame.as_ptr()).data[0] as *const *mut u8,
                 &(*self.frame.as_ptr()).linesize[0],
-            );
-        }
+            )
+        };
 
         // Encode the image.
 
@@ -445,8 +411,7 @@ impl Encoder {
 
         unsafe {
             if ffmpeg_sys::avcodec_receive_packet(self.context.as_ptr(), &mut pkt) == 0 {
-                let _ =
-                    ffmpeg_sys::av_interleaved_write_frame(self.format_context.as_ptr(), &mut pkt);
+                ffmpeg_sys::av_interleaved_write_frame(self.format_context.as_ptr(), &mut pkt);
                 ffmpeg_sys::av_packet_unref(&mut pkt);
             }
         }
@@ -705,14 +670,6 @@ impl Drop for Encoder {
                 println!("Warning: failed closing output file");
             }
             ffmpeg_sys::avformat_free_context(self.format_context.as_ptr());
-        }
-    }
-}
-
-fn vflip(vec: &mut [u8], width: usize, height: usize) {
-    for j in 0..height / 2 {
-        for i in 0..width {
-            vec.swap((height - j - 1) * width + i, j * width + i);
         }
     }
 }

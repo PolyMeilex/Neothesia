@@ -21,6 +21,7 @@ pub mod new;
 
 const FRAME_RATE: i32 = 60;
 const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
+const SRC_STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_BGRA;
 const STREAM_DURATION: i64 = 10;
 
 #[derive(PartialEq)]
@@ -254,9 +255,9 @@ impl Encoder {
         // If the output format is not YUV420P, then a temporary YUV420P
         // picture is needed too. It is then converted to the required
         // output format.
-        let tmp_frame = if codec_ctx.pix_fmt() != AVPixelFormat::AV_PIX_FMT_YUV420P {
+        let tmp_frame = if codec_ctx.pix_fmt() != SRC_STREAM_PIX_FMT {
             Some(ff::Frame::new(
-                AVPixelFormat::AV_PIX_FMT_YUV420P,
+                SRC_STREAM_PIX_FMT,
                 codec_ctx.width(),
                 codec_ctx.height(),
             ))
@@ -482,38 +483,44 @@ impl Encoder {
         }
     }
 
-    fn next_video_frame(video: &mut VideoOutputStream) {
+    fn next_video_frame(video: &mut VideoOutputStream, frame_bytes: &[u8]) {
         let codec_ctx = &video.codec_ctx;
 
         video.frame.make_writable();
 
-        if codec_ctx.pix_fmt() == STREAM_PIX_FMT {
-            unsafe {
-                Self::fill_yuv_image(
-                    video.frame.as_ptr(),
-                    video.next_pts as i32,
-                    codec_ctx.width(),
-                    codec_ctx.height(),
-                )
-            };
+        if codec_ctx.pix_fmt() == SRC_STREAM_PIX_FMT {
+            todo!()
         } else {
             let sws_ctx = video.sws_ctx.get_or_init(|| {
                 ff::SwsContext::new(
                     codec_ctx.width(),
                     codec_ctx.height(),
-                    STREAM_PIX_FMT,
+                    SRC_STREAM_PIX_FMT,
                     codec_ctx.width(),
                     codec_ctx.height(),
                     codec_ctx.pix_fmt(),
                 )
             });
 
+            // Fill the snapshot frame.
+            let pixel_len = 4;
+            let size = codec_ctx.width() as usize * codec_ctx.height() as usize * pixel_len;
+
+            assert_eq!(frame_bytes.len(), size);
+
             unsafe {
-                Self::fill_yuv_image(
-                    video.tmp_frame.as_ref().unwrap().as_ptr(),
-                    video.next_pts as i32,
+                ffmpeg::av_image_fill_arrays(
+                    (*video.tmp_frame.as_ref().unwrap().as_ptr())
+                        .data
+                        .as_mut_ptr(),
+                    (*video.tmp_frame.as_ref().unwrap().as_ptr())
+                        .linesize
+                        .as_mut_ptr(),
+                    frame_bytes.as_ptr(),
+                    SRC_STREAM_PIX_FMT,
                     codec_ctx.width(),
                     codec_ctx.height(),
+                    1,
                 );
             }
 
@@ -523,6 +530,43 @@ impl Encoder {
                 codec_ctx.height(),
             );
         }
+
+        // if codec_ctx.pix_fmt() == AVPixelFormat::AV_PIX_FMT_YUV420P {
+        //     unsafe {
+        //         Self::fill_yuv_image(
+        //             video.frame.as_ptr(),
+        //             video.next_pts as i32,
+        //             codec_ctx.width(),
+        //             codec_ctx.height(),
+        //         )
+        //     };
+        // } else {
+        //     let sws_ctx = video.sws_ctx.get_or_init(|| {
+        //         ff::SwsContext::new(
+        //             codec_ctx.width(),
+        //             codec_ctx.height(),
+        //             AVPixelFormat::AV_PIX_FMT_YUV420P,
+        //             codec_ctx.width(),
+        //             codec_ctx.height(),
+        //             codec_ctx.pix_fmt(),
+        //         )
+        //     });
+        //
+        //     unsafe {
+        //         Self::fill_yuv_image(
+        //             video.tmp_frame.as_ref().unwrap().as_ptr(),
+        //             video.next_pts as i32,
+        //             codec_ctx.width(),
+        //             codec_ctx.height(),
+        //         );
+        //     }
+        //
+        //     sws_ctx.scale(
+        //         video.tmp_frame.as_ref().unwrap(),
+        //         &video.frame,
+        //         codec_ctx.height(),
+        //     );
+        // }
 
         video.frame.set_pts(video.next_pts);
         video.next_pts += 1;
@@ -577,8 +621,17 @@ impl Encoder {
         // Write the stream header, if any.
         format_context.write_header();
 
+        let mut tmp_frame_buf = vec![0u8; 1080 * 1920 * 4];
+
+        for chunk in tmp_frame_buf.chunks_mut(4) {
+            chunk[0] = 0;
+            chunk[1] = 255;
+            chunk[2] = 0;
+            chunk[3] = 255;
+        }
+
         for _ in 0..60 * 10 {
-            Self::next_video_frame(&mut video_stream);
+            Self::next_video_frame(&mut video_stream, &tmp_frame_buf);
             Self::write_frame(
                 &format_context,
                 &video_stream.codec_ctx,

@@ -22,7 +22,6 @@ pub mod new;
 const FRAME_RATE: i32 = 60;
 const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
 const SRC_STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_BGRA;
-const STREAM_DURATION: i64 = 10;
 
 #[derive(PartialEq)]
 enum ColorFormat {
@@ -251,6 +250,8 @@ impl Encoder {
 
         let video_frame =
             ff::Frame::new(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());
+
+        video_frame.set_pts(0);
 
         // If the output format is not YUV420P, then a temporary YUV420P
         // picture is needed too. It is then converted to the required
@@ -605,7 +606,7 @@ impl Encoder {
         ret == AVERROR_EOF
     }
 
-    pub fn new2(path: impl AsRef<Path>) {
+    pub fn new2(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>) {
         let path = path.as_ref().to_str().unwrap();
         let path = CString::new(path).unwrap();
 
@@ -621,36 +622,29 @@ impl Encoder {
         // Write the stream header, if any.
         format_context.write_header();
 
-        let mut tmp_frame_buf = vec![0u8; 1080 * 1920 * 4];
+        move |input_frame| {
+            if let Some(input_frame) = input_frame {
+                Self::next_video_frame(&mut video_stream, input_frame);
+                Self::write_frame(
+                    &format_context,
+                    &video_stream.codec_ctx,
+                    &video_stream.stream,
+                    Some(&video_stream.frame),
+                    &video_stream.tmp_pkt,
+                );
+            } else {
+                Self::write_frame(
+                    &format_context,
+                    &video_stream.codec_ctx,
+                    &video_stream.stream,
+                    None,
+                    &video_stream.tmp_pkt,
+                );
 
-        for chunk in tmp_frame_buf.chunks_mut(4) {
-            chunk[0] = 0;
-            chunk[1] = 255;
-            chunk[2] = 0;
-            chunk[3] = 255;
+                format_context.write_trailer();
+                format_context.closep();
+            }
         }
-
-        for _ in 0..60 * 10 {
-            Self::next_video_frame(&mut video_stream, &tmp_frame_buf);
-            Self::write_frame(
-                &format_context,
-                &video_stream.codec_ctx,
-                &video_stream.stream,
-                Some(&video_stream.frame),
-                &video_stream.tmp_pkt,
-            );
-        }
-
-        Self::write_frame(
-            &format_context,
-            &video_stream.codec_ctx,
-            &video_stream.stream,
-            None,
-            &video_stream.tmp_pkt,
-        );
-
-        format_context.write_trailer();
-        format_context.closep();
     }
 
     pub fn new(

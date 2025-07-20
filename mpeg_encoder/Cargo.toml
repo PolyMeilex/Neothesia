@@ -12,8 +12,8 @@ license = "BSD-3-Clause"
 
 [features]
 default = []
-build = ["ffmpeg-sys/build"]
+build = ["ffmpeg/build"]
 
 [dependencies]
-ffmpeg-sys = { workspace = true, features = ["avformat", "swscale", "swresample"] }
+ffmpeg = { workspace = true, features = ["avformat", "swscale", "swresample"] }
 libc = "0.2"

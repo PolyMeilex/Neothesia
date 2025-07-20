@@ -79,7 +79,7 @@ image = { version = "0.25", features = ["png"], default-features = false }
 midly = "0.5"
 
 # neothesia-cli deps
-ffmpeg-sys = { package = "ffmpeg-sys-next", version = "7.0.3", default-features = false }
+ffmpeg = { package = "ffmpeg-sys-next", version = "7.0.3", default-features = false }
 
 # neothesia-ai deps
 ndarray = "0.16"

@@ -3,21 +3,20 @@
 
 // Inspired by the muxing sample: http://ffmpeg.org/doxygen/trunk/muxing_8c-source.html
 
-use ffmpeg_sys::{
-    self as ffmpeg, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVOutputFormat, AVSampleFormat,
-    SwrContext, AVERROR, AVERROR_EOF, AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
-    EAGAIN,
+use ffmpeg::{
+    self as ffmpeg, AVChannelLayout, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodec,
+    AVCodecContext, AVCodecID, AVFormatContext, AVFrame, AVPacket, AVPixelFormat, AVRational,
+    AVSampleFormat, AVStream, SwrContext, SwsContext, AVERROR, AVERROR_EOF, AV_CH_LAYOUT_STEREO,
+    AV_CODEC_CAP_VARIABLE_FRAME_SIZE, AV_CODEC_FLAG_GLOBAL_HEADER, EAGAIN,
 };
 
-use ffmpeg::{
-    AVChannelLayout, AVCodec, AVCodecContext, AVCodecID, AVFormatContext, AVFrame, AVPacket,
-    AVPixelFormat, AVRational, AVStream, SwsContext, AV_CODEC_FLAG_GLOBAL_HEADER,
-};
+use std::cell::OnceCell;
 use std::ffi::{c_void, CStr, CString};
 use std::mem;
 use std::path::Path;
 use std::ptr::{self, NonNull};
 
+mod ff;
 pub mod new;
 
 const FRAME_RATE: i32 = 60;
@@ -130,22 +129,22 @@ fn init_context(
 }
 
 struct VideoOutputStream {
-    stream: *mut AVStream,
-    codec_context: *mut AVCodecContext,
-    tmp_pkt: *mut AVPacket,
+    stream: ff::Stream,
+    codec_ctx: ff::CodecContext,
+    tmp_pkt: ff::Packet,
 
-    frame: NonNull<AVFrame>,
-    tmp_frame: Option<NonNull<AVFrame>>,
+    frame: ff::Frame,
+    tmp_frame: Option<ff::Frame>,
 
     next_pts: i64,
 
-    sws_ctx: *mut SwsContext,
+    sws_ctx: OnceCell<ff::SwsContext>,
 }
 
 struct AudioOutputStream {
     stream: *mut AVStream,
     codec_context: *mut AVCodecContext,
-    tmp_pkt: *mut AVPacket,
+    tmp_pkt: ff::Packet,
 
     frame: NonNull<AVFrame>,
     tmp_frame: NonNull<AVFrame>,
@@ -182,75 +181,38 @@ pub struct Encoder {
 }
 
 impl Encoder {
-    fn new_output_context(path: &CStr) -> NonNull<AVFormatContext> {
-        let mut output_context = ptr::null_mut();
-
-        unsafe {
-            ffmpeg::avformat_alloc_output_context2(
-                &mut output_context,
-                ptr::null_mut(),
-                ptr::null(),
-                path.as_ptr(),
-            );
-
-            NonNull::new(output_context)
-                .or_else(|| {
-                    ffmpeg::avformat_alloc_output_context2(
-                        &mut output_context,
-                        ptr::null_mut(),
-                        ptr::null(),
-                        c"mpeg".as_ptr(),
-                    );
-                    NonNull::new(output_context)
-                })
-                .expect("Unable to create the output context.")
-        }
-    }
-
-    fn new_stream(format_context: NonNull<AVFormatContext>) -> Option<NonNull<AVStream>> {
-        unsafe {
-            let stream = ffmpeg::avformat_new_stream(format_context.as_ptr(), ptr::null_mut());
-            let stream = NonNull::new(stream)?;
-
-            (*stream.as_ptr()).id = ((*format_context.as_ptr()).nb_streams - 1) as i32;
-
-            Some(stream)
-        }
-    }
-
     fn new_video_streams(
-        format_context: NonNull<AVFormatContext>,
-        output_format: *const AVOutputFormat,
+        format_context: &ff::FormatContext,
+        output_format: &ff::OutputFormat,
     ) -> VideoOutputStream {
-        let codec_id = unsafe { (*output_format).video_codec };
+        let codec_id = output_format.video_codec_id();
         assert_ne!(
             codec_id,
             AVCodecID::AV_CODEC_ID_NONE,
             "The selected output container does not support video encoding"
         );
 
-        let codec = unsafe { ffmpeg::avcodec_find_encoder(codec_id) };
-        assert!(!codec.is_null(), "Could not find video encoder");
-        let tmp_pkt = unsafe { ffmpeg::av_packet_alloc() };
-        assert!(!codec.is_null(), "Could not allocate AVPacket");
+        let codec = output_format.video_codec();
 
-        let stream = Self::new_stream(format_context)
-            .expect("Could not allocate stream")
-            .as_ptr();
+        let output_format = output_format.as_ptr();
 
-        let codec_context = unsafe { ffmpeg::avcodec_alloc_context3(codec) };
-        assert!(
-            !codec_context.is_null(),
-            "Could not alloc an encoding context"
-        );
+        let tmp_pkt = ff::Packet::new();
+
+        let stream = format_context
+            .new_stream()
+            .expect("Could not allocate stream");
+
+        let codec_ctx = codec.context();
 
         unsafe {
-            (*codec_context).codec_id = codec_id;
-            (*codec_context).bit_rate = 400000;
+            let codec_ctx = codec_ctx.as_ptr();
+
+            (*codec_ctx).codec_id = codec_id;
+            (*codec_ctx).bit_rate = 400000;
 
             // Resolution must be a multiple of two.
-            (*codec_context).width = 1920;
-            (*codec_context).height = 1080;
+            (*codec_ctx).width = 1920;
+            (*codec_ctx).height = 1080;
 
             // timebase: This is the fundamental unit of time (in seconds) in terms
             // of which frame timestamps are represented. For fixed-fps content,
@@ -260,108 +222,87 @@ impl Encoder {
                 num: 1,
                 den: FRAME_RATE,
             };
-            (*stream).time_base = time_base;
-            (*codec_context).time_base = time_base;
+            (*stream.as_ptr()).time_base = time_base;
+            (*codec_ctx).time_base = time_base;
 
-            (*codec_context).gop_size = 12; // emit one intra frame every twelve frames at most
-            (*codec_context).pix_fmt = STREAM_PIX_FMT;
+            (*codec_ctx).gop_size = 12; // emit one intra frame every twelve frames at most
+            (*codec_ctx).pix_fmt = STREAM_PIX_FMT;
 
-            if (*codec_context).codec_id == AVCodecID::AV_CODEC_ID_MPEG2VIDEO {
+            if (*codec_ctx).codec_id == AVCodecID::AV_CODEC_ID_MPEG2VIDEO {
                 // just for testing, we also add B-frames
                 // (*video_codec_context).mb_decision = 2;
             }
 
-            if (*codec_context).codec_id == AVCodecID::AV_CODEC_ID_MPEG1VIDEO {
+            if (*codec_ctx).codec_id == AVCodecID::AV_CODEC_ID_MPEG1VIDEO {
                 // Needed to avoid using macroblocks in which some coeffs overflow.
                 // This does not happen with normal video, it just happens here as
                 // the motion of the chroma plane does not match the luma plane.
-                (*codec_context).mb_decision = 2;
+                (*codec_ctx).mb_decision = 2;
             }
 
             // Some formats want stream headers to be separate.
             if (*output_format).flags & ffmpeg::AVFMT_GLOBALHEADER != 0 {
-                (*codec_context).flags |= ffmpeg::AV_CODEC_FLAG_GLOBAL_HEADER as i32;
+                (*codec_ctx).flags |= ffmpeg::AV_CODEC_FLAG_GLOBAL_HEADER as i32;
             }
+        }
 
-            if ffmpeg::avcodec_open2(codec_context, codec, ptr::null_mut()) < 0 {
-                panic!("Could not open video codec.");
-            }
+        codec_ctx.open();
 
-            let video_frame =
-                NonNull::new(ffmpeg::av_frame_alloc()).expect("Could not allocate video frame.");
+        let video_frame =
+            ff::Frame::new(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());
 
-            {
-                (*video_frame.as_ptr()).format = (*codec_context).pix_fmt as i32;
-                (*video_frame.as_ptr()).width = (*codec_context).width;
-                (*video_frame.as_ptr()).height = (*codec_context).height;
+        // If the output format is not YUV420P, then a temporary YUV420P
+        // picture is needed too. It is then converted to the required
+        // output format.
+        let tmp_frame = if codec_ctx.pix_fmt() != AVPixelFormat::AV_PIX_FMT_YUV420P {
+            Some(ff::Frame::new(
+                AVPixelFormat::AV_PIX_FMT_YUV420P,
+                codec_ctx.width(),
+                codec_ctx.height(),
+            ))
+        } else {
+            None
+        };
 
-                /* allocate the buffers for the frame data */
-                if ffmpeg::av_frame_get_buffer(video_frame.as_ptr(), 0) < 0 {
-                    panic!("Could not allocate frame data.");
-                }
-            }
+        // copy the stream parameters to the muxer
+        codec_ctx.copy_parameters_to_stream(&stream);
 
-            // If the output format is not YUV420P, then a temporary YUV420P
-            // picture is needed too. It is then converted to the required
-            // output format.
-            let tmp_frame = if (*codec_context).pix_fmt != AVPixelFormat::AV_PIX_FMT_YUV420P {
-                let tmp_frame = NonNull::new(ffmpeg::av_frame_alloc())
-                    .expect("Could not allocate video frame.");
-
-                (*tmp_frame.as_ptr()).format = AVPixelFormat::AV_PIX_FMT_YUV420P as i32;
-                (*tmp_frame.as_ptr()).width = (*codec_context).width;
-                (*tmp_frame.as_ptr()).height = (*codec_context).height;
-
-                /* allocate the buffers for the frame data */
-                if ffmpeg::av_frame_get_buffer(tmp_frame.as_ptr(), 0) < 0 {
-                    panic!("Could not allocate frame data.");
-                }
-
-                Some(tmp_frame)
-            } else {
-                None
-            };
-
-            // copy the stream parameters to the muxer
-            if ffmpeg::avcodec_parameters_from_context((*stream).codecpar, codec_context) < 0 {
-                panic!("Could not copy the stream parameters");
-            }
-
-            VideoOutputStream {
-                stream,
-                codec_context,
-                tmp_pkt,
-                frame: video_frame,
-                tmp_frame,
-                sws_ctx: ptr::null_mut(),
-                next_pts: 0,
-            }
+        VideoOutputStream {
+            stream,
+            codec_ctx,
+            tmp_pkt,
+            frame: video_frame,
+            tmp_frame,
+            sws_ctx: OnceCell::new(),
+            next_pts: 0,
         }
     }
 
     fn new_audio_streams(
-        format_context: NonNull<AVFormatContext>,
-        output_format: *const AVOutputFormat,
+        format_context: &ff::FormatContext,
+        output_format: &ff::OutputFormat,
     ) -> AudioOutputStream {
-        let codec_id = unsafe { (*output_format).audio_codec };
+        let codec_id = output_format.audio_codec_id();
         assert_ne!(
             codec_id,
             AVCodecID::AV_CODEC_ID_NONE,
             "The selected output container does not support audio encoding"
         );
 
-        let codec = unsafe { ffmpeg::avcodec_find_encoder(codec_id) };
-        assert!(!codec.is_null(), "Could not find audio encoder");
+        let codec = output_format.audio_codec();
 
-        let tmp_pkt = unsafe { ffmpeg::av_packet_alloc() };
-        assert!(!codec.is_null(), "Could not allocate AVPacket");
+        let output_format = output_format.as_ptr();
 
-        let stream = Self::new_stream(format_context).expect("Could not allocate stream");
-        let codec_context = unsafe { ffmpeg::avcodec_alloc_context3(codec) };
-        assert!(
-            !codec_context.is_null(),
-            "Could not alloc an encoding context"
-        );
+        let tmp_pkt = ff::Packet::new();
+
+        let stream = format_context
+            .new_stream()
+            .expect("Could not allocate stream");
+
+        let codec_context = codec.context();
+
+        let codec = codec.as_ptr();
+        let codec_context = codec_context.as_ptr();
 
         unsafe {
             let sample_fmts = (*codec).sample_fmts;
@@ -541,81 +482,67 @@ impl Encoder {
         }
     }
 
-    unsafe fn get_video_frame(ost: &mut VideoOutputStream) -> *mut AVFrame {
-        let c = ost.codec_context;
+    fn next_video_frame(video: &mut VideoOutputStream) {
+        let codec_ctx = &video.codec_ctx;
 
-        if ffmpeg::av_frame_make_writable(ost.frame.as_ptr()) < 0 {
-            panic!("Could not make frame writable");
-        }
+        video.frame.make_writable();
 
-        if (*c).pix_fmt == STREAM_PIX_FMT {
-            Self::fill_yuv_image(
-                ost.frame.as_ptr(),
-                ost.next_pts as i32,
-                (*c).width,
-                (*c).height,
-            );
+        if codec_ctx.pix_fmt() == STREAM_PIX_FMT {
+            unsafe {
+                Self::fill_yuv_image(
+                    video.frame.as_ptr(),
+                    video.next_pts as i32,
+                    codec_ctx.width(),
+                    codec_ctx.height(),
+                )
+            };
         } else {
-            if ost.sws_ctx.is_null() {
-                ost.sws_ctx = ffmpeg::sws_getContext(
-                    (*c).width,
-                    (*c).height,
+            let sws_ctx = video.sws_ctx.get_or_init(|| {
+                ff::SwsContext::new(
+                    codec_ctx.width(),
+                    codec_ctx.height(),
                     STREAM_PIX_FMT,
-                    (*c).width,
-                    (*c).height,
-                    (*c).pix_fmt,
-                    ffmpeg::SWS_BICUBIC,
-                    ptr::null_mut(),
-                    ptr::null_mut(),
-                    ptr::null_mut(),
+                    codec_ctx.width(),
+                    codec_ctx.height(),
+                    codec_ctx.pix_fmt(),
+                )
+            });
+
+            unsafe {
+                Self::fill_yuv_image(
+                    video.tmp_frame.as_ref().unwrap().as_ptr(),
+                    video.next_pts as i32,
+                    codec_ctx.width(),
+                    codec_ctx.height(),
                 );
-                if ost.sws_ctx.is_null() {
-                    panic!("Could not initialize the conversion context");
-                }
             }
 
-            Self::fill_yuv_image(
-                ost.tmp_frame.unwrap().as_ptr(),
-                ost.next_pts as i32,
-                (*c).width,
-                (*c).height,
-            );
-
-            let tmp_frame = ost.tmp_frame.unwrap().as_ptr();
-            ffmpeg::sws_scale(
-                ost.sws_ctx,
-                (*tmp_frame).data.as_ptr() as *const *const u8,
-                (*tmp_frame).linesize.as_ptr(),
-                0,
-                (*c).height,
-                (*ost.frame.as_ptr()).data.as_mut_ptr(),
-                (*ost.frame.as_ptr()).linesize.as_ptr(),
+            sws_ctx.scale(
+                video.tmp_frame.as_ref().unwrap(),
+                &video.frame,
+                codec_ctx.height(),
             );
         }
 
-        (*ost.frame.as_ptr()).pts = ost.next_pts;
-        ost.next_pts += 1;
-
-        ost.frame.as_ptr()
+        video.frame.set_pts(video.next_pts);
+        video.next_pts += 1;
     }
 
     /// Encode one frame and send it to the muxer.
     /// Returns true when encoding is finished, false otherwise.
-    unsafe fn write_frame(
-        fmt_ctx: *mut AVFormatContext,
-        c: *mut AVCodecContext,
-        st: *mut AVStream,
-        frame: *mut AVFrame,
-        pkt: *mut AVPacket,
+    fn write_frame(
+        format_ctx: &ff::FormatContext,
+        codec_ctx: &ff::CodecContext,
+        stream: &ff::Stream,
+        frame: Option<&ff::Frame>,
+        packet: &ff::Packet,
     ) -> bool {
         // Send the frame to the encoder
-        let mut ret = ffmpeg::avcodec_send_frame(c, frame);
-        if ret < 0 {
-            panic!("Error sending a frame to the encoder",);
-        }
+        codec_ctx.send_frame(frame);
 
+        let mut ret = 0;
         while ret >= 0 {
-            ret = ffmpeg::avcodec_receive_packet(c, pkt);
+            ret = codec_ctx.receive_packet(packet);
 
             if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
                 break;
@@ -624,13 +551,11 @@ impl Encoder {
             }
 
             // Rescale output packet timestamp values from codec to stream timebase
-            ffmpeg::av_packet_rescale_ts(pkt, (*c).time_base, (*st).time_base);
-            (*pkt).stream_index = (*st).index;
+            packet.rescale_ts(codec_ctx.time_base(), stream.time_base());
+            packet.set_stream_index(stream.index());
 
             // Write the compressed frame to the media file.
-            if ffmpeg::av_interleaved_write_frame(fmt_ctx, pkt) < 0 {
-                panic!("Error while writing output packet",);
-            }
+            format_ctx.interleaved_write_frame(packet);
         }
 
         ret == AVERROR_EOF
@@ -639,58 +564,40 @@ impl Encoder {
     pub fn new2(path: impl AsRef<Path>) {
         let path = path.as_ref().to_str().unwrap();
         let path = CString::new(path).unwrap();
-        let format_context = Self::new_output_context(&path);
 
-        let output_format = unsafe { (*format_context.as_ptr()).oformat };
+        let format_context = ff::FormatContext::new(&path);
 
-        let mut video_stream = Self::new_video_streams(format_context, output_format);
-        let audio_stream = Self::new_audio_streams(format_context, output_format);
+        let output_format = format_context.output_format();
 
-        unsafe {
-            ffmpeg::av_dump_format(format_context.as_ptr(), 0, path.as_ptr(), 1);
-        }
+        let mut video_stream = Self::new_video_streams(&format_context, &output_format);
+        let audio_stream = Self::new_audio_streams(&format_context, &output_format);
 
-        unsafe {
-            // open the output file, if needed
-            if ffmpeg::avio_open(
-                &mut (*format_context.as_ptr()).pb,
-                path.as_ptr(),
-                ffmpeg::AVIO_FLAG_WRITE,
-            ) < 0
-            {
-                panic!("Failed to open the output file.");
-            }
+        format_context.dump_format(&path);
+        format_context.open(&path);
+        // Write the stream header, if any.
+        format_context.write_header();
 
-            // Write the stream header, if any.
-            if ffmpeg::avformat_write_header(format_context.as_ptr(), ptr::null_mut()) < 0 {
-                panic!("Failed to open the output file.");
-            }
-        }
-
-        unsafe {
-            for _ in 0..60 * 10 {
-                Self::write_frame(
-                    format_context.as_ptr(),
-                    video_stream.codec_context,
-                    video_stream.stream,
-                    Self::get_video_frame(&mut video_stream),
-                    video_stream.tmp_pkt,
-                );
-            }
-
+        for _ in 0..60 * 10 {
+            Self::next_video_frame(&mut video_stream);
             Self::write_frame(
-                format_context.as_ptr(),
-                video_stream.codec_context,
-                video_stream.stream,
-                ptr::null_mut(),
-                video_stream.tmp_pkt,
+                &format_context,
+                &video_stream.codec_ctx,
+                &video_stream.stream,
+                Some(&video_stream.frame),
+                &video_stream.tmp_pkt,
             );
         }
 
-        unsafe {
-            ffmpeg::av_write_trailer(format_context.as_ptr());
-            ffmpeg::avio_closep(&mut (*format_context.as_ptr()).pb);
-        }
+        Self::write_frame(
+            &format_context,
+            &video_stream.codec_ctx,
+            &video_stream.stream,
+            None,
+            &video_stream.tmp_pkt,
+        );
+
+        format_context.write_trailer();
+        format_context.closep();
     }
 
     pub fn new(

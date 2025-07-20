@@ -4,11 +4,20 @@ use std::{
 };
 
 use ffmpeg::{
-    AVCodec, AVCodecContext, AVCodecID, AVDictionary, AVFormatContext, AVFrame, AVOutputFormat,
-    AVPacket, AVPixelFormat, AVRational, AVStream,
+    AVChannelLayout, AVCodec, AVCodecContext, AVCodecID, AVDictionary, AVFormatContext, AVFrame,
+    AVOutputFormat, AVPacket, AVPixelFormat, AVRational, AVSampleFormat, AVStream,
 };
 
 pub struct FormatContext(NonNull<AVFormatContext>);
+
+impl Drop for FormatContext {
+    fn drop(&mut self) {
+        unsafe {
+            ffmpeg::avio_closep(&mut (*self.0.as_ptr()).pb);
+            ffmpeg::avformat_free_context(self.0.as_ptr());
+        }
+    }
+}
 
 impl FormatContext {
     pub fn new(path: &CStr) -> Self {
@@ -70,16 +79,6 @@ impl FormatContext {
         unsafe {
             ffmpeg::av_write_trailer(self.0.as_ptr());
         }
-    }
-
-    pub fn closep(&self) {
-        unsafe {
-            ffmpeg::avio_closep(&mut (*self.0.as_ptr()).pb);
-        }
-    }
-
-    pub fn free(&self) {
-        unsafe { ffmpeg::avformat_free_context(self.0.as_ptr()) };
     }
 
     pub fn write_header(&self) {
@@ -174,6 +173,12 @@ impl Codec {
 
 pub struct CodecContext(NonNull<AVCodecContext>);
 
+impl Drop for CodecContext {
+    fn drop(&mut self) {
+        unsafe { ffmpeg::avcodec_free_context(&mut self.0.as_ptr()) };
+    }
+}
+
 impl CodecContext {
     pub fn as_ptr(&self) -> *mut AVCodecContext {
         self.0.as_ptr()
@@ -240,6 +245,14 @@ impl CodecContext {
 
 pub struct Packet(NonNull<AVPacket>);
 
+impl Drop for Packet {
+    fn drop(&mut self) {
+        unsafe {
+            ffmpeg::av_packet_free(&mut self.0.as_ptr());
+        }
+    }
+}
+
 impl Packet {
     pub fn new() -> Self {
         let packet = unsafe { ffmpeg::av_packet_alloc() };
@@ -265,6 +278,12 @@ impl Packet {
 
 pub struct Frame(NonNull<AVFrame>);
 
+impl Drop for Frame {
+    fn drop(&mut self) {
+        unsafe { ffmpeg::av_frame_free(&mut self.0.as_ptr()) };
+    }
+}
+
 impl Frame {
     pub fn as_ptr(&self) -> *mut AVFrame {
         self.0.as_ptr()
@@ -274,22 +293,52 @@ impl Frame {
         self.0.as_ptr() as *const AVFrame
     }
 
-    pub fn new(pix_fmt: AVPixelFormat, width: i32, height: i32) -> Self {
+    pub fn new_raw() -> Self {
         let frame = unsafe { ffmpeg::av_frame_alloc() };
-        let frame = NonNull::new(frame).expect("Could not allocate video frame.");
+        let frame = NonNull::new(frame).expect("Could not allocate frame.");
+        Self(frame)
+    }
+
+    pub fn new_video(pix_fmt: AVPixelFormat, width: i32, height: i32) -> Self {
+        let frame = Frame::new_raw();
 
         unsafe {
-            (*frame.as_ptr()).format = pix_fmt as i32;
-            (*frame.as_ptr()).width = width;
-            (*frame.as_ptr()).height = height;
+            let frame = frame.as_ptr();
+            (*frame).format = pix_fmt as i32;
+            (*frame).width = width;
+            (*frame).height = height;
 
             /* allocate the buffers for the frame data */
-            if ffmpeg::av_frame_get_buffer(frame.as_ptr(), 0) < 0 {
+            if ffmpeg::av_frame_get_buffer(frame, 0) < 0 {
                 panic!("Could not allocate frame data.");
             }
         }
 
-        Self(frame)
+        frame
+    }
+
+    pub fn new_audio(
+        sample_fmt: AVSampleFormat,
+        channel_layout: *const AVChannelLayout,
+        sample_rate: i32,
+        nb_samples: i32,
+    ) -> Self {
+        let frame = Frame::new_raw();
+
+        unsafe {
+            let frame = frame.as_ptr();
+            (*frame).format = sample_fmt as i32;
+            ffmpeg::av_channel_layout_copy(&mut (*frame).ch_layout, channel_layout);
+            (*frame).sample_rate = sample_rate;
+            (*frame).nb_samples = nb_samples;
+
+            /* allocate the buffers for the frame data */
+            if nb_samples > 0 && ffmpeg::av_frame_get_buffer(frame, 0) < 0 {
+                panic!("Error allocating an audio buffer");
+            }
+        }
+
+        frame
     }
 
     pub fn make_writable(&self) {
@@ -334,7 +383,42 @@ impl Frame {
     }
 }
 
+pub struct SwrContext(NonNull<ffmpeg::SwrContext>);
+
+impl Drop for SwrContext {
+    fn drop(&mut self) {
+        unsafe {
+            ffmpeg::swr_free(&mut self.0.as_ptr());
+        };
+    }
+}
+
+impl SwrContext {
+    pub fn new() -> Self {
+        let swr = unsafe { ffmpeg::swr_alloc() };
+        let swr = NonNull::new(swr).expect("Could not allocate resampler context");
+
+        Self(swr)
+    }
+
+    pub fn as_ptr(&self) -> *mut ffmpeg::SwrContext {
+        self.0.as_ptr()
+    }
+
+    pub fn init(&self) {
+        if unsafe { ffmpeg::swr_init(self.0.as_ptr()) } < 0 {
+            panic!("Failed to initialize the resampling context");
+        }
+    }
+}
+
 pub struct SwsContext(NonNull<ffmpeg::SwsContext>);
+
+impl Drop for SwsContext {
+    fn drop(&mut self) {
+        unsafe { ffmpeg::sws_freeContext(self.0.as_ptr()) };
+    }
+}
 
 impl SwsContext {
     pub fn new(

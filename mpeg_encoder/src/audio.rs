@@ -1,25 +1,21 @@
-use std::{
-    ffi::c_void,
-    ptr::{self, NonNull},
-};
+use std::{ffi::c_void, ptr};
 
 use ffmpeg::{
-    AVChannelLayout, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodecContext, AVCodecID,
-    AVFrame, AVRational, AVSampleFormat, AVStream, SwrContext, AV_CH_LAYOUT_STEREO,
-    AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
+    AVChannelLayout, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodecID, AVRational,
+    AVSampleFormat, AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
 };
 
 use crate::ff;
 
 pub struct AudioOutputStream {
-    pub stream: *mut AVStream,
-    pub codec_ctx: *mut AVCodecContext,
+    pub stream: ff::Stream,
+    pub codec_ctx: ff::CodecContext,
     pub tmp_pkt: ff::Packet,
 
-    pub frame: NonNull<AVFrame>,
-    pub tmp_frame: NonNull<AVFrame>,
+    pub frame: ff::Frame,
+    pub tmp_frame: ff::Frame,
 
-    pub swr_ctx: *mut SwrContext,
+    pub swr_ctx: ff::SwrContext,
 }
 
 pub fn new_audio_streams(
@@ -46,28 +42,28 @@ pub fn new_audio_streams(
     let codec_context = codec.context();
 
     let codec = codec.as_ptr();
-    let codec_context = codec_context.as_ptr();
+    let codec_ctx = codec_context.as_ptr();
 
     unsafe {
         let sample_fmts = (*codec).sample_fmts;
 
-        (*codec_context).sample_fmt = if sample_fmts.is_null() {
+        (*codec_ctx).sample_fmt = if sample_fmts.is_null() {
             AVSampleFormat::AV_SAMPLE_FMT_FLTP
         } else {
             *(*codec).sample_fmts
         };
 
-        (*codec_context).bit_rate = 64000;
-        (*codec_context).sample_rate = 44100;
+        (*codec_ctx).bit_rate = 64000;
+        (*codec_ctx).sample_rate = 44100;
 
         let supported_samplerates = (*codec).supported_samplerates;
 
         if !supported_samplerates.is_null() {
-            (*codec_context).sample_rate = *supported_samplerates.offset(0);
+            (*codec_ctx).sample_rate = *supported_samplerates.offset(0);
             let mut i = 0;
             while *supported_samplerates.offset(i) != 0 {
                 if *supported_samplerates.offset(i) == 44100 {
-                    (*codec_context).sample_rate = 44100;
+                    (*codec_ctx).sample_rate = 44100;
                 }
                 i += 1;
             }
@@ -81,116 +77,91 @@ pub fn new_audio_streams(
             },
             opaque: ptr::null_mut(),
         };
-        ffmpeg::av_channel_layout_copy(&mut (*codec_context).ch_layout, &stereo_layout);
+        ffmpeg::av_channel_layout_copy(&mut (*codec_ctx).ch_layout, &stereo_layout);
 
         (*stream.as_ptr()).time_base = AVRational {
             num: 1,
-            den: (*codec_context).sample_rate,
+            den: (*codec_ctx).sample_rate,
         };
 
         // Some formats want stream headers to be separate.
         if (*output_format).flags & ffmpeg::AVFMT_GLOBALHEADER != 0 {
-            (*codec_context).flags |= ffmpeg::AV_CODEC_FLAG_GLOBAL_HEADER as i32;
+            (*codec_ctx).flags |= ffmpeg::AV_CODEC_FLAG_GLOBAL_HEADER as i32;
         }
 
-        if ffmpeg::avcodec_open2(codec_context, codec, ptr::null_mut()) < 0 {
+        if ffmpeg::avcodec_open2(codec_ctx, codec, ptr::null_mut()) < 0 {
             panic!("Could not open audio codec.");
         }
 
         let nb_samples = if (*codec).capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE as i32 != 0 {
             10000
         } else {
-            (*codec_context).frame_size
+            (*codec_ctx).frame_size
         };
 
-        // TODO: Make sure this is right
-        unsafe fn alloc_audio_frame(
-            sample_fmt: AVSampleFormat,
-            channel_layout: *const AVChannelLayout,
-            sample_rate: i32,
-            nb_samples: i32,
-        ) -> NonNull<AVFrame> {
-            let frame = ffmpeg::av_frame_alloc();
-            if frame.is_null() {
-                panic!("Error allocating an audio frame");
-            }
-            (*frame).format = sample_fmt as i32;
-            ffmpeg::av_channel_layout_copy(&mut (*frame).ch_layout, channel_layout);
-            (*frame).sample_rate = sample_rate;
-            (*frame).nb_samples = nb_samples;
-
-            if nb_samples > 0 && ffmpeg::av_frame_get_buffer(frame, 0) < 0 {
-                panic!("Error allocating an audio buffer");
-            }
-
-            NonNull::new_unchecked(frame)
-        }
-
-        let frame = alloc_audio_frame(
-            (*codec_context).sample_fmt,
-            &(*codec_context).ch_layout,
-            (*codec_context).sample_rate,
+        let frame = ff::Frame::new_audio(
+            (*codec_ctx).sample_fmt,
+            &(*codec_ctx).ch_layout,
+            (*codec_ctx).sample_rate,
             nb_samples,
         );
-        let tmp_frame = alloc_audio_frame(
+        let tmp_frame = ff::Frame::new_audio(
             AVSampleFormat::AV_SAMPLE_FMT_S16,
-            &(*codec_context).ch_layout,
-            (*codec_context).sample_rate,
+            &(*codec_ctx).ch_layout,
+            (*codec_ctx).sample_rate,
             nb_samples,
         );
 
-        if ffmpeg::avcodec_parameters_from_context((*stream.as_ptr()).codecpar, codec_context) < 0 {
+        if ffmpeg::avcodec_parameters_from_context((*stream.as_ptr()).codecpar, codec_ctx) < 0 {
             panic!("Could not copy the stream parameters");
         }
 
-        let swr_ctx = ffmpeg::swr_alloc();
-        if swr_ctx.is_null() {
-            panic!("Could not allocate resampler context");
+        let swr_ctx = ff::SwrContext::new();
+
+        {
+            let swr_ctx = swr_ctx.as_ptr();
+            ffmpeg::av_opt_set_chlayout(
+                swr_ctx as *mut c_void,
+                c"in_chlayout".as_ptr(),
+                &(*codec_ctx).ch_layout,
+                0,
+            );
+            ffmpeg::av_opt_set_int(
+                swr_ctx as *mut c_void,
+                c"in_sample_rate".as_ptr(),
+                (*codec_ctx).sample_rate as i64,
+                0,
+            );
+            ffmpeg::av_opt_set_sample_fmt(
+                swr_ctx as *mut c_void,
+                c"in_sample_fmt".as_ptr(),
+                AVSampleFormat::AV_SAMPLE_FMT_S16,
+                0,
+            );
+            ffmpeg::av_opt_set_chlayout(
+                swr_ctx as *mut c_void,
+                c"out_chlayout".as_ptr(),
+                &(*codec_ctx).ch_layout,
+                0,
+            );
+            ffmpeg::av_opt_set_int(
+                swr_ctx as *mut c_void,
+                c"out_sample_rate".as_ptr(),
+                (*codec_ctx).sample_rate as i64,
+                0,
+            );
+            ffmpeg::av_opt_set_sample_fmt(
+                swr_ctx as *mut c_void,
+                c"out_sample_fmt".as_ptr(),
+                (*codec_ctx).sample_fmt,
+                0,
+            );
         }
 
-        ffmpeg::av_opt_set_chlayout(
-            swr_ctx as *mut c_void,
-            c"in_chlayout".as_ptr(),
-            &(*codec_context).ch_layout,
-            0,
-        );
-        ffmpeg::av_opt_set_int(
-            swr_ctx as *mut c_void,
-            c"in_sample_rate".as_ptr(),
-            (*codec_context).sample_rate as i64,
-            0,
-        );
-        ffmpeg::av_opt_set_sample_fmt(
-            swr_ctx as *mut c_void,
-            c"in_sample_fmt".as_ptr(),
-            AVSampleFormat::AV_SAMPLE_FMT_S16,
-            0,
-        );
-        ffmpeg::av_opt_set_chlayout(
-            swr_ctx as *mut c_void,
-            c"out_chlayout".as_ptr(),
-            &(*codec_context).ch_layout,
-            0,
-        );
-        ffmpeg::av_opt_set_int(
-            swr_ctx as *mut c_void,
-            c"out_sample_rate".as_ptr(),
-            (*codec_context).sample_rate as i64,
-            0,
-        );
-        ffmpeg::av_opt_set_sample_fmt(
-            swr_ctx as *mut c_void,
-            c"out_sample_fmt".as_ptr(),
-            (*codec_context).sample_fmt,
-            0,
-        );
-
-        if ffmpeg::swr_init(swr_ctx) < 0 {
-            panic!("Failed to initialize the resampling context");
-        }
+        swr_ctx.init();
 
         AudioOutputStream {
-            stream: stream.as_ptr(),
+            stream,
             codec_ctx: codec_context,
             tmp_pkt,
             frame,

@@ -8,7 +8,6 @@ use ffmpeg::{AVCodecID, AVPixelFormat, AVRational, AVERROR, AVERROR_EOF, EAGAIN}
 use std::cell::OnceCell;
 use std::ffi::CString;
 use std::path::Path;
-use std::ptr;
 
 mod audio;
 mod ff;
@@ -102,7 +101,7 @@ impl Encoder {
         codec_ctx.open();
 
         let video_frame =
-            ff::Frame::new(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());
+            ff::Frame::new_video(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());
 
         video_frame.set_presentation_timestamp(0);
 
@@ -110,7 +109,7 @@ impl Encoder {
         // picture is needed too. It is then converted to the required
         // output format.
         let tmp_frame = if codec_ctx.pix_fmt() != SRC_STREAM_PIX_FMT {
-            Some(ff::Frame::new(
+            Some(ff::Frame::new_video(
                 SRC_STREAM_PIX_FMT,
                 codec_ctx.width(),
                 codec_ctx.height(),
@@ -215,7 +214,7 @@ impl Encoder {
 
         let output_format = format_context.output_format();
 
-        let mut video_stream = Self::new_video_streams(&format_context, &output_format);
+        let video_stream = Self::new_video_streams(&format_context, &output_format);
         let audio_stream = audio::new_audio_streams(&format_context, &output_format);
 
         format_context.dump_format(&path);
@@ -223,17 +222,25 @@ impl Encoder {
         // Write the stream header, if any.
         format_context.write_header();
 
+        let mut ctx = Some((format_context, video_stream, audio_stream));
+
         move |input_frame| {
             if let Some(input_frame) = input_frame {
-                Self::next_video_frame(&mut video_stream, input_frame);
+                let (format_context, video_stream, _audio_stream) =
+                    ctx.as_mut().expect("Encoder should not be closed");
+
+                Self::next_video_frame(video_stream, input_frame);
                 Self::write_frame(
-                    &format_context,
+                    format_context,
                     &video_stream.codec_ctx,
                     &video_stream.stream,
                     Some(&video_stream.frame),
                     &video_stream.tmp_pkt,
                 );
             } else {
+                let (format_context, video_stream, audio_stream) =
+                    ctx.take().expect("Encoder should not be closed");
+
                 Self::write_frame(
                     &format_context,
                     &video_stream.codec_ctx,
@@ -244,36 +251,9 @@ impl Encoder {
 
                 format_context.write_trailer();
 
-                unsafe {
-                    ffmpeg::avcodec_free_context(&mut video_stream.codec_ctx.as_ptr());
-                    ffmpeg::av_frame_free(&mut video_stream.frame.as_ptr());
-                    ffmpeg::av_frame_free(
-                        &mut video_stream
-                            .tmp_frame
-                            .as_ref()
-                            .map(ff::Frame::as_ptr)
-                            .unwrap_or(ptr::null_mut()),
-                    );
-                    ffmpeg::av_packet_free(&mut video_stream.tmp_pkt.as_ptr());
-                    ffmpeg::sws_freeContext(
-                        video_stream
-                            .sws_ctx
-                            .get()
-                            .map(ff::SwsContext::as_ptr)
-                            .unwrap_or(ptr::null_mut()),
-                    );
-                }
-
-                unsafe {
-                    ffmpeg::avcodec_free_context(&mut { audio_stream.codec_ctx });
-                    ffmpeg::av_frame_free(&mut audio_stream.frame.as_ptr());
-                    ffmpeg::av_frame_free(&mut audio_stream.tmp_frame.as_ptr());
-                    ffmpeg::av_packet_free(&mut audio_stream.tmp_pkt.as_ptr());
-                    ffmpeg::swr_free(&mut { audio_stream.swr_ctx });
-                }
-
-                format_context.closep();
-                format_context.free();
+                std::mem::drop(video_stream);
+                std::mem::drop(audio_stream);
+                std::mem::drop(format_context);
             }
         }
     }

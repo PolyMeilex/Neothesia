@@ -7,17 +7,16 @@ use ffmpeg::{
     self as ffmpeg, AVChannelLayout, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodec,
     AVCodecContext, AVCodecID, AVFormatContext, AVFrame, AVPacket, AVPixelFormat, AVRational,
     AVSampleFormat, AVStream, SwrContext, SwsContext, AVERROR, AVERROR_EOF, AV_CH_LAYOUT_STEREO,
-    AV_CODEC_CAP_VARIABLE_FRAME_SIZE, AV_CODEC_FLAG_GLOBAL_HEADER, EAGAIN,
+    AV_CODEC_CAP_VARIABLE_FRAME_SIZE, EAGAIN,
 };
 
 use std::cell::OnceCell;
-use std::ffi::{c_void, CStr, CString};
+use std::ffi::{c_void, CString};
 use std::mem;
 use std::path::Path;
 use std::ptr::{self, NonNull};
 
 mod ff;
-pub mod new;
 
 const FRAME_RATE: i32 = 60;
 const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
@@ -152,14 +151,6 @@ struct AudioOutputStream {
     swr_ctx: *mut SwrContext,
 }
 
-struct AudioCtx {
-    stream: NonNull<AVStream>,
-    context: NonNull<AVCodecContext>,
-    frame: NonNull<AVFrame>,
-    frame_size: usize,
-    next_pts: i64,
-}
-
 /// MPEG video recorder.
 pub struct Encoder {
     tmp_frame_buf: Vec<u8>,
@@ -176,8 +167,6 @@ pub struct Encoder {
     format_context: NonNull<AVFormatContext>,
     video_st: NonNull<AVStream>,
     scale_context: NonNull<SwsContext>,
-
-    audio: Option<AudioCtx>,
 }
 
 impl Encoder {
@@ -791,19 +780,6 @@ impl Encoder {
             target_height,
         );
 
-        let audio = audio_sample_rate.map(|sample_rate| {
-            let (audio_st, audio_context, audio_frame, audio_frame_size) =
-                Self::init_audio_context(&format_context, sample_rate);
-
-            AudioCtx {
-                stream: audio_st,
-                context: audio_context,
-                frame: audio_frame,
-                frame_size: audio_frame_size,
-                next_pts: 0,
-            }
-        });
-
         // Print detailed information about the input or output format, such as duration, bitrate, streams, container, programs, metadata, side data, codec and time base
         unsafe {
             ffmpeg::av_dump_format(format_context.as_ptr(), 0, path_str.as_ptr(), 1);
@@ -843,7 +819,6 @@ impl Encoder {
             format_context,
             video_st,
             scale_context,
-            audio,
         }
     }
 
@@ -924,185 +899,6 @@ impl Encoder {
     }
 }
 
-/// TODO: Here be AI dragons
-/// This impl block is AI slop, not sure if it makes any sense.
-/// Replace with more conscious implementation based on: http://ffmpeg.org/doxygen/trunk/muxing_8c-source.html
-impl Encoder {
-    fn init_audio_context(
-        format_context: &NonNull<AVFormatContext>,
-        sample_rate: u32,
-    ) -> (
-        NonNull<AVStream>,
-        NonNull<AVCodecContext>,
-        NonNull<AVFrame>,
-        usize,
-    ) {
-        unsafe {
-            // Steps 1-8 are the same as before...
-            let audio_codec_id = (*(*format_context.as_ptr()).oformat).audio_codec;
-            let codec = ffmpeg::avcodec_find_encoder(audio_codec_id);
-
-            if codec.is_null() {
-                panic!("Audio codec not found.");
-            }
-
-            let stream = NonNull::new(ffmpeg::avformat_new_stream(
-                format_context.as_ptr(),
-                ptr::null(),
-            ))
-            .expect("Failed to allocate audio stream.");
-
-            (*stream.as_ptr()).id = ((*format_context.as_ptr()).nb_streams - 1) as i32;
-            let codecpar = (*stream.as_ptr()).codecpar;
-
-            (*codecpar).codec_type = ffmpeg::AVMediaType::AVMEDIA_TYPE_AUDIO;
-            (*codecpar).codec_id = audio_codec_id;
-            (*codecpar).sample_rate = sample_rate as i32;
-            (*codecpar).format = ffmpeg::AVSampleFormat::AV_SAMPLE_FMT_FLTP as i32;
-            (*codecpar).bit_rate = 128_000;
-            (*codecpar).frame_size = 1024;
-
-            let mut ch_layout: AVChannelLayout = mem::zeroed();
-            let layout_str = CString::new("stereo").unwrap();
-            if ffmpeg::av_channel_layout_from_string(&mut ch_layout, layout_str.as_ptr()) < 0 {
-                panic!("Failed to create stereo channel layout.");
-            }
-
-            (*codecpar).ch_layout = ch_layout;
-
-            let context = NonNull::new(ffmpeg::avcodec_alloc_context3(codec))
-                .expect("Could not alloc audio context.");
-
-            if ffmpeg::avcodec_parameters_to_context(context.as_ptr(), codecpar) < 0 {
-                panic!("Failed to copy codec parameters to context");
-            }
-
-            (*context.as_ptr()).time_base = AVRational {
-                num: 1,
-                den: sample_rate as i32,
-            };
-
-            if (*(*format_context.as_ptr()).oformat).flags & ffmpeg::AVFMT_GLOBALHEADER != 0 {
-                (*context.as_ptr()).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
-            }
-
-            if ffmpeg::avcodec_open2(context.as_ptr(), codec, ptr::null_mut()) < 0 {
-                panic!("Could not open audio codec.");
-            }
-
-            // 9. Allocate and configure the audio frame we will reuse for encoding
-            let frame =
-                NonNull::new(ffmpeg::av_frame_alloc()).expect("Could not allocate audio frame.");
-
-            let frame_size_val = (*context.as_ptr()).frame_size;
-
-            (*frame.as_ptr()).nb_samples = frame_size_val;
-            (*frame.as_ptr()).format = (*context.as_ptr()).sample_fmt as i32;
-
-            ffmpeg::av_channel_layout_copy(
-                &mut (*frame.as_ptr()).ch_layout,
-                &(*context.as_ptr()).ch_layout,
-            );
-
-            // Allocate the data buffers for the frame
-            if ffmpeg::av_frame_get_buffer(frame.as_ptr(), 0) < 0 {
-                panic!("Could not allocate audio frame data buffers.");
-            }
-
-            (stream, context, frame, frame_size_val as usize)
-        }
-    }
-
-    /// Adds a stereo audio buffer to the stream.
-    /// The audio data is expected to be in 32-bit floating point format.
-    /// NOTE: The sample rate must match the `audio_sample_rate` provided to `new()`.
-    pub fn encode_audio_f32(&mut self, left_channel: &[f32], right_channel: &[f32]) {
-        assert_eq!(
-            left_channel.len(),
-            right_channel.len(),
-            "Left and right channels must have the same number of samples."
-        );
-
-        let Some(audio) = self.audio.as_mut() else {
-            return;
-        };
-
-        let frame = audio.frame.as_ptr();
-        let frame_size = audio.frame_size;
-        let mut offset = 0;
-
-        while offset < left_channel.len() {
-            let samples_to_write = (left_channel.len() - offset).min(frame_size);
-
-            unsafe {
-                if ffmpeg::av_frame_make_writable(frame) < 0 {
-                    panic!("Audio frame not writable.");
-                }
-
-                // Copy data into the planar audio frame
-                let left_ptr = (*frame).data[0] as *mut f32;
-                let right_ptr = (*frame).data[1] as *mut f32;
-
-                for i in 0..samples_to_write {
-                    *left_ptr.add(i) = left_channel[offset + i];
-                    *right_ptr.add(i) = right_channel[offset + i];
-                }
-
-                (*frame).nb_samples = samples_to_write as i32;
-                (*frame).pts = audio.next_pts;
-                audio.next_pts += samples_to_write as i64;
-
-                Self::write_audio_frame(
-                    self.format_context,
-                    audio.context,
-                    audio.stream,
-                    Some(audio.frame),
-                );
-            }
-            offset += samples_to_write;
-        }
-    }
-
-    fn write_audio_frame(
-        format_context: NonNull<AVFormatContext>,
-        audio_context: NonNull<AVCodecContext>,
-        stream: NonNull<AVStream>,
-        frame_opt: Option<NonNull<AVFrame>>,
-    ) {
-        let frame_ptr = frame_opt.map_or(ptr::null(), |f| f.as_ptr());
-
-        unsafe {
-            if ffmpeg::avcodec_send_frame(audio_context.as_ptr(), frame_ptr) < 0 {
-                panic!("Error sending an audio frame for encoding");
-            }
-
-            loop {
-                let mut pkt: AVPacket = mem::zeroed();
-                let ret = ffmpeg::avcodec_receive_packet(audio_context.as_ptr(), &mut pkt);
-
-                if ret == ffmpeg::AVERROR(libc::EAGAIN) || ret == ffmpeg::AVERROR_EOF {
-                    break;
-                } else if ret < 0 {
-                    panic!("Error encoding an audio frame");
-                }
-
-                pkt.stream_index = (*stream.as_ptr()).id;
-                ffmpeg::av_packet_rescale_ts(
-                    &mut pkt,
-                    (*audio_context.as_ptr()).time_base,
-                    (*stream.as_ptr()).time_base,
-                );
-
-                if ffmpeg::av_interleaved_write_frame(format_context.as_ptr(), &mut pkt) < 0 {
-                    eprintln!("Warning: Error while writing audio frame");
-                }
-
-                ffmpeg::av_packet_unref(&mut pkt);
-            }
-        }
-    }
-}
-
 impl Drop for Encoder {
     fn drop(&mut self) {
         // Get the delayed frames.
@@ -1140,10 +936,6 @@ impl Drop for Encoder {
             }
         }
 
-        if let Some(audio) = self.audio.as_ref() {
-            Self::write_audio_frame(self.format_context, audio.context, audio.stream, None);
-        }
-
         // Write trailer
         unsafe {
             if ffmpeg::av_write_trailer(self.format_context.as_ptr()) < 0 {
@@ -1153,12 +945,6 @@ impl Drop for Encoder {
 
         // Free things and stuffs.
         unsafe {
-            // Free audio resources
-            if let Some(audio) = self.audio.as_ref() {
-                ffmpeg::avcodec_free_context(&mut audio.context.as_ptr());
-                ffmpeg::av_frame_free(&mut audio.frame.as_ptr());
-            }
-
             // Free video resources
             ffmpeg::avcodec_free_context(&mut self.context.as_ptr());
             ffmpeg::av_frame_free(&mut self.frame.as_ptr());

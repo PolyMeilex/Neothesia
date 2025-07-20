@@ -5,7 +5,8 @@
 
 use ffmpeg_sys::{
     self as ffmpeg, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVOutputFormat, AVSampleFormat,
-    SwrContext, AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
+    SwrContext, AVERROR, AVERROR_EOF, AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
+    EAGAIN,
 };
 
 use ffmpeg::{
@@ -18,6 +19,10 @@ use std::path::Path;
 use std::ptr::{self, NonNull};
 
 pub mod new;
+
+const FRAME_RATE: i32 = 60;
+const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
+const STREAM_DURATION: i64 = 10;
 
 #[derive(PartialEq)]
 enum ColorFormat {
@@ -131,6 +136,10 @@ struct VideoOutputStream {
 
     frame: NonNull<AVFrame>,
     tmp_frame: Option<NonNull<AVFrame>>,
+
+    next_pts: i64,
+
+    sws_ctx: *mut SwsContext,
 }
 
 struct AudioOutputStream {
@@ -243,9 +252,6 @@ impl Encoder {
             (*codec_context).width = 1920;
             (*codec_context).height = 1080;
 
-            const FRAME_RATE: i32 = 60;
-            const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
-
             // timebase: This is the fundamental unit of time (in seconds) in terms
             // of which frame timestamps are represented. For fixed-fps content,
             // timebase should be 1/framerate and timestamp increments should be
@@ -327,6 +333,8 @@ impl Encoder {
                 tmp_pkt,
                 frame: video_frame,
                 tmp_frame,
+                sws_ctx: ptr::null_mut(),
+                next_pts: 0,
             }
         }
     }
@@ -510,6 +518,124 @@ impl Encoder {
         }
     }
 
+    /// Prepare a dummy image.
+    unsafe fn fill_yuv_image(pict: *mut AVFrame, frame_index: i32, width: i32, height: i32) {
+        let i = frame_index;
+
+        // Y plane
+        for y in 0..height {
+            for x in 0..width {
+                let offset = (y * (*pict).linesize[0] + x) as isize;
+                *(*pict).data[0].offset(offset) = (x + y + i * 3) as u8;
+            }
+        }
+
+        // Cb and Cr planes
+        for y in 0..height / 2 {
+            for x in 0..width / 2 {
+                let cb_offset = (y * (*pict).linesize[1] + x) as isize;
+                let cr_offset = (y * (*pict).linesize[2] + x) as isize;
+                *(*pict).data[1].offset(cb_offset) = (128 + y + i * 2) as u8;
+                *(*pict).data[2].offset(cr_offset) = (64 + x + i * 5) as u8;
+            }
+        }
+    }
+
+    unsafe fn get_video_frame(ost: &mut VideoOutputStream) -> *mut AVFrame {
+        let c = ost.codec_context;
+
+        if ffmpeg::av_frame_make_writable(ost.frame.as_ptr()) < 0 {
+            panic!("Could not make frame writable");
+        }
+
+        if (*c).pix_fmt == STREAM_PIX_FMT {
+            Self::fill_yuv_image(
+                ost.frame.as_ptr(),
+                ost.next_pts as i32,
+                (*c).width,
+                (*c).height,
+            );
+        } else {
+            if ost.sws_ctx.is_null() {
+                ost.sws_ctx = ffmpeg::sws_getContext(
+                    (*c).width,
+                    (*c).height,
+                    STREAM_PIX_FMT,
+                    (*c).width,
+                    (*c).height,
+                    (*c).pix_fmt,
+                    ffmpeg::SWS_BICUBIC,
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                );
+                if ost.sws_ctx.is_null() {
+                    panic!("Could not initialize the conversion context");
+                }
+            }
+
+            Self::fill_yuv_image(
+                ost.tmp_frame.unwrap().as_ptr(),
+                ost.next_pts as i32,
+                (*c).width,
+                (*c).height,
+            );
+
+            let tmp_frame = ost.tmp_frame.unwrap().as_ptr();
+            ffmpeg::sws_scale(
+                ost.sws_ctx,
+                (*tmp_frame).data.as_ptr() as *const *const u8,
+                (*tmp_frame).linesize.as_ptr(),
+                0,
+                (*c).height,
+                (*ost.frame.as_ptr()).data.as_mut_ptr(),
+                (*ost.frame.as_ptr()).linesize.as_ptr(),
+            );
+        }
+
+        (*ost.frame.as_ptr()).pts = ost.next_pts;
+        ost.next_pts += 1;
+
+        ost.frame.as_ptr()
+    }
+
+    /// Encode one frame and send it to the muxer.
+    /// Returns true when encoding is finished, false otherwise.
+    unsafe fn write_frame(
+        fmt_ctx: *mut AVFormatContext,
+        c: *mut AVCodecContext,
+        st: *mut AVStream,
+        frame: *mut AVFrame,
+        pkt: *mut AVPacket,
+    ) -> bool {
+        // Send the frame to the encoder
+        let mut ret = ffmpeg::avcodec_send_frame(c, frame);
+        if ret < 0 {
+            panic!("Error sending a frame to the encoder",);
+        }
+
+        while ret >= 0 {
+            ret = ffmpeg::avcodec_receive_packet(c, pkt);
+
+            if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
+                break;
+            } else if ret < 0 {
+                panic!("Error encoding a frame",);
+            }
+
+            // Rescale output packet timestamp values from codec to stream timebase
+            ffmpeg::av_packet_rescale_ts(pkt, (*c).time_base, (*st).time_base);
+            (*pkt).stream_index = (*st).index;
+
+            // Write the compressed frame to the media file.
+            if ffmpeg::av_interleaved_write_frame(fmt_ctx, pkt) < 0 {
+                panic!("Error while writing output packet",);
+            }
+        }
+
+        ret == AVERROR_EOF
+    }
+
     pub fn new2(path: impl AsRef<Path>) {
         let path = path.as_ref().to_str().unwrap();
         let path = CString::new(path).unwrap();
@@ -517,11 +643,53 @@ impl Encoder {
 
         let output_format = unsafe { (*format_context.as_ptr()).oformat };
 
-        let video_stream = Self::new_video_streams(format_context, output_format);
+        let mut video_stream = Self::new_video_streams(format_context, output_format);
         let audio_stream = Self::new_audio_streams(format_context, output_format);
 
         unsafe {
             ffmpeg::av_dump_format(format_context.as_ptr(), 0, path.as_ptr(), 1);
+        }
+
+        unsafe {
+            // open the output file, if needed
+            if ffmpeg::avio_open(
+                &mut (*format_context.as_ptr()).pb,
+                path.as_ptr(),
+                ffmpeg::AVIO_FLAG_WRITE,
+            ) < 0
+            {
+                panic!("Failed to open the output file.");
+            }
+
+            // Write the stream header, if any.
+            if ffmpeg::avformat_write_header(format_context.as_ptr(), ptr::null_mut()) < 0 {
+                panic!("Failed to open the output file.");
+            }
+        }
+
+        unsafe {
+            for _ in 0..60 * 10 {
+                Self::write_frame(
+                    format_context.as_ptr(),
+                    video_stream.codec_context,
+                    video_stream.stream,
+                    Self::get_video_frame(&mut video_stream),
+                    video_stream.tmp_pkt,
+                );
+            }
+
+            Self::write_frame(
+                format_context.as_ptr(),
+                video_stream.codec_context,
+                video_stream.stream,
+                ptr::null_mut(),
+                video_stream.tmp_pkt,
+            );
+        }
+
+        unsafe {
+            ffmpeg::av_write_trailer(format_context.as_ptr());
+            ffmpeg::avio_closep(&mut (*format_context.as_ptr()).pb);
         }
     }
 

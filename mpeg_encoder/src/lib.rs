@@ -3,7 +3,9 @@
 
 // Inspired by the muxing sample: http://ffmpeg.org/doxygen/trunk/muxing_8c-source.html
 
-use ffmpeg_sys::{
+use ffmpeg_sys as ffmpeg;
+
+use ffmpeg::{
     AVChannelLayout, AVCodec, AVCodecContext, AVCodecID, AVFormatContext, AVFrame, AVPacket,
     AVPixelFormat, AVRational, AVStream, SwsContext, AV_CODEC_FLAG_GLOBAL_HEADER,
 };
@@ -54,18 +56,18 @@ fn init_context(
             panic!("The selected output container does not support video encoding.")
         }
 
-        let codec: *const AVCodec = ffmpeg_sys::avcodec_find_encoder(video_codec);
+        let codec: *const AVCodec = ffmpeg::avcodec_find_encoder(video_codec);
 
         if codec.is_null() {
             panic!("Codec not found.");
         }
 
-        let context = NonNull::new(ffmpeg_sys::avcodec_alloc_context3(codec))
+        let context = NonNull::new(ffmpeg::avcodec_alloc_context3(codec))
             .expect("Could not allocate video codec context.");
 
         if let Some(crf) = crf {
             let val = CString::new(crf.to_string()).unwrap();
-            let _ = ffmpeg_sys::av_opt_set(
+            let _ = ffmpeg::av_opt_set(
                 (*context.as_ptr()).priv_data,
                 c"crf".as_ptr(),
                 val.as_ptr(),
@@ -75,7 +77,7 @@ fn init_context(
 
         if let Some(preset) = preset {
             let val = CString::new(preset).unwrap();
-            let _ = ffmpeg_sys::av_opt_set(
+            let _ = ffmpeg::av_opt_set(
                 (*context.as_ptr()).priv_data,
                 c"preset".as_ptr(),
                 val.as_ptr(),
@@ -103,14 +105,12 @@ fn init_context(
         }
 
         // Open the codec.
-        if ffmpeg_sys::avcodec_open2(context.as_ptr(), codec, ptr::null_mut()) < 0 {
+        if ffmpeg::avcodec_open2(context.as_ptr(), codec, ptr::null_mut()) < 0 {
             panic!("Could not open the codec.");
         }
 
-        if ffmpeg_sys::avcodec_parameters_from_context(
-            (*video_st.as_ptr()).codecpar,
-            context.as_ptr(),
-        ) < 0
+        if ffmpeg::avcodec_parameters_from_context((*video_st.as_ptr()).codecpar, context.as_ptr())
+            < 0
         {
             panic!("Failed to set codec parameters.");
         }
@@ -179,14 +179,14 @@ impl Encoder {
 
         // sws scaling context
         let scale_context = unsafe {
-            NonNull::new(ffmpeg_sys::sws_getContext(
+            NonNull::new(ffmpeg::sws_getContext(
                 src_width as i32,
                 src_height as i32,
                 (&ColorFormat::Bgra).into(),
                 target_width as i32,
                 target_height as i32,
                 pix_fmt,
-                ffmpeg_sys::SWS_BICUBIC,
+                ffmpeg::SWS_BICUBIC,
                 ptr::null_mut(),
                 ptr::null_mut(),
                 ptr::null(),
@@ -196,7 +196,7 @@ impl Encoder {
 
         // Init the temporary video frame.
         let tmp_frame = unsafe {
-            let frame = NonNull::new(ffmpeg_sys::av_frame_alloc())
+            let frame = NonNull::new(ffmpeg::av_frame_alloc())
                 .expect("Could not allocate the video frame.");
 
             (*frame.as_ptr()).format = pix_fmt as i32;
@@ -207,7 +207,7 @@ impl Encoder {
 
         // Init the destination video frame.
         let (frame, frame_buf) = unsafe {
-            let frame = NonNull::new(ffmpeg_sys::av_frame_alloc())
+            let frame = NonNull::new(ffmpeg::av_frame_alloc())
                 .expect("Could not allocate the video frame.");
 
             (*frame.as_ptr()).format = pix_fmt as i32;
@@ -216,7 +216,7 @@ impl Encoder {
             (*frame.as_ptr()).pts = 0;
 
             // alloc the buffer
-            let nframe_bytes = ffmpeg_sys::av_image_get_buffer_size(
+            let nframe_bytes = ffmpeg::av_image_get_buffer_size(
                 pix_fmt,
                 target_width as i32,
                 target_height as i32,
@@ -225,7 +225,7 @@ impl Encoder {
 
             let frame_buf = vec![0u8; nframe_bytes as usize];
 
-            let _ = ffmpeg_sys::av_image_fill_arrays(
+            let _ = ffmpeg::av_image_fill_arrays(
                 (*frame.as_ptr()).data.as_mut_ptr(),
                 (*frame.as_ptr()).linesize.as_mut_ptr(),
                 frame_buf.as_ptr(),
@@ -242,7 +242,7 @@ impl Encoder {
         let format_context = unsafe {
             let mut fmt = ptr::null_mut();
 
-            let _ = ffmpeg_sys::avformat_alloc_output_context2(
+            let _ = ffmpeg::avformat_alloc_output_context2(
                 &mut fmt,
                 ptr::null_mut(),
                 ptr::null(),
@@ -254,7 +254,7 @@ impl Encoder {
                     // could not guess, default to MPEG
                     let mpeg = CString::new(&b"mpeg"[..]).unwrap();
 
-                    let _ = ffmpeg_sys::avformat_alloc_output_context2(
+                    let _ = ffmpeg::avformat_alloc_output_context2(
                         &mut fmt,
                         ptr::null_mut(),
                         mpeg.as_ptr(),
@@ -267,7 +267,7 @@ impl Encoder {
         };
 
         let video_st = unsafe {
-            let stream = NonNull::new(ffmpeg_sys::avformat_new_stream(
+            let stream = NonNull::new(ffmpeg::avformat_new_stream(
                 format_context.as_ptr(),
                 ptr::null(),
             ))
@@ -307,22 +307,22 @@ impl Encoder {
 
         // Print detailed information about the input or output format, such as duration, bitrate, streams, container, programs, metadata, side data, codec and time base
         unsafe {
-            ffmpeg_sys::av_dump_format(format_context.as_ptr(), 0, path_str.as_ptr(), 1);
+            ffmpeg::av_dump_format(format_context.as_ptr(), 0, path_str.as_ptr(), 1);
         }
 
         // Finalize and Write Header
         unsafe {
             // Open the output file.
-            if ffmpeg_sys::avio_open(
+            if ffmpeg::avio_open(
                 &mut (*format_context.as_ptr()).pb,
                 path_str.as_ptr(),
-                ffmpeg_sys::AVIO_FLAG_WRITE,
+                ffmpeg::AVIO_FLAG_WRITE,
             ) < 0
             {
                 panic!("Failed to open the output file.");
             }
 
-            if ffmpeg_sys::avformat_write_header(format_context.as_ptr(), ptr::null_mut()) < 0 {
+            if ffmpeg::avformat_write_header(format_context.as_ptr(), ptr::null_mut()) < 0 {
                 panic!("Failed to open the output file.");
             }
         }
@@ -357,7 +357,7 @@ impl Encoder {
 
         let mut pkt = unsafe {
             let mut pkt: mem::MaybeUninit<AVPacket> = mem::MaybeUninit::uninit();
-            ffmpeg_sys::av_init_packet(pkt.as_mut_ptr());
+            ffmpeg::av_init_packet(pkt.as_mut_ptr());
             pkt.assume_init()
         };
 
@@ -376,7 +376,7 @@ impl Encoder {
             (*self.tmp_frame.as_ptr()).width = width as i32;
             (*self.tmp_frame.as_ptr()).height = height as i32;
 
-            ffmpeg_sys::av_image_fill_arrays(
+            ffmpeg::av_image_fill_arrays(
                 (*self.tmp_frame.as_ptr()).data.as_mut_ptr(),
                 (*self.tmp_frame.as_ptr()).linesize.as_mut_ptr(),
                 self.tmp_frame_buf.as_ptr(),
@@ -389,7 +389,7 @@ impl Encoder {
 
         // Convert the snapshot frame to the right format for the destination frame.
         unsafe {
-            ffmpeg_sys::sws_scale(
+            ffmpeg::sws_scale(
                 self.scale_context.as_ptr(),
                 &(*self.tmp_frame.as_ptr()).data[0] as *const *mut u8 as *const *const u8,
                 &(*self.tmp_frame.as_ptr()).linesize[0],
@@ -402,22 +402,21 @@ impl Encoder {
 
         // Encode the image.
 
-        let ret =
-            unsafe { ffmpeg_sys::avcodec_send_frame(self.context.as_ptr(), self.frame.as_ptr()) };
+        let ret = unsafe { ffmpeg::avcodec_send_frame(self.context.as_ptr(), self.frame.as_ptr()) };
 
         if ret < 0 {
             panic!("Error encoding frame.");
         }
 
         unsafe {
-            if ffmpeg_sys::avcodec_receive_packet(self.context.as_ptr(), &mut pkt) == 0 {
-                ffmpeg_sys::av_interleaved_write_frame(self.format_context.as_ptr(), &mut pkt);
-                ffmpeg_sys::av_packet_unref(&mut pkt);
+            if ffmpeg::avcodec_receive_packet(self.context.as_ptr(), &mut pkt) == 0 {
+                ffmpeg::av_interleaved_write_frame(self.format_context.as_ptr(), &mut pkt);
+                ffmpeg::av_packet_unref(&mut pkt);
             }
         }
 
         unsafe {
-            (*self.frame.as_ptr()).pts += ffmpeg_sys::av_rescale_q(
+            (*self.frame.as_ptr()).pts += ffmpeg::av_rescale_q(
                 1,
                 (*self.context.as_ptr()).time_base,
                 (*self.video_st.as_ptr()).time_base,
@@ -442,13 +441,13 @@ impl Encoder {
         unsafe {
             // Steps 1-8 are the same as before...
             let audio_codec_id = (*(*format_context.as_ptr()).oformat).audio_codec;
-            let codec = ffmpeg_sys::avcodec_find_encoder(audio_codec_id);
+            let codec = ffmpeg::avcodec_find_encoder(audio_codec_id);
 
             if codec.is_null() {
                 panic!("Audio codec not found.");
             }
 
-            let stream = NonNull::new(ffmpeg_sys::avformat_new_stream(
+            let stream = NonNull::new(ffmpeg::avformat_new_stream(
                 format_context.as_ptr(),
                 ptr::null(),
             ))
@@ -457,25 +456,25 @@ impl Encoder {
             (*stream.as_ptr()).id = ((*format_context.as_ptr()).nb_streams - 1) as i32;
             let codecpar = (*stream.as_ptr()).codecpar;
 
-            (*codecpar).codec_type = ffmpeg_sys::AVMediaType::AVMEDIA_TYPE_AUDIO;
+            (*codecpar).codec_type = ffmpeg::AVMediaType::AVMEDIA_TYPE_AUDIO;
             (*codecpar).codec_id = audio_codec_id;
             (*codecpar).sample_rate = sample_rate as i32;
-            (*codecpar).format = ffmpeg_sys::AVSampleFormat::AV_SAMPLE_FMT_FLTP as i32;
+            (*codecpar).format = ffmpeg::AVSampleFormat::AV_SAMPLE_FMT_FLTP as i32;
             (*codecpar).bit_rate = 128_000;
             (*codecpar).frame_size = 1024;
 
             let mut ch_layout: AVChannelLayout = mem::zeroed();
             let layout_str = CString::new("stereo").unwrap();
-            if ffmpeg_sys::av_channel_layout_from_string(&mut ch_layout, layout_str.as_ptr()) < 0 {
+            if ffmpeg::av_channel_layout_from_string(&mut ch_layout, layout_str.as_ptr()) < 0 {
                 panic!("Failed to create stereo channel layout.");
             }
 
             (*codecpar).ch_layout = ch_layout;
 
-            let context = NonNull::new(ffmpeg_sys::avcodec_alloc_context3(codec))
+            let context = NonNull::new(ffmpeg::avcodec_alloc_context3(codec))
                 .expect("Could not alloc audio context.");
 
-            if ffmpeg_sys::avcodec_parameters_to_context(context.as_ptr(), codecpar) < 0 {
+            if ffmpeg::avcodec_parameters_to_context(context.as_ptr(), codecpar) < 0 {
                 panic!("Failed to copy codec parameters to context");
             }
 
@@ -484,30 +483,30 @@ impl Encoder {
                 den: sample_rate as i32,
             };
 
-            if (*(*format_context.as_ptr()).oformat).flags & ffmpeg_sys::AVFMT_GLOBALHEADER != 0 {
+            if (*(*format_context.as_ptr()).oformat).flags & ffmpeg::AVFMT_GLOBALHEADER != 0 {
                 (*context.as_ptr()).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
             }
 
-            if ffmpeg_sys::avcodec_open2(context.as_ptr(), codec, ptr::null_mut()) < 0 {
+            if ffmpeg::avcodec_open2(context.as_ptr(), codec, ptr::null_mut()) < 0 {
                 panic!("Could not open audio codec.");
             }
 
             // 9. Allocate and configure the audio frame we will reuse for encoding
-            let frame = NonNull::new(ffmpeg_sys::av_frame_alloc())
-                .expect("Could not allocate audio frame.");
+            let frame =
+                NonNull::new(ffmpeg::av_frame_alloc()).expect("Could not allocate audio frame.");
 
             let frame_size_val = (*context.as_ptr()).frame_size;
 
             (*frame.as_ptr()).nb_samples = frame_size_val;
             (*frame.as_ptr()).format = (*context.as_ptr()).sample_fmt as i32;
 
-            ffmpeg_sys::av_channel_layout_copy(
+            ffmpeg::av_channel_layout_copy(
                 &mut (*frame.as_ptr()).ch_layout,
                 &(*context.as_ptr()).ch_layout,
             );
 
             // Allocate the data buffers for the frame
-            if ffmpeg_sys::av_frame_get_buffer(frame.as_ptr(), 0) < 0 {
+            if ffmpeg::av_frame_get_buffer(frame.as_ptr(), 0) < 0 {
                 panic!("Could not allocate audio frame data buffers.");
             }
 
@@ -537,7 +536,7 @@ impl Encoder {
             let samples_to_write = (left_channel.len() - offset).min(frame_size);
 
             unsafe {
-                if ffmpeg_sys::av_frame_make_writable(frame) < 0 {
+                if ffmpeg::av_frame_make_writable(frame) < 0 {
                     panic!("Audio frame not writable.");
                 }
 
@@ -574,32 +573,32 @@ impl Encoder {
         let frame_ptr = frame_opt.map_or(ptr::null(), |f| f.as_ptr());
 
         unsafe {
-            if ffmpeg_sys::avcodec_send_frame(audio_context.as_ptr(), frame_ptr) < 0 {
+            if ffmpeg::avcodec_send_frame(audio_context.as_ptr(), frame_ptr) < 0 {
                 panic!("Error sending an audio frame for encoding");
             }
 
             loop {
                 let mut pkt: AVPacket = mem::zeroed();
-                let ret = ffmpeg_sys::avcodec_receive_packet(audio_context.as_ptr(), &mut pkt);
+                let ret = ffmpeg::avcodec_receive_packet(audio_context.as_ptr(), &mut pkt);
 
-                if ret == ffmpeg_sys::AVERROR(libc::EAGAIN) || ret == ffmpeg_sys::AVERROR_EOF {
+                if ret == ffmpeg::AVERROR(libc::EAGAIN) || ret == ffmpeg::AVERROR_EOF {
                     break;
                 } else if ret < 0 {
                     panic!("Error encoding an audio frame");
                 }
 
                 pkt.stream_index = (*stream.as_ptr()).id;
-                ffmpeg_sys::av_packet_rescale_ts(
+                ffmpeg::av_packet_rescale_ts(
                     &mut pkt,
                     (*audio_context.as_ptr()).time_base,
                     (*stream.as_ptr()).time_base,
                 );
 
-                if ffmpeg_sys::av_interleaved_write_frame(format_context.as_ptr(), &mut pkt) < 0 {
+                if ffmpeg::av_interleaved_write_frame(format_context.as_ptr(), &mut pkt) < 0 {
                     eprintln!("Warning: Error while writing audio frame");
                 }
 
-                ffmpeg_sys::av_packet_unref(&mut pkt);
+                ffmpeg::av_packet_unref(&mut pkt);
             }
         }
     }
@@ -609,7 +608,7 @@ impl Drop for Encoder {
     fn drop(&mut self) {
         // Get the delayed frames.
 
-        let ret = unsafe { ffmpeg_sys::avcodec_send_frame(self.context.as_ptr(), ptr::null()) };
+        let ret = unsafe { ffmpeg::avcodec_send_frame(self.context.as_ptr(), ptr::null()) };
 
         if ret < 0 {
             panic!("Error encoding frame.");
@@ -618,7 +617,7 @@ impl Drop for Encoder {
         loop {
             let mut pkt = unsafe {
                 let mut pkt: mem::MaybeUninit<AVPacket> = mem::MaybeUninit::uninit();
-                ffmpeg_sys::av_init_packet(pkt.as_mut_ptr());
+                ffmpeg::av_init_packet(pkt.as_mut_ptr());
                 pkt.assume_init()
             };
 
@@ -626,15 +625,15 @@ impl Drop for Encoder {
             pkt.size = 0;
 
             unsafe {
-                match ffmpeg_sys::avcodec_receive_packet(self.context.as_ptr(), &mut pkt) {
+                match ffmpeg::avcodec_receive_packet(self.context.as_ptr(), &mut pkt) {
                     0 => {
-                        let _ = ffmpeg_sys::av_interleaved_write_frame(
+                        let _ = ffmpeg::av_interleaved_write_frame(
                             self.format_context.as_ptr(),
                             &mut pkt,
                         );
-                        ffmpeg_sys::av_packet_unref(&mut pkt);
+                        ffmpeg::av_packet_unref(&mut pkt);
                     }
-                    ffmpeg_sys::AVERROR_EOF => {
+                    ffmpeg::AVERROR_EOF => {
                         break;
                     }
                     _ => {}
@@ -648,7 +647,7 @@ impl Drop for Encoder {
 
         // Write trailer
         unsafe {
-            if ffmpeg_sys::av_write_trailer(self.format_context.as_ptr()) < 0 {
+            if ffmpeg::av_write_trailer(self.format_context.as_ptr()) < 0 {
                 panic!("Error writing trailer.");
             }
         }
@@ -657,19 +656,19 @@ impl Drop for Encoder {
         unsafe {
             // Free audio resources
             if let Some(audio) = self.audio.as_ref() {
-                ffmpeg_sys::avcodec_free_context(&mut audio.context.as_ptr());
-                ffmpeg_sys::av_frame_free(&mut audio.frame.as_ptr());
+                ffmpeg::avcodec_free_context(&mut audio.context.as_ptr());
+                ffmpeg::av_frame_free(&mut audio.frame.as_ptr());
             }
 
             // Free video resources
-            ffmpeg_sys::avcodec_free_context(&mut self.context.as_ptr());
-            ffmpeg_sys::av_frame_free(&mut self.frame.as_ptr());
-            ffmpeg_sys::av_frame_free(&mut self.tmp_frame.as_ptr());
-            ffmpeg_sys::sws_freeContext(self.scale_context.as_ptr());
-            if ffmpeg_sys::avio_closep(&mut (*self.format_context.as_ptr()).pb) < 0 {
+            ffmpeg::avcodec_free_context(&mut self.context.as_ptr());
+            ffmpeg::av_frame_free(&mut self.frame.as_ptr());
+            ffmpeg::av_frame_free(&mut self.tmp_frame.as_ptr());
+            ffmpeg::sws_freeContext(self.scale_context.as_ptr());
+            if ffmpeg::avio_closep(&mut (*self.format_context.as_ptr()).pb) < 0 {
                 println!("Warning: failed closing output file");
             }
-            ffmpeg_sys::avformat_free_context(self.format_context.as_ptr());
+            ffmpeg::avformat_free_context(self.format_context.as_ptr());
         }
     }
 }

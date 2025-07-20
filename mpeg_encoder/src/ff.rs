@@ -1,12 +1,11 @@
 use std::{
     ffi::CStr,
-    path::Path,
     ptr::{self, NonNull},
 };
 
 use ffmpeg::{
-    AVCodec, AVCodecContext, AVCodecID, AVCodecParameters, AVDictionary, AVFormatContext, AVFrame,
-    AVOutputFormat, AVPacket, AVPixelFormat, AVRational, AVStream,
+    AVCodec, AVCodecContext, AVCodecID, AVDictionary, AVFormatContext, AVFrame, AVOutputFormat,
+    AVPacket, AVPixelFormat, AVRational, AVStream,
 };
 
 pub struct FormatContext(NonNull<AVFormatContext>);
@@ -39,6 +38,7 @@ impl FormatContext {
         }
     }
 
+    #[allow(unused)]
     pub fn as_ptr(&self) -> *mut AVFormatContext {
         self.0.as_ptr()
     }
@@ -302,6 +302,28 @@ impl Frame {
         }
     }
 
+    pub fn image_fill_arrays(&self, frame_bytes: &[u8], pix_fmt: AVPixelFormat) {
+        unsafe {
+            ffmpeg::av_image_fill_arrays(
+                (*self.0.as_ptr()).data.as_mut_ptr(),
+                (*self.0.as_ptr()).linesize.as_mut_ptr(),
+                frame_bytes.as_ptr(),
+                pix_fmt,
+                self.width(),
+                self.height(),
+                1,
+            );
+        }
+    }
+
+    pub fn width(&self) -> i32 {
+        unsafe { (*self.0.as_ptr()).width }
+    }
+
+    pub fn height(&self) -> i32 {
+        unsafe { (*self.0.as_ptr()).height }
+    }
+
     #[allow(unused)]
     pub fn presentation_timestamp(&self) -> i64 {
         unsafe { (*self.0.as_ptr()).pts }
@@ -343,6 +365,7 @@ impl SwsContext {
         Self(NonNull::new(ctx).expect("Could not initialize the conversion context"))
     }
 
+    #[allow(unused)]
     pub fn as_ptr(&self) -> *mut ffmpeg::SwsContext {
         self.0.as_ptr()
     }

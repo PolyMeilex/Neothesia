@@ -156,21 +156,11 @@ impl Encoder {
                 codec_ctx.width() as usize * codec_ctx.height() as usize * 4
             );
 
-            unsafe {
-                ffmpeg::av_image_fill_arrays(
-                    (*video.tmp_frame.as_ref().unwrap().as_ptr())
-                        .data
-                        .as_mut_ptr(),
-                    (*video.tmp_frame.as_ref().unwrap().as_ptr())
-                        .linesize
-                        .as_mut_ptr(),
-                    frame_bytes.as_ptr(),
-                    SRC_STREAM_PIX_FMT,
-                    codec_ctx.width(),
-                    codec_ctx.height(),
-                    1,
-                );
-            }
+            video
+                .tmp_frame
+                .as_ref()
+                .unwrap()
+                .image_fill_arrays(frame_bytes, SRC_STREAM_PIX_FMT);
 
             sws_ctx.scale(
                 video.tmp_frame.as_ref().unwrap(),

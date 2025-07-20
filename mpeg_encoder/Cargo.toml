@@ -1,14 +1,8 @@
 [package]
-name = "mpeg_encoder"
-version = "0.2.1"
-authors = ["Sébastien Crozet <developer@crozet.re>"]
+name = "ffmpeg_encoder"
+version = "0.0.0"
 edition = "2021"
-
-description = "A simple ffmpeg video encoder."
-repository = "https://github.com/sebcrozet/mpeg_encoder"
 readme = "README.md"
-keywords = ["encoder", "ffmpeg", "mpeg", "video"]
-license = "BSD-3-Clause"
 
 [features]
 default = []

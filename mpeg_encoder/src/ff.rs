@@ -78,6 +78,10 @@ impl FormatContext {
         }
     }
 
+    pub fn free(&self) {
+        unsafe { ffmpeg::avformat_free_context(self.0.as_ptr()) };
+    }
+
     pub fn write_header(&self) {
         unsafe {
             // Write the stream header, if any.
@@ -256,12 +260,6 @@ impl Packet {
         unsafe {
             (*self.0.as_ptr()).stream_index = index;
         }
-    }
-}
-
-impl Drop for Packet {
-    fn drop(&mut self) {
-        unsafe { ffmpeg::av_packet_free(&mut self.0.as_ptr()) };
     }
 }
 

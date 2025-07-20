@@ -8,6 +8,7 @@ use ffmpeg::{AVCodecID, AVPixelFormat, AVRational, AVERROR, AVERROR_EOF, EAGAIN}
 use std::cell::OnceCell;
 use std::ffi::CString;
 use std::path::Path;
+use std::ptr;
 
 mod audio;
 mod ff;
@@ -242,7 +243,37 @@ impl Encoder {
                 );
 
                 format_context.write_trailer();
+
+                unsafe {
+                    ffmpeg::avcodec_free_context(&mut video_stream.codec_ctx.as_ptr());
+                    ffmpeg::av_frame_free(&mut video_stream.frame.as_ptr());
+                    ffmpeg::av_frame_free(
+                        &mut video_stream
+                            .tmp_frame
+                            .as_ref()
+                            .map(ff::Frame::as_ptr)
+                            .unwrap_or(ptr::null_mut()),
+                    );
+                    ffmpeg::av_packet_free(&mut video_stream.tmp_pkt.as_ptr());
+                    ffmpeg::sws_freeContext(
+                        video_stream
+                            .sws_ctx
+                            .get()
+                            .map(ff::SwsContext::as_ptr)
+                            .unwrap_or(ptr::null_mut()),
+                    );
+                }
+
+                unsafe {
+                    ffmpeg::avcodec_free_context(&mut { audio_stream.codec_ctx });
+                    ffmpeg::av_frame_free(&mut audio_stream.frame.as_ptr());
+                    ffmpeg::av_frame_free(&mut audio_stream.tmp_frame.as_ptr());
+                    ffmpeg::av_packet_free(&mut audio_stream.tmp_pkt.as_ptr());
+                    ffmpeg::swr_free(&mut { audio_stream.swr_ctx });
+                }
+
                 format_context.closep();
+                format_context.free();
             }
         }
     }

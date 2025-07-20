@@ -13,7 +13,7 @@ use crate::ff;
 
 pub struct AudioOutputStream {
     pub stream: *mut AVStream,
-    pub codec_context: *mut AVCodecContext,
+    pub codec_ctx: *mut AVCodecContext,
     pub tmp_pkt: ff::Packet,
 
     pub frame: NonNull<AVFrame>,
@@ -191,7 +191,7 @@ pub fn new_audio_streams(
 
         AudioOutputStream {
             stream: stream.as_ptr(),
-            codec_context,
+            codec_ctx: codec_context,
             tmp_pkt,
             frame,
             tmp_frame,

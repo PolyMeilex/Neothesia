@@ -103,7 +103,7 @@ impl Encoder {
         let video_frame =
             ff::Frame::new(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());
 
-        video_frame.set_pts(0);
+        video_frame.set_presentation_timestamp(0);
 
         // If the output format is not YUV420P, then a temporary YUV420P
         // picture is needed too. It is then converted to the required
@@ -179,7 +179,7 @@ impl Encoder {
             );
         }
 
-        video.frame.set_pts(video.next_pts);
+        video.frame.set_presentation_timestamp(video.next_pts);
         video.next_pts += 1;
     }
 

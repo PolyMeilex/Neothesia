@@ -302,11 +302,12 @@ impl Frame {
         }
     }
 
-    pub fn pts(&self) -> i64 {
+    #[allow(unused)]
+    pub fn presentation_timestamp(&self) -> i64 {
         unsafe { (*self.0.as_ptr()).pts }
     }
 
-    pub fn set_pts(&self, pts: i64) {
+    pub fn set_presentation_timestamp(&self, pts: i64) {
         unsafe {
             (*self.0.as_ptr()).pts = pts;
         }

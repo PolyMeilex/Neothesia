@@ -3,135 +3,24 @@
 
 // Inspired by the muxing sample: https://ffmpeg.org/doxygen/trunk/mux_8c-example.html
 
-use ffmpeg::{AVCodecID, AVPixelFormat, AVRational, AVERROR, AVERROR_EOF, EAGAIN};
+use ffmpeg::{AVPixelFormat, AVERROR, AVERROR_EOF, EAGAIN};
+use video::VideoOutputStream;
 
-use std::cell::OnceCell;
 use std::ffi::CString;
 use std::path::Path;
 
 mod audio;
 mod ff;
+mod video;
 
 const FRAME_RATE: i32 = 60;
 const STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_YUV420P;
 const SRC_STREAM_PIX_FMT: AVPixelFormat = AVPixelFormat::AV_PIX_FMT_BGRA;
 
-struct VideoOutputStream {
-    stream: ff::Stream,
-    codec_ctx: ff::CodecContext,
-    tmp_pkt: ff::Packet,
-
-    frame: ff::Frame,
-    tmp_frame: Option<ff::Frame>,
-
-    next_pts: i64,
-
-    sws_ctx: OnceCell<ff::SwsContext>,
-}
-
 /// MPEG video recorder.
 pub struct Encoder {}
 
 impl Encoder {
-    fn new_video_streams(
-        format_context: &ff::FormatContext,
-        output_format: &ff::OutputFormat,
-    ) -> VideoOutputStream {
-        let codec_id = output_format.video_codec_id();
-        assert_ne!(
-            codec_id,
-            AVCodecID::AV_CODEC_ID_NONE,
-            "The selected output container does not support video encoding"
-        );
-
-        let codec = output_format.video_codec();
-
-        let output_format = output_format.as_ptr();
-
-        let tmp_pkt = ff::Packet::new();
-
-        let stream = format_context
-            .new_stream()
-            .expect("Could not allocate stream");
-
-        let codec_ctx = codec.context();
-
-        unsafe {
-            let codec_ctx = codec_ctx.as_ptr();
-
-            (*codec_ctx).codec_id = codec_id;
-            (*codec_ctx).bit_rate = 400000;
-
-            // Resolution must be a multiple of two.
-            (*codec_ctx).width = 1920;
-            (*codec_ctx).height = 1080;
-
-            // timebase: This is the fundamental unit of time (in seconds) in terms
-            // of which frame timestamps are represented. For fixed-fps content,
-            // timebase should be 1/framerate and timestamp increments should be
-            // identical to 1.
-            let time_base = AVRational {
-                num: 1,
-                den: FRAME_RATE,
-            };
-            (*stream.as_ptr()).time_base = time_base;
-            (*codec_ctx).time_base = time_base;
-
-            (*codec_ctx).gop_size = 12; // emit one intra frame every twelve frames at most
-            (*codec_ctx).pix_fmt = STREAM_PIX_FMT;
-
-            if (*codec_ctx).codec_id == AVCodecID::AV_CODEC_ID_MPEG2VIDEO {
-                // just for testing, we also add B-frames
-                // (*video_codec_context).mb_decision = 2;
-            }
-
-            if (*codec_ctx).codec_id == AVCodecID::AV_CODEC_ID_MPEG1VIDEO {
-                // Needed to avoid using macroblocks in which some coeffs overflow.
-                // This does not happen with normal video, it just happens here as
-                // the motion of the chroma plane does not match the luma plane.
-                (*codec_ctx).mb_decision = 2;
-            }
-
-            // Some formats want stream headers to be separate.
-            if (*output_format).flags & ffmpeg::AVFMT_GLOBALHEADER != 0 {
-                (*codec_ctx).flags |= ffmpeg::AV_CODEC_FLAG_GLOBAL_HEADER as i32;
-            }
-        }
-
-        codec_ctx.open();
-
-        let video_frame =
-            ff::Frame::new_video(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());
-
-        video_frame.set_presentation_timestamp(0);
-
-        // If the output format is not YUV420P, then a temporary YUV420P
-        // picture is needed too. It is then converted to the required
-        // output format.
-        let tmp_frame = if codec_ctx.pix_fmt() != SRC_STREAM_PIX_FMT {
-            Some(ff::Frame::new_video(
-                SRC_STREAM_PIX_FMT,
-                codec_ctx.width(),
-                codec_ctx.height(),
-            ))
-        } else {
-            None
-        };
-
-        // copy the stream parameters to the muxer
-        codec_ctx.copy_parameters_to_stream(&stream);
-
-        VideoOutputStream {
-            stream,
-            codec_ctx,
-            tmp_pkt,
-            frame: video_frame,
-            tmp_frame,
-            sws_ctx: OnceCell::new(),
-            next_pts: 0,
-        }
-    }
-
     fn next_video_frame(video: &mut VideoOutputStream, frame_bytes: &[u8]) {
         let codec_ctx = &video.codec_ctx;
 
@@ -214,7 +103,7 @@ impl Encoder {
 
         let output_format = format_context.output_format();
 
-        let video_stream = Self::new_video_streams(&format_context, &output_format);
+        let video_stream = video::new_video_streams(&format_context, &output_format);
         let audio_stream = audio::new_audio_streams(&format_context, &output_format);
 
         format_context.dump_format(&path);
@@ -222,11 +111,11 @@ impl Encoder {
         // Write the stream header, if any.
         format_context.write_header();
 
-        let mut ctx = Some((format_context, video_stream, audio_stream));
+        let mut ctx = Some((video_stream, audio_stream, format_context));
 
         move |input_frame| {
             if let Some(input_frame) = input_frame {
-                let (format_context, video_stream, _audio_stream) =
+                let (video_stream, _audio_stream, format_context) =
                     ctx.as_mut().expect("Encoder should not be closed");
 
                 Self::next_video_frame(video_stream, input_frame);
@@ -238,7 +127,7 @@ impl Encoder {
                     &video_stream.tmp_pkt,
                 );
             } else {
-                let (format_context, video_stream, audio_stream) =
+                let (video_stream, audio_stream, format_context) =
                     ctx.take().expect("Encoder should not be closed");
 
                 Self::write_frame(

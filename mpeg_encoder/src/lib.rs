@@ -450,29 +450,6 @@ impl Encoder {
         }
     }
 
-    /// Prepare a dummy image.
-    unsafe fn fill_yuv_image(pict: *mut AVFrame, frame_index: i32, width: i32, height: i32) {
-        let i = frame_index;
-
-        // Y plane
-        for y in 0..height {
-            for x in 0..width {
-                let offset = (y * (*pict).linesize[0] + x) as isize;
-                *(*pict).data[0].offset(offset) = (x + y + i * 3) as u8;
-            }
-        }
-
-        // Cb and Cr planes
-        for y in 0..height / 2 {
-            for x in 0..width / 2 {
-                let cb_offset = (y * (*pict).linesize[1] + x) as isize;
-                let cr_offset = (y * (*pict).linesize[2] + x) as isize;
-                *(*pict).data[1].offset(cb_offset) = (128 + y + i * 2) as u8;
-                *(*pict).data[2].offset(cr_offset) = (64 + x + i * 5) as u8;
-            }
-        }
-    }
-
     fn next_video_frame(video: &mut VideoOutputStream, frame_bytes: &[u8]) {
         let codec_ctx = &video.codec_ctx;
 
@@ -520,43 +497,6 @@ impl Encoder {
                 codec_ctx.height(),
             );
         }
-
-        // if codec_ctx.pix_fmt() == AVPixelFormat::AV_PIX_FMT_YUV420P {
-        //     unsafe {
-        //         Self::fill_yuv_image(
-        //             video.frame.as_ptr(),
-        //             video.next_pts as i32,
-        //             codec_ctx.width(),
-        //             codec_ctx.height(),
-        //         )
-        //     };
-        // } else {
-        //     let sws_ctx = video.sws_ctx.get_or_init(|| {
-        //         ff::SwsContext::new(
-        //             codec_ctx.width(),
-        //             codec_ctx.height(),
-        //             AVPixelFormat::AV_PIX_FMT_YUV420P,
-        //             codec_ctx.width(),
-        //             codec_ctx.height(),
-        //             codec_ctx.pix_fmt(),
-        //         )
-        //     });
-        //
-        //     unsafe {
-        //         Self::fill_yuv_image(
-        //             video.tmp_frame.as_ref().unwrap().as_ptr(),
-        //             video.next_pts as i32,
-        //             codec_ctx.width(),
-        //             codec_ctx.height(),
-        //         );
-        //     }
-        //
-        //     sws_ctx.scale(
-        //         video.tmp_frame.as_ref().unwrap(),
-        //         &video.frame,
-        //         codec_ctx.height(),
-        //     );
-        // }
 
         video.frame.set_pts(video.next_pts);
         video.next_pts += 1;

@@ -5,7 +5,7 @@ use std::{
 };
 
 use ffmpeg::{
-    AVCodec, AVCodecContext, AVCodecID, AVCodecParameters, AVFormatContext, AVFrame,
+    AVCodec, AVCodecContext, AVCodecID, AVCodecParameters, AVDictionary, AVFormatContext, AVFrame,
     AVOutputFormat, AVPacket, AVPixelFormat, AVRational, AVStream,
 };
 
@@ -177,9 +177,17 @@ impl CodecContext {
 
     pub fn open(&self) {
         unsafe {
-            if ffmpeg::avcodec_open2(self.0.as_ptr(), ptr::null_mut(), ptr::null_mut()) < 0 {
+            let mut opt: *mut AVDictionary = ptr::null_mut();
+
+            // The range of the CRF scale is 0–51, where 0 is lossless
+            ffmpeg::av_dict_set(&mut opt, c"crf".as_ptr(), c"0".as_ptr(), 0);
+            ffmpeg::av_dict_set(&mut opt, c"preset".as_ptr(), c"medium".as_ptr(), 0);
+
+            if ffmpeg::avcodec_open2(self.0.as_ptr(), ptr::null_mut(), &mut opt) < 0 {
                 panic!("Could not open video codec.");
             }
+
+            ffmpeg::av_dict_free(&mut opt);
         }
     }
 

@@ -195,65 +195,66 @@ pub fn new_audio_streams(
 #[allow(unused)]
 impl AudioOutputStream {
     /// Prepare a 16-bit dummy audio frame.
-    unsafe fn next_frame(&mut self) {
-        let ost = self;
-        let frame = &ost.tmp_frame;
+    fn next_frame(&mut self) {
+        unsafe {
+            let nb_samples = (*self.tmp_frame.as_ptr()).nb_samples as usize;
+            let nb_channels = (*self.codec_ctx.as_ptr()).ch_layout.nb_channels as usize;
+            let q = (*self.tmp_frame.as_ptr()).data[0] as *mut i16;
 
-        let nb_samples = (*frame.as_ptr()).nb_samples as usize;
-        let nb_channels = (*ost.codec_ctx.as_ptr()).ch_layout.nb_channels as usize;
-        let q = (*frame.as_ptr()).data[0] as *mut i16;
-
-        for j in 0..nb_samples {
-            let v = (ost.t.sin() * 10000.0) as i16;
-            for i in 0..nb_channels {
-                q.add(j * nb_channels + i).write(v);
+            for j in 0..nb_samples {
+                let v = (self.t.sin() * 10000.0) as i16;
+                for i in 0..nb_channels {
+                    q.add(j * nb_channels + i).write(v);
+                }
+                self.t += self.tincr;
+                self.tincr += self.tincr2;
             }
-            ost.t += ost.tincr;
-            ost.tincr += ost.tincr2;
-        }
 
-        (*frame.as_ptr()).pts = ost.next_pts;
-        ost.next_pts += (*frame.as_ptr()).nb_samples as i64;
+            (*self.tmp_frame.as_ptr()).pts = self.next_pts;
+            self.next_pts += (*self.tmp_frame.as_ptr()).nb_samples as i64;
+        }
     }
 
     /// Encode one audio frame and send it to the muxer.
     pub fn write_frame(&mut self, format_ctx: &ff::FormatContext) -> bool {
-        unsafe { self.next_frame() };
+        self.next_frame();
 
-        let frame = self.frame.as_ptr();
+        let sample_rate = self.codec_ctx.sample_rate();
+
+        let dst_nb_samples = unsafe {
+            swr_get_delay(self.swr_ctx.as_ptr(), sample_rate as i64)
+                + (*self.tmp_frame.as_ptr()).nb_samples as i64
+        };
 
         unsafe {
-            let dst_nb_samples =
-                swr_get_delay(self.swr_ctx.as_ptr(), self.codec_ctx.sample_rate() as i64)
-                    + (*self.frame.as_ptr()).nb_samples as i64;
+            assert_eq!(dst_nb_samples, (*self.tmp_frame.as_ptr()).nb_samples as i64);
+        };
 
-            assert_eq!(dst_nb_samples, (*frame).nb_samples as i64);
+        self.tmp_frame.make_writable();
 
-            self.frame.make_writable();
-
-            let ret = swr_convert(
+        if unsafe {
+            swr_convert(
                 self.swr_ctx.as_ptr(),
-                (*frame).data.as_mut_ptr(),
+                (*self.frame.as_ptr()).data.as_mut_ptr(),
                 dst_nb_samples as i32,
-                (*frame).data.as_ptr() as *const *const u8,
-                (*frame).nb_samples,
-            );
-            if ret < 0 {
-                panic!("Error while converting audio");
-            }
-
-            let time_base = AVRational {
-                num: 1,
-                den: self.codec_ctx.sample_rate(),
-            };
-
-            self.frame.set_presentation_timestamp(av_rescale_q(
-                self.samples_count,
-                time_base,
-                self.codec_ctx.time_base(),
-            ));
-            self.samples_count += dst_nb_samples;
+                (*self.tmp_frame.as_ptr()).data.as_ptr() as *const *const u8,
+                (*self.tmp_frame.as_ptr()).nb_samples,
+            )
+        } < 0
+        {
+            panic!("Error while converting audio");
         }
+
+        let tb = AVRational {
+            num: 1,
+            den: sample_rate,
+        };
+
+        self.frame.set_presentation_timestamp(unsafe {
+            av_rescale_q(self.samples_count, tb, self.codec_ctx.time_base())
+        });
+
+        self.samples_count += dst_nb_samples;
 
         super::write_frame(
             &self.codec_ctx,
@@ -261,6 +262,16 @@ impl AudioOutputStream {
             &self.tmp_pkt,
             format_ctx,
             Some(&self.frame),
+        )
+    }
+
+    pub fn write_terminator_frame(&self, format_ctx: &ff::FormatContext) -> bool {
+        super::write_frame(
+            &self.codec_ctx,
+            &self.stream,
+            &self.tmp_pkt,
+            format_ctx,
+            None,
         )
     }
 }

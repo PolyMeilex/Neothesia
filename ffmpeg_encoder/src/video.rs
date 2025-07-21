@@ -158,21 +158,25 @@ impl VideoOutputStream {
 
     /// Encode one frame and send it to the muxer.
     /// Returns true when encoding is finished, false otherwise.
-    pub fn write_frame(
-        &mut self,
-        format_ctx: &ff::FormatContext,
-        frame_bytes: Option<&[u8]>,
-    ) -> bool {
-        if let Some(frame_bytes) = frame_bytes {
-            self.next_frame(frame_bytes);
-        }
+    pub fn write_frame(&mut self, format_ctx: &ff::FormatContext, frame_bytes: &[u8]) -> bool {
+        self.next_frame(frame_bytes);
 
         super::write_frame(
             &self.codec_ctx,
             &self.stream,
             &self.tmp_pkt,
             format_ctx,
-            frame_bytes.is_some().then_some(&self.frame),
+            Some(&self.frame),
+        )
+    }
+
+    pub fn write_terminator_frame(&self, format_ctx: &ff::FormatContext) -> bool {
+        super::write_frame(
+            &self.codec_ctx,
+            &self.stream,
+            &self.tmp_pkt,
+            format_ctx,
+            None,
         )
     }
 }

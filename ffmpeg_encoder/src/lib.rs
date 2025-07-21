@@ -66,17 +66,19 @@ pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>) {
 
     move |input_frame| {
         if let Some(input_frame) = input_frame {
-            let (video_stream, _audio_stream, format_context) =
+            let (video_stream, audio_stream, format_context) =
                 ctx.as_mut().expect("Encoder should not be closed");
 
-            video_stream.write_frame(format_context, Some(input_frame));
+            video_stream.write_frame(format_context, input_frame);
+            audio_stream.write_frame(format_context);
         } else {
-            let (mut video_stream, _audio_stream, format_context) =
+            let (video_stream, audio_stream, format_ctx) =
                 ctx.take().expect("Encoder should not be closed");
 
-            video_stream.write_frame(&format_context, None);
+            video_stream.write_terminator_frame(&format_ctx);
+            audio_stream.write_terminator_frame(&format_ctx);
 
-            format_context.write_trailer();
+            format_ctx.write_trailer();
         }
     }
 }

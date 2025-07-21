@@ -20,10 +20,6 @@ pub struct AudioOutputStream {
 
     next_pts: i64,
     samples_count: i64,
-
-    t: f32,
-    tincr: f32,
-    tincr2: f32,
 }
 
 pub fn new_audio_streams(
@@ -114,7 +110,7 @@ pub fn new_audio_streams(
             nb_samples,
         );
         let tmp_frame = ff::Frame::new_audio(
-            AVSampleFormat::AV_SAMPLE_FMT_FLT,
+            AVSampleFormat::AV_SAMPLE_FMT_FLTP,
             &(*codec_ctx).ch_layout,
             (*codec_ctx).sample_rate,
             nb_samples,
@@ -143,7 +139,7 @@ pub fn new_audio_streams(
             ffmpeg::av_opt_set_sample_fmt(
                 swr_ctx as *mut c_void,
                 c"in_sample_fmt".as_ptr(),
-                AVSampleFormat::AV_SAMPLE_FMT_FLT,
+                AVSampleFormat::AV_SAMPLE_FMT_FLTP,
                 0,
             );
             ffmpeg::av_opt_set_chlayout(
@@ -166,12 +162,6 @@ pub fn new_audio_streams(
             );
         }
 
-        // Init signal generator
-        let t = 0.0;
-        let tincr = 2.0 * std::f32::consts::PI * 110.0 / codec_context.sample_rate() as f32;
-        let tincr2 = 2.0 * std::f32::consts::PI * 110.0
-            / (codec_context.sample_rate() as f32 * codec_context.sample_rate() as f32);
-
         swr_ctx.init();
 
         AudioOutputStream {
@@ -184,10 +174,6 @@ pub fn new_audio_streams(
 
             next_pts: 0,
             samples_count: 0,
-
-            t,
-            tincr,
-            tincr2,
         }
     }
 }
@@ -209,9 +195,6 @@ impl AudioOutputStream {
 
                 *data_l.add(i) = v1;
                 *data_r.add(i) = v2;
-
-                self.t += self.tincr;
-                self.tincr += self.tincr2;
             }
         }
 
@@ -229,24 +212,21 @@ impl AudioOutputStream {
 
     /// Prepare a 16-bit dummy audio frame.
     fn next_frame(&mut self, mut f: impl FnMut() -> (f32, f32)) {
+        let frame_ptr = self.tmp_frame.as_ptr();
         unsafe {
-            let nb_samples = (*self.tmp_frame.as_ptr()).nb_samples as usize;
+            let nb_samples = (*frame_ptr).nb_samples as usize;
             let nb_channels = (*self.codec_ctx.as_ptr()).ch_layout.nb_channels as usize;
-            let data = (*self.tmp_frame.as_ptr()).data[0] as *mut f32;
 
-            for j in 0..nb_samples {
+            let data_l = (*frame_ptr).data[0] as *mut f32;
+            let data_r = (*frame_ptr).data[1] as *mut f32;
+
+            assert_eq!(nb_channels, 2);
+
+            for i in 0..nb_samples {
                 let (v1, v2) = f();
 
-                assert_eq!(nb_channels, 2);
-                data.add(j * nb_channels).write(v1);
-                data.add(j * nb_channels + 1).write(v2);
-
-                // for i in 0..nb_channels {
-                //     data.add(j * nb_channels + i).write(v);
-                // }
-
-                self.t += self.tincr;
-                self.tincr += self.tincr2;
+                data_l.add(i).write(v1);
+                data_r.add(i).write(v2);
             }
 
             self.tmp_frame.set_presentation_timestamp(self.next_pts);

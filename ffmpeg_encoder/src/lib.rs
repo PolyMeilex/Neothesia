@@ -46,7 +46,13 @@ fn write_frame(
     ret == AVERROR_EOF
 }
 
-pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>, &mut oxisynth::Synth) {
+pub enum Frame<'a> {
+    Vide(&'a [u8]),
+    Audio(&'a [f32], &'a [f32]),
+    Terminator,
+}
+
+pub fn new(path: impl AsRef<Path>) -> impl FnMut(Frame) {
     let path = path.as_ref().to_str().unwrap();
     let path = CString::new(path).unwrap();
 
@@ -64,14 +70,18 @@ pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>, &mut oxisynth::S
 
     let mut ctx = Some((video_stream, audio_stream, format_context));
 
-    move |input_frame, synth| {
-        if let Some(input_frame) = input_frame {
-            let (video_stream, audio_stream, format_context) =
+    move |input_frame| match input_frame {
+        Frame::Vide(input_frame) => {
+            let (video_stream, _audio_stream, format_context) =
                 ctx.as_mut().expect("Encoder should not be closed");
-
             video_stream.write_frame(format_context, input_frame);
-            audio_stream.write_frame_direct(format_context, || synth.read_next());
-        } else {
+        }
+        Frame::Audio(l, r) => {
+            let (_video_stream, audio_stream, format_context) =
+                ctx.as_mut().expect("Encoder should not be closed");
+            audio_stream.write_frame_direct(format_context, l, r);
+        }
+        Frame::Terminator => {
             let (video_stream, audio_stream, format_ctx) =
                 ctx.take().expect("Encoder should not be closed");
 

@@ -181,20 +181,22 @@ pub fn new_audio_streams(
 #[allow(unused)]
 impl AudioOutputStream {
     /// Prepare a 16-bit dummy audio frame.
-    fn next_frame_direct(&mut self, mut f: impl FnMut() -> (f32, f32)) {
+    fn next_frame_direct(&mut self, audio_l: &[f32], audio_r: &[f32]) {
         self.frame.make_writable();
         let frame_ptr = self.frame.as_ptr();
 
+        debug_assert_eq!(audio_l.len(), audio_r.len());
+        let nb_samples = audio_l.len();
+
         unsafe {
-            let nb_samples = (*frame_ptr).nb_samples as usize;
+            (*frame_ptr).nb_samples = nb_samples as i32;
+
             let data_l = (*frame_ptr).data[0] as *mut f32;
             let data_r = (*frame_ptr).data[1] as *mut f32;
 
             for i in 0..nb_samples {
-                let (v1, v2) = f();
-
-                *data_l.add(i) = v1;
-                *data_r.add(i) = v2;
+                *data_l.add(i) = audio_l[i];
+                *data_r.add(i) = audio_r[i];
             }
         }
 
@@ -207,16 +209,17 @@ impl AudioOutputStream {
             av_rescale_q(self.samples_count, time_base, self.codec_ctx.time_base())
         });
 
-        self.samples_count += unsafe { (*self.frame.as_ptr()).nb_samples as i64 };
+        self.samples_count += nb_samples as i64;
     }
 
     /// Encode one audio frame and send it to the muxer.
     pub fn write_frame_direct(
         &mut self,
         format_ctx: &ff::FormatContext,
-        f: impl FnMut() -> (f32, f32),
+        audio_l: &[f32],
+        audio_r: &[f32],
     ) -> bool {
-        self.next_frame_direct(f);
+        self.next_frame_direct(audio_l, audio_r);
 
         super::write_frame(
             &self.codec_ctx,

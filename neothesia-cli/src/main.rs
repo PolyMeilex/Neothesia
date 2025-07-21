@@ -290,14 +290,35 @@ fn main() {
 
     let start = std::time::Instant::now();
 
+    let frame_time = Duration::from_secs(1) / 60;
+    const SAMPLE_TIME: usize = 44100 / 60;
+    const FRAME_SIZE: usize = 1024;
+
+    let mut audio_buffer_l: Vec<f32> = Vec::with_capacity(FRAME_SIZE);
+    let mut audio_buffer_r: Vec<f32> = Vec::with_capacity(FRAME_SIZE);
+
     println!("Encoding started:");
     let mut n = 1;
     while recorder.playback.percentage() * 100.0 < 101.0 {
         let output_buffer = recorder.gpu.device.create_buffer(&output_buffer_desc);
 
-        let frame_time = Duration::from_secs(1) / 60;
         recorder.update(frame_time);
         recorder.render(&texture, view, &texture_desc, &output_buffer);
+
+        for _ in 0..SAMPLE_TIME {
+            let val = recorder.synth.read_next();
+            audio_buffer_l.push(val.0);
+            audio_buffer_r.push(val.0);
+        }
+
+        if audio_buffer_l.len() >= FRAME_SIZE {
+            encoder(ffmpeg_encoder::Frame::Audio(
+                &audio_buffer_l[..FRAME_SIZE],
+                &audio_buffer_r[..FRAME_SIZE],
+            ));
+            audio_buffer_l.drain(..FRAME_SIZE);
+            audio_buffer_r.drain(..FRAME_SIZE);
+        }
 
         {
             let slice = output_buffer.slice(..);
@@ -310,8 +331,7 @@ fn main() {
 
             let data: &[u8] = &mapping;
 
-            encoder(Some(data), &mut recorder.synth);
-            // encoder.encode_bgra(data);
+            encoder(ffmpeg_encoder::Frame::Vide(data));
 
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",
@@ -325,7 +345,14 @@ fn main() {
         n += 1;
     }
 
-    encoder(None, &mut recorder.synth);
+    for (l, r) in audio_buffer_l
+        .chunks(FRAME_SIZE)
+        .zip(audio_buffer_r.chunks(FRAME_SIZE))
+    {
+        encoder(ffmpeg_encoder::Frame::Audio(l, r));
+    }
+
+    encoder(ffmpeg_encoder::Frame::Terminator);
 }
 
 fn file_midi_events(
@@ -337,9 +364,9 @@ fn file_midi_events(
     use midi_file::midly::MidiMessage;
 
     for e in events {
-        let (is_on, key) = match e.message {
-            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
-            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+        let (is_on, key, vel) = match e.message {
+            MidiMessage::NoteOn { key, vel, .. } => (true, key.as_int(), vel),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int(), 0.into()),
             _ => continue,
         };
 
@@ -348,7 +375,7 @@ fn file_midi_events(
                 .send_event(oxisynth::MidiEvent::NoteOn {
                     channel: 1,
                     key,
-                    vel: 100,
+                    vel: vel.as_int(),
                 })
                 .unwrap();
         } else {

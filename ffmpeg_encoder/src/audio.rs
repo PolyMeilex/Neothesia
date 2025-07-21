@@ -114,7 +114,7 @@ pub fn new_audio_streams(
             nb_samples,
         );
         let tmp_frame = ff::Frame::new_audio(
-            AVSampleFormat::AV_SAMPLE_FMT_S16,
+            AVSampleFormat::AV_SAMPLE_FMT_FLT,
             &(*codec_ctx).ch_layout,
             (*codec_ctx).sample_rate,
             nb_samples,
@@ -143,7 +143,7 @@ pub fn new_audio_streams(
             ffmpeg::av_opt_set_sample_fmt(
                 swr_ctx as *mut c_void,
                 c"in_sample_fmt".as_ptr(),
-                AVSampleFormat::AV_SAMPLE_FMT_S16,
+                AVSampleFormat::AV_SAMPLE_FMT_FLT,
                 0,
             );
             ffmpeg::av_opt_set_chlayout(
@@ -199,19 +199,19 @@ impl AudioOutputStream {
         unsafe {
             let nb_samples = (*self.tmp_frame.as_ptr()).nb_samples as usize;
             let nb_channels = (*self.codec_ctx.as_ptr()).ch_layout.nb_channels as usize;
-            let q = (*self.tmp_frame.as_ptr()).data[0] as *mut i16;
+            let data = (*self.tmp_frame.as_ptr()).data[0] as *mut f32;
 
             for j in 0..nb_samples {
-                let v = (self.t.sin() * 10000.0) as i16;
+                let v = self.t.sin();
                 for i in 0..nb_channels {
-                    q.add(j * nb_channels + i).write(v);
+                    data.add(j * nb_channels + i).write(v);
                 }
                 self.t += self.tincr;
                 self.tincr += self.tincr2;
             }
 
-            (*self.tmp_frame.as_ptr()).pts = self.next_pts;
-            self.next_pts += (*self.tmp_frame.as_ptr()).nb_samples as i64;
+            self.tmp_frame.set_presentation_timestamp(self.next_pts);
+            self.next_pts += nb_samples as i64;
         }
     }
 

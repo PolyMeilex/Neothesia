@@ -121,7 +121,7 @@ impl Recorder {
 
         let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
             sample_rate: 44100.0,
-            gain: 0.2,
+            gain: 0.5,
             ..Default::default()
         })
         .unwrap();

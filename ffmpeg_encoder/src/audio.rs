@@ -195,6 +195,39 @@ pub fn new_audio_streams(
 #[allow(unused)]
 impl AudioOutputStream {
     /// Prepare a 16-bit dummy audio frame.
+    fn next_frame_direct(&mut self, mut f: impl FnMut() -> (f32, f32)) {
+        self.frame.make_writable();
+        let frame_ptr = self.frame.as_ptr();
+
+        unsafe {
+            let nb_samples = (*frame_ptr).nb_samples as usize;
+            let data_l = (*frame_ptr).data[0] as *mut f32;
+            let data_r = (*frame_ptr).data[1] as *mut f32;
+
+            for i in 0..nb_samples {
+                let (v1, v2) = f();
+
+                *data_l.add(i) = v1;
+                *data_r.add(i) = v2;
+
+                self.t += self.tincr;
+                self.tincr += self.tincr2;
+            }
+        }
+
+        let time_base = AVRational {
+            num: 1,
+            den: self.codec_ctx.sample_rate(),
+        };
+
+        self.frame.set_presentation_timestamp(unsafe {
+            av_rescale_q(self.samples_count, time_base, self.codec_ctx.time_base())
+        });
+
+        self.samples_count += unsafe { (*self.frame.as_ptr()).nb_samples as i64 };
+    }
+
+    /// Prepare a 16-bit dummy audio frame.
     fn next_frame(&mut self, mut f: impl FnMut() -> (f32, f32)) {
         unsafe {
             let nb_samples = (*self.tmp_frame.as_ptr()).nb_samples as usize;
@@ -202,11 +235,10 @@ impl AudioOutputStream {
             let data = (*self.tmp_frame.as_ptr()).data[0] as *mut f32;
 
             for j in 0..nb_samples {
-                // let v = self.t.sin();
                 let (v1, v2) = f();
 
                 assert_eq!(nb_channels, 2);
-                data.add(j * nb_channels + 0).write(v1);
+                data.add(j * nb_channels).write(v1);
                 data.add(j * nb_channels + 1).write(v2);
 
                 // for i in 0..nb_channels {

@@ -14,3 +14,4 @@ wgpu-jumpstart.workspace = true
 env_logger.workspace = true
 pollster.workspace = true
 ffmpeg_encoder.workspace = true
+oxisynth = { workspace = true }

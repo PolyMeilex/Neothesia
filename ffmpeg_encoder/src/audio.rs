@@ -195,17 +195,24 @@ pub fn new_audio_streams(
 #[allow(unused)]
 impl AudioOutputStream {
     /// Prepare a 16-bit dummy audio frame.
-    fn next_frame(&mut self) {
+    fn next_frame(&mut self, mut f: impl FnMut() -> (f32, f32)) {
         unsafe {
             let nb_samples = (*self.tmp_frame.as_ptr()).nb_samples as usize;
             let nb_channels = (*self.codec_ctx.as_ptr()).ch_layout.nb_channels as usize;
             let data = (*self.tmp_frame.as_ptr()).data[0] as *mut f32;
 
             for j in 0..nb_samples {
-                let v = self.t.sin();
-                for i in 0..nb_channels {
-                    data.add(j * nb_channels + i).write(v);
-                }
+                // let v = self.t.sin();
+                let (v1, v2) = f();
+
+                assert_eq!(nb_channels, 2);
+                data.add(j * nb_channels + 0).write(v1);
+                data.add(j * nb_channels + 1).write(v2);
+
+                // for i in 0..nb_channels {
+                //     data.add(j * nb_channels + i).write(v);
+                // }
+
                 self.t += self.tincr;
                 self.tincr += self.tincr2;
             }
@@ -216,8 +223,12 @@ impl AudioOutputStream {
     }
 
     /// Encode one audio frame and send it to the muxer.
-    pub fn write_frame(&mut self, format_ctx: &ff::FormatContext) -> bool {
-        self.next_frame();
+    pub fn write_frame(
+        &mut self,
+        format_ctx: &ff::FormatContext,
+        f: impl FnMut() -> (f32, f32),
+    ) -> bool {
+        self.next_frame(f);
 
         let sample_rate = self.codec_ctx.sample_rate();
 

@@ -46,7 +46,7 @@ fn write_frame(
     ret == AVERROR_EOF
 }
 
-pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>) {
+pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>, &mut oxisynth::Synth) {
     let path = path.as_ref().to_str().unwrap();
     let path = CString::new(path).unwrap();
 
@@ -64,13 +64,13 @@ pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>) {
 
     let mut ctx = Some((video_stream, audio_stream, format_context));
 
-    move |input_frame| {
+    move |input_frame, synth| {
         if let Some(input_frame) = input_frame {
             let (video_stream, audio_stream, format_context) =
                 ctx.as_mut().expect("Encoder should not be closed");
 
             video_stream.write_frame(format_context, input_frame);
-            audio_stream.write_frame(format_context);
+            audio_stream.write_frame(format_context, || synth.read_next());
         } else {
             let (video_stream, audio_stream, format_ctx) =
                 ctx.take().expect("Encoder should not be closed");

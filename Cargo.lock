@@ -1084,6 +1084,7 @@ version = "0.0.0"
 dependencies = [
  "ffmpeg-sys-next",
  "libc",
+ "oxisynth",
 ]
 
 [[package]]
@@ -2112,6 +2113,7 @@ dependencies = [
  "ffmpeg_encoder",
  "midi-file",
  "neothesia-core",
+ "oxisynth",
  "pollster",
  "wgpu-jumpstart",
 ]

@@ -11,3 +11,4 @@ build = ["ffmpeg/build"]
 [dependencies]
 ffmpeg = { workspace = true, features = ["avformat", "swscale", "swresample"] }
 libc = "0.2"
+oxisynth = { workspace = true }

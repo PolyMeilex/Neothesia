@@ -210,6 +210,23 @@ impl AudioOutputStream {
         self.samples_count += unsafe { (*self.frame.as_ptr()).nb_samples as i64 };
     }
 
+    /// Encode one audio frame and send it to the muxer.
+    pub fn write_frame_direct(
+        &mut self,
+        format_ctx: &ff::FormatContext,
+        f: impl FnMut() -> (f32, f32),
+    ) -> bool {
+        self.next_frame_direct(f);
+
+        super::write_frame(
+            &self.codec_ctx,
+            &self.stream,
+            &self.tmp_pkt,
+            format_ctx,
+            Some(&self.frame),
+        )
+    }
+
     /// Prepare a 16-bit dummy audio frame.
     fn next_frame(&mut self, mut f: impl FnMut() -> (f32, f32)) {
         let frame_ptr = self.tmp_frame.as_ptr();

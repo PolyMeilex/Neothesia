@@ -70,7 +70,7 @@ pub fn new(path: impl AsRef<Path>) -> impl FnMut(Option<&[u8]>, &mut oxisynth::S
                 ctx.as_mut().expect("Encoder should not be closed");
 
             video_stream.write_frame(format_context, input_frame);
-            audio_stream.write_frame(format_context, || synth.read_next());
+            audio_stream.write_frame_direct(format_context, || synth.read_next());
         } else {
             let (video_stream, audio_stream, format_ctx) =
                 ctx.take().expect("Encoder should not be closed");

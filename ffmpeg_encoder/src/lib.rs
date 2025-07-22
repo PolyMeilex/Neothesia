@@ -52,7 +52,12 @@ pub enum Frame<'a> {
     Terminator,
 }
 
-pub fn new(path: impl AsRef<Path>, width: u32, height: u32) -> impl FnMut(Frame) {
+#[derive(Debug)]
+pub struct EncoderInfo {
+    pub frame_size: usize,
+}
+
+pub fn new(path: impl AsRef<Path>, width: u32, height: u32) -> (EncoderInfo, impl FnMut(Frame)) {
     let path = path.as_ref().to_str().unwrap();
     let path = CString::new(path).unwrap();
 
@@ -69,9 +74,12 @@ pub fn new(path: impl AsRef<Path>, width: u32, height: u32) -> impl FnMut(Frame)
     // Write the stream header, if any.
     format_context.write_header();
 
+    let frame_size = audio_stream.codec_ctx.frame_size() as usize;
+    let info = EncoderInfo { frame_size };
+
     let mut ctx = Some((video_stream, audio_stream, format_context));
 
-    move |input_frame| match input_frame {
+    (info, move |input_frame| match input_frame {
         Frame::Vide(input_frame) => {
             let (video_stream, _audio_stream, format_context) =
                 ctx.as_mut().expect("Encoder should not be closed");
@@ -91,5 +99,5 @@ pub fn new(path: impl AsRef<Path>, width: u32, height: u32) -> impl FnMut(Frame)
 
             format_ctx.write_trailer();
         }
-    }
+    })
 }

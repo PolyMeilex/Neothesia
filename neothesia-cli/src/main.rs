@@ -279,16 +279,18 @@ fn main() {
 
     std::fs::create_dir("./out").ok();
 
-    let mut encoder = ffmpeg_encoder::new("./out/video.mp4", recorder.width, recorder.height);
+    let (encoder_info, mut encoder) =
+        ffmpeg_encoder::new("./out/video.mp4", recorder.width, recorder.height);
+
+    let frame_size = encoder_info.frame_size;
 
     let start = std::time::Instant::now();
 
     let frame_time = Duration::from_secs(1) / 60;
     const SAMPLE_TIME: usize = 44100 / 60;
-    const FRAME_SIZE: usize = 1024;
 
-    let mut audio_buffer_l: Vec<f32> = Vec::with_capacity(FRAME_SIZE);
-    let mut audio_buffer_r: Vec<f32> = Vec::with_capacity(FRAME_SIZE);
+    let mut audio_buffer_l: Vec<f32> = Vec::with_capacity(frame_size);
+    let mut audio_buffer_r: Vec<f32> = Vec::with_capacity(frame_size);
 
     println!("Encoding started:");
     let mut n = 1;
@@ -304,13 +306,13 @@ fn main() {
             audio_buffer_r.push(val.0);
         }
 
-        if audio_buffer_l.len() >= FRAME_SIZE {
+        if audio_buffer_l.len() >= frame_size {
             encoder(ffmpeg_encoder::Frame::Audio(
-                &audio_buffer_l[..FRAME_SIZE],
-                &audio_buffer_r[..FRAME_SIZE],
+                &audio_buffer_l[..frame_size],
+                &audio_buffer_r[..frame_size],
             ));
-            audio_buffer_l.drain(..FRAME_SIZE);
-            audio_buffer_r.drain(..FRAME_SIZE);
+            audio_buffer_l.drain(..frame_size);
+            audio_buffer_r.drain(..frame_size);
         }
 
         {
@@ -339,8 +341,8 @@ fn main() {
     }
 
     for (l, r) in audio_buffer_l
-        .chunks(FRAME_SIZE)
-        .zip(audio_buffer_r.chunks(FRAME_SIZE))
+        .chunks(frame_size)
+        .zip(audio_buffer_r.chunks(frame_size))
     {
         encoder(ffmpeg_encoder::Frame::Audio(l, r));
     }

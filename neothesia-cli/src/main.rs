@@ -7,6 +7,8 @@ use neothesia_core::{
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
+mod cli;
+
 struct Recorder {
     gpu: Gpu,
 
@@ -45,34 +47,22 @@ fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
 }
 
 impl Recorder {
-    fn new() -> Self {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or("neothesia=info"),
-        )
-        .init();
-
+    fn new(args: &cli::Args) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
         let gpu = pollster::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
             eprintln!("Failed to initialize GPU: {err}");
             std::process::exit(1);
         });
-        let args: Vec<String> = std::env::args().collect();
 
-        let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
-                eprintln!("Error loading MIDI file: {err}");
-                std::process::exit(1);
-            })
-        } else {
-            eprintln!("No MIDI file provided.");
-            eprintln!("Usage: neothesia-cli <midi-file>");
+        let midi = midi_file::MidiFile::new(&args.midi).unwrap_or_else(|err| {
+            eprintln!("Error loading MIDI file: {err}");
             std::process::exit(1);
-        };
+        });
 
         let config = Config::new();
 
-        let width = 1920;
-        let height = 1080;
+        let width = args.width;
+        let height = args.height;
 
         let mut transform_uniform = TransformUniform::default();
         transform_uniform.update(width as f32, height as f32, 1.0);
@@ -126,10 +116,10 @@ impl Recorder {
         })
         .unwrap();
 
-        if let Ok(mut file) = std::fs::File::open("./default.sf2") {
-            if let Ok(font) = oxisynth::SoundFont::load(&mut file) {
-                synth.add_font(font, true);
-            }
+        if let Some(sf2) = args.soundfont.as_ref() {
+            let mut file = std::fs::File::open(sf2).unwrap();
+            let font = oxisynth::SoundFont::load(&mut file).unwrap();
+            synth.add_font(font, true);
         }
 
         Self {
@@ -238,12 +228,17 @@ impl Recorder {
 }
 
 fn main() {
-    let mut recorder = Recorder::new();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
+        .init();
+
+    let args = cli::Args::get();
+
+    let mut recorder = Recorder::new(&args);
 
     let texture_desc = wgpu::TextureDescriptor {
         size: wgpu::Extent3d {
-            width: 1920,
-            height: 1080,
+            width: recorder.width,
+            height: recorder.height,
             depth_or_array_layers: 1,
         },
         mip_level_count: 1,
@@ -277,10 +272,8 @@ fn main() {
         mapped_at_creation: false,
     };
 
-    std::fs::create_dir("./out").ok();
-
     let (encoder_info, mut encoder) =
-        ffmpeg_encoder::new("./out/video.mp4", recorder.width, recorder.height);
+        ffmpeg_encoder::new(&args.out, recorder.width, recorder.height);
 
     let frame_size = encoder_info.frame_size;
 

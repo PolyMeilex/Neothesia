@@ -126,10 +126,10 @@ impl Recorder {
         })
         .unwrap();
 
-        {
-            let mut file = std::fs::File::open("./default.sf2").unwrap();
-            let font = oxisynth::SoundFont::load(&mut file).unwrap();
-            synth.add_font(font, true);
+        if let Ok(mut file) = std::fs::File::open("./default.sf2") {
+            if let Ok(font) = oxisynth::SoundFont::load(&mut file) {
+                synth.add_font(font, true);
+            }
         }
 
         Self {
@@ -372,11 +372,11 @@ fn file_midi_events(
                     key,
                     vel: vel.as_int(),
                 })
-                .unwrap();
+                .ok();
         } else {
             synth
                 .send_event(oxisynth::MidiEvent::NoteOff { channel: 1, key })
-                .unwrap();
+                .ok();
         }
 
         let range_start = keyboard.range().start() as usize;

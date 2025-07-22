@@ -18,7 +18,12 @@ pub struct VideoOutputStream {
 }
 
 impl VideoOutputStream {
-    pub fn new(format_context: &ff::FormatContext, output_format: &ff::OutputFormat) -> Self {
+    pub fn new(
+        format_context: &ff::FormatContext,
+        output_format: &ff::OutputFormat,
+        width: i32,
+        height: i32,
+    ) -> Self {
         let codec_id = output_format.video_codec_id();
         assert_ne!(
             codec_id,
@@ -45,8 +50,8 @@ impl VideoOutputStream {
             (*codec_ctx).bit_rate = 400000;
 
             // Resolution must be a multiple of two.
-            (*codec_ctx).width = 1920;
-            (*codec_ctx).height = 1080;
+            (*codec_ctx).width = width;
+            (*codec_ctx).height = height;
 
             // timebase: This is the fundamental unit of time (in seconds) in terms
             // of which frame timestamps are represented. For fixed-fps content,

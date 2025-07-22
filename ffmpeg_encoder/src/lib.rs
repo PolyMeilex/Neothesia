@@ -52,7 +52,7 @@ pub enum Frame<'a> {
     Terminator,
 }
 
-pub fn new(path: impl AsRef<Path>) -> impl FnMut(Frame) {
+pub fn new(path: impl AsRef<Path>, width: u32, height: u32) -> impl FnMut(Frame) {
     let path = path.as_ref().to_str().unwrap();
     let path = CString::new(path).unwrap();
 
@@ -60,7 +60,8 @@ pub fn new(path: impl AsRef<Path>) -> impl FnMut(Frame) {
 
     let output_format = format_context.output_format();
 
-    let video_stream = video::VideoOutputStream::new(&format_context, &output_format);
+    let video_stream =
+        video::VideoOutputStream::new(&format_context, &output_format, width as i32, height as i32);
     let audio_stream = audio::new_audio_streams(&format_context, &output_format);
 
     format_context.dump_format(&path);

@@ -279,14 +279,7 @@ fn main() {
 
     std::fs::create_dir("./out").ok();
 
-    let mut encoder = ffmpeg_encoder::new(
-        "./out/video.mp4",
-        // recorder.width as usize,
-        // recorder.height as usize,
-        // Some(0.0),
-        // Some("medium"),
-        // Some(44100),
-    );
+    let mut encoder = ffmpeg_encoder::new("./out/video.mp4", recorder.width, recorder.height);
 
     let start = std::time::Instant::now();
 

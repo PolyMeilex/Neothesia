@@ -5,12 +5,12 @@ runs:
   steps:
     - name: Install alsa
       shell: bash
-      run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev
+      run: sudo apt update && sudo apt install libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev nasm
     - uses: Swatinem/rust-cache@v2
     - uses: dtolnay/rust-toolchain@stable
     - name: Build Ubuntu Recorder Release
       shell: bash
-      run: cargo build --release -p neothesia-cli
+      run: cargo build --release -p neothesia-cli --features build-ffmpeg
     - name: Chmod +x
       shell: bash
       run: chmod +x target/release/neothesia-cli

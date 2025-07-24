@@ -86,10 +86,62 @@ impl MenuScene {
             return;
         }
 
-        if self.iced_state.program().current() != &iced_menu::Step::Main {
-            return;
+        match self.iced_state.program().current() {
+            iced_menu::Step::Exit => self.exit_step_ui(ctx),
+            iced_menu::Step::Main => self.main_step_ui(ctx),
+            iced_menu::Step::Settings => {}
+            iced_menu::Step::TrackSelection => {}
         }
+    }
 
+    fn exit_step_ui(&mut self, ctx: &mut Context) {
+        let ui = &mut self.nuon;
+
+        let win_w = ctx.window_state.logical_size.width;
+        let win_h = ctx.window_state.logical_size.height;
+
+        let btn_w = 320.0;
+        let btn_h = 50.0;
+        let btn_gap = 5.0;
+
+        let text_h = 80.0;
+
+        let full_w = btn_w * 2.0 + btn_gap;
+        let full_h = btn_h + text_h;
+
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(win_h / 2.0)
+            .build(ui, |ui| {
+                nuon::translate()
+                    .x(-full_w / 2.0)
+                    .y(-full_h / 2.0)
+                    .add_to_current(ui);
+
+                nuon::label()
+                    .text("Do you want to exit?")
+                    .font_size(30.0)
+                    .size(full_w, text_h)
+                    .build(ui);
+
+                nuon::translate().y(text_h).add_to_current(ui);
+
+                if neo_btn(ui, btn_w, btn_h, "No") {
+                    self.iced_state
+                        .queue_message(iced_menu::Message::ExitPage(iced_menu::exit::Event::GoBack))
+                }
+
+                nuon::translate().x(btn_w).add_to_current(ui);
+                nuon::translate().x(btn_gap).add_to_current(ui);
+
+                if neo_btn(ui, btn_w, btn_h, "Yes") {
+                    self.iced_state
+                        .queue_message(iced_menu::Message::ExitPage(iced_menu::exit::Event::Exit))
+                }
+            });
+    }
+
+    fn main_step_ui(&mut self, ctx: &mut Context) {
         let ui = &mut self.nuon;
 
         let win_w = ctx.window_state.logical_size.width;

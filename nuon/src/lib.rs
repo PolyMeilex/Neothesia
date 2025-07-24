@@ -689,6 +689,7 @@ pub struct Label {
     text: String,
     icon: String,
     bold: bool,
+    text_justify: TextJustify,
 }
 
 pub fn label() -> Label {
@@ -710,6 +711,7 @@ impl Label {
             text: String::new(),
             icon: String::new(),
             bold: false,
+            text_justify: TextJustify::Center,
         }
     }
 
@@ -746,6 +748,11 @@ impl Label {
         self
     }
 
+    pub fn text_justify(mut self, text_justify: TextJustify) -> Self {
+        self.text_justify = text_justify;
+        self
+    }
+
     pub fn text(mut self, text: impl Into<String>) -> Self {
         self.text = text.into();
         self
@@ -768,7 +775,7 @@ impl Label {
         if !self.text.is_empty() {
             layer.text.push(TextRenderElement {
                 rect,
-                text_justify: TextJustify::Center,
+                text_justify: self.text_justify,
                 size: self.font_size,
                 bold: self.bold,
                 text: self.text.to_string(),

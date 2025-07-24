@@ -16,7 +16,7 @@ use crate::{
     NeothesiaEvent,
 };
 
-mod exit;
+pub mod exit;
 pub mod main;
 mod page;
 mod settings;

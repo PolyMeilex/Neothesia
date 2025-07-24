@@ -7,7 +7,10 @@ use iced_menu::AppUi;
 use iced_runtime::task::BoxFuture;
 use neothesia_core::render::{BgPipeline, QuadRenderer, TextRenderer};
 
-use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::{
+    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    keyboard::{Key, NamedKey},
+};
 
 use crate::{
     context::Context,
@@ -191,10 +194,12 @@ impl MenuScene {
                 return;
             };
 
-            // Bottom Margin
-            nuon::translate().y(-10.0).add_to_current(ui);
+            let gap = 10.0;
+            let btn_w = 80.0;
+            let btn_h = 60.0;
 
-            nuon::translate().y(-60.0).add_to_current(ui);
+            nuon::translate().y(-gap).add_to_current(ui);
+            nuon::translate().y(-btn_h).add_to_current(ui);
 
             nuon::label()
                 .text(&song.file.name)
@@ -202,21 +207,16 @@ impl MenuScene {
                 .font_size(16.0)
                 .build(ui);
 
-            let gap = 10.0;
-            let w = 80.0;
-            let h = 60.0;
-
             nuon::translate().x(win_w).build(ui, |ui| {
-                nuon::translate().x(-w - gap).add_to_current(ui);
+                nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
-                if neo_btn_icon(ui, w, h, icons::play_icon()) {
-                    self.iced_state
-                        .queue_message(iced_menu::Message::MainPage(iced_menu::main::Event::Play));
+                if neo_btn_icon(ui, btn_w, btn_h, icons::play_icon()) {
+                    iced_menu::play(&self.iced_state.program().data, ctx);
                 }
 
-                nuon::translate().x(-w - gap).add_to_current(ui);
+                nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
-                if neo_btn_icon(ui, w, h, icons::note_list_icon()) {
+                if neo_btn_icon(ui, btn_w, btn_h, icons::note_list_icon()) {
                     self.iced_state.queue_message(iced_menu::Message::GoToPage(
                         iced_menu::Step::TrackSelection,
                     ));
@@ -282,8 +282,7 @@ impl MenuScene {
                 nuon::translate().x(-w - gap).add_to_current(ui);
 
                 if neo_btn_icon(ui, w, h, icons::play_icon()) {
-                    self.iced_state
-                        .queue_message(iced_menu::Message::MainPage(iced_menu::main::Event::Play));
+                    iced_menu::play(&self.iced_state.program().data, ctx);
                 }
             });
         });
@@ -435,6 +434,32 @@ impl Scene for MenuScene {
             match state {
                 ElementState::Pressed => self.nuon.mouse_down(),
                 ElementState::Released => self.nuon.mouse_up(),
+            }
+        }
+
+        if let WindowEvent::KeyboardInput {
+            event:
+                KeyEvent {
+                    state: ElementState::Pressed,
+                    logical_key: Key::Named(key),
+                    ..
+                },
+            ..
+        } = event
+        {
+            match self.iced_state.program().current() {
+                iced_menu::Step::Exit => match key {
+                    NamedKey::Enter => {
+                        ctx.proxy.send_event(NeothesiaEvent::Exit).unwrap();
+                    }
+                    NamedKey::Escape => {
+                        self.iced_state.queue_message(iced_menu::Message::GoBack);
+                    }
+                    _ => {}
+                },
+                iced_menu::Step::Main => {}
+                iced_menu::Step::Settings => {}
+                iced_menu::Step::TrackSelection => {}
             }
         }
     }

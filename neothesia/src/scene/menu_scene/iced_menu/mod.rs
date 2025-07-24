@@ -5,7 +5,7 @@ use self::page::PageMessage;
 use super::Renderer;
 use iced_core::{image::Handle as ImageHandle, Alignment, Length, Theme};
 use iced_runtime::Task;
-use iced_widget::{column as col, container, image, text, vertical_space};
+use iced_widget::{column as col, container, image, row, text, vertical_space};
 
 use crate::{
     context::Context,
@@ -16,14 +16,12 @@ use crate::{
     NeothesiaEvent,
 };
 
-pub mod exit;
 pub mod main;
 mod page;
 pub mod settings;
 mod theme;
 mod tracks;
 
-use exit::ExitPage;
 use page::Page;
 use settings::SettingsPage;
 use tracks::TracksPage;
@@ -38,7 +36,6 @@ pub enum Message {
     GoBack,
 
     MainPage(<MainPage as Page>::Event),
-    ExitPage(<ExitPage as Page>::Event),
     SettingsPage(<SettingsPage as Page>::Event),
     TracksPage(<TracksPage as Page>::Event),
 }
@@ -58,7 +55,7 @@ pub struct Data {
 }
 
 pub struct AppUi {
-    data: Data,
+    pub data: Data,
     page_stack: VecDeque<Step>,
 }
 
@@ -143,10 +140,6 @@ impl Program for AppUi {
                 let msg = TracksPage::update(&mut self.data, msg, ctx);
                 return self.handle_page_msg(ctx, msg);
             }
-            Message::ExitPage(msg) => {
-                let msg = ExitPage::update(&mut self.data, msg, ctx);
-                return self.handle_page_msg(ctx, msg);
-            }
         }
 
         Task::none()
@@ -162,7 +155,7 @@ impl Program for AppUi {
 
     fn keyboard_input(&self, event: &iced_core::keyboard::Event, ctx: &Context) -> Option<Message> {
         match self.current() {
-            Step::Exit => ExitPage::keyboard_input(event, ctx),
+            Step::Exit => None,
             Step::Main => MainPage::keyboard_input(event, ctx),
             Step::Settings => SettingsPage::keyboard_input(event, ctx),
             Step::TrackSelection => TracksPage::keyboard_input(event, ctx),
@@ -175,7 +168,7 @@ impl Program for AppUi {
         }
 
         match self.current() {
-            Step::Exit => ExitPage::view(&self.data, ctx).map(Message::ExitPage),
+            Step::Exit => row![].into(),
             Step::Main => MainPage::view(&self.data, ctx).map(Message::MainPage),
             Step::Settings => SettingsPage::view(&self.data, ctx).map(Message::SettingsPage),
             Step::TrackSelection => TracksPage::view(&self.data, ctx).map(Message::TracksPage),
@@ -226,7 +219,7 @@ pub enum Step {
     TrackSelection,
 }
 
-fn play(data: &Data, ctx: &mut Context) {
+pub fn play(data: &Data, ctx: &mut Context) {
     let Some(song) = data.song.as_ref() else {
         return;
     };

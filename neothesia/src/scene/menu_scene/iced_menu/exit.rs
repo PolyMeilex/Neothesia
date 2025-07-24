@@ -9,7 +9,6 @@ pub struct ExitPage;
 
 #[derive(Debug, Clone)]
 pub enum Event {
-    GoBack,
     Exit,
 }
 
@@ -18,9 +17,6 @@ impl Page for ExitPage {
 
     fn update(_data: &mut Data, event: Event, ctx: &mut Context) -> PageMessage {
         match event {
-            Event::GoBack => {
-                return PageMessage::go_back();
-            }
             Event::Exit => {
                 ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
             }

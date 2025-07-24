@@ -19,7 +19,7 @@ use crate::{
 pub mod exit;
 pub mod main;
 mod page;
-mod settings;
+pub mod settings;
 mod theme;
 mod tracks;
 
@@ -112,9 +112,8 @@ impl AppUi {
         }
     }
 
-    fn handle_page_msg(&mut self, ctx: &mut Context, msg: PageMessage) -> Task<Message> {
+    fn handle_page_msg(&mut self, _ctx: &mut Context, msg: PageMessage) -> Task<Message> {
         match msg {
-            PageMessage::Message(msg) => self.update(ctx, msg),
             PageMessage::Command(cmd) => cmd,
             PageMessage::None => Task::none(),
         }

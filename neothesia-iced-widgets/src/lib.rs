@@ -1,5 +1,4 @@
 pub mod layout;
-pub mod neo_btn;
 pub mod piano_range;
 pub mod preferences_group;
 pub mod segment_button;
@@ -7,7 +6,6 @@ pub mod track_card;
 pub mod wrap;
 
 pub use layout::{BarLayout, Layout};
-pub use neo_btn::NeoBtn;
 pub use piano_range::PianoRange;
 pub use preferences_group::{ActionRow, PreferencesGroup};
 pub use segment_button::SegmentButton;

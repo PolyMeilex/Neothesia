@@ -6,22 +6,13 @@ use crate::context::Context;
 use super::{Data, Message};
 
 pub enum PageMessage {
-    Message(Message),
     Command(Task<Message>),
     None,
 }
 
 impl PageMessage {
-    pub fn go_back() -> Self {
-        Self::message(Message::GoBack)
-    }
-
     pub fn none() -> Self {
         Self::None
-    }
-
-    fn message(msg: Message) -> Self {
-        Self::Message(msg)
     }
 }
 

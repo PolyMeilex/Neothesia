@@ -1,7 +1,5 @@
 mod iced_menu;
 
-mod icons;
-
 use std::time::Duration;
 
 use iced_core::image::Handle as ImageHandle;
@@ -19,11 +17,12 @@ use crate::{
     },
     scene::Scene,
     song::Song,
+    NeothesiaEvent,
 };
 
 use std::task::Waker;
 
-mod nuon_icons {
+mod icons {
     pub fn play_icon() -> &'static str {
         "\u{f4f4}"
     }
@@ -89,8 +88,8 @@ impl MenuScene {
         match self.iced_state.program().current() {
             iced_menu::Step::Exit => self.exit_step_ui(ctx),
             iced_menu::Step::Main => self.main_step_ui(ctx),
-            iced_menu::Step::Settings => {}
-            iced_menu::Step::TrackSelection => {}
+            iced_menu::Step::Settings => self.settings_step_ui(ctx),
+            iced_menu::Step::TrackSelection => self.tracks_step_ui(ctx),
         }
     }
 
@@ -127,16 +126,14 @@ impl MenuScene {
                 nuon::translate().y(text_h).add_to_current(ui);
 
                 if neo_btn(ui, btn_w, btn_h, "No") {
-                    self.iced_state
-                        .queue_message(iced_menu::Message::ExitPage(iced_menu::exit::Event::GoBack))
+                    self.iced_state.queue_message(iced_menu::Message::GoBack);
                 }
 
                 nuon::translate().x(btn_w).add_to_current(ui);
                 nuon::translate().x(btn_gap).add_to_current(ui);
 
                 if neo_btn(ui, btn_w, btn_h, "Yes") {
-                    self.iced_state
-                        .queue_message(iced_menu::Message::ExitPage(iced_menu::exit::Event::Exit))
+                    ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
                 }
             });
     }
@@ -212,17 +209,81 @@ impl MenuScene {
             nuon::translate().x(win_w).build(ui, |ui| {
                 nuon::translate().x(-w - gap).add_to_current(ui);
 
-                if neo_btn_icon(ui, w, h, nuon_icons::play_icon()) {
+                if neo_btn_icon(ui, w, h, icons::play_icon()) {
                     self.iced_state
                         .queue_message(iced_menu::Message::MainPage(iced_menu::main::Event::Play));
                 }
 
                 nuon::translate().x(-w - gap).add_to_current(ui);
 
-                if neo_btn_icon(ui, w, h, nuon_icons::note_list_icon()) {
+                if neo_btn_icon(ui, w, h, icons::note_list_icon()) {
                     self.iced_state.queue_message(iced_menu::Message::GoToPage(
                         iced_menu::Step::TrackSelection,
                     ));
+                }
+            });
+        });
+    }
+
+    fn settings_step_ui(&mut self, ctx: &mut Context) {
+        let ui = &mut self.nuon;
+
+        let win_h = ctx.window_state.logical_size.height;
+
+        nuon::translate().x(0.0).y(win_h).build(ui, |ui| {
+            // Bottom Margin
+            nuon::translate().y(-10.0).add_to_current(ui);
+
+            nuon::translate().y(-60.0).add_to_current(ui);
+
+            let gap = 10.0;
+            let w = 80.0;
+            let h = 60.0;
+
+            nuon::translate().x(0.0).build(ui, |ui| {
+                nuon::translate().x(gap).add_to_current(ui);
+
+                if neo_btn_icon(ui, w, h, icons::left_arrow_icon()) {
+                    self.iced_state.queue_message(iced_menu::Message::GoBack);
+                }
+
+                nuon::translate().x(-w - gap).add_to_current(ui);
+            });
+        });
+    }
+
+    fn tracks_step_ui(&mut self, ctx: &mut Context) {
+        let ui = &mut self.nuon;
+
+        let win_w = ctx.window_state.logical_size.width;
+        let win_h = ctx.window_state.logical_size.height;
+
+        nuon::translate().x(0.0).y(win_h).build(ui, |ui| {
+            // Bottom Margin
+            nuon::translate().y(-10.0).add_to_current(ui);
+
+            nuon::translate().y(-60.0).add_to_current(ui);
+
+            let gap = 10.0;
+            let w = 80.0;
+            let h = 60.0;
+
+            nuon::translate().x(0.0).build(ui, |ui| {
+                nuon::translate().x(gap).add_to_current(ui);
+
+                if neo_btn_icon(ui, w, h, icons::left_arrow_icon()) {
+                    self.iced_state.queue_message(iced_menu::Message::GoBack);
+                }
+
+                nuon::translate().x(-w - gap).add_to_current(ui);
+            });
+
+            nuon::translate().x(win_w).build(ui, |ui| {
+                nuon::translate().x(-w - gap).add_to_current(ui);
+
+                if neo_btn_icon(ui, w, h, icons::play_icon()) {
+                    self.iced_state
+                        .queue_message(iced_menu::Message::MainPage(iced_menu::main::Event::Play));
                 }
             });
         });

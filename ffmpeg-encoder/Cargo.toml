@@ -1,5 +1,5 @@
 [package]
-name = "ffmpeg_encoder"
+name = "ffmpeg-encoder"
 version = "0.0.0"
 edition = "2021"
 readme = "README.md"

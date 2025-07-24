@@ -1091,6 +1091,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ffmpeg-encoder"
+version = "0.0.0"
+dependencies = [
+ "ffmpeg-sys-next",
+ "libc",
+ "oxisynth",
+]
+
+[[package]]
 name = "ffmpeg-sys-next"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1102,15 +1111,6 @@ dependencies = [
  "num_cpus",
  "pkg-config",
  "vcpkg",
-]
-
-[[package]]
-name = "ffmpeg_encoder"
-version = "0.0.0"
-dependencies = [
- "ffmpeg-sys-next",
- "libc",
- "oxisynth",
 ]
 
 [[package]]
@@ -2137,7 +2137,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
- "ffmpeg_encoder",
+ "ffmpeg-encoder",
  "midi-file",
  "neothesia-core",
  "oxisynth",

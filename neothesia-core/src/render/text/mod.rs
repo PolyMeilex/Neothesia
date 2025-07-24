@@ -82,7 +82,7 @@ impl TextRendererInstance {
             .prepare(
                 &self.device,
                 &self.queue,
-                crate::font_system::font_system().write().unwrap().raw(),
+                &mut crate::font_system::font_system().borrow_mut(),
                 &mut shared.atlas,
                 &shared.viewport,
                 elements,
@@ -146,8 +146,8 @@ impl TextRenderer {
     }
 
     pub fn queue_text(&mut self, text: &str) {
-        let mut font_system = crate::font_system::font_system().write().unwrap();
-        let font_system = font_system.raw();
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
         buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
@@ -206,8 +206,8 @@ impl TextRenderer {
         text: &str,
         attrs: glyphon::Attrs,
     ) -> glyphon::Buffer {
-        let mut font_system = crate::font_system::font_system().write().unwrap();
-        let font_system = font_system.raw();
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
         buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
@@ -277,8 +277,8 @@ impl TextRenderer {
     }
 
     pub fn queue_fps(&mut self, fps: f64, y: f32) {
-        let mut font_system = crate::font_system::font_system().write().unwrap();
-        let font_system = font_system.raw();
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let text = format!("FPS: {}", fps.round() as u32);
         let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));

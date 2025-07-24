@@ -14,7 +14,9 @@ use crate::core::font::{self, Font};
 use crate::core::text::{Alignment, Shaping, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
-use std::sync::{RwLock, Weak};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Weak;
 
 /// A text primitive.
 #[derive(Debug, Clone, PartialEq)]
@@ -141,11 +143,11 @@ impl Text {
 }
 
 /// Returns the global [`FontSystem`].
-pub fn font_system() -> &'static RwLock<FontSystem> {
+pub fn font_system() -> Rc<RefCell<FontSystem>> {
     neothesia_core::font_system::font_system()
 }
 
-pub use neothesia_core::font_system::{FontSystem, Version};
+pub use neothesia_core::font_system::FontSystem;
 
 /// A weak reference to a [`cosmic-text::Buffer`] that can be drawn.
 #[derive(Debug, Clone)]

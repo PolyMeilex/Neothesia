@@ -21,7 +21,6 @@ struct Internal {
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
-    version: text::Version,
 }
 
 impl Editor {
@@ -65,10 +64,11 @@ impl editor::Editor for Editor {
             line_height: 1.0,
         });
 
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         buffer.set_text(
-            font_system.raw(),
+            font_system,
             text,
             &cosmic_text::Attrs::new(),
             cosmic_text::Shaping::Advanced,
@@ -76,7 +76,6 @@ impl editor::Editor for Editor {
 
         Editor(Some(Arc::new(Internal {
             editor: cosmic_text::Editor::new(buffer),
-            version: font_system.version(),
             ..Default::default()
         })))
     }
@@ -234,7 +233,8 @@ impl editor::Editor for Editor {
     }
 
     fn perform(&mut self, action: Action) {
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let editor = self.0.take().expect("Editor should always be initialized");
 
@@ -265,7 +265,7 @@ impl editor::Editor for Editor {
                         | Motion::DocumentStart
                         | Motion::DocumentEnd => {
                             editor.action(
-                                font_system.raw(),
+                                font_system,
                                 cosmic_text::Action::Motion(to_motion(motion)),
                             );
                         }
@@ -276,10 +276,7 @@ impl editor::Editor for Editor {
                         }),
                     }
                 } else {
-                    editor.action(
-                        font_system.raw(),
-                        cosmic_text::Action::Motion(to_motion(motion)),
-                    );
+                    editor.action(font_system, cosmic_text::Action::Motion(to_motion(motion)));
                 }
             }
 
@@ -291,10 +288,7 @@ impl editor::Editor for Editor {
                     editor.set_selection(cosmic_text::Selection::Normal(cursor));
                 }
 
-                editor.action(
-                    font_system.raw(),
-                    cosmic_text::Action::Motion(to_motion(motion)),
-                );
+                editor.action(font_system, cosmic_text::Action::Motion(to_motion(motion)));
 
                 // Deselect if selection matches cursor position
                 if let Some((start, end)) = editor.selection_bounds() {
@@ -331,7 +325,7 @@ impl editor::Editor for Editor {
                     }));
 
                     editor.action(
-                        font_system.raw(),
+                        font_system,
                         cosmic_text::Action::Motion(cosmic_text::Motion::BufferEnd),
                     );
                 }
@@ -341,25 +335,25 @@ impl editor::Editor for Editor {
             Action::Edit(edit) => {
                 match edit {
                     Edit::Insert(c) => {
-                        editor.action(font_system.raw(), cosmic_text::Action::Insert(c));
+                        editor.action(font_system, cosmic_text::Action::Insert(c));
                     }
                     Edit::Paste(text) => {
                         editor.insert_string(&text, None);
                     }
                     Edit::Indent => {
-                        editor.action(font_system.raw(), cosmic_text::Action::Indent);
+                        editor.action(font_system, cosmic_text::Action::Indent);
                     }
                     Edit::Unindent => {
-                        editor.action(font_system.raw(), cosmic_text::Action::Unindent);
+                        editor.action(font_system, cosmic_text::Action::Unindent);
                     }
                     Edit::Enter => {
-                        editor.action(font_system.raw(), cosmic_text::Action::Enter);
+                        editor.action(font_system, cosmic_text::Action::Enter);
                     }
                     Edit::Backspace => {
-                        editor.action(font_system.raw(), cosmic_text::Action::Backspace);
+                        editor.action(font_system, cosmic_text::Action::Backspace);
                     }
                     Edit::Delete => {
-                        editor.action(font_system.raw(), cosmic_text::Action::Delete);
+                        editor.action(font_system, cosmic_text::Action::Delete);
                     }
                 }
 
@@ -375,7 +369,7 @@ impl editor::Editor for Editor {
             // Mouse events
             Action::Click(position) => {
                 editor.action(
-                    font_system.raw(),
+                    font_system,
                     cosmic_text::Action::Click {
                         x: position.x as i32,
                         y: position.y as i32,
@@ -384,7 +378,7 @@ impl editor::Editor for Editor {
             }
             Action::Drag(position) => {
                 editor.action(
-                    font_system.raw(),
+                    font_system,
                     cosmic_text::Action::Drag {
                         x: position.x as i32,
                         y: position.y as i32,
@@ -399,7 +393,7 @@ impl editor::Editor for Editor {
                 }
             }
             Action::Scroll { lines } => {
-                editor.action(font_system.raw(), cosmic_text::Action::Scroll { lines });
+                editor.action(font_system, cosmic_text::Action::Scroll { lines });
             }
         }
 
@@ -432,20 +426,10 @@ impl editor::Editor for Editor {
         let mut internal =
             Arc::try_unwrap(editor).expect("Editor cannot have multiple strong references");
 
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let buffer = buffer_mut_from_editor(&mut internal.editor);
-
-        if font_system.version() != internal.version {
-            log::trace!("Updating `FontSystem` of `Editor`...");
-
-            for line in buffer.lines.iter_mut() {
-                line.reset();
-            }
-
-            internal.version = font_system.version();
-            internal.topmost_line_changed = Some(0);
-        }
 
         if new_font != internal.font {
             log::trace!("Updating font of `Editor`...");
@@ -466,7 +450,7 @@ impl editor::Editor for Editor {
             log::trace!("Updating `Metrics` of `Editor`...");
 
             buffer.set_metrics(
-                font_system.raw(),
+                font_system,
                 cosmic_text::Metrics::new(new_size.0, new_line_height.0),
             );
         }
@@ -476,17 +460,13 @@ impl editor::Editor for Editor {
         if new_wrap != buffer.wrap() {
             log::trace!("Updating `Wrap` strategy of `Editor`...");
 
-            buffer.set_wrap(font_system.raw(), new_wrap);
+            buffer.set_wrap(font_system, new_wrap);
         }
 
         if new_bounds != internal.bounds {
             log::trace!("Updating size of `Editor`...");
 
-            buffer.set_size(
-                font_system.raw(),
-                Some(new_bounds.width),
-                Some(new_bounds.height),
-            );
+            buffer.set_size(font_system, Some(new_bounds.width), Some(new_bounds.height));
 
             internal.bounds = new_bounds;
         }
@@ -497,7 +477,7 @@ impl editor::Editor for Editor {
             new_highlighter.change_line(topmost_line_changed);
         }
 
-        internal.editor.shape_as_needed(font_system.raw(), false);
+        internal.editor.shape_as_needed(font_system, false);
 
         // Clear cursor cache
         let _ = internal
@@ -551,7 +531,8 @@ impl editor::Editor for Editor {
         let mut internal =
             Arc::try_unwrap(editor).expect("Editor cannot have multiple strong references");
 
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let attributes = text::to_attributes(font);
 
@@ -581,7 +562,7 @@ impl editor::Editor for Editor {
             let _ = line.set_attrs_list(list);
         }
 
-        internal.editor.shape_as_needed(font_system.raw(), false);
+        internal.editor.shape_as_needed(font_system, false);
 
         self.0 = Some(Arc::new(internal));
     }
@@ -615,7 +596,6 @@ impl Default for Internal {
             font: Font::default(),
             bounds: Size::ZERO,
             topmost_line_changed: None,
-            version: text::Version::default(),
         }
     }
 }

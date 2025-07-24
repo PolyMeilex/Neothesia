@@ -443,8 +443,8 @@ fn prepare(
     layer_bounds: Rectangle,
     layer_transformation: Transformation,
 ) -> Result<(), cryoglyph::PrepareError> {
-    let mut font_system = font_system().write().expect("Write font system");
-    let font_system = font_system.raw();
+    let font_system = font_system();
+    let font_system = &mut font_system.borrow_mut();
 
     enum Allocation {
         Paragraph(Paragraph),

@@ -10,8 +10,8 @@ struct LabelsCache {
 
 impl LabelsCache {
     fn get(&mut self, keyboard: &KeyboardRenderer) -> &[glyphon::Buffer; 12] {
-        let mut font_system = crate::font_system::font_system().write().unwrap();
-        let font_system = font_system.raw();
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let sharp_width = keyboard.layout().sizing.sharp_width;
         let neutral_width = keyboard.layout().sizing.neutral_width;

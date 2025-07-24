@@ -7,6 +7,8 @@ use neothesia_core::{
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
+mod cli;
+
 struct Recorder {
     gpu: Gpu,
 
@@ -21,6 +23,8 @@ struct Recorder {
     config: Config,
     width: u32,
     height: u32,
+
+    synth: oxisynth::Synth,
 }
 
 fn get_layout(
@@ -43,34 +47,22 @@ fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
 }
 
 impl Recorder {
-    fn new() -> Self {
-        env_logger::Builder::from_env(
-            env_logger::Env::default().default_filter_or("neothesia=info"),
-        )
-        .init();
-
+    fn new(args: &cli::Args) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
         let gpu = pollster::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
             eprintln!("Failed to initialize GPU: {err}");
             std::process::exit(1);
         });
-        let args: Vec<String> = std::env::args().collect();
 
-        let midi = if args.len() > 1 {
-            midi_file::MidiFile::new(&args[1]).unwrap_or_else(|err| {
-                eprintln!("Error loading MIDI file: {err}");
-                std::process::exit(1);
-            })
-        } else {
-            eprintln!("No MIDI file provided.");
-            eprintln!("Usage: neothesia-cli <midi-file>");
+        let midi = midi_file::MidiFile::new(&args.midi).unwrap_or_else(|err| {
+            eprintln!("Error loading MIDI file: {err}");
             std::process::exit(1);
-        };
+        });
 
         let config = Config::new();
 
-        let width = 1920;
-        let height = 1080;
+        let width = args.width;
+        let height = args.height;
 
         let mut transform_uniform = TransformUniform::default();
         transform_uniform.update(width as f32, height as f32, 1.0);
@@ -117,6 +109,19 @@ impl Recorder {
 
         let text = TextRenderer::new(&gpu);
 
+        let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
+            sample_rate: 44100.0,
+            gain: 0.5,
+            ..Default::default()
+        })
+        .unwrap();
+
+        if let Some(sf2) = args.soundfont.as_ref() {
+            let mut file = std::fs::File::open(sf2).unwrap();
+            let font = oxisynth::SoundFont::load(&mut file).unwrap();
+            synth.add_font(font, true);
+        }
+
         Self {
             gpu,
 
@@ -131,12 +136,14 @@ impl Recorder {
             config,
             width,
             height,
+
+            synth,
         }
     }
 
     fn update(&mut self, delta: Duration) {
         let events = self.playback.update(delta);
-        file_midi_events(&mut self.keyboard, &self.config, &events);
+        file_midi_events(&mut self.synth, &mut self.keyboard, &self.config, &events);
 
         let time = time_without_lead_in(&self.playback);
 
@@ -221,12 +228,17 @@ impl Recorder {
 }
 
 fn main() {
-    let mut recorder = Recorder::new();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("neothesia=info"))
+        .init();
+
+    let args = cli::Args::get();
+
+    let mut recorder = Recorder::new(&args);
 
     let texture_desc = wgpu::TextureDescriptor {
         size: wgpu::Extent3d {
-            width: 1920,
-            height: 1080,
+            width: recorder.width,
+            height: recorder.height,
             depth_or_array_layers: 1,
         },
         mip_level_count: 1,
@@ -260,25 +272,41 @@ fn main() {
         mapped_at_creation: false,
     };
 
-    std::fs::create_dir("./out").ok();
-    let mut encoder = mpeg_encoder::Encoder::new(
-        "./out/video.mp4",
-        recorder.width as usize,
-        recorder.height as usize,
-        Some(0.0),
-        Some("medium"),
-    );
+    let (encoder_info, mut encoder) =
+        ffmpeg_encoder::new(&args.out, recorder.width, recorder.height);
+
+    let frame_size = encoder_info.frame_size;
 
     let start = std::time::Instant::now();
+
+    let frame_time = Duration::from_secs(1) / 60;
+    const SAMPLE_TIME: usize = 44100 / 60;
+
+    let mut audio_buffer_l: Vec<f32> = Vec::with_capacity(frame_size);
+    let mut audio_buffer_r: Vec<f32> = Vec::with_capacity(frame_size);
 
     println!("Encoding started:");
     let mut n = 1;
     while recorder.playback.percentage() * 100.0 < 101.0 {
         let output_buffer = recorder.gpu.device.create_buffer(&output_buffer_desc);
 
-        let frame_time = Duration::from_secs(1) / 60;
         recorder.update(frame_time);
         recorder.render(&texture, view, &texture_desc, &output_buffer);
+
+        for _ in 0..SAMPLE_TIME {
+            let val = recorder.synth.read_next();
+            audio_buffer_l.push(val.0);
+            audio_buffer_r.push(val.0);
+        }
+
+        if audio_buffer_l.len() >= frame_size {
+            encoder(ffmpeg_encoder::Frame::Audio(
+                &audio_buffer_l[..frame_size],
+                &audio_buffer_r[..frame_size],
+            ));
+            audio_buffer_l.drain(..frame_size);
+            audio_buffer_r.drain(..frame_size);
+        }
 
         {
             let slice = output_buffer.slice(..);
@@ -290,7 +318,9 @@ fn main() {
             let mapping = slice.get_mapped_range();
 
             let data: &[u8] = &mapping;
-            encoder.encode_bgra(1920, 1080, data, false);
+
+            encoder(ffmpeg_encoder::Frame::Vide(data));
+
             print!(
                 "\r Encoded {} frames ({}s, {}%) in {}s",
                 n,
@@ -302,9 +332,19 @@ fn main() {
 
         n += 1;
     }
+
+    for (l, r) in audio_buffer_l
+        .chunks(frame_size)
+        .zip(audio_buffer_r.chunks(frame_size))
+    {
+        encoder(ffmpeg_encoder::Frame::Audio(l, r));
+    }
+
+    encoder(ffmpeg_encoder::Frame::Terminator);
 }
 
 fn file_midi_events(
+    synth: &mut oxisynth::Synth,
     keyboard: &mut KeyboardRenderer,
     config: &Config,
     events: &[&midi_file::MidiEvent],
@@ -312,11 +352,25 @@ fn file_midi_events(
     use midi_file::midly::MidiMessage;
 
     for e in events {
-        let (is_on, key) = match e.message {
-            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
-            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+        let (is_on, key, vel) = match e.message {
+            MidiMessage::NoteOn { key, vel, .. } => (true, key.as_int(), vel),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int(), 0.into()),
             _ => continue,
         };
+
+        if is_on {
+            synth
+                .send_event(oxisynth::MidiEvent::NoteOn {
+                    channel: 1,
+                    key,
+                    vel: vel.as_int(),
+                })
+                .ok();
+        } else {
+            synth
+                .send_event(oxisynth::MidiEvent::NoteOff { channel: 1, key })
+                .ok();
+        }
 
         let range_start = keyboard.range().start() as usize;
         if keyboard.range().contains(key) && e.channel != 9 {

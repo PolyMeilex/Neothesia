@@ -10,7 +10,7 @@ runs:
     - uses: dtolnay/rust-toolchain@stable
     - name: Build Ubuntu Recorder Release
       shell: bash
-      run: cargo build --release -p neothesia-cli --features build-ffmpeg
+      run: cargo build --release -p neothesia-cli ${env:CARGO_FLAGS}
     - name: Chmod +x
       shell: bash
       run: chmod +x target/release/neothesia-cli

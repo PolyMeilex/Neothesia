@@ -14,9 +14,7 @@ use crate::core::font::{self, Font};
 use crate::core::text::{Alignment, Shaping, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
-use std::borrow::Cow;
-use std::collections::HashSet;
-use std::sync::{Arc, OnceLock, RwLock, Weak};
+use std::sync::{RwLock, Weak};
 
 /// A text primitive.
 #[derive(Debug, Clone, PartialEq)]
@@ -144,64 +142,10 @@ impl Text {
 
 /// Returns the global [`FontSystem`].
 pub fn font_system() -> &'static RwLock<FontSystem> {
-    static FONT_SYSTEM: OnceLock<RwLock<FontSystem>> = OnceLock::new();
-
-    FONT_SYSTEM.get_or_init(|| {
-        RwLock::new(FontSystem {
-            raw: cosmic_text::FontSystem::new_with_fonts([cosmic_text::fontdb::Source::Binary(
-                Arc::new(include_bytes!("../fonts/Iced-Icons.ttf").as_slice()),
-            )]),
-            loaded_fonts: HashSet::new(),
-            version: Version::default(),
-        })
-    })
+    neothesia_core::font_system::font_system()
 }
 
-/// A set of system fonts.
-#[allow(missing_debug_implementations)]
-pub struct FontSystem {
-    raw: cosmic_text::FontSystem,
-    loaded_fonts: HashSet<usize>,
-    version: Version,
-}
-
-impl FontSystem {
-    /// Returns the raw [`cosmic_text::FontSystem`].
-    pub fn raw(&mut self) -> &mut cosmic_text::FontSystem {
-        &mut self.raw
-    }
-
-    /// Loads a font from its bytes.
-    pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        if let Cow::Borrowed(bytes) = bytes {
-            let address = bytes.as_ptr() as usize;
-
-            if !self.loaded_fonts.insert(address) {
-                return;
-            }
-        }
-
-        let _ = self
-            .raw
-            .db_mut()
-            .load_font_source(cosmic_text::fontdb::Source::Binary(Arc::new(
-                bytes.into_owned(),
-            )));
-
-        self.version = Version(self.version.0 + 1);
-    }
-
-    /// Returns the current [`Version`] of the [`FontSystem`].
-    ///
-    /// Loading a font will increase the version of a [`FontSystem`].
-    pub fn version(&self) -> Version {
-        self.version
-    }
-}
-
-/// A version number.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Version(u32);
+pub use neothesia_core::font_system::{FontSystem, Version};
 
 /// A weak reference to a [`cosmic-text::Buffer`] that can be drawn.
 #[derive(Debug, Clone)]

@@ -1,6 +1,6 @@
 use crate::utils::Point;
 
-use super::{waterfall::NoteList, KeyboardRenderer, TextRenderer, TextRendererInstance};
+use super::{waterfall::NoteList, KeyboardRenderer, TextRendererInstance};
 
 #[derive(Default)]
 struct LabelsCache {
@@ -9,11 +9,10 @@ struct LabelsCache {
 }
 
 impl LabelsCache {
-    fn get(
-        &mut self,
-        keyboard: &KeyboardRenderer,
-        font_system: &mut glyphon::FontSystem,
-    ) -> &[glyphon::Buffer; 12] {
+    fn get(&mut self, keyboard: &KeyboardRenderer) -> &[glyphon::Buffer; 12] {
+        let mut font_system = crate::font_system::font_system().write().unwrap();
+        let font_system = font_system.raw();
+
         let sharp_width = keyboard.layout().sizing.sharp_width;
         let neutral_width = keyboard.layout().sizing.neutral_width;
 
@@ -83,7 +82,6 @@ impl NoteLabels {
     #[profiling::function]
     pub fn update(
         &mut self,
-        text: &mut TextRenderer,
         logical_size: (u32, u32),
         keyboard: &KeyboardRenderer,
         animation_speed: f32,
@@ -93,7 +91,7 @@ impl NoteLabels {
         let range_start = layout.range.start() as usize;
         let label_width = layout.sizing.sharp_width;
 
-        let labels = self.labels_cache.get(keyboard, text.font_system());
+        let labels = self.labels_cache.get(keyboard);
 
         for note in self.notes.inner.iter() {
             if !layout.range.contains(note.note) || note.channel == 9 {
@@ -128,7 +126,7 @@ impl NoteLabels {
             });
         }
 
-        self.text_renderer.update(logical_size, text.font_system());
+        self.text_renderer.update(logical_size);
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {

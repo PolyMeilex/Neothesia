@@ -194,7 +194,7 @@ impl core::text::Paragraph for Paragraph {
         let paragraph = self.internal();
         let metrics = paragraph.buffer.metrics();
 
-        if paragraph.version != font_system.version
+        if paragraph.version != font_system.version()
             || metrics.font_size != text.size.0
             || metrics.line_height != text.line_height.to_absolute(text.size).0
             || paragraph.font != text.font

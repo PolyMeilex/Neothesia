@@ -8,6 +8,7 @@ image = ["dep:image"]
 
 [dependencies]
 iced_core.workspace = true
+neothesia-core.workspace = true
 
 bytemuck.workspace = true
 cosmic-text.workspace = true

@@ -16,16 +16,6 @@ impl IcedManager {
         let engine =
             iced_wgpu::Engine::new(adapter, device.clone(), queue.clone(), texture_format, None);
 
-        for bytes in [
-            include_bytes!("./bootstrap-icons.ttf").as_slice(),
-            include_bytes!("../../../neothesia-core/src/render/text/Roboto-Regular.ttf").as_slice(),
-        ] {
-            iced_graphics::text::font_system()
-                .write()
-                .expect("Write to font system")
-                .load_font(std::borrow::Cow::Borrowed(bytes));
-        }
-
         let renderer = iced_wgpu::Renderer::new(
             engine.clone(),
             iced_core::Font::with_name("Roboto"),

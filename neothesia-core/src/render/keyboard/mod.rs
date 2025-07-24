@@ -125,7 +125,10 @@ impl KeyboardRenderer {
     }
 
     #[profiling::function]
-    fn rebuild_text_cache(&mut self, font_system: &mut glyphon::FontSystem) {
+    fn rebuild_text_cache(&mut self) {
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
         let range_start = self.layout.range.start() as usize;
         for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
             let x = self.pos.x + key.x();
@@ -173,7 +176,7 @@ impl KeyboardRenderer {
         }
 
         if self.text_cache.is_empty() {
-            self.rebuild_text_cache(text.font_system());
+            self.rebuild_text_cache();
         }
 
         {

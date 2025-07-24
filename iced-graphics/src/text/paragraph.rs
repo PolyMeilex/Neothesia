@@ -22,7 +22,6 @@ struct Internal {
     align_y: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
-    version: text::Version,
 }
 
 impl Paragraph {
@@ -63,10 +62,11 @@ impl core::text::Paragraph for Paragraph {
     fn with_text(text: Text<&str>) -> Self {
         log::trace!("Allocating plain paragraph: {}", text.content);
 
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let mut buffer = cosmic_text::Buffer::new(
-            font_system.raw(),
+            font_system,
             cosmic_text::Metrics::new(
                 text.size.into(),
                 text.line_height.to_absolute(text.size).into(),
@@ -74,21 +74,21 @@ impl core::text::Paragraph for Paragraph {
         );
 
         buffer.set_size(
-            font_system.raw(),
+            font_system,
             Some(text.bounds.width),
             Some(text.bounds.height),
         );
 
-        buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
+        buffer.set_wrap(font_system, text::to_wrap(text.wrapping));
 
         buffer.set_text(
-            font_system.raw(),
+            font_system,
             text.content,
             &text::to_attributes(text.font),
             text::to_shaping(text.shaping),
         );
 
-        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x);
+        let min_bounds = text::align(&mut buffer, font_system, text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
@@ -99,17 +99,17 @@ impl core::text::Paragraph for Paragraph {
             wrapping: text.wrapping,
             bounds: text.bounds,
             min_bounds,
-            version: font_system.version(),
         }))
     }
 
     fn with_spans<Link>(text: Text<&[Span<'_, Link>]>) -> Self {
         log::trace!("Allocating rich paragraph: {} spans", text.content.len());
 
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
         let mut buffer = cosmic_text::Buffer::new(
-            font_system.raw(),
+            font_system,
             cosmic_text::Metrics::new(
                 text.size.into(),
                 text.line_height.to_absolute(text.size).into(),
@@ -117,15 +117,15 @@ impl core::text::Paragraph for Paragraph {
         );
 
         buffer.set_size(
-            font_system.raw(),
+            font_system,
             Some(text.bounds.width),
             Some(text.bounds.height),
         );
 
-        buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
+        buffer.set_wrap(font_system, text::to_wrap(text.wrapping));
 
         buffer.set_rich_text(
-            font_system.raw(),
+            font_system,
             text.content.iter().enumerate().map(|(i, span)| {
                 let attrs = text::to_attributes(span.font.unwrap_or(text.font));
 
@@ -157,7 +157,7 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
-        let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x);
+        let min_bounds = text::align(&mut buffer, font_system, text.align_x);
 
         Self(Arc::new(Internal {
             buffer,
@@ -168,34 +168,30 @@ impl core::text::Paragraph for Paragraph {
             wrapping: text.wrapping,
             bounds: text.bounds,
             min_bounds,
-            version: font_system.version(),
         }))
     }
 
     fn resize(&mut self, new_bounds: Size) {
         let paragraph = Arc::make_mut(&mut self.0);
 
-        let mut font_system = text::font_system().write().expect("Write font system");
+        let font_system = text::font_system();
+        let font_system = &mut font_system.borrow_mut();
 
-        paragraph.buffer.set_size(
-            font_system.raw(),
-            Some(new_bounds.width),
-            Some(new_bounds.height),
-        );
+        paragraph
+            .buffer
+            .set_size(font_system, Some(new_bounds.width), Some(new_bounds.height));
 
-        let min_bounds = text::align(&mut paragraph.buffer, font_system.raw(), paragraph.align_x);
+        let min_bounds = text::align(&mut paragraph.buffer, font_system, paragraph.align_x);
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
     }
 
     fn compare(&self, text: Text<()>) -> core::text::Difference {
-        let font_system = text::font_system().read().expect("Read font system");
         let paragraph = self.internal();
         let metrics = paragraph.buffer.metrics();
 
-        if paragraph.version != font_system.version
-            || metrics.font_size != text.size.0
+        if metrics.font_size != text.size.0
             || metrics.line_height != text.line_height.to_absolute(text.size).0
             || paragraph.font != text.font
             || paragraph.shaping != text.shaping
@@ -419,7 +415,6 @@ impl Default for Internal {
             align_y: alignment::Vertical::Top,
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
-            version: text::Version::default(),
         }
     }
 }

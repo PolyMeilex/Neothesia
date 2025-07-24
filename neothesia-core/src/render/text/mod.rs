@@ -1,6 +1,5 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
-use glyphon::FontSystem;
 use wgpu_jumpstart::Gpu;
 
 pub use glyphon;
@@ -59,7 +58,7 @@ impl TextRendererInstance {
         self.text_areas.push(area);
     }
 
-    pub fn update(&mut self, logical_size: (u32, u32), font_system: &mut FontSystem) {
+    pub fn update(&mut self, logical_size: (u32, u32)) {
         let shared = &mut *self.shared.borrow_mut();
         let elements = self.text_areas.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
@@ -83,7 +82,7 @@ impl TextRendererInstance {
             .prepare(
                 &self.device,
                 &self.queue,
-                font_system,
+                &mut crate::font_system::font_system().borrow_mut(),
                 &mut shared.atlas,
                 &shared.viewport,
                 elements,
@@ -103,7 +102,6 @@ impl TextRendererInstance {
 }
 
 pub struct TextRenderer {
-    font_system: glyphon::FontSystem,
     _cache: glyphon::Cache,
 
     default_instance: TextRendererInstance,
@@ -111,13 +109,6 @@ pub struct TextRenderer {
 
 impl TextRenderer {
     pub fn new(gpu: &Gpu) -> Self {
-        let font_system = glyphon::FontSystem::new_with_fonts([
-            glyphon::fontdb::Source::Binary(Arc::new(include_bytes!("./Roboto-Regular.ttf"))),
-            glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
-                "../../../../neothesia/src/iced_utils/bootstrap-icons.ttf"
-            ))),
-        ]);
-
         let swash_cache = glyphon::SwashCache::new();
         let cache = glyphon::Cache::new(&gpu.device);
         let atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.texture_format);
@@ -133,7 +124,6 @@ impl TextRenderer {
         let default_instance = TextRendererInstance::new(&gpu.device, &gpu.queue, shared);
 
         Self {
-            font_system,
             _cache: cache,
             default_instance,
         }
@@ -147,10 +137,6 @@ impl TextRenderer {
         )
     }
 
-    pub fn font_system(&mut self) -> &mut glyphon::FontSystem {
-        &mut self.font_system
-    }
-
     pub fn queue_mut(&mut self) -> &mut Vec<TextArea> {
         &mut self.default_instance.text_areas
     }
@@ -160,16 +146,18 @@ impl TextRenderer {
     }
 
     pub fn queue_text(&mut self, text: &str) {
-        let mut buffer =
-            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
+        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
+        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
-            &mut self.font_system,
+            font_system,
             text,
             &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
-        buffer.shape_until_scroll(&mut self.font_system, false);
+        buffer.shape_until_scroll(font_system, false);
 
         #[cfg(debug_assertions)]
         let top = 20.0;
@@ -218,11 +206,13 @@ impl TextRenderer {
         text: &str,
         attrs: glyphon::Attrs,
     ) -> glyphon::Buffer {
-        let mut buffer =
-            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(size, size));
-        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
-        buffer.set_text(&mut self.font_system, text, &attrs, glyphon::Shaping::Basic);
-        buffer.shape_until_scroll(&mut self.font_system, false);
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
+        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
+        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
+        buffer.set_text(font_system, text, &attrs, glyphon::Shaping::Basic);
+        buffer.shape_until_scroll(font_system, false);
         buffer
     }
 
@@ -287,17 +277,19 @@ impl TextRenderer {
     }
 
     pub fn queue_fps(&mut self, fps: f64, y: f32) {
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
         let text = format!("FPS: {}", fps.round() as u32);
-        let mut buffer =
-            glyphon::Buffer::new(&mut self.font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(&mut self.font_system, Some(f32::MAX), Some(f32::MAX));
+        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
+        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
-            &mut self.font_system,
+            font_system,
             &text,
             &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
         );
-        buffer.shape_until_scroll(&mut self.font_system, false);
+        buffer.shape_until_scroll(font_system, false);
 
         self.queue(TextArea {
             buffer,
@@ -311,8 +303,7 @@ impl TextRenderer {
 
     #[profiling::function]
     pub fn update(&mut self, logical_size: (u32, u32)) {
-        self.default_instance
-            .update(logical_size, &mut self.font_system);
+        self.default_instance.update(logical_size);
     }
 
     pub fn end_frame(&mut self) {

@@ -224,7 +224,6 @@ impl Scene for PlayingScene {
             .update(&mut self.quad_pipeline, LAYER_FG, &mut self.text_renderer);
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.update(
-                &mut self.text_renderer,
                 ctx.window_state.logical_size.into(),
                 self.keyboard.renderer(),
                 ctx.config.animation_speed(),

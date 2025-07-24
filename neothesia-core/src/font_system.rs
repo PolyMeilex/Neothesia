@@ -17,13 +17,13 @@ pub fn font_system() -> Rc<RefCell<FontSystem>> {
             .get_or_init(|| {
                 Rc::new(RefCell::new(FontSystem::new_with_fonts([
                     glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
-                        "../../iced-graphics/fonts/Iced-Icons.ttf"
+                        "../../assets/fonts/Iced-Icons.ttf"
                     ))),
                     glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
-                        "./render/text/Roboto-Regular.ttf"
+                        "../../assets/fonts/Roboto-Regular.ttf"
                     ))),
                     glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
-                        "../../neothesia/src/iced_utils/bootstrap-icons.ttf"
+                        "../../assets/fonts/bootstrap-icons.ttf"
                     ))),
                 ])))
             })

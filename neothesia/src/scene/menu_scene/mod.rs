@@ -1,9 +1,12 @@
 mod iced_menu;
 
-use std::time::Duration;
+mod midi_picker;
+use midi_picker::open_midi_file_picker;
+
+use std::{future::Future, time::Duration};
 
 use iced_core::image::Handle as ImageHandle;
-use iced_menu::AppUi;
+use iced_menu::{AppUi, Data};
 use iced_runtime::task::BoxFuture;
 use neothesia_core::render::{BgPipeline, QuadRenderer, TextRenderer};
 
@@ -44,6 +47,21 @@ type Renderer = iced_wgpu::Renderer;
 
 const LAYER_FG: usize = 0;
 
+type MsgFn = Box<dyn FnOnce(&mut Data, &mut Context)>;
+
+fn on_async<T, Fut, FN>(future: Fut, f: FN) -> BoxFuture<MsgFn>
+where
+    T: 'static,
+    Fut: Future<Output = T> + Send + 'static,
+    FN: FnOnce(T, &mut Data, &mut Context) + Send + 'static,
+{
+    Box::pin(async {
+        let res = future.await;
+        let f: MsgFn = Box::new(move |data, ctx| f(res, data, ctx));
+        f
+    })
+}
+
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
     text_renderer: TextRenderer,
@@ -52,6 +70,7 @@ pub struct MenuScene {
 
     context: std::task::Context<'static>,
     futures: Vec<BoxFuture<iced_menu::Message>>,
+    futures2: Vec<BoxFuture<MsgFn>>,
 
     logo_handle: ImageHandle,
 
@@ -75,6 +94,7 @@ impl MenuScene {
 
             context: std::task::Context::from_waker(noop_waker_ref()),
             futures: Vec::new(),
+            futures2: Vec::new(),
 
             logo_handle: ImageHandle::from_bytes(include_bytes!("./img/banner.png").to_vec()),
 
@@ -169,8 +189,9 @@ impl MenuScene {
                     .y(logo_h + post_logo_gap)
                     .build(ui, |ui| {
                         if neo_btn(ui, w, h, "Select File") {
-                            self.iced_state
-                                .queue_message(iced_menu::MidiFilePickerMessage::open().into());
+                            self.futures2.push(open_midi_file_picker(
+                                &mut self.iced_state.program_mut().data,
+                            ));
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
@@ -363,6 +384,15 @@ impl Scene for MenuScene {
                 std::task::Poll::Pending => true,
             });
 
+        self.futures2
+            .retain_mut(|f| match f.as_mut().poll(&mut self.context) {
+                std::task::Poll::Ready(msg) => {
+                    msg(&mut self.iced_state.program_mut().data, ctx);
+                    false
+                }
+                std::task::Poll::Pending => true,
+            });
+
         if let Some(tasks) = self.iced_state.update(ctx) {
             for fut in tasks.into_iter().flat_map(|task| task.into_future()) {
                 self.futures.push(fut);
@@ -441,23 +471,58 @@ impl Scene for MenuScene {
             event:
                 KeyEvent {
                     state: ElementState::Pressed,
-                    logical_key: Key::Named(key),
+                    logical_key,
                     ..
                 },
             ..
         } = event
         {
             match self.iced_state.program().current() {
-                iced_menu::Step::Exit => match key {
-                    NamedKey::Enter => {
-                        ctx.proxy.send_event(NeothesiaEvent::Exit).unwrap();
-                    }
-                    NamedKey::Escape => {
-                        self.iced_state.queue_message(iced_menu::Message::GoBack);
-                    }
-                    _ => {}
-                },
-                iced_menu::Step::Main => {}
+                iced_menu::Step::Exit => {
+                    match logical_key {
+                        Key::Named(NamedKey::Enter) => {
+                            ctx.proxy.send_event(NeothesiaEvent::Exit).unwrap();
+                        }
+                        Key::Named(NamedKey::Escape) => {
+                            self.iced_state.queue_message(iced_menu::Message::GoBack);
+                        }
+                        _ => {}
+                    };
+                }
+                iced_menu::Step::Main => {
+                    use iced_menu::{Message, Step};
+
+                    let mut queue_message = |msg| {
+                        self.iced_state.queue_message(msg);
+                    };
+
+                    match logical_key {
+                        Key::Named(key) => match key {
+                            NamedKey::Tab => {
+                                self.futures2.push(open_midi_file_picker(
+                                    &mut self.iced_state.program_mut().data,
+                                ));
+                            }
+                            NamedKey::Enter => {
+                                iced_menu::play(&self.iced_state.program().data, ctx)
+                            }
+                            NamedKey::Escape => {
+                                queue_message(Message::GoBack);
+                            }
+                            _ => {}
+                        },
+                        Key::Character(ch) => match ch.as_ref() {
+                            "s" => {
+                                queue_message(Message::GoToPage(Step::Settings));
+                            }
+                            "t" => {
+                                queue_message(Message::GoToPage(Step::TrackSelection));
+                            }
+                            _ => {}
+                        },
+                        _ => {}
+                    };
+                }
                 iced_menu::Step::Settings => {}
                 iced_menu::Step::TrackSelection => {}
             }

@@ -11,12 +11,10 @@ use crate::{
     context::Context,
     iced_utils::iced_state::{Element, Program},
     output_manager::OutputDescriptor,
-    scene::menu_scene::iced_menu::main::MainPage,
     song::Song,
     NeothesiaEvent,
 };
 
-pub mod main;
 mod page;
 pub mod settings;
 mod theme;
@@ -26,8 +24,6 @@ use page::Page;
 use settings::SettingsPage;
 use tracks::TracksPage;
 
-pub use main::MidiFilePickerMessage;
-
 type InputDescriptor = midi_io::MidiInputPort;
 
 #[derive(Debug, Clone)]
@@ -35,7 +31,6 @@ pub enum Message {
     GoToPage(Step),
     GoBack,
 
-    MainPage(<MainPage as Page>::Event),
     SettingsPage(<SettingsPage as Page>::Event),
     TracksPage(<TracksPage as Page>::Event),
 }
@@ -47,11 +42,11 @@ pub struct Data {
     inputs: Vec<InputDescriptor>,
     selected_input: Option<InputDescriptor>,
 
-    is_loading: bool,
+    pub is_loading: bool,
 
     logo_handle: ImageHandle,
 
-    song: Option<Song>,
+    pub song: Option<Song>,
 }
 
 pub struct AppUi {
@@ -128,10 +123,6 @@ impl Program for AppUi {
             Message::GoBack => {
                 self.go_back();
             }
-            Message::MainPage(msg) => {
-                let msg = MainPage::update(&mut self.data, msg, ctx);
-                return self.handle_page_msg(ctx, msg);
-            }
             Message::SettingsPage(msg) => {
                 let msg = SettingsPage::update(&mut self.data, msg, ctx);
                 return self.handle_page_msg(ctx, msg);
@@ -156,7 +147,7 @@ impl Program for AppUi {
     fn keyboard_input(&self, event: &iced_core::keyboard::Event, ctx: &Context) -> Option<Message> {
         match self.current() {
             Step::Exit => None,
-            Step::Main => MainPage::keyboard_input(event, ctx),
+            Step::Main => None,
             Step::Settings => SettingsPage::keyboard_input(event, ctx),
             Step::TrackSelection => TracksPage::keyboard_input(event, ctx),
         }
@@ -169,7 +160,7 @@ impl Program for AppUi {
 
         match self.current() {
             Step::Exit => row![].into(),
-            Step::Main => MainPage::view(&self.data, ctx).map(Message::MainPage),
+            Step::Main => row![].into(),
             Step::Settings => SettingsPage::view(&self.data, ctx).map(Message::SettingsPage),
             Step::TrackSelection => TracksPage::view(&self.data, ctx).map(Message::TracksPage),
         }

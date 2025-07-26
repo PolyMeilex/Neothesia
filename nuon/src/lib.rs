@@ -285,14 +285,16 @@ impl Translate {
         self
     }
 
-    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> Point {
         let offset = self.origin;
         let prev = ui.translation_stack.offset();
         ui.translation_stack
             .0
             .push(Point::new(prev.x + offset.x, prev.y + offset.y));
         build(ui);
-        ui.translation_stack.0.pop();
+
+        let pop = ui.translation_stack.0.pop().unwrap();
+        Point::new(pop.x - prev.x - offset.x, pop.y - prev.y - offset.y)
     }
 
     pub fn add_to_current(&self, ui: &mut Ui) {
@@ -322,8 +324,13 @@ impl Layer {
     }
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+        let rect = Rect::new(
+            ui.translation_stack.translate(self.rect.origin),
+            self.rect.size,
+        );
+
         ui.layers.push();
-        ui.layers.current_mut().scissor_rect = self.rect;
+        ui.layers.current_mut().scissor_rect = rect;
 
         build(ui);
         ui.layers.pop();
@@ -332,6 +339,70 @@ impl Layer {
 
 pub fn layer() -> Layer {
     Layer::new()
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Scroll {
+    rect: Rect,
+    scroll: f32,
+}
+
+impl Scroll {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn scissor_rect(mut self, rect: Rect) -> Self {
+        self.rect = rect;
+        self
+    }
+
+    pub fn scissor_size(mut self, w: f32, h: f32) -> Self {
+        self.rect.size.width = w;
+        self.rect.size.height = h;
+        self
+    }
+
+    pub fn scroll(mut self, scroll: f32) -> Self {
+        self.scroll = scroll;
+        self
+    }
+
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+        self::layer().scissor_rect(self.rect).build(ui, |ui| {
+            self::quad()
+                .size(self.rect.size.width, self.rect.size.height)
+                .color([17; 3])
+                .build(ui);
+
+            let last = self::translate().y(-self.scroll).build(ui, build);
+            let last_y = last.y - self.rect.size.height;
+
+            let percentage = self.scroll / last_y;
+
+            let w = 10.0;
+            let h = self.rect.height() / (last_y / self.rect.height());
+
+            self::quad()
+                .y(0.0)
+                .x(self.rect.size.width - w)
+                .size(w, self.rect.height())
+                .color([37, 35, 42])
+                .border_radius([5.0; 4])
+                .build(ui);
+            self::quad()
+                .y(percentage * (self.rect.size.height - h))
+                .x(self.rect.size.width - w)
+                .size(w, h)
+                .color([74, 68, 88])
+                .border_radius([5.0; 4])
+                .build(ui);
+        });
+    }
+}
+
+pub fn scroll() -> Scroll {
+    Scroll::new()
 }
 
 #[derive(Debug, Clone)]

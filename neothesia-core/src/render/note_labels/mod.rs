@@ -129,7 +129,7 @@ impl NoteLabels {
         self.text_renderer.update(logical_size);
     }
 
-    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu_jumpstart::RenderPass<'rpass>) {
         self.text_renderer.render(render_pass);
     }
 }

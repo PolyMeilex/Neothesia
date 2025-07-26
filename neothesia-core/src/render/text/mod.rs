@@ -31,6 +31,7 @@ struct TextShared {
 
 pub struct TextRenderer {
     text_renderer: glyphon::TextRenderer,
+    scissor_rect: Rect,
     text_areas: Vec<TextArea>,
     shared: Rc<RefCell<TextShared>>,
     device: wgpu::Device,
@@ -48,11 +49,16 @@ impl TextRenderer {
 
         Self {
             text_renderer,
+            scissor_rect: Rect::zero(),
             text_areas: Vec::new(),
             shared,
             device: device.clone(),
             queue: queue.clone(),
         }
+    }
+
+    pub fn set_scissor_rect(&mut self, rect: Rect) {
+        self.scissor_rect = rect;
     }
 
     pub fn queue_buffer(&mut self, x: f32, y: f32, buffer: glyphon::Buffer) {
@@ -212,11 +218,31 @@ impl TextRenderer {
         self.text_areas.clear();
     }
 
-    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
+    pub fn render<'rpass>(&'rpass self, render_pass: &mut wgpu_jumpstart::RenderPass<'rpass>) {
+        let pass_size = render_pass.size();
+        let scissor_rect = self.scissor_rect;
+        let has_scissor_rect = scissor_rect != Rect::zero();
+
+        if has_scissor_rect {
+            render_pass.set_scissor_rect(
+                scissor_rect.origin.x as u32,
+                scissor_rect.origin.y as u32,
+                scissor_rect.size.width as u32,
+                scissor_rect.size.height as u32,
+            );
+        } else {
+            render_pass.set_scissor_rect(0, 0, pass_size.width, pass_size.height);
+        }
+
         let shared = self.shared.borrow();
         self.text_renderer
             .render(&shared.atlas, &shared.viewport, render_pass)
             .unwrap();
+
+        // Revert
+        if has_scissor_rect {
+            render_pass.set_scissor_rect(0, 0, pass_size.width, pass_size.height);
+        }
     }
 }
 

@@ -324,10 +324,14 @@ impl Layer {
     }
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
-        let rect = Rect::new(
-            ui.translation_stack.translate(self.rect.origin),
-            self.rect.size,
-        );
+        let rect = if self.rect == Rect::zero() {
+            Rect::zero()
+        } else {
+            Rect::new(
+                ui.translation_stack.translate(self.rect.origin),
+                self.rect.size,
+            )
+        };
 
         ui.layers.push();
         ui.layers.current_mut().scissor_rect = rect;
@@ -403,6 +407,38 @@ impl Scroll {
 
 pub fn scroll() -> Scroll {
     Scroll::new()
+}
+
+pub struct Card {}
+
+impl Default for Card {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Card {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> Point {
+        let last = self::translate().build(ui, |ui| {
+            self::layer().build(ui, build);
+        });
+
+        self::quad()
+            .size(last.x, last.y)
+            .color([42; 3])
+            .border_radius([5.0; 4])
+            .build(ui);
+
+        last
+    }
+}
+
+pub fn card() -> Card {
+    Card::new()
 }
 
 #[derive(Debug, Clone)]

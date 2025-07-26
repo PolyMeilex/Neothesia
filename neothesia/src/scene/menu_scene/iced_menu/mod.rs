@@ -36,11 +36,11 @@ pub enum Message {
 }
 
 pub struct Data {
-    outputs: Vec<OutputDescriptor>,
-    selected_output: Option<OutputDescriptor>,
+    pub outputs: Vec<OutputDescriptor>,
+    pub selected_output: Option<OutputDescriptor>,
 
-    inputs: Vec<InputDescriptor>,
-    selected_input: Option<InputDescriptor>,
+    pub inputs: Vec<InputDescriptor>,
+    pub selected_input: Option<InputDescriptor>,
 
     pub is_loading: bool,
 

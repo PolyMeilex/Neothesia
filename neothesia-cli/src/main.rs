@@ -4,8 +4,8 @@ use neothesia_core::{
     config::Config,
     piano_layout,
     render::{
-        GuidelineRenderer, KeyboardRenderer, QuadRenderer, TextRenderer, TextRendererFactory,
-        WaterfallRenderer,
+        GuidelineRenderer, KeyboardRenderer, QuadRenderer, QuadRendererFactory, TextRenderer,
+        TextRendererFactory, WaterfallRenderer,
     },
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
@@ -17,7 +17,8 @@ struct Recorder {
 
     playback: midi_file::PlaybackState,
 
-    quad_pipeline: QuadRenderer,
+    quad_renderer_bg: QuadRenderer,
+    quad_renderer_fg: QuadRenderer,
     keyboard: KeyboardRenderer,
     waterfall: WaterfallRenderer,
     text: TextRenderer,
@@ -76,9 +77,10 @@ impl Recorder {
             wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
         );
 
-        let mut quad_pipeline = QuadRenderer::new(&gpu, &transform_uniform);
-        quad_pipeline.init_layer(30); // BG
-        quad_pipeline.init_layer(150); // FG
+        let quad_renderer_factory = QuadRendererFactory::new(&gpu, &transform_uniform);
+
+        let quad_renderer_bg = quad_renderer_factory.new_renderer();
+        let quad_renderer_fg = quad_renderer_factory.new_renderer();
 
         let keyboard_layout = get_layout(
             width as f32,
@@ -131,7 +133,8 @@ impl Recorder {
 
             playback,
 
-            quad_pipeline,
+            quad_renderer_bg,
+            quad_renderer_fg,
             keyboard,
             waterfall,
             text,
@@ -151,11 +154,11 @@ impl Recorder {
 
         let time = time_without_lead_in(&self.playback);
 
-        self.quad_pipeline.clear();
+        self.quad_renderer_bg.clear();
+        self.quad_renderer_fg.clear();
 
         self.guidelines.update(
-            &mut self.quad_pipeline,
-            0,
+            &mut self.quad_renderer_bg,
             self.config.animation_speed(),
             time,
         );
@@ -163,8 +166,10 @@ impl Recorder {
         self.waterfall.update(time);
 
         self.keyboard
-            .update(&mut self.quad_pipeline, 1, &mut self.text);
-        self.quad_pipeline.prepare();
+            .update(&mut self.quad_renderer_fg, &mut self.text);
+
+        self.quad_renderer_bg.prepare();
+        self.quad_renderer_fg.prepare();
 
         self.text.update((self.width, self.height));
     }
@@ -200,9 +205,9 @@ impl Recorder {
                 });
             let mut rpass = wgpu_jumpstart::RenderPass::new(rpass, texture.size());
 
-            self.quad_pipeline.render(0, &mut rpass);
+            self.quad_renderer_bg.render(&mut rpass);
             self.waterfall.render(&mut rpass);
-            self.quad_pipeline.render(1, &mut rpass);
+            self.quad_renderer_fg.render(&mut rpass);
             self.text.render(&mut rpass);
         }
 

@@ -17,26 +17,22 @@ pub trait Scene {
 fn render_nuon(
     ui: &mut nuon::Ui,
     quad_pipeline: &mut QuadRenderer,
-    layer: usize,
     text_renderer: &mut TextRenderer,
     renderer: &mut impl iced_core::image::Renderer<Handle = iced_core::image::Handle>,
 ) {
     for quad in ui.quads.iter() {
-        quad_pipeline.push(
-            layer,
-            neothesia_core::render::QuadInstance {
-                position: quad.rect.origin.into(),
-                size: quad.rect.size.into(),
-                color: wgpu_jumpstart::Color::new(
-                    quad.color.r,
-                    quad.color.g,
-                    quad.color.b,
-                    quad.color.a,
-                )
-                .into_linear_rgba(),
-                border_radius: quad.border_radius,
-            },
-        );
+        quad_pipeline.push(neothesia_core::render::QuadInstance {
+            position: quad.rect.origin.into(),
+            size: quad.rect.size.into(),
+            color: wgpu_jumpstart::Color::new(
+                quad.color.r,
+                quad.color.g,
+                quad.color.b,
+                quad.color.a,
+            )
+            .into_linear_rgba(),
+            border_radius: quad.border_radius,
+        });
     }
 
     for img in ui.images.iter() {

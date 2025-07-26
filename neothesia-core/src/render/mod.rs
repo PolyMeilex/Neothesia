@@ -12,6 +12,6 @@ pub use glow::{GlowInstance, GlowPipeline};
 pub use guidelines::GuidelineRenderer;
 pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};
 pub use note_labels::NoteLabels;
-pub use quad::{QuadInstance, QuadRenderer};
+pub use quad::{QuadInstance, QuadRenderer, QuadRendererFactory};
 pub use text::{TextRenderer, TextRendererFactory};
 pub use waterfall::WaterfallRenderer;

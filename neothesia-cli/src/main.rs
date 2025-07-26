@@ -176,7 +176,7 @@ impl Recorder {
         let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
 
         {
-            let mut rpass = self
+            let rpass = self
                 .gpu
                 .encoder
                 .begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -194,6 +194,7 @@ impl Recorder {
                     timestamp_writes: None,
                     occlusion_query_set: None,
                 });
+            let mut rpass = wgpu_jumpstart::RenderPass::new(rpass, texture.size());
 
             self.quad_pipeline.render(0, &mut rpass);
             self.waterfall.render(&mut rpass);

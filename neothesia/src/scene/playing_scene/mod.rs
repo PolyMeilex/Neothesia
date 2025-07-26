@@ -266,7 +266,7 @@ impl Scene for PlayingScene {
     }
 
     #[profiling::function]
-    fn render<'pass>(&'pass mut self, rpass: &mut wgpu::RenderPass<'pass>) {
+    fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_pipeline.render(LAYER_BG, rpass);
         self.waterfall.render(rpass);
         if let Some(note_labels) = self.note_labels.as_mut() {

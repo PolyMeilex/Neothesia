@@ -182,26 +182,28 @@ impl Neothesia {
         {
             let bg_color = self.context.config.background_color();
             let bg_color = wgpu_jumpstart::Color::from(bg_color).into_linear_wgpu_color();
-            let mut rpass =
-                self.context
-                    .gpu
-                    .encoder
-                    .begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Main Neothesia Pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(bg_color),
-                                store: wgpu::StoreOp::Store,
-                            },
-                            depth_slice: None,
-                        })],
+            let rpass = self
+                .context
+                .gpu
+                .encoder
+                .begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Main Neothesia Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(bg_color),
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
 
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+
+            let mut rpass = wgpu_jumpstart::RenderPass::new(rpass, frame.texture.size());
 
             self.game_scene.render(&mut rpass);
         }

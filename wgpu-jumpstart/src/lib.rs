@@ -1,6 +1,8 @@
 #![allow(clippy::single_match)]
 
 mod error;
+use std::ops::{Deref, DerefMut};
+
 pub use error::GpuInitError;
 
 mod color;
@@ -24,3 +26,29 @@ pub use {
     transform_uniform::TransformUniform,
     uniform::Uniform,
 };
+
+pub struct RenderPass<'a>(wgpu::RenderPass<'a>, wgpu::Extent3d);
+
+impl<'a> RenderPass<'a> {
+    pub fn new(rpass: wgpu::RenderPass<'a>, size: wgpu::Extent3d) -> Self {
+        Self(rpass, size)
+    }
+
+    pub fn size(&self) -> wgpu::Extent3d {
+        self.1
+    }
+}
+
+impl<'a> Deref for RenderPass<'a> {
+    type Target = wgpu::RenderPass<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> DerefMut for RenderPass<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}

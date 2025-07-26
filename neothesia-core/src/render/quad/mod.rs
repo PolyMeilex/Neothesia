@@ -3,7 +3,12 @@ pub use instance_data::QuadInstance;
 
 use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
 
-type QuadsLayer = Instances<QuadInstance>;
+use crate::utils::Rect;
+
+pub struct QuadsLayer {
+    scissor_rect: Rect,
+    quads: Instances<QuadInstance>,
+}
 
 #[derive(Clone)]
 pub struct QuadPipeline {
@@ -55,20 +60,23 @@ impl QuadPipeline {
     }
 
     pub fn new_layer(device: &wgpu::Device, size: usize) -> QuadsLayer {
-        Instances::new(device, size)
+        QuadsLayer {
+            scissor_rect: Rect::zero(),
+            quads: Instances::new(device, size),
+        }
     }
 
     #[profiling::function]
-    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, instances: &QuadsLayer) {
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, layer: &QuadsLayer) {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.quad.vertex_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, instances.buffer.slice(..));
+        render_pass.set_vertex_buffer(1, layer.quads.buffer.slice(..));
 
         render_pass.set_index_buffer(self.quad.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..instances.len());
+        render_pass.draw_indexed(0..self.quad.indices_len, 0, 0..layer.quads.len());
     }
 }
 
@@ -89,34 +97,71 @@ impl<'a> QuadRenderer {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
+        self.layers.len()
+    }
+
+    pub fn ensure_n_layers(&mut self, count: usize) {
+        self.layers
+            .resize_with(count, || QuadPipeline::new_layer(&self.device, 100));
+    }
+
     pub fn init_layer(&mut self, size: usize) {
         self.layers
             .push(QuadPipeline::new_layer(&self.device, size));
     }
 
     #[profiling::function]
-    pub fn render(&'a self, layer_id: usize, render_pass: &mut wgpu::RenderPass<'a>) {
-        self.pipeline.render(render_pass, &self.layers[layer_id]);
+    pub fn render(&'a self, layer_id: usize, render_pass: &mut wgpu_jumpstart::RenderPass<'a>) {
+        let layer = &self.layers[layer_id];
+
+        let pass_size = render_pass.size();
+
+        if layer.scissor_rect == Rect::zero() {
+            render_pass.set_scissor_rect(0, 0, pass_size.width, pass_size.height);
+        } else {
+            render_pass.set_scissor_rect(
+                layer.scissor_rect.origin.x as u32,
+                layer.scissor_rect.origin.y as u32,
+                layer.scissor_rect.size.width as u32,
+                layer.scissor_rect.size.height as u32,
+            );
+        }
+
+        self.pipeline.render(render_pass, layer);
+
+        // Revert
+        if layer.scissor_rect != Rect::zero() {
+            render_pass.set_scissor_rect(0, 0, pass_size.width, pass_size.height);
+        }
     }
 
     pub fn clear(&mut self) {
         for layer in self.layers.iter_mut() {
-            layer.data.clear();
+            layer.quads.data.clear();
         }
     }
 
     pub fn layer(&mut self, layer_id: usize) -> &mut Vec<QuadInstance> {
-        &mut self.layers[layer_id].data
+        &mut self.layers[layer_id].quads.data
+    }
+
+    pub fn set_scissor_rect(&mut self, layer_id: usize, rect: Rect) {
+        self.layers[layer_id].scissor_rect = rect;
     }
 
     pub fn push(&mut self, layer_id: usize, quad: QuadInstance) {
-        self.layers[layer_id].data.push(quad)
+        self.layers[layer_id].quads.data.push(quad)
     }
 
     #[profiling::function]
     pub fn prepare(&mut self) {
         for layer in self.layers.iter_mut() {
-            layer.update(&self.device, &self.queue);
+            layer.quads.update(&self.device, &self.queue);
         }
     }
 }

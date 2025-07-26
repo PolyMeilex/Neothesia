@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
+use neothesia_core::render::TextRendererFactory;
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;
 
@@ -18,6 +19,7 @@ pub struct Context {
     pub gpu: Gpu,
 
     pub transform: Uniform<TransformUniform>,
+    pub text_renderer_factory: TextRendererFactory,
 
     pub output_manager: OutputManager,
     pub input_manager: InputManager,
@@ -65,6 +67,8 @@ impl Context {
 
         let config = Config::new();
 
+        let text_renderer_factory = TextRendererFactory::new(&gpu);
+
         Self {
             window,
             iced_manager,
@@ -72,6 +76,7 @@ impl Context {
             window_state,
             gpu,
             transform: transform_uniform,
+            text_renderer_factory,
 
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),

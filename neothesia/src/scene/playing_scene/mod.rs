@@ -90,12 +90,12 @@ impl PlayingScene {
             keyboard_layout.clone(),
         );
 
-        let mut text_renderer = TextRenderer::new(&ctx.gpu);
+        let text_renderer = ctx.text_renderer_factory.new_renderer();
 
         let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
             waterfall.notes(),
-            text_renderer.new_renderer(),
+            ctx.text_renderer_factory.new_renderer(),
         ));
 
         let player = MidiPlayer::new(
@@ -206,7 +206,6 @@ impl PlayingScene {
 impl Scene for PlayingScene {
     #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
-        self.text_renderer.end_frame();
         self.quad_pipeline.clear();
 
         self.rewind_controller.update(&mut self.player, ctx, delta);

@@ -1,6 +1,6 @@
 use crate::utils::Point;
 
-use super::{waterfall::NoteList, KeyboardRenderer, TextRendererInstance};
+use super::{waterfall::NoteList, KeyboardRenderer, TextRenderer};
 
 #[derive(Default)]
 struct LabelsCache {
@@ -62,11 +62,11 @@ pub struct NoteLabels {
     pos: Point<f32>,
     notes: NoteList,
     labels_cache: LabelsCache,
-    text_renderer: TextRendererInstance,
+    text_renderer: TextRenderer,
 }
 
 impl NoteLabels {
-    pub fn new(pos: Point<f32>, notes: &NoteList, text_renderer: TextRendererInstance) -> Self {
+    pub fn new(pos: Point<f32>, notes: &NoteList, text_renderer: TextRenderer) -> Self {
         Self {
             pos,
             notes: notes.clone(),

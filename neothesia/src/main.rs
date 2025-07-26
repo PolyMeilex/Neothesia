@@ -219,6 +219,8 @@ impl Neothesia {
 
         self.context.window.pre_present_notify();
         frame.present();
+
+        self.context.text_renderer_factory.end_frame();
     }
 }
 

@@ -28,7 +28,7 @@ struct TextShared {
     swash_cache: glyphon::SwashCache,
 }
 
-pub struct TextRendererInstance {
+pub struct TextRenderer {
     text_renderer: glyphon::TextRenderer,
     text_areas: Vec<TextArea>,
     shared: Rc<RefCell<TextShared>>,
@@ -36,7 +36,7 @@ pub struct TextRendererInstance {
     queue: wgpu::Queue,
 }
 
-impl TextRendererInstance {
+impl TextRenderer {
     fn new(device: &wgpu::Device, queue: &wgpu::Queue, shared: Rc<RefCell<TextShared>>) -> Self {
         let text_renderer = glyphon::TextRenderer::new(
             &mut shared.borrow_mut().atlas,
@@ -52,126 +52,6 @@ impl TextRendererInstance {
             device: device.clone(),
             queue: queue.clone(),
         }
-    }
-
-    pub fn queue(&mut self, area: TextArea) {
-        self.text_areas.push(area);
-    }
-
-    pub fn update(&mut self, logical_size: (u32, u32)) {
-        let shared = &mut *self.shared.borrow_mut();
-        let elements = self.text_areas.iter().map(|area| glyphon::TextArea {
-            buffer: &area.buffer,
-            left: area.left,
-            top: area.top,
-            scale: area.scale,
-            bounds: area.bounds,
-            default_color: area.default_color,
-            custom_glyphs: &[],
-        });
-
-        shared.viewport.update(
-            &self.queue,
-            glyphon::Resolution {
-                width: logical_size.0,
-                height: logical_size.1,
-            },
-        );
-
-        self.text_renderer
-            .prepare(
-                &self.device,
-                &self.queue,
-                &mut crate::font_system::font_system().borrow_mut(),
-                &mut shared.atlas,
-                &shared.viewport,
-                elements,
-                &mut shared.swash_cache,
-            )
-            .unwrap();
-
-        self.text_areas.clear();
-    }
-
-    pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
-        let shared = self.shared.borrow();
-        self.text_renderer
-            .render(&shared.atlas, &shared.viewport, render_pass)
-            .unwrap();
-    }
-}
-
-pub struct TextRenderer {
-    _cache: glyphon::Cache,
-
-    default_instance: TextRendererInstance,
-}
-
-impl TextRenderer {
-    pub fn new(gpu: &Gpu) -> Self {
-        let swash_cache = glyphon::SwashCache::new();
-        let cache = glyphon::Cache::new(&gpu.device);
-        let atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.texture_format);
-
-        let viewport = glyphon::Viewport::new(&gpu.device, &cache);
-
-        let shared = Rc::new(RefCell::new(TextShared {
-            viewport,
-            atlas,
-            swash_cache,
-        }));
-
-        let default_instance = TextRendererInstance::new(&gpu.device, &gpu.queue, shared);
-
-        Self {
-            _cache: cache,
-            default_instance,
-        }
-    }
-
-    pub fn new_renderer(&mut self) -> TextRendererInstance {
-        TextRendererInstance::new(
-            &self.default_instance.device,
-            &self.default_instance.queue,
-            self.default_instance.shared.clone(),
-        )
-    }
-
-    pub fn queue_mut(&mut self) -> &mut Vec<TextArea> {
-        &mut self.default_instance.text_areas
-    }
-
-    pub fn queue(&mut self, area: TextArea) {
-        self.default_instance.queue(area);
-    }
-
-    pub fn queue_text(&mut self, text: &str) {
-        let font_system = crate::font_system::font_system();
-        let font_system = &mut font_system.borrow_mut();
-
-        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
-        buffer.set_text(
-            font_system,
-            text,
-            &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
-            glyphon::Shaping::Basic,
-        );
-        buffer.shape_until_scroll(font_system, false);
-
-        #[cfg(debug_assertions)]
-        let top = 20.0;
-        #[cfg(not(debug_assertions))]
-        let top = 5.0;
-
-        self.queue(TextArea {
-            buffer,
-            left: 0.0,
-            top,
-            scale: 1.0,
-            bounds: glyphon::TextBounds::default(),
-            default_color: glyphon::Color::rgb(255, 255, 255),
-        });
     }
 
     pub fn measure(buffer: &glyphon::cosmic_text::Buffer) -> (f32, f32) {
@@ -276,6 +156,35 @@ impl TextRenderer {
         self.queue_buffer(x, y, buffer);
     }
 
+    pub fn queue_text(&mut self, text: &str) {
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
+        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
+        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
+        buffer.set_text(
+            font_system,
+            text,
+            &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
+            glyphon::Shaping::Basic,
+        );
+        buffer.shape_until_scroll(font_system, false);
+
+        #[cfg(debug_assertions)]
+        let top = 20.0;
+        #[cfg(not(debug_assertions))]
+        let top = 5.0;
+
+        self.queue(TextArea {
+            buffer,
+            left: 0.0,
+            top,
+            scale: 1.0,
+            bounds: glyphon::TextBounds::default(),
+            default_color: glyphon::Color::rgb(255, 255, 255),
+        });
+    }
+
     pub fn queue_fps(&mut self, fps: f64, y: f32) {
         let font_system = crate::font_system::font_system();
         let font_system = &mut font_system.borrow_mut();
@@ -301,16 +210,89 @@ impl TextRenderer {
         });
     }
 
-    #[profiling::function]
-    pub fn update(&mut self, logical_size: (u32, u32)) {
-        self.default_instance.update(logical_size);
+    pub fn queue_mut(&mut self) -> &mut Vec<TextArea> {
+        &mut self.text_areas
     }
 
-    pub fn end_frame(&mut self) {
-        self.default_instance.shared.borrow_mut().atlas.trim();
+    pub fn queue(&mut self, area: TextArea) {
+        self.text_areas.push(area);
+    }
+
+    pub fn update(&mut self, logical_size: (u32, u32)) {
+        let shared = &mut *self.shared.borrow_mut();
+        let elements = self.text_areas.iter().map(|area| glyphon::TextArea {
+            buffer: &area.buffer,
+            left: area.left,
+            top: area.top,
+            scale: area.scale,
+            bounds: area.bounds,
+            default_color: area.default_color,
+            custom_glyphs: &[],
+        });
+
+        shared.viewport.update(
+            &self.queue,
+            glyphon::Resolution {
+                width: logical_size.0,
+                height: logical_size.1,
+            },
+        );
+
+        self.text_renderer
+            .prepare(
+                &self.device,
+                &self.queue,
+                &mut crate::font_system::font_system().borrow_mut(),
+                &mut shared.atlas,
+                &shared.viewport,
+                elements,
+                &mut shared.swash_cache,
+            )
+            .unwrap();
+
+        self.text_areas.clear();
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
-        self.default_instance.render(render_pass);
+        let shared = self.shared.borrow();
+        self.text_renderer
+            .render(&shared.atlas, &shared.viewport, render_pass)
+            .unwrap();
+    }
+}
+
+pub struct TextRendererFactory {
+    shared: Rc<RefCell<TextShared>>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+}
+
+impl TextRendererFactory {
+    pub fn new(gpu: &Gpu) -> Self {
+        let swash_cache = glyphon::SwashCache::new();
+        let cache = glyphon::Cache::new(&gpu.device);
+        let atlas = glyphon::TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.texture_format);
+
+        let viewport = glyphon::Viewport::new(&gpu.device, &cache);
+
+        let shared = Rc::new(RefCell::new(TextShared {
+            viewport,
+            atlas,
+            swash_cache,
+        }));
+
+        Self {
+            shared,
+            device: gpu.device.clone(),
+            queue: gpu.queue.clone(),
+        }
+    }
+
+    pub fn new_renderer(&self) -> TextRenderer {
+        TextRenderer::new(&self.device, &self.queue, self.shared.clone())
+    }
+
+    pub fn end_frame(&mut self) {
+        self.shared.borrow_mut().atlas.trim();
     }
 }

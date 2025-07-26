@@ -3,7 +3,10 @@ use std::{default::Default, time::Duration};
 use neothesia_core::{
     config::Config,
     piano_layout,
-    render::{GuidelineRenderer, KeyboardRenderer, QuadRenderer, TextRenderer, WaterfallRenderer},
+    render::{
+        GuidelineRenderer, KeyboardRenderer, QuadRenderer, TextRenderer, TextRendererFactory,
+        WaterfallRenderer,
+    },
 };
 use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
 
@@ -107,7 +110,8 @@ impl Recorder {
 
         waterfall.update(time_without_lead_in(&playback));
 
-        let text = TextRenderer::new(&gpu);
+        let text = TextRendererFactory::new(&gpu);
+        let text = text.new_renderer();
 
         let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
             sample_rate: 44100.0,

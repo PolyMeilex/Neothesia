@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use glyphon::cosmic_text;
 use wgpu_jumpstart::Gpu;
 
 pub use glyphon;
@@ -54,48 +55,6 @@ impl TextRenderer {
         }
     }
 
-    pub fn measure(buffer: &glyphon::cosmic_text::Buffer) -> (f32, f32) {
-        buffer
-            .layout_runs()
-            .fold((0.0, 0.0), |(width, height), run| {
-                (run.line_w.max(width), height + run.line_height)
-            })
-    }
-
-    pub fn gen_buffer(&mut self, size: f32, text: &str) -> glyphon::Buffer {
-        self.gen_buffer_with_attr(
-            size,
-            text,
-            glyphon::Attrs::new().family(glyphon::Family::Name("Roboto")),
-        )
-    }
-
-    pub fn gen_buffer_bold(&mut self, size: f32, text: &str) -> glyphon::Buffer {
-        self.gen_buffer_with_attr(
-            size,
-            text,
-            glyphon::Attrs::new()
-                .family(glyphon::Family::Name("Roboto"))
-                .weight(glyphon::Weight::BOLD),
-        )
-    }
-
-    pub fn gen_buffer_with_attr(
-        &mut self,
-        size: f32,
-        text: &str,
-        attrs: glyphon::Attrs,
-    ) -> glyphon::Buffer {
-        let font_system = crate::font_system::font_system();
-        let font_system = &mut font_system.borrow_mut();
-
-        let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
-        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
-        buffer.set_text(font_system, text, &attrs, glyphon::Shaping::Basic);
-        buffer.shape_until_scroll(font_system, false);
-        buffer
-    }
-
     pub fn queue_buffer(&mut self, x: f32, y: f32, buffer: glyphon::Buffer) {
         self.queue(TextArea {
             buffer,
@@ -147,7 +106,7 @@ impl TextRenderer {
     }
 
     pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str) {
-        let buffer = self.gen_buffer_with_attr(
+        let buffer = Self::gen_buffer_with_attr(
             size,
             icon,
             glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
@@ -258,6 +217,51 @@ impl TextRenderer {
         self.text_renderer
             .render(&shared.atlas, &shared.viewport, render_pass)
             .unwrap();
+    }
+}
+
+/// cosmic_text::Buffer helpers
+impl TextRenderer {
+    pub fn measure(buffer: &cosmic_text::Buffer) -> (f32, f32) {
+        buffer
+            .layout_runs()
+            .fold((0.0, 0.0), |(width, height), run| {
+                (run.line_w.max(width), height + run.line_height)
+            })
+    }
+
+    pub fn gen_buffer_with_attr(
+        size: f32,
+        text: &str,
+        attrs: cosmic_text::Attrs,
+    ) -> cosmic_text::Buffer {
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
+        let mut buffer =
+            cosmic_text::Buffer::new(font_system, cosmic_text::Metrics::new(size, size));
+        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
+        buffer.set_text(font_system, text, &attrs, cosmic_text::Shaping::Basic);
+        buffer.shape_until_scroll(font_system, false);
+        buffer
+    }
+
+    pub fn gen_buffer(size: f32, text: &str) -> cosmic_text::Buffer {
+        Self::gen_buffer_with_attr(
+            size,
+            text,
+            cosmic_text::Attrs::new().family(cosmic_text::Family::Name("Roboto")),
+        )
+    }
+
+    pub fn gen_buffer_bold(size: f32, text: &str) -> cosmic_text::Buffer {
+        Self::gen_buffer_with_attr(
+            size,
+            text,
+            cosmic_text::Attrs::new()
+                .family(cosmic_text::Family::Name("Roboto"))
+                .weight(cosmic_text::Weight::BOLD),
+        )
     }
 }
 

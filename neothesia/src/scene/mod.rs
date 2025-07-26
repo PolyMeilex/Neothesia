@@ -63,9 +63,9 @@ fn render_nuon(
 
     for text in ui.text.iter() {
         let buffer = if text.bold {
-            text_renderer.gen_buffer_bold(text.size, &text.text)
+            TextRenderer::gen_buffer_bold(text.size, &text.text)
         } else {
-            text_renderer.gen_buffer(text.size, &text.text)
+            TextRenderer::gen_buffer(text.size, &text.text)
         };
 
         match text.text_justify {

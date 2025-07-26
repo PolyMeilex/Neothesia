@@ -85,8 +85,8 @@ impl Keyboard {
         self.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
     }
 
-    pub fn update(&mut self, quads: &mut QuadRenderer, layer: usize, brush: &mut TextRenderer) {
-        self.renderer.update(quads, layer, brush)
+    pub fn update(&mut self, quads: &mut QuadRenderer, brush: &mut TextRenderer) {
+        self.renderer.update(quads, brush)
     }
 
     pub fn reset_notes(&mut self) {

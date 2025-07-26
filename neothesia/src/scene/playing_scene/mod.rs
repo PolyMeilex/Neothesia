@@ -28,9 +28,6 @@ use toast_manager::ToastManager;
 mod animation;
 mod top_bar;
 
-const LAYER_BG: usize = 0;
-const LAYER_FG: usize = 1;
-
 struct GlowState {
     time: f32,
 }
@@ -50,7 +47,8 @@ pub struct PlayingScene {
 
     player: MidiPlayer,
     rewind_controller: RewindController,
-    quad_pipeline: QuadRenderer,
+    quad_renderer_bg: QuadRenderer,
+    quad_renderer_fg: QuadRenderer,
     glow: Option<Glow>,
     toast_manager: ToastManager,
 
@@ -106,9 +104,8 @@ impl PlayingScene {
         );
         waterfall.update(player.time_without_lead_in());
 
-        let mut quad_pipeline = QuadRenderer::new(&ctx.gpu, &ctx.transform);
-        quad_pipeline.init_layer(50); // BG
-        quad_pipeline.init_layer(150); // FG
+        let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
+        let quad_renderer_fg = ctx.quad_renderer_facotry.new_renderer();
 
         let glow_states: Vec<GlowState> = keyboard
             .layout()
@@ -126,7 +123,8 @@ impl PlayingScene {
             waterfall,
             player,
             rewind_controller: RewindController::new(),
-            quad_pipeline,
+            quad_renderer_bg,
+            quad_renderer_fg,
             glow: ctx.config.glow().then_some(Glow {
                 pipeline: GlowPipeline::new(&ctx.gpu, &ctx.transform),
                 states: glow_states,
@@ -206,7 +204,8 @@ impl PlayingScene {
 impl Scene for PlayingScene {
     #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
-        self.quad_pipeline.clear();
+        self.quad_renderer_bg.clear();
+        self.quad_renderer_fg.clear();
 
         self.rewind_controller.update(&mut self.player, ctx, delta);
         self.toast_manager.update(&mut self.text_renderer);
@@ -214,13 +213,12 @@ impl Scene for PlayingScene {
         let time = self.update_midi_player(ctx, delta);
         self.waterfall.update(time);
         self.guidelines.update(
-            &mut self.quad_pipeline,
-            LAYER_BG,
+            &mut self.quad_renderer_bg,
             ctx.config.animation_speed(),
             time,
         );
         self.keyboard
-            .update(&mut self.quad_pipeline, LAYER_FG, &mut self.text_renderer);
+            .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.update(
                 ctx.window_state.logical_size.into(),
@@ -236,13 +234,14 @@ impl Scene for PlayingScene {
 
         super::render_nuon(
             &mut self.nuon,
-            &mut self.quad_pipeline,
-            LAYER_FG,
+            &mut self.quad_renderer_fg,
             &mut self.text_renderer,
             &mut ctx.iced_manager.renderer,
         );
 
-        self.quad_pipeline.prepare();
+        self.quad_renderer_bg.prepare();
+        self.quad_renderer_fg.prepare();
+
         if let Some(glow) = &mut self.glow {
             glow.pipeline.prepare();
         }
@@ -266,12 +265,12 @@ impl Scene for PlayingScene {
 
     #[profiling::function]
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
-        self.quad_pipeline.render(LAYER_BG, rpass);
+        self.quad_renderer_bg.render(rpass);
         self.waterfall.render(rpass);
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.render(rpass);
         }
-        self.quad_pipeline.render(LAYER_FG, rpass);
+        self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
             glow.pipeline.render(rpass);
         }

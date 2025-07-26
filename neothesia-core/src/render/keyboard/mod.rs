@@ -170,7 +170,7 @@ impl KeyboardRenderer {
     }
 
     #[profiling::function]
-    pub fn update(&mut self, quads: &mut QuadRenderer, layer: usize, text: &mut TextRenderer) {
+    pub fn update(&mut self, quads: &mut QuadRenderer, text: &mut TextRenderer) {
         if self.cache.is_empty() {
             self.rebuild_quad_cache();
         }
@@ -181,7 +181,7 @@ impl KeyboardRenderer {
 
         {
             profiling::scope!("push quads from cache");
-            quads.layer(layer).extend(&self.cache);
+            quads.layer().extend(&self.cache);
         }
 
         {

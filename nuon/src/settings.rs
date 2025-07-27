@@ -128,9 +128,9 @@ impl<'a> SettingsRow<'a> {
                     .size(row_inner_w, row_h)
                     .build(ui);
             } else {
-                let gap = 8.0;
+                let gap = 5.0;
                 let sum_h = title_h + subtitle_h + gap;
-                let y = row_h / 2.0 - sum_h / 2.0;
+                let y = super::center_y(row_h, sum_h);
 
                 nuon::label()
                     .y(y)
@@ -145,7 +145,6 @@ impl<'a> SettingsRow<'a> {
                     .color([1.0, 1.0, 1.0, 0.5])
                     .text_justify(nuon::TextJustify::Left)
                     .font_size(subtitle_h)
-                    .y(row_h / 2.0)
                     .size(row_inner_w, subtitle_h)
                     .build(ui);
             }

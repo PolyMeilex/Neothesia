@@ -10,6 +10,14 @@ pub type Rect = euclid::default::Rect<f32>;
 mod settings;
 pub use settings::*;
 
+pub fn center_y(container_h: f32, item_h: f32) -> f32 {
+    container_h / 2.0 - item_h / 2.0
+}
+
+pub fn center_x(container_w: f32, item_w: f32) -> f32 {
+    container_w / 2.0 - item_w / 2.0
+}
+
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub r: f32,
@@ -890,24 +898,16 @@ impl Button {
 
         if self.label.is_empty() {
             let icon_size = 20.0;
-            let half_size = icon_size / 2.0;
             let pad_x = pad_x * 2.0;
 
-            let (x, y) = match self.text_justify {
-                TextJustify::Left => {
-                    let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                    (rect.origin.x + pad_x, y)
-                }
+            let y = rect.origin.y + self::center_y(rect.size.height, icon_size);
+            let x = match self.text_justify {
+                TextJustify::Left => rect.origin.x + pad_x,
                 TextJustify::Right => {
                     let x = rect.origin.x + rect.size.width - icon_size;
-                    let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                    (x + pad_x, y)
+                    x + pad_x
                 }
-                TextJustify::Center => {
-                    let x = rect.origin.x + rect.size.width / 2.0 - half_size;
-                    let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                    (x, y)
-                }
+                TextJustify::Center => rect.origin.x + center_x(rect.size.width, icon_size),
             };
 
             layer.icons.push(IconRenderElement {
@@ -1042,12 +1042,8 @@ impl Label {
         }
 
         if !self.icon.is_empty() {
-            let (x, y) = {
-                let half_size = self.font_size / 2.0;
-                let x = rect.origin.x + rect.size.width / 2.0 - half_size;
-                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                (x, y)
-            };
+            let x = rect.origin.x + center_x(rect.size.width, self.font_size);
+            let y = rect.origin.y + center_x(rect.size.height, self.font_size);
 
             layer.icons.push(IconRenderElement {
                 origin: Point::new(x, y),

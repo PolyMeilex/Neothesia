@@ -7,6 +7,9 @@ pub type Size = euclid::default::Size2D<f32>;
 pub type Box2D = euclid::default::Box2D<f32>;
 pub type Rect = euclid::default::Rect<f32>;
 
+mod settings;
+pub use settings::*;
+
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub r: f32,
@@ -334,7 +337,7 @@ impl Layer {
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
         let rect = if self.rect == Rect::zero() {
-            Rect::zero()
+            ui.layers.current_mut().scissor_rect
         } else {
             Rect::new(
                 ui.translation_stack.translate(self.rect.origin),
@@ -383,11 +386,6 @@ impl Scroll {
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
         self::layer().scissor_rect(self.rect).build(ui, |ui| {
-            self::quad()
-                .size(self.rect.size.width, self.rect.size.height)
-                .color([17; 3])
-                .build(ui);
-
             let last = self::translate().y(-self.scroll).build(ui, build);
             let last_y = last.y - self.rect.size.height;
 
@@ -438,7 +436,7 @@ impl Card {
 
         self::quad()
             .size(last.x, last.y)
-            .color([42; 3])
+            .color([37, 35, 42])
             .border_radius([5.0; 4])
             .build(ui);
 
@@ -448,6 +446,38 @@ impl Card {
 
 pub fn card() -> Card {
     Card::new()
+}
+
+pub struct RowGroup {}
+
+impl Default for RowGroup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RowGroup {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> Point {
+        let last = self::translate().build(ui, |ui| {
+            self::layer().build(ui, build);
+        });
+
+        self::quad()
+            .size(last.x, last.y)
+            .color([37, 35, 42])
+            .border_radius([10.0; 4])
+            .build(ui);
+
+        last
+    }
+}
+
+pub fn row_group() -> RowGroup {
+    RowGroup::new()
 }
 
 #[derive(Debug, Clone)]
@@ -717,6 +747,7 @@ pub struct Button {
     preseed_color: Color,
     border_radius: [f32; 4],
     icon: &'static str,
+    label: &'static str,
     text_justify: TextJustify,
 }
 
@@ -741,6 +772,7 @@ impl Button {
             preseed_color: Color::new_u8(67, 65, 72, 1.0),
             border_radius: [0.0; 4],
             icon: "X",
+            label: "",
             text_justify: TextJustify::Center,
         }
     }
@@ -805,6 +837,11 @@ impl Button {
         self
     }
 
+    pub fn label(mut self, label: &'static str) -> Self {
+        self.label = label;
+        self
+    }
+
     pub fn text_justify(mut self, text_justify: TextJustify) -> Self {
         self.text_justify = text_justify;
         self
@@ -813,6 +850,8 @@ impl Button {
     fn gen_id(&self) -> Id {
         if let Some(id) = self.id {
             Id::hash(id)
+        } else if !self.label.is_empty() {
+            Id::hash(self.label)
         } else {
             Id::hash(self.icon)
         }
@@ -843,31 +882,51 @@ impl Button {
             color,
         });
 
-        let icon_size = 20.0;
-        let half_size = icon_size / 2.0;
-
-        let (x, y) = match self.text_justify {
-            TextJustify::Left => {
-                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                (rect.origin.x + 2.0, y)
-            }
-            TextJustify::Right => {
-                let x = rect.origin.x + rect.size.width - icon_size;
-                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                (x - 2.0, y)
-            }
-            TextJustify::Center => {
-                let x = rect.origin.x + rect.size.width / 2.0 - half_size;
-                let y = rect.origin.y + rect.size.height / 2.0 - half_size;
-                (x, y)
-            }
+        let pad_x = match self.text_justify {
+            TextJustify::Left => 1.0,
+            TextJustify::Right => -1.0,
+            TextJustify::Center => 0.0,
         };
 
-        layer.icons.push(IconRenderElement {
-            origin: Point::new(x, y),
-            size: icon_size,
-            icon: self.icon.to_string(),
-        });
+        if self.label.is_empty() {
+            let icon_size = 20.0;
+            let half_size = icon_size / 2.0;
+            let pad_x = pad_x * 2.0;
+
+            let (x, y) = match self.text_justify {
+                TextJustify::Left => {
+                    let y = rect.origin.y + rect.size.height / 2.0 - half_size;
+                    (rect.origin.x + pad_x, y)
+                }
+                TextJustify::Right => {
+                    let x = rect.origin.x + rect.size.width - icon_size;
+                    let y = rect.origin.y + rect.size.height / 2.0 - half_size;
+                    (x + pad_x, y)
+                }
+                TextJustify::Center => {
+                    let x = rect.origin.x + rect.size.width / 2.0 - half_size;
+                    let y = rect.origin.y + rect.size.height / 2.0 - half_size;
+                    (x, y)
+                }
+            };
+
+            layer.icons.push(IconRenderElement {
+                origin: Point::new(x, y),
+                size: icon_size,
+                icon: self.icon.to_string(),
+            });
+        } else {
+            let pad_x = pad_x * 10.0;
+
+            layer.text.push(TextRenderElement {
+                rect: Rect::new(Point::new(rect.origin.x + pad_x, rect.origin.y), rect.size),
+                text_justify: self.text_justify,
+                size: 16.0,
+                bold: false,
+                text: self.label.to_string(),
+                color: Color::new_u8(255, 255, 255, 1.0),
+            });
+        }
 
         clicked
     }

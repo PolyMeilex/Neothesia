@@ -183,14 +183,20 @@ impl TextRenderer {
         self.text_areas.push(area);
     }
 
-    pub fn update(&mut self, logical_size: (u32, u32)) {
+    pub fn update(&mut self, physical_size: dpi::PhysicalSize<u32>, scale: f32) {
         let shared = &mut *self.shared.borrow_mut();
+
         let elements = self.text_areas.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
-            left: area.left,
-            top: area.top,
-            scale: area.scale,
-            bounds: area.bounds,
+            left: area.left * scale,
+            top: area.top * scale,
+            scale: area.scale * scale,
+            bounds: glyphon::TextBounds {
+                left: (area.bounds.left as f32 * scale) as i32,
+                top: (area.bounds.top as f32 * scale) as i32,
+                right: (area.bounds.right as f32 * scale) as i32,
+                bottom: (area.bounds.bottom as f32 * scale) as i32,
+            },
             default_color: area.default_color,
             custom_glyphs: &[],
         });
@@ -198,8 +204,8 @@ impl TextRenderer {
         shared.viewport.update(
             &self.queue,
             glyphon::Resolution {
-                width: logical_size.0,
-                height: logical_size.1,
+                width: physical_size.width,
+                height: physical_size.height,
             },
         );
 

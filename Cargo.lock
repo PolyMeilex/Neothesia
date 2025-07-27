@@ -2151,6 +2151,7 @@ name = "neothesia-core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "dpi",
  "euclid",
  "glyphon",
  "log",

@@ -171,7 +171,10 @@ impl Recorder {
         self.quad_renderer_bg.prepare();
         self.quad_renderer_fg.prepare();
 
-        self.text.update((self.width, self.height));
+        self.text.update(
+            neothesia_core::dpi::PhysicalSize::new(self.width, self.height),
+            1.0,
+        );
     }
 
     fn render(

@@ -223,7 +223,8 @@ impl Scene for PlayingScene {
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.update(
-                ctx.window_state.logical_size.into(),
+                ctx.window_state.physical_size,
+                ctx.window_state.scale_factor as f32,
                 self.keyboard.renderer(),
                 ctx.config.animation_speed(),
                 time,
@@ -250,8 +251,10 @@ impl Scene for PlayingScene {
                 .topbar_expand_animation
                 .animate_bool(5.0, 80.0, ctx.frame_timestamp),
         );
-        self.text_renderer
-            .update(ctx.window_state.logical_size.into());
+        self.text_renderer.update(
+            ctx.window_state.physical_size,
+            ctx.window_state.scale_factor as f32,
+        );
 
         if self.player.is_finished() && !self.player.is_paused() {
             ctx.proxy

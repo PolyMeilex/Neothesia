@@ -125,8 +125,10 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
         }
 
         out.quad_renderer.prepare();
-        out.text_renderer
-            .update(ctx.window_state.logical_size.into());
+        out.text_renderer.update(
+            ctx.window_state.physical_size,
+            ctx.window_state.scale_factor as f32,
+        );
     }
 
     ui.done();

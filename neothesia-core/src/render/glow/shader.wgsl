@@ -1,6 +1,7 @@
 struct ViewUniform {
     transform: mat4x4<f32>,
     size: vec2<f32>,
+    scale: f32,
 }
 
 @group(0) @binding(0)
@@ -24,11 +25,14 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(vertex: Vertex, quad: QuadInstance) -> VertexOutput {
+    var quad_position = quad.q_position * view_uniform.scale;
+    var quad_size = quad.size * view_uniform.scale;
+
     var i_transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(quad.size.x, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, quad.size.y, 0.0, 0.0),
+        vec4<f32>(quad_size.x, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, quad_size.y, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(quad.q_position, 0.0, 1.0)
+        vec4<f32>(quad_position, 0.0, 1.0)
     );
 
     var out: VertexOutput;

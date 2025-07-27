@@ -7,6 +7,9 @@ pub type Size = euclid::default::Size2D<f32>;
 pub type Box2D = euclid::default::Box2D<f32>;
 pub type Rect = euclid::default::Rect<f32>;
 
+mod settings;
+pub use settings::*;
+
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub r: f32,
@@ -443,6 +446,38 @@ impl Card {
 
 pub fn card() -> Card {
     Card::new()
+}
+
+pub struct RowGroup {}
+
+impl Default for RowGroup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RowGroup {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> Point {
+        let last = self::translate().build(ui, |ui| {
+            self::layer().build(ui, build);
+        });
+
+        self::quad()
+            .size(last.x, last.y)
+            .color([37, 35, 42])
+            .border_radius([10.0; 4])
+            .build(ui);
+
+        last
+    }
+}
+
+pub fn row_group() -> RowGroup {
+    RowGroup::new()
 }
 
 #[derive(Debug, Clone)]

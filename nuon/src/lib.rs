@@ -334,7 +334,7 @@ impl Layer {
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
         let rect = if self.rect == Rect::zero() {
-            Rect::zero()
+            ui.layers.current_mut().scissor_rect
         } else {
             Rect::new(
                 ui.translation_stack.translate(self.rect.origin),

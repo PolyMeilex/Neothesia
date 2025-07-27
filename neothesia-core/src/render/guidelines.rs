@@ -109,12 +109,19 @@ impl GuidelineRenderer {
     }
 
     #[profiling::function]
-    pub fn update(&mut self, quads: &mut QuadRenderer, animation_speed: f32, time: f32) {
+    pub fn update(
+        &mut self,
+        quads: &mut QuadRenderer,
+        animation_speed: f32,
+        scale: f32,
+        time: f32,
+    ) {
         if self.cache.is_empty() {
             self.reupload();
         }
 
         if self.horizontal_guidelines {
+            let animation_speed = animation_speed / scale;
             self.update_horizontal_guidelines(quads, animation_speed, time);
         }
 

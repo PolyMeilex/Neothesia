@@ -217,6 +217,7 @@ impl Scene for PlayingScene {
         self.guidelines.update(
             &mut self.quad_renderer_bg,
             ctx.config.animation_speed(),
+            ctx.window_state.scale_factor as f32,
             time,
         );
         self.keyboard

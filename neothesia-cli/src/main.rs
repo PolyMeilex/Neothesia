@@ -160,6 +160,7 @@ impl Recorder {
         self.guidelines.update(
             &mut self.quad_renderer_bg,
             self.config.animation_speed(),
+            1.0,
             time,
         );
 

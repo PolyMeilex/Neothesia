@@ -45,7 +45,7 @@ impl GuidelineRenderer {
     }
 
     /// Reupload instances to GPU
-    fn reupload(&mut self) {
+    fn reupload(&mut self, size: dpi::LogicalSize<f32>) {
         if !self.vertical_guidelines {
             return;
         }
@@ -60,7 +60,7 @@ impl GuidelineRenderer {
             let y = 0.0;
 
             let w = 1.0;
-            let h = f32::MAX;
+            let h = size.height;
 
             let color = if key.note_id() == 0 {
                 [0.2, 0.2, 0.2, 1.0]
@@ -83,6 +83,7 @@ impl GuidelineRenderer {
         quads: &mut QuadRenderer,
         animation_speed: f32,
         time: f32,
+        size: dpi::LogicalSize<f32>,
     ) {
         for masure in self
             .measures
@@ -92,7 +93,7 @@ impl GuidelineRenderer {
             let x = 0.0;
             let y = self.pos.y - (masure.as_secs_f32() - time) * animation_speed;
 
-            let w = f32::MAX;
+            let w = size.width;
             let h = 1.0;
 
             if y < 0.0 {
@@ -115,14 +116,15 @@ impl GuidelineRenderer {
         animation_speed: f32,
         scale: f32,
         time: f32,
+        size: dpi::LogicalSize<f32>,
     ) {
         if self.cache.is_empty() {
-            self.reupload();
+            self.reupload(size);
         }
 
         if self.horizontal_guidelines {
             let animation_speed = animation_speed / scale;
-            self.update_horizontal_guidelines(quads, animation_speed, time);
+            self.update_horizontal_guidelines(quads, animation_speed, time, size);
         }
 
         quads.layer().extend(&self.cache);

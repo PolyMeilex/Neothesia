@@ -162,6 +162,7 @@ impl Recorder {
             self.config.animation_speed(),
             1.0,
             time,
+            neothesia_core::dpi::LogicalSize::new(self.width as f32, self.height as f32),
         );
 
         self.waterfall.update(time);

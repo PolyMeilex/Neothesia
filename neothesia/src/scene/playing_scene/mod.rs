@@ -219,6 +219,7 @@ impl Scene for PlayingScene {
             ctx.config.animation_speed(),
             ctx.window_state.scale_factor as f32,
             time,
+            ctx.window_state.logical_size,
         );
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);

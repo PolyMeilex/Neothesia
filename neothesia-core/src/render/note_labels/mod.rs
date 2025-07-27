@@ -93,6 +93,7 @@ impl NoteLabels {
         let label_width = layout.sizing.sharp_width;
 
         let labels = self.labels_cache.get(keyboard);
+        let animation_speed = animation_speed / scale;
 
         for note in self.notes.inner.iter() {
             if !layout.range.contains(note.note) || note.channel == 9 {

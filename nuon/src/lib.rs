@@ -383,11 +383,6 @@ impl Scroll {
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
         self::layer().scissor_rect(self.rect).build(ui, |ui| {
-            self::quad()
-                .size(self.rect.size.width, self.rect.size.height)
-                .color([17; 3])
-                .build(ui);
-
             let last = self::translate().y(-self.scroll).build(ui, build);
             let last_y = last.y - self.rect.size.height;
 
@@ -438,7 +433,7 @@ impl Card {
 
         self::quad()
             .size(last.x, last.y)
-            .color([42; 3])
+            .color([37, 35, 42])
             .border_radius([5.0; 4])
             .build(ui);
 

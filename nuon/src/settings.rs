@@ -159,3 +159,108 @@ impl<'a> SettingsRow<'a> {
 pub fn settings_row<'a>() -> SettingsRow<'a> {
     SettingsRow::new()
 }
+
+pub enum SettingsRowSpinResult {
+    Plus,
+    Minus,
+    Idle,
+}
+
+pub struct SettingsRowSpin<'a> {
+    row: SettingsRow<'a>,
+    up_id: String,
+    down_id: String,
+}
+
+impl<'a> SettingsRowSpin<'a> {
+    pub fn new() -> Self {
+        Self {
+            row: settings_row(),
+            up_id: String::new(),
+            down_id: String::new(),
+        }
+    }
+
+    pub fn title(mut self, label: impl Into<String>) -> Self {
+        self.row = self.row.title(label);
+        self
+    }
+
+    pub fn subtitle(mut self, label: impl Into<String>) -> Self {
+        self.row = self.row.subtitle(label);
+        self
+    }
+
+    pub fn plus_id(mut self, id: impl Into<String>) -> Self {
+        self.up_id = id.into();
+        self
+    }
+
+    pub fn minus_id(mut self, id: impl Into<String>) -> Self {
+        self.down_id = id.into();
+        self
+    }
+
+    pub fn build(
+        self,
+        ui: &mut Ui,
+        add: &dyn Fn(&mut Ui, SettingsRow<'_>),
+    ) -> SettingsRowSpinResult {
+        fn button() -> nuon::Button {
+            nuon::button()
+                .color([74, 68, 88])
+                .preseed_color([74, 68, 88])
+                .hover_color([87, 81, 101])
+                .border_radius([16.0; 4])
+        }
+
+        pub fn minus_icon() -> &'static str {
+            "\u{F2EA}"
+        }
+
+        pub fn plus_icon() -> &'static str {
+            "\u{F4FE}"
+        }
+
+        let mut res = SettingsRowSpinResult::Idle;
+
+        self.row
+            .body(|ui, row_w, row_h| {
+                let w = 30.0;
+                let h = 30.0;
+                let gap = 10.0;
+
+                nuon::translate().x(row_w - w).add_to_current(ui);
+
+                if button()
+                    .id(self.up_id)
+                    .y(nuon::center_y(row_h, h))
+                    .size(w, h)
+                    .icon(plus_icon())
+                    .build(ui)
+                {
+                    res = SettingsRowSpinResult::Plus;
+                }
+
+                nuon::translate().x(-w).add_to_current(ui);
+                nuon::translate().x(-gap).add_to_current(ui);
+
+                if button()
+                    .id(self.down_id)
+                    .y(nuon::center_y(row_h, h))
+                    .size(w, h)
+                    .icon(minus_icon())
+                    .build(ui)
+                {
+                    res = SettingsRowSpinResult::Minus;
+                }
+            })
+            .build(ui, add);
+
+        res
+    }
+}
+
+pub fn settings_row_spin<'a>() -> SettingsRowSpin<'a> {
+    SettingsRowSpin::new()
+}

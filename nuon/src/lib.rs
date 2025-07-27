@@ -757,7 +757,7 @@ impl ClickArea {
 
 #[derive(Debug, Clone)]
 pub struct Button {
-    id: Option<&'static str>,
+    id: Option<String>,
     pos: Point,
     size: Size,
     color: Color,
@@ -795,8 +795,8 @@ impl Button {
         }
     }
 
-    pub fn id(mut self, id: &'static str) -> Self {
-        self.id = Some(id);
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -866,7 +866,7 @@ impl Button {
     }
 
     fn gen_id(&self) -> Id {
-        if let Some(id) = self.id {
+        if let Some(id) = &self.id {
             Id::hash(id)
         } else if !self.label.is_empty() {
             Id::hash(self.label)

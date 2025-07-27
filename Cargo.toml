@@ -58,6 +58,7 @@ unicode-segmentation = "1.12.0"
 
 lilt = "0.8"
 winit = "0.30"
+dpi = "0.1"
 rfd = "0.15"
 cpal = "0.16"
 fluidlite = { version = "0.2", features = ["builtin"] }

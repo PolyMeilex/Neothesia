@@ -82,7 +82,8 @@ impl NoteLabels {
     #[profiling::function]
     pub fn update(
         &mut self,
-        logical_size: (u32, u32),
+        physical_size: dpi::PhysicalSize<u32>,
+        scale: f32,
         keyboard: &KeyboardRenderer,
         animation_speed: f32,
         time: f32,
@@ -126,7 +127,7 @@ impl NoteLabels {
             });
         }
 
-        self.text_renderer.update(logical_size);
+        self.text_renderer.update(physical_size, scale);
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu_jumpstart::RenderPass<'rpass>) {

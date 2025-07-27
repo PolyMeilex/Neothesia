@@ -393,14 +393,24 @@ impl Scroll {
     }
 
     pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+        //      ┌► ┌─────┐ ◄┐
+        //      │  │~~~~~│  │ visible_h
+        //      │  │~~~  │  │
+        // full │  ├─────┤ ◄┘
+        //      │  │~~~  │
+        //      │  │~~~~~│
+        //      └► └─────┘
+
         self::layer().scissor_rect(self.rect).build(ui, |ui| {
             let last = self::translate().y(-self.scroll).build(ui, build);
-            let last_y = last.y - self.rect.size.height;
 
-            let percentage = self.scroll / last_y;
+            let visible_h = self.rect.size.height;
+            let full_h = last.y;
+
+            let mult = visible_h / full_h;
+            let h = visible_h * mult;
 
             let w = 10.0;
-            let h = self.rect.height() / (last_y / self.rect.height());
 
             self::quad()
                 .y(0.0)
@@ -410,7 +420,7 @@ impl Scroll {
                 .border_radius([5.0; 4])
                 .build(ui);
             self::quad()
-                .y(percentage * (self.rect.size.height - h))
+                .y(self.scroll * mult)
                 .x(self.rect.size.width - w)
                 .size(w, h)
                 .color([74, 68, 88])

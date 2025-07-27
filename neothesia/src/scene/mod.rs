@@ -3,6 +3,7 @@ pub mod playing_scene;
 
 use crate::context::Context;
 use iced_core::image::Renderer as _;
+use iced_graphics::text::cosmic_text;
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadRenderer, TextRenderer};
 use std::time::Duration;
@@ -92,9 +93,22 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
 
         for text in layer.text.iter() {
             let buffer = if text.bold {
-                TextRenderer::gen_buffer_bold(text.size, &text.text)
+                TextRenderer::gen_buffer_with_attr(
+                    text.size,
+                    &text.text,
+                    cosmic_text::Attrs::new()
+                        .family(cosmic_text::Family::Name("Roboto"))
+                        .weight(cosmic_text::Weight::BOLD)
+                        .color(cosmic_text::Color(text.color.packet_u32())),
+                )
             } else {
-                TextRenderer::gen_buffer(text.size, &text.text)
+                TextRenderer::gen_buffer_with_attr(
+                    text.size,
+                    &text.text,
+                    cosmic_text::Attrs::new()
+                        .family(cosmic_text::Family::Name("Roboto"))
+                        .color(cosmic_text::Color(text.color.packet_u32())),
+                )
             };
 
             match text.text_justify {

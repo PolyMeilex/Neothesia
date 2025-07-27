@@ -53,6 +53,14 @@ impl Color {
             a,
         }
     }
+
+    pub fn packet_u32(&self) -> u32 {
+        let r = self.r * 255.0;
+        let g = self.g * 255.0;
+        let b = self.b * 255.0;
+        let a = self.a * 255.0;
+        ((a as u32) << 24) | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -184,6 +192,7 @@ pub struct TextRenderElement {
     pub size: f32,
     pub bold: bool,
     pub text: String,
+    pub color: Color,
 }
 
 #[derive(Debug, Clone)]
@@ -833,6 +842,8 @@ pub struct Label {
     pos: Point,
     size: Size,
     font_size: f32,
+    text_justify: TextJustify,
+    color: Color,
     text: String,
     icon: String,
     bold: bool,
@@ -854,6 +865,8 @@ impl Label {
             pos: Point::zero(),
             size: Size::new(50.0, 50.0),
             font_size: 13.0,
+            text_justify: TextJustify::Center,
+            color: Color::new(1.0, 1.0, 1.0, 1.0),
             text: String::new(),
             icon: String::new(),
             bold: false,
@@ -893,6 +906,16 @@ impl Label {
         self
     }
 
+    pub fn color(mut self, color: impl Into<Color>) -> Self {
+        self.color = color.into();
+        self
+    }
+
+    pub fn text_justify(mut self, text_justify: TextJustify) -> Self {
+        self.text_justify = text_justify;
+        self
+    }
+
     pub fn text(mut self, text: impl Into<String>) -> Self {
         self.text = text.into();
         self
@@ -915,10 +938,11 @@ impl Label {
         if !self.text.is_empty() {
             layer.text.push(TextRenderElement {
                 rect,
-                text_justify: TextJustify::Center,
+                text_justify: self.text_justify,
                 size: self.font_size,
                 bold: self.bold,
                 text: self.text.to_string(),
+                color: self.color,
             });
         }
 

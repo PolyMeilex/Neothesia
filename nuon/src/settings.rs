@@ -1,4 +1,6 @@
-use crate::{self as nuon, TextJustify, Ui};
+use std::hash::Hash;
+
+use crate::{self as nuon, Id, TextJustify, Ui};
 
 pub struct SettingsSection {
     label: String,
@@ -168,16 +170,20 @@ pub enum SettingsRowSpinResult {
 
 pub struct SettingsRowSpin<'a> {
     row: SettingsRow<'a>,
-    up_id: String,
-    down_id: String,
+    id: String,
+}
+
+impl<'a> Default for SettingsRowSpin<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a> SettingsRowSpin<'a> {
     pub fn new() -> Self {
         Self {
             row: settings_row(),
-            up_id: String::new(),
-            down_id: String::new(),
+            id: String::new(),
         }
     }
 
@@ -191,13 +197,8 @@ impl<'a> SettingsRowSpin<'a> {
         self
     }
 
-    pub fn plus_id(mut self, id: impl Into<String>) -> Self {
-        self.up_id = id.into();
-        self
-    }
-
-    pub fn minus_id(mut self, id: impl Into<String>) -> Self {
-        self.down_id = id.into();
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = id.into();
         self
     }
 
@@ -224,6 +225,15 @@ impl<'a> SettingsRowSpin<'a> {
 
         let mut res = SettingsRowSpinResult::Idle;
 
+        let plus_id = Id::hash_with(|h| {
+            self.id.hash(h);
+            "-plus".hash(h);
+        });
+        let minus_id = Id::hash_with(|h| {
+            self.id.hash(h);
+            "-minus".hash(h);
+        });
+
         self.row
             .body(|ui, row_w, row_h| {
                 let w = 30.0;
@@ -233,7 +243,7 @@ impl<'a> SettingsRowSpin<'a> {
                 nuon::translate().x(row_w - w).add_to_current(ui);
 
                 if button()
-                    .id(self.up_id)
+                    .id(plus_id)
                     .y(nuon::center_y(row_h, h))
                     .size(w, h)
                     .icon(plus_icon())
@@ -246,7 +256,7 @@ impl<'a> SettingsRowSpin<'a> {
                 nuon::translate().x(-gap).add_to_current(ui);
 
                 if button()
-                    .id(self.down_id)
+                    .id(minus_id)
                     .y(nuon::center_y(row_h, h))
                     .size(w, h)
                     .icon(minus_icon())
@@ -263,4 +273,113 @@ impl<'a> SettingsRowSpin<'a> {
 
 pub fn settings_row_spin<'a>() -> SettingsRowSpin<'a> {
     SettingsRowSpin::new()
+}
+
+pub struct SettingsRowToggler<'a> {
+    row: SettingsRow<'a>,
+    id: Id,
+    value: bool,
+}
+
+impl<'a> Default for SettingsRowToggler<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a> SettingsRowToggler<'a> {
+    pub fn new() -> Self {
+        Self {
+            row: settings_row(),
+            id: Id::NULL,
+            value: false,
+        }
+    }
+
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = id.into();
+        self
+    }
+
+    pub fn value(mut self, v: bool) -> Self {
+        self.value = v;
+        self
+    }
+
+    pub fn title(mut self, label: impl Into<String>) -> Self {
+        self.row = self.row.title(label);
+        self
+    }
+
+    pub fn subtitle(mut self, label: impl Into<String>) -> Self {
+        self.row = self.row.subtitle(label);
+        self
+    }
+
+    pub fn build(self, ui: &mut Ui, add: &dyn Fn(&mut Ui, SettingsRow<'_>)) -> bool {
+        let mut clicked = false;
+
+        let id = if self.id == Id::NULL {
+            Id::hash_with(|h| {
+                self.row.title.hash(h);
+                self.row.subtitle.hash(h);
+            })
+        } else {
+            self.id
+        };
+
+        self.row
+            .body(|ui, row_w, row_h| {
+                let w = 30.0;
+                let h = 15.0;
+                if nuon::button()
+                    .border_radius([8.0; 4])
+                    .color(if self.value {
+                        [160, 81, 255]
+                    } else {
+                        [74, 68, 88]
+                    })
+                    .hover_color(if self.value {
+                        [170, 91, 255]
+                    } else {
+                        [87, 81, 101]
+                    })
+                    .preseed_color(if self.value {
+                        [180, 101, 255]
+                    } else {
+                        [97, 91, 111]
+                    })
+                    .x(row_w - w)
+                    .y(nuon::center_y(row_h, h))
+                    .size(w, h)
+                    .id(id)
+                    .build(ui)
+                {
+                    clicked = true;
+                }
+
+                let head_w = 12.0;
+                let head_h = 12.0;
+                let gap = 2.0;
+
+                nuon::quad()
+                    .border_radius([5.0; 4])
+                    .x(if self.value {
+                        row_w - head_w - gap
+                    } else {
+                        row_w - w + gap
+                    })
+                    .y(nuon::center_y(row_h, head_h))
+                    .size(head_w, head_h)
+                    .color([255, 255, 255])
+                    .build(ui);
+            })
+            .build(ui, add);
+
+        clicked
+    }
+}
+
+pub fn settings_row_toggler<'a>() -> SettingsRowToggler<'a> {
+    SettingsRowToggler::new()
 }

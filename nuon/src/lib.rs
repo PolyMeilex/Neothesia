@@ -91,6 +91,8 @@ impl<H: Hash> From<H> for Id {
 }
 
 impl Id {
+    const NULL: Self = Id(0);
+
     pub fn hash(v: impl Hash) -> Self {
         let mut hasher = std::hash::DefaultHasher::new();
         v.hash(&mut hasher);

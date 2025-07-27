@@ -96,6 +96,12 @@ impl Id {
         v.hash(&mut hasher);
         Self(hasher.finish())
     }
+
+    pub fn hash_with(v: impl FnOnce(&mut std::hash::DefaultHasher)) -> Self {
+        let mut hasher = std::hash::DefaultHasher::new();
+        v(&mut hasher);
+        Self(hasher.finish())
+    }
 }
 
 #[derive(Default, Debug)]
@@ -757,7 +763,7 @@ impl ClickArea {
 
 #[derive(Debug, Clone)]
 pub struct Button {
-    id: Option<String>,
+    id: Option<Id>,
     pos: Point,
     size: Size,
     color: Color,
@@ -795,7 +801,7 @@ impl Button {
         }
     }
 
-    pub fn id(mut self, id: impl Into<String>) -> Self {
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -866,8 +872,8 @@ impl Button {
     }
 
     fn gen_id(&self) -> Id {
-        if let Some(id) = &self.id {
-            Id::hash(id)
+        if let Some(id) = self.id {
+            id
         } else if !self.label.is_empty() {
             Id::hash(self.label)
         } else {

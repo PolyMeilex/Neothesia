@@ -1,17 +1,15 @@
 use crate::{self as nuon, TextJustify, Ui};
 
-pub struct SettingsSection<'a> {
+pub struct SettingsSection {
     label: String,
     width: f32,
-    rows: Vec<SettingsRow<'a>>,
 }
 
-impl<'a> SettingsSection<'a> {
+impl SettingsSection {
     pub fn new(label: impl Into<String>) -> Self {
         Self {
             label: label.into(),
             width: 0.0,
-            rows: Vec::new(),
         }
     }
 
@@ -20,12 +18,11 @@ impl<'a> SettingsSection<'a> {
         self
     }
 
-    pub fn row(mut self, row: SettingsRow<'a>) -> Self {
-        self.rows.push(row);
-        self
-    }
-
-    pub fn build(self, ui: &mut Ui) {
+    pub fn build(
+        self,
+        ui: &mut Ui,
+        build: impl FnOnce(&mut Ui, &dyn Fn(&mut Ui, SettingsRow<'_>), &dyn Fn(&mut Ui)),
+    ) {
         let spacer_label_h = 43.0;
 
         let spacer = |ui: &mut Ui| {
@@ -48,13 +45,13 @@ impl<'a> SettingsSection<'a> {
         nuon::translate().y(spacer_label_h).add_to_current(ui);
 
         let pos = nuon::row_group().build(ui, |ui| {
-            let len = self.rows.len();
-            for (id, row) in self.rows.into_iter().enumerate() {
-                row.width(self.width).build(ui);
-                if id + 1 < len {
-                    spacer(ui);
-                }
-            }
+            build(
+                ui,
+                &|ui, row| {
+                    row.width(self.width).build_inner(ui);
+                },
+                &spacer,
+            );
 
             nuon::translate().x(self.width).add_to_current(ui);
         });
@@ -63,7 +60,7 @@ impl<'a> SettingsSection<'a> {
     }
 }
 
-pub fn settings_section<'a>(label: impl Into<String>) -> SettingsSection<'a> {
+pub fn settings_section(label: impl Into<String>) -> SettingsSection {
     SettingsSection::new(label)
 }
 
@@ -111,7 +108,7 @@ impl<'a> SettingsRow<'a> {
         self
     }
 
-    fn build(self, ui: &mut Ui) {
+    fn build_inner(self, ui: &mut Ui) {
         let row_h = 54.0;
         let row_padding = 15.0;
         let row_inner_w = self.width - 2.0 * row_padding;
@@ -152,6 +149,10 @@ impl<'a> SettingsRow<'a> {
             (self.body)(ui, row_inner_w, row_h);
         });
         nuon::translate().y(row_h).add_to_current(ui);
+    }
+
+    pub fn build(self, ui: &mut Ui, add: &dyn Fn(&mut Ui, SettingsRow<'a>)) {
+        add(ui, self);
     }
 }
 

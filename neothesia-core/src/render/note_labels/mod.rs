@@ -97,28 +97,28 @@ impl NoteLabels {
         let labels = self.labels_cache.get(keyboard);
         let animation_speed = animation_speed / scale;
 
-        for note in self.notes.inner.iter() {
-            if !layout.range.contains(note.note) || note.channel == 9 {
-                continue;
-            }
+        let iter = self
+            .notes
+            .inner
+            .iter()
+            .filter(|note| layout.range.contains(note.note) && note.channel != 9)
+            .map(|note| {
+                let buffer = &labels[(note.note % 12) as usize];
 
-            let x = layout.keys[note.note as usize - range_start].x();
-            let label_buffer = &labels[(note.note % 12) as usize];
+                let x = layout.keys[note.note as usize - range_start].x();
+                let y =
+                    self.pos.y - (note.start.as_secs_f32() - time) * animation_speed - label_width;
 
-            let y = self.pos.y - (note.start.as_secs_f32() - time) * animation_speed - label_width;
-
-            if y < 0.0 {
-                break;
-            }
-
-            if y > keyboard.pos().y {
-                continue;
-            }
-
-            self.text_renderer.queue(super::text::TextArea {
-                buffer: label_buffer.clone(),
-                left: x,
-                top: y,
+                (buffer, x, y)
+            })
+            // Stop iteration once we reach top of the screen
+            .take_while(|(_buffer, _x, y)| *y > 0.0)
+            // TODO: Cache last note idx to skip this NoOp skip iteration
+            .skip_while(|(_buffer, _x, y)| *y > keyboard.pos().y)
+            .map(|(buffer, left, top)| glyphon::TextArea {
+                buffer,
+                left,
+                top,
                 scale: 1.0,
                 bounds: glyphon::TextBounds {
                     left: 0,
@@ -127,10 +127,11 @@ impl NoteLabels {
                     bottom: i32::MAX,
                 },
                 default_color: glyphon::Color::rgb(255, 255, 255),
+                custom_glyphs: &[],
             });
-        }
 
-        self.text_renderer.update(physical_size, scale);
+        self.text_renderer
+            .update_from_iter(physical_size, scale, iter);
     }
 
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu_jumpstart::RenderPass<'rpass>) {

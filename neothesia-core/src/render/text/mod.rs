@@ -183,11 +183,61 @@ impl TextRenderer {
         self.text_areas.push(area);
     }
 
+    #[profiling::function]
     pub fn update(&mut self, physical_size: dpi::PhysicalSize<u32>, scale: f32) {
-        let shared = &mut *self.shared.borrow_mut();
-
-        let elements = self.text_areas.iter().map(|area| glyphon::TextArea {
+        let text_areas = self.text_areas.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
+            left: area.left,
+            top: area.top,
+            scale: area.scale,
+            bounds: area.bounds,
+            default_color: area.default_color,
+            custom_glyphs: &[],
+        });
+
+        Self::update_from_iter_inner(
+            &mut self.text_renderer,
+            &mut self.shared.borrow_mut(),
+            &self.device,
+            &self.queue,
+            physical_size,
+            scale,
+            text_areas,
+        );
+
+        self.text_areas.clear();
+    }
+
+    #[profiling::function]
+    pub fn update_from_iter<'a>(
+        &mut self,
+        physical_size: dpi::PhysicalSize<u32>,
+        scale: f32,
+        text_areas: impl Iterator<Item = glyphon::TextArea<'a>>,
+    ) {
+        Self::update_from_iter_inner(
+            &mut self.text_renderer,
+            &mut self.shared.borrow_mut(),
+            &self.device,
+            &self.queue,
+            physical_size,
+            scale,
+            text_areas,
+        );
+    }
+
+    #[profiling::function]
+    fn update_from_iter_inner<'a>(
+        text_renderer: &mut glyphon::TextRenderer,
+        shared: &mut TextShared,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        physical_size: dpi::PhysicalSize<u32>,
+        scale: f32,
+        text_areas: impl Iterator<Item = glyphon::TextArea<'a>>,
+    ) {
+        let elements = text_areas.map(|area| glyphon::TextArea {
+            buffer: area.buffer,
             left: area.left * scale,
             top: area.top * scale,
             scale: area.scale * scale,
@@ -198,21 +248,21 @@ impl TextRenderer {
                 bottom: (area.bounds.bottom as f32 * scale) as i32,
             },
             default_color: area.default_color,
-            custom_glyphs: &[],
+            custom_glyphs: area.custom_glyphs,
         });
 
         shared.viewport.update(
-            &self.queue,
+            queue,
             glyphon::Resolution {
                 width: physical_size.width,
                 height: physical_size.height,
             },
         );
 
-        self.text_renderer
+        text_renderer
             .prepare(
-                &self.device,
-                &self.queue,
+                device,
+                queue,
                 &mut crate::font_system::font_system().borrow_mut(),
                 &mut shared.atlas,
                 &shared.viewport,
@@ -220,8 +270,6 @@ impl TextRenderer {
                 &mut shared.swash_cache,
             )
             .unwrap();
-
-        self.text_areas.clear();
     }
 
     pub fn render<'rpass>(&'rpass self, render_pass: &mut wgpu_jumpstart::RenderPass<'rpass>) {

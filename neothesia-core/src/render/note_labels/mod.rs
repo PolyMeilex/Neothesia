@@ -9,6 +9,7 @@ struct LabelsCache {
 }
 
 impl LabelsCache {
+    #[profiling::function]
     fn get(&mut self, keyboard: &KeyboardRenderer) -> &[glyphon::Buffer; 12] {
         let font_system = crate::font_system::font_system();
         let font_system = &mut font_system.borrow_mut();
@@ -52,6 +53,7 @@ impl LabelsCache {
             });
 
             self.labels = Some(labels);
+            self.neutral_width = neutral_width;
         }
 
         self.labels.as_ref().unwrap()

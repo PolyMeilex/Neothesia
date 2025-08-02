@@ -114,21 +114,6 @@ impl<T: bytemuck::Pod> Buffer<T> {
     pub fn slice(&self, bounds: impl RangeBounds<wgpu::BufferAddress>) -> wgpu::BufferSlice<'_> {
         self.raw.slice(bounds)
     }
-
-    /// Returns the slice calculated from the offset stored at the given index.
-    pub fn slice_from_index(&self, index: usize) -> wgpu::BufferSlice<'_> {
-        self.raw.slice(self.offset_at(index)..)
-    }
-
-    /// Clears any temporary data (i.e. offsets) from the buffer.
-    pub fn clear(&mut self) {
-        self.offsets.clear();
-    }
-
-    /// Returns the offset at `index`, if it exists.
-    fn offset_at(&self, index: usize) -> &wgpu::BufferAddress {
-        self.offsets.get(index).expect("No offset at index.")
-    }
 }
 
 fn next_copy_size<T>(amount: usize) -> u64 {

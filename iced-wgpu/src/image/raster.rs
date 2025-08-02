@@ -1,8 +1,10 @@
-use crate::core::image;
-use crate::core::Size;
-use crate::graphics;
-use crate::graphics::image::image_rs;
-use crate::image::atlas::{self, Atlas};
+use crate::image::{
+    atlas::{self, Atlas},
+    handle as image,
+};
+use crate::Size;
+
+use ::image as image_rs;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -50,7 +52,18 @@ impl Cache {
             return self.get(handle).unwrap();
         }
 
-        let memory = match graphics::image::load(handle) {
+        let memory = match handle {
+            image::Handle::Path(_, path_buf) => neothesia_core::image::load_from_path(path_buf),
+            image::Handle::Bytes(_, bytes) => neothesia_core::image::load_from_bytes(bytes),
+            image::Handle::Rgba {
+                width,
+                height,
+                pixels,
+                ..
+            } => neothesia_core::image::load_from_rgba(*width, *height, pixels),
+        };
+
+        let memory = match memory {
             Ok(image) => Memory::Host(image),
             Err(image_rs::error::ImageError::IoError(_)) => Memory::NotFound,
             Err(_) => Memory::Invalid,

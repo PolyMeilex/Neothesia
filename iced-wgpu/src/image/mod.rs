@@ -2,19 +2,19 @@ pub(crate) mod cache;
 pub(crate) use cache::Cache;
 
 mod atlas;
+pub mod handle;
 mod raster;
 
-use crate::core::{Rectangle, Size, Transformation};
-use crate::Buffer;
+use crate::{Buffer, Rectangle};
+
+pub use handle::{FilterMethod, Handle, Image};
 
 use bytemuck::{Pod, Zeroable};
 
 use std::mem;
 use std::sync::Arc;
 
-pub use crate::graphics::Image;
-
-pub type Batch = Vec<Image>;
+pub type Batch = Vec<(crate::image::handle::Image, Rectangle)>;
 
 #[derive(Debug, Clone)]
 pub struct Pipeline {
@@ -92,10 +92,8 @@ impl Pipeline {
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("iced_wgpu image shader"),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
-                include_str!("../shader/vertex.wgsl"),
-                "\n",
-                include_str!("../shader/image.wgsl"),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!(
+                "../shader/image.wgsl"
             ))),
         });
 
@@ -199,31 +197,27 @@ impl State {
         encoder: &mut wgpu::CommandEncoder,
         cache: &mut Cache,
         images: &Batch,
-        transformation: Transformation,
+        transformation: [f32; 16],
         scale: f32,
     ) {
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
         for image in images {
-            match &image {
-                Image::Raster(image, bounds) => {
-                    if let Some(atlas_entry) = cache.upload_raster(device, encoder, &image.handle) {
-                        add_instances(
-                            [bounds.x, bounds.y],
-                            [bounds.width, bounds.height],
-                            f32::from(image.rotation),
-                            image.opacity,
-                            scale,
-                            atlas_entry,
-                            match image.filter_method {
-                                crate::core::image::FilterMethod::Nearest => nearest_instances,
-                                crate::core::image::FilterMethod::Linear => linear_instances,
-                            },
-                        );
-                    }
-                }
-                Image::Vector { .. } => {}
+            let (image, bounds) = image;
+            if let Some(atlas_entry) = cache.upload_raster(device, encoder, &image.handle) {
+                add_instances(
+                    [bounds.origin.x, bounds.origin.y],
+                    [bounds.width(), bounds.height()],
+                    image.rotation,
+                    image.opacity,
+                    scale,
+                    atlas_entry,
+                    match image.filter_method {
+                        crate::image::FilterMethod::Nearest => nearest_instances,
+                        crate::image::FilterMethod::Linear => linear_instances,
+                    },
+                );
             }
         }
 
@@ -266,7 +260,12 @@ impl State {
         if let Some(layer) = self.layers.get(layer) {
             render_pass.set_pipeline(&pipeline.raw);
 
-            render_pass.set_scissor_rect(bounds.x, bounds.y, bounds.width, bounds.height);
+            render_pass.set_scissor_rect(
+                bounds.origin.x,
+                bounds.origin.y,
+                bounds.width(),
+                bounds.height(),
+            );
 
             render_pass.set_bind_group(1, cache.bind_group(), &[]);
 
@@ -318,11 +317,11 @@ impl Layer {
         belt: &mut wgpu::util::StagingBelt,
         nearest_instances: &[Instance],
         linear_instances: &[Instance],
-        transformation: Transformation,
+        transformation: [f32; 16],
         scale_factor: f32,
     ) {
         let uniforms = Uniforms {
-            transform: transformation.into(),
+            transform: transformation,
             scale_factor,
             _padding: [0.0; 3],
         };
@@ -495,10 +494,10 @@ fn add_instances(
 
                 let [x, y] = image_position;
                 let (fragment_x, fragment_y) = fragment.position;
-                let Size {
-                    width: fragment_width,
-                    height: fragment_height,
-                } = allocation.size();
+
+                let size = allocation.size();
+                let fragment_width = size.width;
+                let fragment_height = size.height;
 
                 let position = [
                     x + fragment_x as f32 * scaling_x,
@@ -529,7 +528,7 @@ fn add_instance(
     instances: &mut Vec<Instance>,
 ) {
     let (x, y) = allocation.position();
-    let Size { width, height } = allocation.size();
+    let (width, height) = allocation.size().into();
     let layer = allocation.layer();
 
     let instance = Instance {

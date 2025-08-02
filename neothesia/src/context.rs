@@ -5,15 +5,15 @@ use crate::input_manager::InputManager;
 use crate::utils::window::WindowState;
 use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
 use neothesia_core::render::{QuadRendererFactory, TextRendererFactory};
+use neothesia_core::Size;
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;
 
-use crate::iced_utils::IcedManager;
 use winit::window::Window;
 
 pub struct Context {
     pub window: Arc<Window>,
-    pub iced_manager: IcedManager,
+    pub iced_renderer: iced_wgpu::Renderer,
 
     pub window_state: WindowState,
     pub gpu: Gpu,
@@ -54,12 +54,12 @@ impl Context {
             wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
         );
 
-        let iced_manager = IcedManager::new(
+        let iced_renderer = iced_wgpu::Renderer::new(
             &gpu.adapter,
-            &gpu.device,
-            &gpu.queue,
+            gpu.device.clone(),
+            gpu.queue.clone(),
             gpu.texture_format,
-            (
+            Size::new(
                 window_state.physical_size.width,
                 window_state.physical_size.height,
             ),
@@ -73,7 +73,7 @@ impl Context {
 
         Self {
             window,
-            iced_manager,
+            iced_renderer,
 
             window_state,
             gpu,
@@ -100,8 +100,8 @@ impl Context {
         );
         self.transform.update(&self.gpu.queue);
 
-        self.iced_manager.resize(
-            (
+        self.iced_renderer.resize(
+            Size::new(
                 self.window_state.physical_size.width,
                 self.window_state.physical_size.height,
             ),

@@ -4,10 +4,11 @@ description = "A renderer for iced on top of wgpu"
 edition = "2021"
 
 [dependencies]
-iced_graphics.workspace = true
+neothesia-core.workspace = true
 
+image.workspace = true
+bytes.workspace = true
 bytemuck.workspace = true
-glyphon.workspace = true
 guillotiere.workspace = true
 log.workspace = true
 rustc-hash.workspace = true

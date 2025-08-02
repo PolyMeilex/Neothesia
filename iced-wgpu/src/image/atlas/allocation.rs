@@ -1,5 +1,5 @@
-use crate::core::Size;
 use crate::image::atlas::{self, allocator};
+use crate::Size;
 
 #[derive(Debug)]
 pub enum Allocation {

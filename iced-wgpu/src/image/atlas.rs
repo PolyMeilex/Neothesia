@@ -12,8 +12,7 @@ use allocator::Allocator;
 
 pub const SIZE: u32 = 2048;
 
-use crate::core::Size;
-use crate::graphics::color;
+use crate::Size;
 
 use std::sync::Arc;
 
@@ -53,11 +52,7 @@ impl Atlas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: if color::GAMMA_CORRECTION {
-                wgpu::TextureFormat::Rgba8UnormSrgb
-            } else {
-                wgpu::TextureFormat::Rgba8Unorm
-            },
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
@@ -321,7 +316,7 @@ impl Atlas {
         use wgpu::util::DeviceExt;
 
         let (x, y) = allocation.position();
-        let Size { width, height } = allocation.size();
+        let (width, height) = allocation.size().into();
         let layer = allocation.layer();
 
         let extent = wgpu::Extent3d {
@@ -384,11 +379,7 @@ impl Atlas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: if color::GAMMA_CORRECTION {
-                wgpu::TextureFormat::Rgba8UnormSrgb
-            } else {
-                wgpu::TextureFormat::Rgba8Unorm
-            },
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,

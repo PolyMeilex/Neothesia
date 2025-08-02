@@ -345,7 +345,7 @@ impl<'a> SettingsRowToggler<'a> {
                         [87, 81, 101]
                     })
                     .preseed_color(if self.value {
-                        [180, 101, 255]
+                        [140, 70, 240]
                     } else {
                         [97, 91, 111]
                     })

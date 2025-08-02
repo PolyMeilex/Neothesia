@@ -145,19 +145,27 @@ impl LayerData {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum LayerId {
+    Regular(usize),
+    Overlay(usize),
+}
+
 #[derive(Debug)]
 pub struct LayerStack {
     layers: Vec<LayerData>,
-    history_stack: Vec<usize>,
-    curr: usize,
+    overlay_layers: Vec<LayerData>,
+    history_stack: Vec<LayerId>,
+    curr: LayerId,
 }
 
 impl LayerStack {
     fn new() -> Self {
         LayerStack {
             layers: vec![LayerData::default()],
+            overlay_layers: vec![],
             history_stack: vec![],
-            curr: 0,
+            curr: LayerId::Regular(0),
         }
     }
 
@@ -166,11 +174,11 @@ impl LayerStack {
     }
 
     pub fn len(&self) -> usize {
-        self.layers.len()
+        self.layers.len() + self.overlay_layers.len()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &LayerData> {
-        self.layers.iter()
+        self.layers.iter().chain(self.overlay_layers.iter())
     }
 
     pub fn current_scissor_rect(&self) -> Option<Rect> {
@@ -179,17 +187,38 @@ impl LayerStack {
     }
 
     pub fn current(&self) -> &LayerData {
-        &self.layers[self.curr]
+        match self.curr {
+            LayerId::Regular(id) => &self.layers[id],
+            LayerId::Overlay(id) => &self.overlay_layers[id],
+        }
     }
 
     pub fn current_mut(&mut self) -> &mut LayerData {
-        &mut self.layers[self.curr]
+        match self.curr {
+            LayerId::Regular(id) => &mut self.layers[id],
+            LayerId::Overlay(id) => &mut self.overlay_layers[id],
+        }
     }
 
     pub fn push(&mut self) {
         self.history_stack.push(self.curr);
-        self.curr = self.layers.len();
-        self.layers.push(LayerData::default());
+
+        match self.curr {
+            LayerId::Regular(_) => {
+                self.curr = LayerId::Regular(self.layers.len());
+                self.layers.push(LayerData::default());
+            }
+            LayerId::Overlay(_) => {
+                self.curr = LayerId::Overlay(self.overlay_layers.len());
+                self.overlay_layers.push(LayerData::default());
+            }
+        }
+    }
+
+    pub fn push_overlay(&mut self) {
+        self.history_stack.push(self.curr);
+        self.curr = LayerId::Overlay(self.overlay_layers.len());
+        self.overlay_layers.push(LayerData::default());
     }
 
     pub fn pop(&mut self) {
@@ -202,7 +231,9 @@ impl LayerStack {
         self.layers[0].clear();
         // TODO: Reuse the memory from all dropped layers
         self.layers.drain(1..);
-        self.curr = 0;
+        self.overlay_layers.clear();
+
+        self.curr = LayerId::Regular(0);
     }
 }
 
@@ -355,6 +386,7 @@ pub fn translate() -> Translate {
 #[derive(Debug, Clone, Default)]
 pub struct Layer {
     rect: Rect,
+    overlay: bool,
 }
 
 impl Layer {
@@ -364,6 +396,11 @@ impl Layer {
 
     pub fn scissor_rect(mut self, rect: Rect) -> Self {
         self.rect = rect;
+        self
+    }
+
+    pub fn overlay(mut self, overlay: bool) -> Self {
+        self.overlay = overlay;
         self
     }
 
@@ -377,7 +414,12 @@ impl Layer {
             )
         };
 
-        ui.layers.push();
+        if self.overlay {
+            ui.layers.push_overlay();
+        } else {
+            ui.layers.push();
+        }
+
         ui.layers.current_mut().scissor_rect = rect;
 
         build(ui);

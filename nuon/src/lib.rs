@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    borrow::Cow,
+    hash::{Hash, Hasher},
+};
 
 pub use euclid;
 
@@ -92,6 +95,10 @@ impl<H: Hash> From<H> for Id {
 
 impl Id {
     const NULL: Self = Id(0);
+
+    pub fn as_raw(&self) -> u64 {
+        self.0
+    }
 
     pub fn hash(v: impl Hash) -> Self {
         let mut hasher = std::hash::DefaultHasher::new();
@@ -788,7 +795,7 @@ pub struct Button {
     preseed_color: Color,
     border_radius: [f32; 4],
     icon: &'static str,
-    label: &'static str,
+    label: Cow<'static, str>,
     text_justify: TextJustify,
 }
 
@@ -813,7 +820,7 @@ impl Button {
             preseed_color: Color::new_u8(67, 65, 72, 1.0),
             border_radius: [0.0; 4],
             icon: "X",
-            label: "",
+            label: Cow::Borrowed(""),
             text_justify: TextJustify::Center,
         }
     }
@@ -878,8 +885,8 @@ impl Button {
         self
     }
 
-    pub fn label(mut self, label: &'static str) -> Self {
-        self.label = label;
+    pub fn label(mut self, label: impl Into<Cow<'static, str>>) -> Self {
+        self.label = label.into();
         self
     }
 
@@ -892,7 +899,7 @@ impl Button {
         if let Some(id) = self.id {
             id
         } else if !self.label.is_empty() {
-            Id::hash(self.label)
+            Id::hash(&self.label)
         } else {
             Id::hash(self.icon)
         }
@@ -1075,14 +1082,69 @@ impl Label {
         }
 
         if !self.icon.is_empty() {
-            let x = rect.origin.x + center_x(rect.size.width, self.font_size);
-            let y = rect.origin.y + center_x(rect.size.height, self.font_size);
+            let pad_x = match self.text_justify {
+                TextJustify::Left => 1.0,
+                TextJustify::Right => -1.0,
+                TextJustify::Center => 0.0,
+            };
+
+            let icon_size = self.font_size;
+            let pad_x = pad_x * 10.0;
+
+            let y = rect.origin.y + self::center_y(rect.size.height, icon_size);
+            let x = match self.text_justify {
+                TextJustify::Left => rect.origin.x + pad_x,
+                TextJustify::Right => {
+                    let x = rect.origin.x + rect.size.width - icon_size;
+                    x + pad_x
+                }
+                TextJustify::Center => rect.origin.x + center_x(rect.size.width, icon_size),
+            };
 
             layer.icons.push(IconRenderElement {
                 origin: Point::new(x, y),
-                size: self.font_size,
+                size: icon_size,
                 icon: self.icon.to_string(),
             });
         }
     }
+}
+
+pub fn combo_list<'a, ITEM: ToString>(
+    ui: &mut Ui,
+    id: impl Into<Id>,
+    (item_w, item_h): (f32, f32),
+    list: &'a [ITEM],
+) -> Option<&'a ITEM> {
+    self::quad()
+        .width(item_w)
+        .height(item_h * list.len() as f32)
+        .color([27, 25, 32])
+        .build(ui);
+
+    let id = id.into();
+
+    let mut res = None;
+    for (nth, item) in list.iter().enumerate() {
+        let id = Id::hash_with(|h| {
+            id.as_raw().hash(h);
+            nth.hash(h);
+        });
+
+        if self::button()
+            .id(id)
+            .y(item_h * nth as f32)
+            .size(item_w, item_h)
+            .label(item.to_string())
+            .text_justify(TextJustify::Left)
+            .border_radius([5.0; 4])
+            .hover_color([160, 81, 255])
+            .preseed_color([180, 90, 255])
+            .build(ui)
+        {
+            res = Some(item);
+        }
+    }
+
+    res
 }

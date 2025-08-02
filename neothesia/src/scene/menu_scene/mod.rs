@@ -10,8 +10,7 @@ mod tracks;
 use std::{future::Future, time::Duration};
 
 use crate::utils::BoxFuture;
-use iced_core::image::Handle as ImageHandle;
-use iced_core::Renderer as _;
+use iced_wgpu::ImageHandle;
 use neothesia_core::render::{BgPipeline, QuadRenderer, TextRenderer};
 
 use winit::{
@@ -318,7 +317,7 @@ fn neo_btn_child(
 impl Scene for MenuScene {
     #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
-        ctx.iced_manager.renderer.clear();
+        ctx.iced_renderer.clear();
 
         self.quad_pipeline.clear();
         self.bg_pipeline.update_time(delta);

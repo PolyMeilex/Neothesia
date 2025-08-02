@@ -264,7 +264,7 @@ pub struct TextRenderElement {
 #[derive(Debug, Clone)]
 pub struct ImageRenderElement {
     pub rect: Rect,
-    pub image: iced_core::image::Handle,
+    pub image: iced_wgpu::ImageHandle,
 }
 
 pub struct Ui {
@@ -698,15 +698,15 @@ impl Quad {
 #[derive(Debug, Clone)]
 pub struct Image {
     rect: Rect,
-    handle: iced_core::image::Handle,
+    handle: iced_wgpu::ImageHandle,
 }
 
-pub fn image(handle: iced_core::image::Handle) -> Image {
+pub fn image(handle: iced_wgpu::ImageHandle) -> Image {
     Image::new(handle)
 }
 
 impl Image {
-    pub fn new(handle: iced_core::image::Handle) -> Self {
+    pub fn new(handle: iced_wgpu::ImageHandle) -> Self {
         Self {
             rect: Rect::zero(),
             handle,

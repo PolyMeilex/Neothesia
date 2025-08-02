@@ -1,5 +1,5 @@
-use crate::core::Size;
 use crate::image::atlas;
+use crate::Size;
 
 #[derive(Debug)]
 pub enum Entry {

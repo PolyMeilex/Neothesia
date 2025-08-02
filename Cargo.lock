@@ -1338,12 +1338,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glam"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "151665d9be52f9bb40fc7966565d39666f2d1e69233571b71b87791c7e0528b3"
-
-[[package]]
 name = "glob"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1482,69 +1476,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
-name = "iced_core"
-version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced.git?rev=283d0e74a8050ea625da25e0b9180b65f11d1843#283d0e74a8050ea625da25e0b9180b65f11d1843"
-dependencies = [
- "bitflags 2.9.1",
- "bytes",
- "glam",
- "lilt",
- "log",
- "num-traits",
- "rustc-hash 2.1.1",
- "smol_str",
- "thiserror 1.0.69",
- "web-time",
-]
-
-[[package]]
-name = "iced_graphics"
-version = "0.0.0"
-dependencies = [
- "bytemuck",
- "cosmic-text",
- "half",
- "iced_core",
- "image",
- "log",
- "neothesia-core",
- "rustc-hash 2.1.1",
- "thiserror 2.0.12",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "iced_runtime"
-version = "0.0.0"
-dependencies = [
- "async-channel",
- "iced_core",
-]
-
-[[package]]
 name = "iced_wgpu"
 version = "0.0.0"
 dependencies = [
  "bytemuck",
- "glyphon",
+ "bytes",
  "guillotiere",
- "iced_graphics",
+ "image",
  "log",
+ "neothesia-core",
  "rustc-hash 2.1.1",
  "wgpu",
-]
-
-[[package]]
-name = "iced_widget"
-version = "0.0.0"
-dependencies = [
- "iced_core",
- "iced_graphics",
- "iced_wgpu",
- "log",
- "num-traits",
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -2089,14 +2031,12 @@ name = "neothesia"
 version = "0.3.0"
 dependencies = [
  "async-channel",
+ "cosmic-text",
  "cpal",
  "embed-resource",
  "env_logger",
  "fluidlite",
- "iced_core",
- "iced_graphics",
  "iced_wgpu",
- "iced_widget",
  "image",
  "lilt",
  "log",
@@ -2150,9 +2090,11 @@ name = "neothesia-core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "bytes",
  "dpi",
  "euclid",
  "glyphon",
+ "image",
  "log",
  "midi-file",
  "objc",
@@ -2263,7 +2205,7 @@ name = "nuon"
 version = "0.1.0"
 dependencies = [
  "euclid",
- "iced_core",
+ "iced_wgpu",
 ]
 
 [[package]]

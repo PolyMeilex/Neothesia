@@ -10,10 +10,7 @@ members = [
   "midi-file",
   "midi-io",
   "nuon",
-  "iced-widget",
   "iced-wgpu",
-  "iced-runtime",
-  "iced-graphics",
 ]
 
 default-members = ["neothesia"]
@@ -28,10 +25,7 @@ piano-layout = { path = "./piano-layout" }
 ffmpeg-encoder = { path = "./ffmpeg-encoder" }
 nuon = { path = "./nuon" }
 
-iced_graphics = { path = "./iced-graphics", features = ["image"] }
-iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "283d0e74a8050ea625da25e0b9180b65f11d1843" }
 iced_wgpu = { path = "./iced-wgpu" }
-iced_widget = { path = "./iced-widget" }
 
 anyhow = "1"
 thiserror = "2.0"
@@ -40,7 +34,7 @@ log = "0.4"
 wgpu = "26"
 glyphon = { git = "https://github.com/PolyMeilex/glyphon", rev = "993e3ac221e60fcf1733f9f9740a04b1317772d5" }
 
-glam = "0.30"
+bytes = "1"
 guillotiere = "0.6"
 rustc-hash = "2.0"
 

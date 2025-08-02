@@ -2,8 +2,6 @@ pub mod menu_scene;
 pub mod playing_scene;
 
 use crate::context::Context;
-use iced_core::image::Renderer as _;
-use iced_graphics::text::cosmic_text;
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadRenderer, TextRenderer};
 use std::time::Duration;
@@ -48,8 +46,6 @@ impl NuonRenderer {
 fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Context) {
     nuon_renderer.ensure_layers(ctx, ui.layers.len());
 
-    let renderer = &mut ctx.iced_manager.renderer;
-
     for (layer, out) in ui.layers.iter().zip(nuon_renderer.layers.iter_mut()) {
         out.quad_renderer.clear();
 
@@ -81,20 +77,15 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
         }
 
         for img in layer.images.iter() {
-            renderer.draw_image(
-                iced_core::Image {
+            ctx.iced_renderer.draw_image(
+                iced_wgpu::Image {
                     handle: img.image.clone(),
-                    filter_method: iced_core::image::FilterMethod::default(),
-                    rotation: iced_core::Radians(0.0),
+                    filter_method: iced_wgpu::FilterMethod::default(),
+                    rotation: 0.0,
                     opacity: 1.0,
                     snap: false,
                 },
-                iced_core::Rectangle {
-                    x: img.rect.origin.x,
-                    y: img.rect.origin.y,
-                    width: img.rect.size.width,
-                    height: img.rect.size.height,
-                },
+                img.rect,
             );
         }
 

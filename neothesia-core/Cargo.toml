@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 serde = { workspace = true, features = ["serde_derive"] }
+image.workspace = true
+bytes.workspace = true
 ron.workspace = true
 log.workspace = true
 bytemuck.workspace = true

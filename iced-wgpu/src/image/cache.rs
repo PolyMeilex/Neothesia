@@ -1,5 +1,10 @@
-use crate::core::{self, Size};
-use crate::image::atlas::{self, Atlas};
+use crate::{
+    image::{
+        self,
+        atlas::{self, Atlas},
+    },
+    Size,
+};
 
 use std::sync::Arc;
 
@@ -25,11 +30,7 @@ impl Cache {
         self.atlas.bind_group()
     }
 
-    pub fn layer_count(&self) -> usize {
-        self.atlas.layer_count()
-    }
-
-    pub fn measure_image(&mut self, handle: &core::image::Handle) -> Size<u32> {
+    pub fn measure_image(&mut self, handle: &image::Handle) -> Size<u32> {
         self.raster.load(handle).dimensions()
     }
 
@@ -37,7 +38,7 @@ impl Cache {
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        handle: &core::image::Handle,
+        handle: &image::Handle,
     ) -> Option<&atlas::Entry> {
         self.raster.upload(device, encoder, handle, &mut self.atlas)
     }

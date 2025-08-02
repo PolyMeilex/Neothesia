@@ -25,11 +25,9 @@ midi-io.workspace = true
 nuon.workspace = true
 image.workspace = true
 async-channel.workspace = true
+cosmic-text.workspace = true
 
-iced_graphics.workspace = true
-iced_core.workspace = true
 iced_wgpu.workspace = true
-iced_widget.workspace = true
 
 lilt.workspace = true
 winit.workspace = true

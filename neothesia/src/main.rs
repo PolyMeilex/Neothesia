@@ -1,7 +1,6 @@
 #![allow(clippy::collapsible_match, clippy::single_match)]
 
 mod context;
-mod iced_utils;
 mod input_manager;
 mod output_manager;
 mod scene;
@@ -12,7 +11,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use context::Context;
-use iced_core::Renderer;
 use scene::{menu_scene, playing_scene, Scene};
 use song::Song;
 use utils::window::WindowState;
@@ -134,7 +132,7 @@ impl Neothesia {
     ) {
         match event {
             NeothesiaEvent::Play(song) => {
-                self.context.iced_manager.renderer.clear();
+                self.context.iced_renderer.clear();
 
                 let to = playing_scene::PlayingScene::new(&mut self.context, song);
                 self.game_scene = Box::new(to);
@@ -210,12 +208,9 @@ impl Neothesia {
 
         self.context.gpu.submit();
 
-        self.context.iced_manager.renderer.present(
-            None,
-            self.context.gpu.texture_format,
-            view,
-            &self.context.iced_manager.viewport,
-        );
+        self.context
+            .iced_renderer
+            .present(None, self.context.gpu.texture_format, view);
 
         self.context.window.pre_present_notify();
         frame.present();
@@ -330,9 +325,8 @@ fn main() {
 }
 
 fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
-    use iced_graphics::image::image_rs;
-    use image_rs::codecs::png::PngDecoder;
-    use image_rs::ImageDecoder;
+    use image::codecs::png::PngDecoder;
+    use image::ImageDecoder;
     use std::io::Cursor;
 
     let icon = PngDecoder::new(Cursor::new(include_bytes!(

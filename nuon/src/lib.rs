@@ -166,6 +166,15 @@ impl LayerStack {
         self.layers.iter()
     }
 
+    pub fn current_scissor_rect(&self) -> Option<Rect> {
+        let scissor_rect = self.current().scissor_rect;
+        (!scissor_rect.is_empty()).then_some(scissor_rect)
+    }
+
+    pub fn current(&self) -> &LayerData {
+        &self.layers[self.curr]
+    }
+
     pub fn current_mut(&mut self) -> &mut LayerData {
         &mut self.layers[self.curr]
     }
@@ -736,7 +745,13 @@ impl ClickArea {
     }
 
     fn check(ui: &mut Ui, id: Id, rect: Rect) -> ClickAreaEvent {
-        let mouseover = rect.contains(ui.pointer_pos);
+        let in_scissor_rect = ui
+            .layers
+            .current_scissor_rect()
+            .map(|scissor_rect| scissor_rect.contains(ui.pointer_pos))
+            .unwrap_or(true);
+
+        let mouseover = in_scissor_rect && rect.contains(ui.pointer_pos);
 
         if mouseover {
             ui.hovered = Some(id);

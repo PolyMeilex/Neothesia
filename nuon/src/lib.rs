@@ -431,10 +431,51 @@ pub fn layer() -> Layer {
     Layer::new()
 }
 
+#[derive(Default, Debug, Clone, Copy)]
+pub enum ScrollState {
+    #[default]
+    Uninitialized,
+    Ready {
+        value: f32,
+        max: f32,
+    },
+}
+
+impl ScrollState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn update(&mut self, line_delta: f32) {
+        let delta = -line_delta * 60.0;
+
+        match self {
+            ScrollState::Uninitialized => {}
+            ScrollState::Ready { value, max } => {
+                *value = (*value + delta).clamp(0.0, *max);
+            }
+        }
+    }
+
+    fn value(&self) -> f32 {
+        match self {
+            ScrollState::Uninitialized => 0.0,
+            ScrollState::Ready { value, max } => (*value).clamp(0.0, *max),
+        }
+    }
+
+    fn set_max(&mut self, max: f32) {
+        *self = match self {
+            ScrollState::Uninitialized => Self::Ready { value: 0.0, max },
+            ScrollState::Ready { value, .. } => Self::Ready { value: *value, max },
+        };
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Scroll {
     rect: Rect,
-    scroll: f32,
+    scroll: ScrollState,
 }
 
 impl Scroll {
@@ -447,18 +488,18 @@ impl Scroll {
         self
     }
 
+    pub fn scroll(mut self, scroll: ScrollState) -> Self {
+        self.scroll = scroll;
+        self
+    }
+
     pub fn scissor_size(mut self, w: f32, h: f32) -> Self {
         self.rect.size.width = w;
         self.rect.size.height = h;
         self
     }
 
-    pub fn scroll(mut self, scroll: f32) -> Self {
-        self.scroll = scroll;
-        self
-    }
-
-    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> ScrollState {
         //      ┌► ┌─────┐ ◄┐
         //      │  │~~~~~│  │ visible_h
         //      │  │~~~  │  │
@@ -467,11 +508,21 @@ impl Scroll {
         //      │  │~~~~~│
         //      └► └─────┘
 
+        let mut state = self.scroll;
+        let scroll = state.value();
+
         self::layer().scissor_rect(self.rect).build(ui, |ui| {
-            let last = self::translate().y(-self.scroll).build(ui, build);
+            let last = self::translate().y(-scroll).build(ui, build);
 
             let visible_h = self.rect.size.height;
             let full_h = last.y;
+
+            let max_scroll = (full_h - visible_h).max(0.0);
+            state.set_max(max_scroll);
+
+            if max_scroll == 0.0 {
+                return;
+            };
 
             let mult = visible_h / full_h;
             let h = visible_h * mult;
@@ -486,13 +537,15 @@ impl Scroll {
                 .border_radius([5.0; 4])
                 .build(ui);
             self::quad()
-                .y(self.scroll * mult)
+                .y(scroll * mult)
                 .x(self.rect.size.width - w)
                 .size(w, h)
                 .color([74, 68, 88])
                 .border_radius([5.0; 4])
                 .build(ui);
         });
+
+        state
     }
 }
 

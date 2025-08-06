@@ -7,7 +7,10 @@ use iced_graphics::text::cosmic_text;
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{QuadRenderer, TextRenderer};
 use std::time::Duration;
-use winit::event::WindowEvent;
+use winit::{
+    dpi::{LogicalPosition, LogicalSize},
+    event::WindowEvent,
+};
 
 pub trait Scene {
     fn update(&mut self, ctx: &mut Context, delta: Duration);
@@ -49,8 +52,17 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
 
     for (layer, out) in ui.layers.iter().zip(nuon_renderer.layers.iter_mut()) {
         out.quad_renderer.clear();
-        out.quad_renderer.set_scissor_rect(layer.scissor_rect);
-        out.text_renderer.set_scissor_rect(layer.scissor_rect);
+
+        let scissor_rect = layer.scissor_rect;
+        let pos = LogicalPosition::new(scissor_rect.origin.x, scissor_rect.origin.y)
+            .to_physical::<u32>(ctx.window_state.scale_factor);
+        let size = LogicalSize::new(scissor_rect.width(), scissor_rect.height())
+            .to_physical::<u32>(ctx.window_state.scale_factor);
+        let scissor_rect =
+            neothesia_core::Rect::new((pos.x, pos.y).into(), (size.width, size.height).into());
+
+        out.quad_renderer.set_scissor_rect(scissor_rect);
+        out.text_renderer.set_scissor_rect(scissor_rect);
 
         for quad in layer.quads.iter() {
             out.quad_renderer

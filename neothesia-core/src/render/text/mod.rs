@@ -31,7 +31,7 @@ struct TextShared {
 
 pub struct TextRenderer {
     text_renderer: glyphon::TextRenderer,
-    scissor_rect: Rect,
+    scissor_rect: Rect<u32>,
     text_areas: Vec<TextArea>,
     shared: Rc<RefCell<TextShared>>,
     device: wgpu::Device,
@@ -57,7 +57,7 @@ impl TextRenderer {
         }
     }
 
-    pub fn set_scissor_rect(&mut self, rect: Rect) {
+    pub fn set_scissor_rect(&mut self, rect: Rect<u32>) {
         self.scissor_rect = rect;
     }
 
@@ -279,10 +279,10 @@ impl TextRenderer {
 
         if has_scissor_rect {
             render_pass.set_scissor_rect(
-                scissor_rect.origin.x as u32,
-                scissor_rect.origin.y as u32,
-                scissor_rect.size.width as u32,
-                scissor_rect.size.height as u32,
+                scissor_rect.origin.x,
+                scissor_rect.origin.y,
+                scissor_rect.size.width,
+                scissor_rect.size.height,
             );
         } else {
             render_pass.set_scissor_rect(0, 0, pass_size.width, pass_size.height);

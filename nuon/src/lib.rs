@@ -447,7 +447,7 @@ impl ScrollState {
     }
 
     pub fn update(&mut self, line_delta: f32) {
-        let delta = -line_delta * 60.0;
+        let delta = -line_delta;
 
         match self {
             ScrollState::Uninitialized => {}

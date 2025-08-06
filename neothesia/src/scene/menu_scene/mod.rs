@@ -358,10 +358,14 @@ impl Scene for MenuScene {
         if let WindowEvent::MouseWheel { delta, .. } = event {
             match delta {
                 winit::event::MouseScrollDelta::LineDelta(_, y) => {
-                    self.settings_scroll.update(*y);
-                    self.tracks_scroll.update(*y);
+                    let y = y * 60.0;
+                    self.settings_scroll.update(y);
+                    self.tracks_scroll.update(y);
                 }
-                winit::event::MouseScrollDelta::PixelDelta(_physical_position) => {}
+                winit::event::MouseScrollDelta::PixelDelta(position) => {
+                    self.settings_scroll.update(position.y as f32);
+                    self.tracks_scroll.update(position.y as f32);
+                }
             }
         }
 

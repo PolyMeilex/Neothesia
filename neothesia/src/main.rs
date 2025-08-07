@@ -132,8 +132,6 @@ impl Neothesia {
     ) {
         match event {
             NeothesiaEvent::Play(song) => {
-                self.context.iced_renderer.clear();
-
                 let to = playing_scene::PlayingScene::new(&mut self.context, song);
                 self.game_scene = Box::new(to);
             }
@@ -207,10 +205,6 @@ impl Neothesia {
         }
 
         self.context.gpu.submit();
-
-        self.context
-            .iced_renderer
-            .present(None, self.context.gpu.texture_format, view);
 
         self.context.window.pre_present_notify();
         frame.present();

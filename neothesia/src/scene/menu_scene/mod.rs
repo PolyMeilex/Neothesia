@@ -10,7 +10,6 @@ mod tracks;
 use std::{future::Future, time::Duration};
 
 use crate::utils::BoxFuture;
-use iced_wgpu::ImageHandle;
 use neothesia_core::render::{BgPipeline, QuadRenderer, TextRenderer};
 
 use winit::{
@@ -78,14 +77,15 @@ impl Popup {
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
     text_renderer: TextRenderer,
+    image_renderer: neothesia_core::render::ImageRenderer,
     nuon_renderer: NuonRenderer,
+
+    logo: neothesia_core::render::Image,
 
     state: UiState,
 
     context: std::task::Context<'static>,
     futures: Vec<BoxFuture<MsgFn>>,
-
-    logo_handle: ImageHandle,
 
     quad_pipeline: QuadRenderer,
     nuon: nuon::Ui,
@@ -105,15 +105,18 @@ impl MenuScene {
         Self {
             bg_pipeline: BgPipeline::new(&ctx.gpu),
             text_renderer,
+            image_renderer: neothesia_core::render::ImageRenderer::new(
+                &ctx.gpu.device,
+                ctx.gpu.texture_format,
+                &ctx.transform,
+            ),
             state: iced_state,
             nuon_renderer: NuonRenderer::default(),
 
+            logo: neothesia_core::render::Image::new_logo(&ctx.gpu.device, &ctx.gpu.queue),
+
             context: std::task::Context::from_waker(noop_waker_ref()),
             futures: Vec::new(),
-
-            logo_handle: ImageHandle::from_bytes(
-                include_bytes!("../../../../assets/banner.png").to_vec(),
-            ),
 
             quad_pipeline,
             nuon: nuon::Ui::new(),
@@ -186,18 +189,26 @@ impl MenuScene {
         let h = 80.0;
         let gap = 10.0;
 
-        let logo_w = 650.0;
-        let logo_h = 115.0;
+        let logo_rect = self.logo.rect();
+        let logo_w = logo_rect.width();
+        let logo_h = logo_rect.height();
         let post_logo_gap = 40.0;
+
+        // TODO: Nuon image
+        self.logo.set_rect(nuon::Rect::new(
+            (win_w / 2.0 - logo_w / 2.0, win_h / 5.0).into(),
+            (logo_w, logo_h).into(),
+        ));
 
         nuon::translate()
             .x(win_w / 2.0)
             .y(win_h / 5.0)
             .build(ui, |ui| {
-                nuon::image(self.logo_handle.clone())
-                    .x(-logo_w / 2.0)
-                    .size(logo_w, logo_h)
-                    .build(ui);
+                // TODO: Nuon image
+                // nuon::image()
+                //     .x(-logo_w / 2.0)
+                //     .size(logo_w, logo_h)
+                //     .build(ui);
 
                 nuon::translate()
                     .x(-w / 2.0)
@@ -317,8 +328,6 @@ fn neo_btn_child(
 impl Scene for MenuScene {
     #[profiling::function]
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
-        ctx.iced_renderer.clear();
-
         self.quad_pipeline.clear();
         self.bg_pipeline.update_time(delta);
         self.state.tick(ctx);
@@ -351,6 +360,7 @@ impl Scene for MenuScene {
         self.quad_pipeline.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
+        self.image_renderer.render(rpass, &self.logo);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

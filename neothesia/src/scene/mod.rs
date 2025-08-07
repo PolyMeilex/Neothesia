@@ -76,17 +76,18 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
                 });
         }
 
-        for img in layer.images.iter() {
-            ctx.iced_renderer.draw_image(
-                iced_wgpu::Image {
-                    handle: img.image.clone(),
-                    filter_method: iced_wgpu::FilterMethod::default(),
-                    rotation: 0.0,
-                    opacity: 1.0,
-                    snap: false,
-                },
-                img.rect,
-            );
+        for _img in layer.images.iter() {
+            // TODO
+            // ctx.iced_renderer.draw_image(
+            //     iced_wgpu::Image {
+            //         handle: img.image.clone(),
+            //         filter_method: iced_wgpu::FilterMethod::default(),
+            //         rotation: 0.0,
+            //         opacity: 1.0,
+            //         snap: false,
+            //     },
+            //     img.rect,
+            // );
         }
 
         for icon in layer.icons.iter() {

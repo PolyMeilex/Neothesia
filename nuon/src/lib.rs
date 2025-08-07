@@ -264,7 +264,7 @@ pub struct TextRenderElement {
 #[derive(Debug, Clone)]
 pub struct ImageRenderElement {
     pub rect: Rect,
-    pub image: iced_wgpu::ImageHandle,
+    // TODO: Image handle?
 }
 
 pub struct Ui {
@@ -698,19 +698,21 @@ impl Quad {
 #[derive(Debug, Clone)]
 pub struct Image {
     rect: Rect,
-    handle: iced_wgpu::ImageHandle,
 }
 
-pub fn image(handle: iced_wgpu::ImageHandle) -> Image {
-    Image::new(handle)
+pub fn image() -> Image {
+    Image::new()
+}
+
+impl Default for Image {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Image {
-    pub fn new(handle: iced_wgpu::ImageHandle) -> Self {
-        Self {
-            rect: Rect::zero(),
-            handle,
-        }
+    pub fn new() -> Self {
+        Self { rect: Rect::zero() }
     }
 
     pub fn pos(self, x: f32, y: f32) -> Self {
@@ -746,10 +748,10 @@ impl Image {
             ui.translation_stack.translate(self.rect.origin),
             self.rect.size,
         );
-        ui.layers.current_mut().images.push(ImageRenderElement {
-            rect,
-            image: self.handle.clone(),
-        });
+        ui.layers
+            .current_mut()
+            .images
+            .push(ImageRenderElement { rect });
     }
 }
 

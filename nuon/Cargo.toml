@@ -5,5 +5,3 @@ edition = "2021"
 
 [dependencies]
 euclid.workspace = true
-
-iced_wgpu.workspace = true

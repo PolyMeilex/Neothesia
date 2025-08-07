@@ -10,7 +10,6 @@ members = [
   "midi-file",
   "midi-io",
   "nuon",
-  "iced-wgpu",
 ]
 
 default-members = ["neothesia"]
@@ -25,8 +24,6 @@ piano-layout = { path = "./piano-layout" }
 ffmpeg-encoder = { path = "./ffmpeg-encoder" }
 nuon = { path = "./nuon" }
 
-iced_wgpu = { path = "./iced-wgpu" }
-
 anyhow = "1"
 thiserror = "2.0"
 log = "0.4"
@@ -35,8 +32,6 @@ wgpu = "26"
 glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "724ab57edbd6c59ba219cd99cf89925d056392db" }
 
 bytes = "1"
-guillotiere = "0.6"
-rustc-hash = "2.0"
 
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.11"

@@ -1,6 +1,7 @@
 mod background_animation;
 mod glow;
 mod guidelines;
+mod image;
 mod keyboard;
 mod note_labels;
 mod quad;
@@ -10,6 +11,7 @@ mod waterfall;
 pub use background_animation::BgPipeline;
 pub use glow::{GlowInstance, GlowPipeline};
 pub use guidelines::GuidelineRenderer;
+pub use image::{Image, ImageRenderer};
 pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};
 pub use note_labels::NoteLabels;
 pub use quad::{QuadInstance, QuadRenderer, QuadRendererFactory};

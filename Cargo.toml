@@ -32,7 +32,7 @@ thiserror = "2.0"
 log = "0.4"
 
 wgpu = "26"
-glyphon = { git = "https://github.com/PolyMeilex/glyphon", rev = "993e3ac221e60fcf1733f9f9740a04b1317772d5" }
+glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "724ab57edbd6c59ba219cd99cf89925d056392db" }
 
 bytes = "1"
 guillotiere = "0.6"

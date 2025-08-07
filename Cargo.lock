@@ -1428,16 +1428,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "guillotiere"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b62d5865c036cb1393e23c50693df631d3f5d7bcca4c04fe4cc0fd592e74a782"
-dependencies = [
- "euclid",
- "svg_fmt",
-]
-
-[[package]]
 name = "half"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1474,20 +1464,6 @@ name = "hexf-parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
-
-[[package]]
-name = "iced_wgpu"
-version = "0.0.0"
-dependencies = [
- "bytemuck",
- "bytes",
- "guillotiere",
- "image",
- "log",
- "neothesia-core",
- "rustc-hash 2.1.1",
- "wgpu",
-]
 
 [[package]]
 name = "icu_collections"
@@ -2036,7 +2012,6 @@ dependencies = [
  "embed-resource",
  "env_logger",
  "fluidlite",
- "iced_wgpu",
  "image",
  "lilt",
  "log",
@@ -2205,7 +2180,6 @@ name = "nuon"
 version = "0.1.0"
 dependencies = [
  "euclid",
- "iced_wgpu",
 ]
 
 [[package]]

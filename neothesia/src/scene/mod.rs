@@ -3,8 +3,8 @@ pub mod playing_scene;
 
 use crate::context::Context;
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{QuadRenderer, TextRenderer};
-use std::time::Duration;
+use neothesia_core::render::{Image, ImageRenderer, QuadRenderer, TextRenderer};
+use std::{collections::HashMap, time::Duration};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
     event::WindowEvent,
@@ -20,25 +20,47 @@ pub trait Scene {
 struct NuonLayer {
     quad_renderer: QuadRenderer,
     text_renderer: TextRenderer,
+    images: Vec<Image>,
 }
 
-#[derive(Default)]
 pub struct NuonRenderer {
     layers: Vec<NuonLayer>,
+    image_map: HashMap<*const u8, Image>,
+    image_renderer: ImageRenderer,
 }
 
 impl NuonRenderer {
+    pub fn new(ctx: &Context) -> Self {
+        Self {
+            layers: Vec::new(),
+            image_map: HashMap::new(),
+            image_renderer: ImageRenderer::new(
+                &ctx.gpu.device,
+                ctx.gpu.texture_format,
+                &ctx.transform,
+            ),
+        }
+    }
+
     fn ensure_layers(&mut self, ctx: &mut Context, len: usize) {
         self.layers.resize_with(len, || NuonLayer {
             quad_renderer: ctx.quad_renderer_facotry.new_renderer(),
             text_renderer: ctx.text_renderer_factory.new_renderer(),
+            images: Vec::new(),
         });
+    }
+
+    pub fn add_image(&mut self, image: Image) {
+        self.image_map.insert(image.bytes().as_ptr(), image);
     }
 
     pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu_jumpstart::RenderPass<'rpass>) {
         for layer in self.layers.iter() {
             layer.quad_renderer.render(rpass);
             layer.text_renderer.render(rpass);
+            for image in layer.images.iter() {
+                self.image_renderer.render(rpass, image);
+            }
         }
     }
 }
@@ -48,6 +70,7 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
 
     for (layer, out) in ui.layers.iter().zip(nuon_renderer.layers.iter_mut()) {
         out.quad_renderer.clear();
+        out.images.clear();
 
         let scissor_rect = layer.scissor_rect;
         let pos = LogicalPosition::new(scissor_rect.origin.x, scissor_rect.origin.y)
@@ -76,18 +99,11 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
                 });
         }
 
-        for _img in layer.images.iter() {
-            // TODO
-            // ctx.iced_renderer.draw_image(
-            //     iced_wgpu::Image {
-            //         handle: img.image.clone(),
-            //         filter_method: iced_wgpu::FilterMethod::default(),
-            //         rotation: 0.0,
-            //         opacity: 1.0,
-            //         snap: false,
-            //     },
-            //     img.rect,
-            // );
+        for img in layer.images.iter() {
+            if let Some(image) = nuon_renderer.image_map.get_mut(&img.bytes.as_ptr()) {
+                image.set_rect(img.rect);
+                out.images.push(image.clone());
+            }
         }
 
         for icon in layer.icons.iter() {

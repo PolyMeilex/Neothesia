@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 
@@ -85,22 +86,18 @@ impl ImageRenderer {
 
 use bytemuck::{Pod, Zeroable};
 
+#[derive(Clone)]
 pub struct Image {
     vertex_buffer: wgpu::Buffer,
     diffuse_bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
     rect: Rect,
+    bytes: Bytes,
 }
 
 impl Image {
-    pub fn new_logo(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let diffuse_texture = texture::Texture::from_bytes(
-            device,
-            queue,
-            include_bytes!("../../../../assets/banner.png"),
-            "banner.png",
-        )
-        .unwrap();
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, bytes: Bytes) -> Self {
+        let diffuse_texture = texture::Texture::from_bytes(device, queue, &bytes).unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -140,21 +137,18 @@ impl Image {
             label: Some("diffuse_bind_group"),
         });
 
-        let x = 0.0;
-        let y = 0.0;
-        let w = 650.0;
-        let h = 118.0;
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&Self::vertex(x, y, w, h)),
+            contents: bytemuck::cast_slice(&Self::vertex(0.0, 0.0, 1.0, 1.0)),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         });
 
         Self {
             vertex_buffer,
             diffuse_bind_group,
-            rect: Rect::new((x, y).into(), (w, h).into()),
+            rect: Rect::new((0.0, 0.0).into(), (1.0, 1.0).into()),
             queue: queue.clone(),
+            bytes,
         }
     }
 
@@ -193,6 +187,10 @@ impl Image {
 
     pub fn rect(&self) -> Rect {
         self.rect
+    }
+
+    pub fn bytes(&self) -> &Bytes {
+        &self.bytes
     }
 }
 

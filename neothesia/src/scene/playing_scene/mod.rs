@@ -120,7 +120,7 @@ impl PlayingScene {
             guidelines,
             note_labels,
             text_renderer,
-            nuon_renderer: NuonRenderer::default(),
+            nuon_renderer: NuonRenderer::new(ctx),
 
             waterfall,
             player,

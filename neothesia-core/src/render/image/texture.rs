@@ -8,14 +8,9 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_bytes(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        bytes: &[u8],
-        label: &str,
-    ) -> Option<Self> {
+    pub fn from_bytes(device: &wgpu::Device, queue: &wgpu::Queue, bytes: &[u8]) -> Option<Self> {
         let img = image::load_from_memory(bytes).ok()?;
-        Some(Self::from_image(device, queue, &img, Some(label)))
+        Some(Self::from_image(device, queue, &img, None))
     }
 
     pub fn from_image(

@@ -1,4 +1,5 @@
 mod state;
+use bytes::Bytes;
 use state::{Page, UiState};
 
 mod midi_picker;
@@ -77,10 +78,9 @@ impl Popup {
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
     text_renderer: TextRenderer,
-    image_renderer: neothesia_core::render::ImageRenderer,
     nuon_renderer: NuonRenderer,
 
-    logo: neothesia_core::render::Image,
+    logo: Bytes,
 
     state: UiState,
 
@@ -102,18 +102,22 @@ impl MenuScene {
         let quad_pipeline = ctx.quad_renderer_facotry.new_renderer();
         let text_renderer = ctx.text_renderer_factory.new_renderer();
 
+        let mut nuon_renderer = NuonRenderer::new(ctx);
+
+        let logo = Bytes::from_static(include_bytes!("../../../../assets/banner.png"));
+        nuon_renderer.add_image(neothesia_core::render::Image::new(
+            &ctx.gpu.device,
+            &ctx.gpu.queue,
+            logo.clone(),
+        ));
+
         Self {
             bg_pipeline: BgPipeline::new(&ctx.gpu),
             text_renderer,
-            image_renderer: neothesia_core::render::ImageRenderer::new(
-                &ctx.gpu.device,
-                ctx.gpu.texture_format,
-                &ctx.transform,
-            ),
             state: iced_state,
-            nuon_renderer: NuonRenderer::default(),
+            nuon_renderer,
 
-            logo: neothesia_core::render::Image::new_logo(&ctx.gpu.device, &ctx.gpu.queue),
+            logo,
 
             context: std::task::Context::from_waker(noop_waker_ref()),
             futures: Vec::new(),
@@ -189,26 +193,18 @@ impl MenuScene {
         let h = 80.0;
         let gap = 10.0;
 
-        let logo_rect = self.logo.rect();
-        let logo_w = logo_rect.width();
-        let logo_h = logo_rect.height();
+        let logo_w = 650.0;
+        let logo_h = 118.0;
         let post_logo_gap = 40.0;
-
-        // TODO: Nuon image
-        self.logo.set_rect(nuon::Rect::new(
-            (win_w / 2.0 - logo_w / 2.0, win_h / 5.0).into(),
-            (logo_w, logo_h).into(),
-        ));
 
         nuon::translate()
             .x(win_w / 2.0)
             .y(win_h / 5.0)
             .build(ui, |ui| {
-                // TODO: Nuon image
-                // nuon::image()
-                //     .x(-logo_w / 2.0)
-                //     .size(logo_w, logo_h)
-                //     .build(ui);
+                nuon::image(self.logo.clone())
+                    .x(-logo_w / 2.0)
+                    .size(logo_w, logo_h)
+                    .build(ui);
 
                 nuon::translate()
                     .x(-w / 2.0)
@@ -360,9 +356,6 @@ impl Scene for MenuScene {
         self.quad_pipeline.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
-        if *self.state.current() == Page::Main {
-            self.image_renderer.render(rpass, &self.logo);
-        }
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

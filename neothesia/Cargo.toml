@@ -27,6 +27,7 @@ image.workspace = true
 async-channel.workspace = true
 cosmic-text.workspace = true
 
+bytes.workspace = true
 lilt.workspace = true
 winit.workspace = true
 rfd.workspace = true

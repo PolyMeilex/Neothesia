@@ -99,7 +99,7 @@ impl UiState {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Page {
     Exit,
     Main,

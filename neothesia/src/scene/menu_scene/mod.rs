@@ -360,7 +360,9 @@ impl Scene for MenuScene {
         self.quad_pipeline.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
-        self.image_renderer.render(rpass, &self.logo);
+        if *self.state.current() == Page::Main {
+            self.image_renderer.render(rpass, &self.logo);
+        }
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

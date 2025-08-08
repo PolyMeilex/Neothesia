@@ -2007,6 +2007,7 @@ name = "neothesia"
 version = "0.3.0"
 dependencies = [
  "async-channel",
+ "bytes",
  "cosmic-text",
  "cpal",
  "embed-resource",
@@ -2179,6 +2180,7 @@ dependencies = [
 name = "nuon"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "euclid",
 ]
 

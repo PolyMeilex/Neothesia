@@ -3,6 +3,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use bytes::Bytes;
 pub use euclid;
 
 pub type Point = euclid::default::Point2D<f32>;
@@ -264,7 +265,7 @@ pub struct TextRenderElement {
 #[derive(Debug, Clone)]
 pub struct ImageRenderElement {
     pub rect: Rect,
-    // TODO: Image handle?
+    pub bytes: Bytes,
 }
 
 pub struct Ui {
@@ -698,21 +699,19 @@ impl Quad {
 #[derive(Debug, Clone)]
 pub struct Image {
     rect: Rect,
+    bytes: Bytes,
 }
 
-pub fn image() -> Image {
-    Image::new()
-}
-
-impl Default for Image {
-    fn default() -> Self {
-        Self::new()
-    }
+pub fn image(bytes: Bytes) -> Image {
+    Image::new(bytes)
 }
 
 impl Image {
-    pub fn new() -> Self {
-        Self { rect: Rect::zero() }
+    pub fn new(bytes: Bytes) -> Self {
+        Self {
+            rect: Rect::zero(),
+            bytes,
+        }
     }
 
     pub fn pos(self, x: f32, y: f32) -> Self {
@@ -748,10 +747,10 @@ impl Image {
             ui.translation_stack.translate(self.rect.origin),
             self.rect.size,
         );
-        ui.layers
-            .current_mut()
-            .images
-            .push(ImageRenderElement { rect });
+        ui.layers.current_mut().images.push(ImageRenderElement {
+            rect,
+            bytes: self.bytes.clone(),
+        });
     }
 }
 

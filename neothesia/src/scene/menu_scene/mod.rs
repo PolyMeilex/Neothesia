@@ -132,6 +132,15 @@ impl MenuScene {
 
     fn main_ui(&mut self, ctx: &mut Context) {
         if self.state.is_loading() {
+            let width = ctx.window_state.logical_size.width;
+            let height = ctx.window_state.logical_size.height;
+
+            nuon::label()
+                .size(width, height)
+                .font_size(30.0)
+                .text("Loading...")
+                .text_justify(nuon::TextJustify::Center)
+                .build(&mut self.nuon);
             return;
         }
 

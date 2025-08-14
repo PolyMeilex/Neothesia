@@ -439,6 +439,7 @@ pub enum ScrollState {
     Ready {
         value: f32,
         max: f32,
+        mouse_drag_offset: f32,
     },
 }
 
@@ -452,7 +453,7 @@ impl ScrollState {
 
         match self {
             ScrollState::Uninitialized => {}
-            ScrollState::Ready { value, max } => {
+            ScrollState::Ready { value, max, .. } => {
                 *value = (*value + delta).clamp(0.0, *max);
             }
         }
@@ -461,14 +462,51 @@ impl ScrollState {
     fn value(&self) -> f32 {
         match self {
             ScrollState::Uninitialized => 0.0,
-            ScrollState::Ready { value, max } => (*value).clamp(0.0, *max),
+            ScrollState::Ready { value, max, .. } => (*value).clamp(0.0, *max),
         }
+    }
+
+    fn set_value(&mut self, v: f32) {
+        match self {
+            ScrollState::Uninitialized => {}
+            ScrollState::Ready { value, max, .. } => *value = v.clamp(0.0, *max),
+        };
+    }
+
+    fn mouse_drag_offset(&self) -> f32 {
+        match self {
+            ScrollState::Uninitialized => 0.0,
+            ScrollState::Ready {
+                mouse_drag_offset, ..
+            } => *mouse_drag_offset,
+        }
+    }
+
+    fn set_mouse_drag_offset(&mut self, y: f32) {
+        match self {
+            ScrollState::Uninitialized => {}
+            ScrollState::Ready {
+                mouse_drag_offset, ..
+            } => *mouse_drag_offset = y,
+        };
     }
 
     fn set_max(&mut self, max: f32) {
         *self = match self {
-            ScrollState::Uninitialized => Self::Ready { value: 0.0, max },
-            ScrollState::Ready { value, .. } => Self::Ready { value: *value, max },
+            ScrollState::Uninitialized => Self::Ready {
+                value: 0.0,
+                max,
+                mouse_drag_offset: 0.0,
+            },
+            ScrollState::Ready {
+                value,
+                mouse_drag_offset,
+                ..
+            } => Self::Ready {
+                value: *value,
+                max,
+                mouse_drag_offset: *mouse_drag_offset,
+            },
         };
     }
 }
@@ -537,11 +575,30 @@ impl Scroll {
                 .color([37, 35, 42])
                 .border_radius([5.0; 4])
                 .build(ui);
+
+            let y = scroll * mult;
+            let x = self.rect.size.width - w;
+
+            // TODO: Don't assume single scroll per view
+            let res = self::click_area("scroll").size(w, h).pos(x, y).build(ui);
+
+            let color = if res.is_hovered() || res.is_pressed() {
+                [87, 81, 101]
+            } else {
+                [74, 68, 88]
+            };
+
+            if res.is_press_start() {
+                state.set_mouse_drag_offset(ui.pointer_pos.y - y);
+            } else if res.is_pressed() {
+                let y = ui.pointer_pos.y - state.mouse_drag_offset();
+                state.set_value(y / mult);
+            }
+
             self::quad()
-                .y(scroll * mult)
-                .x(self.rect.size.width - w)
+                .pos(x, y)
                 .size(w, h)
-                .color([74, 68, 88])
+                .color(color)
                 .border_radius([5.0; 4])
                 .build(ui);
         });
@@ -784,6 +841,10 @@ impl ClickAreaEvent {
             self,
             ClickAreaEvent::PressStart | ClickAreaEvent::Idle { pressed: true, .. }
         )
+    }
+
+    pub fn is_press_start(&self) -> bool {
+        matches!(self, ClickAreaEvent::PressStart)
     }
 
     pub fn is_hovered(&self) -> bool {

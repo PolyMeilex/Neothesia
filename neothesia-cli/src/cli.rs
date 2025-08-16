@@ -33,8 +33,14 @@ impl Args {
             .arg(arg!(--height <PIXELS>).required(false))
             .get_matches();
 
-        let width = matches.get_one::<u32>("width").copied().unwrap_or(1920);
-        let height = matches.get_one::<u32>("height").copied().unwrap_or(1080);
+        let width = matches
+            .get_one::<String>("width")
+            .map(|w| w.parse::<u32>().unwrap())
+            .unwrap_or(1920);
+        let height = matches
+            .get_one::<String>("height")
+            .map(|w| w.parse::<u32>().unwrap())
+            .unwrap_or(1080);
 
         if width % 2 != 0 || height % 2 != 0 {
             eprintln!("width and height must be a multiple of two");

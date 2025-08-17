@@ -1,4 +1,5 @@
 mod background_animation;
+pub mod fluid;
 mod glow;
 mod guidelines;
 mod image;

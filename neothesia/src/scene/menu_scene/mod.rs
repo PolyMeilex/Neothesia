@@ -79,6 +79,7 @@ pub struct MenuScene {
     bg_pipeline: BgPipeline,
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
+    fluid_renderer: neothesia_core::render::fluid::ImageRenderer,
 
     logo: Bytes,
 
@@ -116,6 +117,10 @@ impl MenuScene {
             text_renderer,
             state: iced_state,
             nuon_renderer,
+            fluid_renderer: neothesia_core::render::fluid::ImageRenderer::new(
+                &ctx.gpu,
+                &ctx.transform,
+            ),
 
             logo,
 
@@ -365,6 +370,46 @@ impl Scene for MenuScene {
         self.quad_pipeline.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
+        self.fluid_renderer.render(rpass);
+    }
+
+    fn post_render(&mut self, encoder: &mut wgpu::CommandEncoder) {
+        // self.fluid_renderer
+        //     .image
+        //     .diffuse_texture
+        //     .texture
+        //     .create_view(wgpu::TextureDescriptor {
+        //         label: None,
+        //         size: todo!(),
+        //         mip_level_count: todo!(),
+        //         sample_count: todo!(),
+        //         dimension: todo!(),
+        //         format: todo!(),
+        //         usage: todo!(),
+        //         view_formats: todo!(),
+        //     });
+        //
+        // let view = &self.fluid_renderer.image.diffuse_texture.view;
+        //
+        // let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        //     label: Some("Main Neothesia Pass"),
+        //     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+        //         view,
+        //         resolve_target: None,
+        //         ops: wgpu::Operations {
+        //             load: wgpu::LoadOp::Load,
+        //             store: wgpu::StoreOp::Store,
+        //         },
+        //         depth_slice: None,
+        //     })],
+        //
+        //     depth_stencil_attachment: None,
+        //     timestamp_writes: None,
+        //     occlusion_query_set: None,
+        // });
+        //
+        // self.fluid_renderer.render(&mut rpass);
+        self.fluid_renderer.post_render(encoder);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

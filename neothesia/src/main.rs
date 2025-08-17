@@ -204,6 +204,8 @@ impl Neothesia {
             self.game_scene.render(&mut rpass);
         }
 
+        self.game_scene.post_render(&mut self.context.gpu.encoder);
+
         self.context.gpu.submit();
 
         self.context.window.pre_present_notify();

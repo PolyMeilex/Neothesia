@@ -36,7 +36,14 @@ impl OutputDescriptor {
     }
 
     pub fn is_synth(&self) -> bool {
-        matches!(self, OutputDescriptor::Synth(_))
+        #[cfg(feature = "synth")]
+        {
+            matches!(self, OutputDescriptor::Synth(_))
+        }
+        #[cfg(not(feature = "synth"))]
+        {
+            false
+        }
     }
 }
 

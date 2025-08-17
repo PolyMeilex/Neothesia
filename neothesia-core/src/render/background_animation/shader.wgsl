@@ -56,6 +56,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv: vec2<f32> = in.uv_position;
     var color: vec3<f32> = vec3<f32>(0.01);
 
+    if uv.y < 0.5 && uv.y > 0.4 && uv.x > 0.3 && uv.x < 0.4 {
+      return vec4(1.0, 1.0, 1.0, 1.0);
+    } else{
+      return vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
     let d = 0.0;
 
     uv = uv * rot_z(0.7);

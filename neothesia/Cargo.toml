@@ -6,7 +6,7 @@ edition = "2021"
 default-run = "neothesia"
 
 [features]
-default = ["oxi-synth"]
+default = []
 
 profiling-on = ["profiling/profile-with-puffin"]
 synth = []

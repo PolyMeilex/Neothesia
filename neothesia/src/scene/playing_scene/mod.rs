@@ -1,6 +1,7 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
-    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
+    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadInstance, QuadRenderer,
+    TextRenderer,
 };
 use std::time::Duration;
 use winit::{
@@ -56,6 +57,12 @@ pub struct PlayingScene {
     nuon: nuon::Ui,
 
     top_bar: TopBar,
+
+    wave: [(f32, f32, nuon::Color); 88],
+}
+
+pub fn lerp(current: f32, target: f32, smoothness: f32) -> f32 {
+    current + (target - current) * smoothness
 }
 
 impl PlayingScene {
@@ -136,6 +143,7 @@ impl PlayingScene {
             nuon: nuon::Ui::new(),
 
             top_bar: TopBar::new(),
+            wave: [(0.0, 0.0, nuon::Color::WHITE); 88],
         }
     }
 
@@ -183,6 +191,38 @@ impl PlayingScene {
             let delta = (delta / 10) * (ctx.config.speed_multiplier() * 10.0) as u32;
             let midi_events = self.player.update(delta);
             self.keyboard.file_midi_events(&ctx.config, &midi_events);
+
+            let range_start = self.keyboard.range().start() as usize;
+
+            for event in midi_events {
+                match event.message {
+                    MidiMessage::NoteOn { key, vel } => {
+                        if !self.keyboard.range().contains(key.as_int()) {
+                            continue;
+                        }
+
+                        let color = &ctx.config.color_schema()
+                            [event.track_color_id % ctx.config.color_schema().len()]
+                        .base;
+                        // let color = &ctx.config.color_schema()
+                        //     [event.channel as usize % ctx.config.color_schema().len()]
+                        // .base;
+
+                        let id = key.as_int() as usize - range_start;
+                        self.wave[id].1 = 200.0 * (vel.as_int() as f32 / 127.0).max(0.3);
+                        self.wave[id].2 = nuon::Color::new_u8(color.0, color.1, color.2, 0.0);
+                    }
+                    MidiMessage::NoteOff { key, .. } => {
+                        if !self.keyboard.range().contains(key.as_int()) {
+                            continue;
+                        }
+
+                        let id = key.as_int() as usize - range_start;
+                        self.wave[id].1 = 0.0;
+                    }
+                    _ => {}
+                }
+            }
         }
 
         self.player.time_without_lead_in() + ctx.config.animation_offset()
@@ -234,6 +274,32 @@ impl Scene for PlayingScene {
         }
 
         self.update_glow(delta);
+
+        {
+            self.quad_renderer_fg.push(QuadInstance {
+                position: [0.0, 200.0],
+                size: [88.0 * 10.0, 300.0],
+                color: [0.0, 0.0, 0.0, 1.0],
+                border_radius: [0.0; 4],
+            });
+
+            for (n, (v, _, color)) in self.wave.iter().enumerate() {
+                let v = v.max(1.0);
+                self.quad_renderer_fg.push(QuadInstance {
+                    position: [n as f32 * 10.0, 300.0 - v / 2.0],
+                    size: [9.0, v],
+                    color: [color.r, color.g, color.b, 1.0],
+                    border_radius: [5.0; 4],
+                });
+            }
+
+            for (v, target, _) in self.wave.iter_mut() {
+                *v = lerp(*v, *target, 0.2);
+                // if *v >= *target - 0.1 {
+                //     *target = 0.0;
+                // }
+            }
+        }
 
         TopBar::update(self, ctx);
 

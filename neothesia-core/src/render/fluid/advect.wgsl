@@ -44,10 +44,53 @@ var s_diffuse: sampler;
 @group(2) @binding(0)
 var t_vel: texture_2d<f32>;
 
+fn bilerp(tex: texture_2d<f32>, uv: vec2<f32>, tsize: vec2<f32>) -> vec4<f32> {
+    let st  = uv / tsize - vec2<f32>(0.5, 0.5);
+    let iuv = floor(st);
+    let fuv = fract(st);
+
+    let a = textureSample(tex, s_diffuse, (iuv + vec2(0.5, 0.5)) * tsize);
+    let b = textureSample(tex, s_diffuse, (iuv + vec2(1.5, 0.5)) * tsize);
+    let c = textureSample(tex, s_diffuse, (iuv + vec2(0.5, 1.5)) * tsize);
+    let d = textureSample(tex, s_diffuse, (iuv + vec2(1.5, 1.5)) * tsize);
+
+    return mix(mix(a, b, fuv.x), mix(c, d, fuv.x), fuv.y);
+}
+
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var coord = in.vUv - textureSample(t_vel, s_diffuse, in.vUv).xy * in.texelSize;
+    // var velocity = textureSample(t_vel, s_diffuse, in.vUv).xy;
+    let velocity = bilerp(t_vel, in.vUv, in.texelSize).xy;
+
+    // var x = in.vUv.x - xy.x;
+    // var y = in.vUv.y - xy.y;
+    //
+    // var i0 = x;
+    // var i1 = i0 + 1.0;
+    //
+    // var j0 = y;
+    // var j1 = j0 + 1.0;
+    //
+    // var s1 = x - i0;
+    // let s0 = 1.0 - s1;
+    // let t1 = y - j0;
+    // let t0 = 1.0 - t1;
+
+    //
+
+    // let a = textureSample(t_diffuse, s_diffuse, vec2(f32(i0), f32(j0))).r;
+    // let b = textureSample(t_diffuse, s_diffuse, vec2(f32(i0), f32(j1))).r;
+    // let c = textureSample(t_diffuse, s_diffuse, vec2(f32(i1), f32(j0))).r;
+    // let d = textureSample(t_diffuse, s_diffuse, vec2(f32(i1), f32(j1))).r;
+    //
+    // let v = s0 * (t0 * a + t1 * b) + s1 * (t0 * c + t1 * d);
+
+    //
+
+    var coord = in.vUv - velocity * in.texelSize;
 
     var c = textureSample(t_diffuse, s_diffuse, coord);
+
     return vec4(c.r, c.g, c.b, 1.0);
+    // return vec4(v, v, v, 1.0);
 }

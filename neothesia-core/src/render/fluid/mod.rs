@@ -1,5 +1,6 @@
 mod texture;
 
+use image::GenericImageView as _;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
@@ -382,7 +383,7 @@ struct VelDoubleBuff {
 impl VelDoubleBuff {
     fn new(gpu: &Gpu) -> Self {
         let device = &gpu.device;
-        let format = gpu.texture_format;
+        let format = wgpu::TextureFormat::Rgba8UnormSrgb;
 
         let size = wgpu::Extent3d {
             width: 1080,
@@ -391,28 +392,78 @@ impl VelDoubleBuff {
         };
 
         let curr_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("curr_texture"),
+            label: Some("vel_curr_texture"),
             size,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
         let curr = curr_texture.create_view(&Default::default());
 
+        {
+            let img =
+                image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
+            let rgba = img.to_rgba8();
+            let dimensions = img.dimensions();
+
+            gpu.queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    aspect: wgpu::TextureAspect::All,
+                    texture: &curr_texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                },
+                &rgba,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * dimensions.0),
+                    rows_per_image: Some(dimensions.1),
+                },
+                size,
+            );
+        }
+
         let prev_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("prev_texture"),
+            label: Some("vel_prev_texture"),
             size,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
         let prev = prev_texture.create_view(&Default::default());
+
+        {
+            let img =
+                image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
+            let rgba = img.to_rgba8();
+            let dimensions = img.dimensions();
+
+            gpu.queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    aspect: wgpu::TextureAspect::All,
+                    texture: &prev_texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                },
+                &rgba,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * dimensions.0),
+                    rows_per_image: Some(dimensions.1),
+                },
+                size,
+            );
+        }
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,

@@ -51,10 +51,22 @@ fn note_render(uv: vec2<f32>, pos: f32, color: vec3<f32>) -> vec3<f32> {
 const speed: f32 = -0.5;
 const live_time: f32 = 2.6;
 
+fn mod_glsl(x: f32, y: f32) -> f32 {
+    return x - y * floor(x / y);
+}
+
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv: vec2<f32> = in.uv_position;
     var color: vec3<f32> = vec3<f32>(0.01);
+
+    {
+      let d = f32(mod_glsl(
+          floor(uv.x * 10.0) + floor(uv.y * 10.0),
+          2.0
+      ));
+      return vec4<f32>(vec3<f32>(d), 1.0);
+    }
 
     if uv.y < 0.5 && uv.y > 0.4 && uv.x > 0.3 && uv.x < 0.4 {
       return vec4(1.0, 1.0, 1.0, 1.0);

@@ -40,7 +40,7 @@ fn vs_main(
 @group(1) @binding(0)
 var t_diffuse: texture_2d<f32>;
 @group(1) @binding(1)
-var s_diffuse: sampler;
+var s_samper: sampler;
 @group(2) @binding(0)
 var t_vel: texture_2d<f32>;
 
@@ -49,18 +49,18 @@ fn bilerp(tex: texture_2d<f32>, uv: vec2<f32>, tsize: vec2<f32>) -> vec4<f32> {
     let iuv = floor(st);
     let fuv = fract(st);
 
-    let a = textureSample(tex, s_diffuse, (iuv + vec2(0.5, 0.5)) * tsize);
-    let b = textureSample(tex, s_diffuse, (iuv + vec2(1.5, 0.5)) * tsize);
-    let c = textureSample(tex, s_diffuse, (iuv + vec2(0.5, 1.5)) * tsize);
-    let d = textureSample(tex, s_diffuse, (iuv + vec2(1.5, 1.5)) * tsize);
+    let a = textureSample(tex, s_samper, (iuv + vec2(0.5, 0.5)) * tsize);
+    let b = textureSample(tex, s_samper, (iuv + vec2(1.5, 0.5)) * tsize);
+    let c = textureSample(tex, s_samper, (iuv + vec2(0.5, 1.5)) * tsize);
+    let d = textureSample(tex, s_samper, (iuv + vec2(1.5, 1.5)) * tsize);
 
     return mix(mix(a, b, fuv.x), mix(c, d, fuv.x), fuv.y);
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    // var velocity = textureSample(t_vel, s_diffuse, in.vUv).xy;
-    let velocity = bilerp(t_vel, in.vUv, in.texelSize).xy;
+    // var velocity = textureSample(t_vel, s_samper, in.vUv).xy;
+    // let velocity = bilerp(t_vel, in.vUv, in.texelSize).xy;
 
     // var x = in.vUv.x - xy.x;
     // var y = in.vUv.y - xy.y;
@@ -78,19 +78,25 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     //
 
-    // let a = textureSample(t_diffuse, s_diffuse, vec2(f32(i0), f32(j0))).r;
-    // let b = textureSample(t_diffuse, s_diffuse, vec2(f32(i0), f32(j1))).r;
-    // let c = textureSample(t_diffuse, s_diffuse, vec2(f32(i1), f32(j0))).r;
-    // let d = textureSample(t_diffuse, s_diffuse, vec2(f32(i1), f32(j1))).r;
+    // let a = textureSample(t_diffuse, s_samper, vec2(f32(i0), f32(j0))).r;
+    // let b = textureSample(t_diffuse, s_samper, vec2(f32(i0), f32(j1))).r;
+    // let c = textureSample(t_diffuse, s_samper, vec2(f32(i1), f32(j0))).r;
+    // let d = textureSample(t_diffuse, s_samper, vec2(f32(i1), f32(j1))).r;
     //
     // let v = s0 * (t0 * a + t1 * b) + s1 * (t0 * c + t1 * d);
 
     //
 
-    var coord = in.vUv - velocity * in.texelSize;
+    // var velocity = textureSample(t_vel, s_samper, in.vUv).xy;
+    // var coord = in.vUv - 9.16 * vec2(velocity.x, -velocity.y) * in.texelSize;
+    //
+    // var c = textureSample(t_diffuse, s_samper, coord);
 
-    var c = textureSample(t_diffuse, s_diffuse, coord);
-
-    return vec4(c.r, c.g, c.b, 1.0);
+    // return vec4(c.r, c.g, c.b, 1.0);
     // return vec4(v, v, v, 1.0);
+
+    let velocity = textureSample(t_vel, s_samper, in.vUv).xy;
+    let coord = in.vUv - 1.0 * vec2(velocity.x, -velocity.y) * in.texelSize;
+    var color = textureSample(t_diffuse, s_samper, coord);
+    return vec4(color.rgb, 1.0);
 }

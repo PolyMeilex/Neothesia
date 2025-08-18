@@ -60,6 +60,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv: vec2<f32> = in.uv_position;
     var color: vec3<f32> = vec3<f32>(0.01);
 
+
+    return vec4(sin(6.28 * uv.y), sin(6.28 * uv.x), 0.0, 1.0);
+
     {
       let d = f32(mod_glsl(
           floor(uv.x * 10.0) + floor(uv.y * 10.0),

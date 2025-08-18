@@ -131,7 +131,7 @@ impl ImageRenderer {
     pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
         rpass.set_pipeline(&self.copy_pipeline);
         rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-        rpass.set_bind_group(1, &self.density_buff.curr_bind_group, &[]);
+        rpass.set_bind_group(1, &self.vel_buff.curr_bind_group, &[]);
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
         rpass.draw_indexed(0..self.indices.len, 0, 0..1);
@@ -143,7 +143,7 @@ impl ImageRenderer {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("fluid: Initial pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.density_buff.curr,
+                    view: &self.vel_buff.curr,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -164,37 +164,37 @@ impl ImageRenderer {
             self.animation.render(&mut rpass);
         }
 
-        self.density_buff.flip();
+        // self.density_buff.flip();
 
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("fluid: diffuse from prev to curr"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.density_buff.curr,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            rpass.set_pipeline(&self.diffuse_pipeline);
-            rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-            rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
-            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.indices.len, 0, 0..1);
-        }
+        // {
+        //     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        //         label: Some("fluid: diffuse from prev to curr"),
+        //         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+        //             view: &self.density_buff.curr,
+        //             resolve_target: None,
+        //             ops: wgpu::Operations {
+        //                 load: wgpu::LoadOp::Clear(wgpu::Color {
+        //                     r: 0.0,
+        //                     g: 0.0,
+        //                     b: 0.0,
+        //                     a: 1.0,
+        //                 }),
+        //                 store: wgpu::StoreOp::Store,
+        //             },
+        //             depth_slice: None,
+        //         })],
+        //
+        //         depth_stencil_attachment: None,
+        //         timestamp_writes: None,
+        //         occlusion_query_set: None,
+        //     });
+        //     rpass.set_pipeline(&self.diffuse_pipeline);
+        //     rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
+        //     rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
+        //     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        //     rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
+        //     rpass.draw_indexed(0..self.indices.len, 0, 0..1);
+        // }
 
         self.vel_buff.flip();
 
@@ -230,39 +230,39 @@ impl ImageRenderer {
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
         }
 
-        self.density_buff.flip();
+        // self.density_buff.flip();
 
         // advect density
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("fluid: advect from prev to curr"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.density_buff.curr,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            rpass.set_pipeline(&self.advect_pipeline);
-            rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-            rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
-            rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
-            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.indices.len, 0, 0..1);
-        }
+        // {
+        //     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        //         label: Some("fluid: advect from prev to curr"),
+        //         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+        //             view: &self.density_buff.curr,
+        //             resolve_target: None,
+        //             ops: wgpu::Operations {
+        //                 load: wgpu::LoadOp::Clear(wgpu::Color {
+        //                     r: 0.0,
+        //                     g: 0.0,
+        //                     b: 0.0,
+        //                     a: 1.0,
+        //                 }),
+        //                 store: wgpu::StoreOp::Store,
+        //             },
+        //             depth_slice: None,
+        //         })],
+        //
+        //         depth_stencil_attachment: None,
+        //         timestamp_writes: None,
+        //         occlusion_query_set: None,
+        //     });
+        //     rpass.set_pipeline(&self.advect_pipeline);
+        //     rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
+        //     rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
+        //     rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
+        //     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        //     rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
+        //     rpass.draw_indexed(0..self.indices.len, 0, 0..1);
+        // }
     }
 }
 
@@ -440,8 +440,8 @@ impl VelDoubleBuff {
         let format = gpu.texture_format;
 
         let size = wgpu::Extent3d {
-            width: 1080,
-            height: 720,
+            width: 200,
+            height: 200,
             depth_or_array_layers: 1,
         };
 
@@ -459,32 +459,32 @@ impl VelDoubleBuff {
         });
         let curr = curr_texture.create_view(&Default::default());
 
-        {
-            let img =
-                image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
-            let dimensions = img.dimensions();
-            let rgba = if format == wgpu::TextureFormat::Bgra8UnormSrgb {
-                rgba8_to_bgra8(&img.to_rgba8())
-            } else {
-                img.to_rgba8().to_vec()
-            };
-
-            gpu.queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    aspect: wgpu::TextureAspect::All,
-                    texture: &curr_texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                },
-                &rgba,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * dimensions.0),
-                    rows_per_image: Some(dimensions.1),
-                },
-                size,
-            );
-        }
+        // {
+        //     let img =
+        //         image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
+        //     let dimensions = img.dimensions();
+        //     let rgba = if format == wgpu::TextureFormat::Bgra8UnormSrgb {
+        //         rgba8_to_bgra8(&img.to_rgba8())
+        //     } else {
+        //         img.to_rgba8().to_vec()
+        //     };
+        //
+        //     gpu.queue.write_texture(
+        //         wgpu::TexelCopyTextureInfo {
+        //             aspect: wgpu::TextureAspect::All,
+        //             texture: &curr_texture,
+        //             mip_level: 0,
+        //             origin: wgpu::Origin3d::ZERO,
+        //         },
+        //         &rgba,
+        //         wgpu::TexelCopyBufferLayout {
+        //             offset: 0,
+        //             bytes_per_row: Some(4 * dimensions.0),
+        //             rows_per_image: Some(dimensions.1),
+        //         },
+        //         size,
+        //     );
+        // }
 
         let prev_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("vel_prev_texture"),
@@ -500,39 +500,39 @@ impl VelDoubleBuff {
         });
         let prev = prev_texture.create_view(&Default::default());
 
-        {
-            let img =
-                image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
-            let dimensions = img.dimensions();
-            let rgba = if format == wgpu::TextureFormat::Bgra8UnormSrgb {
-                rgba8_to_bgra8(&img.to_rgba8())
-            } else {
-                img.to_rgba8().to_vec()
-            };
-
-            gpu.queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    aspect: wgpu::TextureAspect::All,
-                    texture: &prev_texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                },
-                &rgba,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * dimensions.0),
-                    rows_per_image: Some(dimensions.1),
-                },
-                size,
-            );
-        }
+        // {
+        //     let img =
+        //         image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
+        //     let dimensions = img.dimensions();
+        //     let rgba = if format == wgpu::TextureFormat::Bgra8UnormSrgb {
+        //         rgba8_to_bgra8(&img.to_rgba8())
+        //     } else {
+        //         img.to_rgba8().to_vec()
+        //     };
+        //
+        //     gpu.queue.write_texture(
+        //         wgpu::TexelCopyTextureInfo {
+        //             aspect: wgpu::TextureAspect::All,
+        //             texture: &prev_texture,
+        //             mip_level: 0,
+        //             origin: wgpu::Origin3d::ZERO,
+        //         },
+        //         &rgba,
+        //         wgpu::TexelCopyBufferLayout {
+        //             offset: 0,
+        //             bytes_per_row: Some(4 * dimensions.0),
+        //             rows_per_image: Some(dimensions.1),
+        //         },
+        //         size,
+        //     );
+        // }
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            min_filter: wgpu::FilterMode::Nearest,
-            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
@@ -540,8 +540,8 @@ impl VelDoubleBuff {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            min_filter: wgpu::FilterMode::Nearest,
-            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });

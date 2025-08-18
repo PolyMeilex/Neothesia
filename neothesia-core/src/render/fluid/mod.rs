@@ -17,7 +17,7 @@ pub struct ImageRenderer {
 
     first: bool,
 
-    double_buff: DoubleBuff,
+    density_buff: DoubleBuff,
     vel_buff: VelDoubleBuff,
 }
 
@@ -123,7 +123,7 @@ impl ImageRenderer {
             animation,
             first: true,
 
-            double_buff,
+            density_buff: double_buff,
             vel_buff,
         }
     }
@@ -131,7 +131,7 @@ impl ImageRenderer {
     pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
         rpass.set_pipeline(&self.copy_pipeline);
         rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-        rpass.set_bind_group(1, &self.double_buff.curr_bind_group, &[]);
+        rpass.set_bind_group(1, &self.density_buff.curr_bind_group, &[]);
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
         rpass.draw_indexed(0..self.indices.len, 0, 0..1);
@@ -143,7 +143,7 @@ impl ImageRenderer {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("fluid: Initial pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.double_buff.curr,
+                    view: &self.density_buff.curr,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -164,13 +164,13 @@ impl ImageRenderer {
             self.animation.render(&mut rpass);
         }
 
-        self.double_buff.flip();
+        self.density_buff.flip();
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("fluid: diffuse from prev to curr"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.double_buff.curr,
+                    view: &self.density_buff.curr,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -190,19 +190,20 @@ impl ImageRenderer {
             });
             rpass.set_pipeline(&self.diffuse_pipeline);
             rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-            rpass.set_bind_group(1, &self.double_buff.prev_bind_group, &[]);
+            rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
         }
 
-        self.double_buff.flip();
+        self.vel_buff.flip();
 
+        // advect velocity
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("fluid: advect from prev to curr"),
+                label: Some("fluid: advect vel from prev to curr"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.double_buff.curr,
+                    view: &self.vel_buff.curr,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -222,8 +223,42 @@ impl ImageRenderer {
             });
             rpass.set_pipeline(&self.advect_pipeline);
             rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-            rpass.set_bind_group(1, &self.double_buff.prev_bind_group, &[]);
+            rpass.set_bind_group(1, &self.vel_buff.prev_bind_group, &[]);
             rpass.set_bind_group(2, &self.vel_buff.prev_bind_group, &[]);
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.indices.len, 0, 0..1);
+        }
+
+        self.density_buff.flip();
+
+        // advect density
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("fluid: advect from prev to curr"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.density_buff.curr,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            rpass.set_pipeline(&self.advect_pipeline);
+            rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
+            rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
+            rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
@@ -380,10 +415,29 @@ struct VelDoubleBuff {
     texture_bind_group_layout: wgpu::BindGroupLayout,
 }
 
+fn rgba8_to_bgra8(rgba: &[u8]) -> Vec<u8> {
+    assert!(
+        rgba.len() % 4 == 0,
+        "Input buffer must have 4 bytes per pixel"
+    );
+
+    let mut bgra = Vec::with_capacity(rgba.len());
+    for chunk in rgba.chunks_exact(4) {
+        let r = chunk[0];
+        let g = chunk[1];
+        let b = chunk[2];
+        let a = chunk[3];
+        bgra.extend_from_slice(&[b, g, r, a]);
+    }
+
+    bgra
+}
+
 impl VelDoubleBuff {
     fn new(gpu: &Gpu) -> Self {
         let device = &gpu.device;
-        let format = wgpu::TextureFormat::Rgba8UnormSrgb;
+        // let format = wgpu::TextureFormat::Rgba8UnormSrgb;
+        let format = gpu.texture_format;
 
         let size = wgpu::Extent3d {
             width: 1080,
@@ -408,8 +462,12 @@ impl VelDoubleBuff {
         {
             let img =
                 image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
-            let rgba = img.to_rgba8();
             let dimensions = img.dimensions();
+            let rgba = if format == wgpu::TextureFormat::Bgra8UnormSrgb {
+                rgba8_to_bgra8(&img.to_rgba8())
+            } else {
+                img.to_rgba8().to_vec()
+            };
 
             gpu.queue.write_texture(
                 wgpu::TexelCopyTextureInfo {
@@ -445,8 +503,12 @@ impl VelDoubleBuff {
         {
             let img =
                 image::load_from_memory(include_bytes!("../../../../assets/vel.png")).unwrap();
-            let rgba = img.to_rgba8();
             let dimensions = img.dimensions();
+            let rgba = if format == wgpu::TextureFormat::Bgra8UnormSrgb {
+                rgba8_to_bgra8(&img.to_rgba8())
+            } else {
+                img.to_rgba8().to_vec()
+            };
 
             gpu.queue.write_texture(
                 wgpu::TexelCopyTextureInfo {
@@ -466,6 +528,15 @@ impl VelDoubleBuff {
         }
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            min_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+        let prev_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -522,7 +593,7 @@ impl VelDoubleBuff {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
+                    resource: wgpu::BindingResource::Sampler(&prev_sampler),
                 },
             ],
             label: Some("diffuse_bind_group"),

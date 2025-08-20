@@ -366,7 +366,7 @@ impl Scene for MenuScene {
 
     #[profiling::function]
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
-        self.bg_pipeline.render(rpass);
+        // self.bg_pipeline.render(rpass);
         self.quad_pipeline.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);

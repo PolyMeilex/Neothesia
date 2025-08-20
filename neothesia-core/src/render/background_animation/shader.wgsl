@@ -56,6 +56,17 @@ fn mod_glsl(x: f32, y: f32) -> f32 {
 }
 
 @fragment
+fn fs_density_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    var uv: vec2<f32> = in.uv_position;
+
+    let d = f32(mod_glsl(
+        floor(uv.x * 10.0) + floor(uv.y * 10.0),
+        2.0
+    ));
+    return vec4<f32>(vec3<f32>(d), 1.0);
+}
+
+@fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv: vec2<f32> = in.uv_position;
     var color: vec3<f32> = vec3<f32>(0.01);

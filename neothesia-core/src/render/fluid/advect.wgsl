@@ -29,8 +29,8 @@ fn vs_main(
 
     out.vUv = out.tex_coords;
 
-    var x: f32 = 1.0 / 1080.0;
-    var y: f32 = 1.0 / 720.0;
+    var x: f32 = 1.0 / 200.0;
+    var y: f32 = 1.0 / 200.0;
 
     out.texelSize = vec2(x, y);
 
@@ -62,41 +62,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // var velocity = textureSample(t_vel, s_samper, in.vUv).xy;
     // let velocity = bilerp(t_vel, in.vUv, in.texelSize).xy;
 
-    // var x = in.vUv.x - xy.x;
-    // var y = in.vUv.y - xy.y;
-    //
-    // var i0 = x;
-    // var i1 = i0 + 1.0;
-    //
-    // var j0 = y;
-    // var j1 = j0 + 1.0;
-    //
-    // var s1 = x - i0;
-    // let s0 = 1.0 - s1;
-    // let t1 = y - j0;
-    // let t0 = 1.0 - t1;
-
-    //
-
-    // let a = textureSample(t_diffuse, s_samper, vec2(f32(i0), f32(j0))).r;
-    // let b = textureSample(t_diffuse, s_samper, vec2(f32(i0), f32(j1))).r;
-    // let c = textureSample(t_diffuse, s_samper, vec2(f32(i1), f32(j0))).r;
-    // let d = textureSample(t_diffuse, s_samper, vec2(f32(i1), f32(j1))).r;
-    //
-    // let v = s0 * (t0 * a + t1 * b) + s1 * (t0 * c + t1 * d);
-
-    //
-
-    // var velocity = textureSample(t_vel, s_samper, in.vUv).xy;
-    // var coord = in.vUv - 9.16 * vec2(velocity.x, -velocity.y) * in.texelSize;
-    //
-    // var c = textureSample(t_diffuse, s_samper, coord);
-
-    // return vec4(c.r, c.g, c.b, 1.0);
-    // return vec4(v, v, v, 1.0);
-
     let velocity = textureSample(t_vel, s_samper, in.vUv).xy;
-    let coord = in.vUv - 1.0 * vec2(velocity.x, -velocity.y) * in.texelSize;
+    let coord = in.vUv - 0.16 * vec2(velocity.x, -velocity.y) * in.texelSize;
     var color = textureSample(t_diffuse, s_samper, coord);
     return vec4(color.rgb, 1.0);
 }

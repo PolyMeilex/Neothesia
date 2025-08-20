@@ -6,6 +6,7 @@ use bytemuck::{Pod, Zeroable};
 
 pub struct BgPipeline {
     render_pipeline: wgpu::RenderPipeline,
+    density_render_pipeline: wgpu::RenderPipeline,
 
     fullscreen_quad: Shape,
 
@@ -38,7 +39,11 @@ impl BgPipeline {
                     push_constant_ranges: &[],
                 });
 
-        let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
+        let target = wgpu::ColorTargetState {
+            format: wgpu::TextureFormat::Rgba32Float,
+            blend: None,
+            write_mask: wgpu::ColorWrites::ALL,
+        };
 
         let render_pipeline = gpu
             .device
@@ -51,10 +56,32 @@ impl BgPipeline {
                 ))
             });
 
+        let target = wgpu::ColorTargetState {
+            format: wgpu::TextureFormat::Rgba32Float,
+            blend: None,
+            write_mask: wgpu::ColorWrites::ALL,
+        };
+        let density_render_pipeline =
+            gpu.device
+                .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                    layout: Some(render_pipeline_layout),
+                    fragment: Some(wgpu::FragmentState {
+                        module: &shader,
+                        entry_point: Some("fs_density_main"),
+                        targets: &[Some(target)],
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
+                    }),
+                    ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
+                        &shader,
+                        &[Shape::layout()],
+                    ))
+                });
+
         let fullscreen_quad = Shape::new_fullscreen_quad(&gpu.device);
 
         Self {
             render_pipeline,
+            density_render_pipeline,
             fullscreen_quad,
             time_uniform,
             queue: gpu.queue.clone(),
@@ -63,6 +90,20 @@ impl BgPipeline {
 
     pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_pipeline(&self.render_pipeline);
+        render_pass.set_bind_group(0, &self.time_uniform.bind_group, &[]);
+
+        render_pass.set_vertex_buffer(0, self.fullscreen_quad.vertex_buffer.slice(..));
+
+        render_pass.set_index_buffer(
+            self.fullscreen_quad.index_buffer.slice(..),
+            wgpu::IndexFormat::Uint16,
+        );
+
+        render_pass.draw_indexed(0..self.fullscreen_quad.indices_len, 0, 0..1);
+    }
+
+    pub fn render_density<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        render_pass.set_pipeline(&self.density_render_pipeline);
         render_pass.set_bind_group(0, &self.time_uniform.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.fullscreen_quad.vertex_buffer.slice(..));

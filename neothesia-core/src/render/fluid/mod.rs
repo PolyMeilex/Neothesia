@@ -50,13 +50,14 @@ impl ImageRenderer {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
                     &transform_uniform.bind_group_layout,
-                    &double_buff.texture_bind_group_layout,
+                    &vel_buff.texture_bind_group_layout,
                 ],
                 push_constant_ranges: &[],
             });
 
         let target = wgpu_jumpstart::default_color_target_state(format);
         let copy_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("copy_pipeline"),
             layout: Some(&render_pipeline_layout),
             fragment: Some(wgpu_jumpstart::default_fragment(
                 &shader_copy,
@@ -68,28 +69,32 @@ impl ImageRenderer {
             ))
         });
 
-        let target = wgpu_jumpstart::default_color_target_state(format);
         let diffuse_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("diffuse_pipeline"),
             layout: Some(&render_pipeline_layout),
             fragment: Some(wgpu_jumpstart::default_fragment(
                 &shader_diffuse,
-                &[Some(target)],
+                &[Some(wgpu::ColorTargetState {
+                    format: wgpu::TextureFormat::Rgba32Float,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
             )),
             ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                 &shader_diffuse,
                 &[Vertex2D::layout()],
             ))
         });
-
-        let target = wgpu_jumpstart::default_color_target_state(format);
 
         let advect_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("advect_pipeline"),
             layout: Some(
                 &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("Render Pipeline Layout"),
+                    label: Some("AdvectPipelineLayout"),
                     bind_group_layouts: &[
                         &transform_uniform.bind_group_layout,
-                        &double_buff.texture_bind_group_layout,
+                        // &double_buff.texture_bind_group_layout,
+                        &vel_buff.texture_bind_group_layout,
                         &vel_buff.texture_bind_group_layout,
                     ],
                     push_constant_ranges: &[],
@@ -97,7 +102,11 @@ impl ImageRenderer {
             ),
             fragment: Some(wgpu_jumpstart::default_fragment(
                 &shader_advect,
-                &[Some(target)],
+                &[Some(wgpu::ColorTargetState {
+                    format: wgpu::TextureFormat::Rgba32Float,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
             )),
             ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                 &shader_advect,
@@ -131,7 +140,7 @@ impl ImageRenderer {
     pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
         rpass.set_pipeline(&self.copy_pipeline);
         rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-        rpass.set_bind_group(1, &self.vel_buff.curr_bind_group, &[]);
+        rpass.set_bind_group(1, &self.density_buff.curr_bind_group, &[]);
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
         rpass.draw_indexed(0..self.indices.len, 0, 0..1);
@@ -140,32 +149,58 @@ impl ImageRenderer {
     pub fn post_render(&mut self, encoder: &mut wgpu::CommandEncoder) {
         if self.first {
             self.first = false;
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("fluid: Initial pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.vel_buff.curr,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
+            {
+                let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("fluid: Initial pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &self.density_buff.curr,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 1.0,
+                            }),
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
 
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            self.animation.render(&mut rpass);
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                self.animation.render_density(&mut rpass);
+            }
+            {
+                let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("fluid: Initial pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &self.vel_buff.curr,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 1.0,
+                            }),
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
+
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                self.animation.render(&mut rpass);
+            }
         }
 
         // self.density_buff.flip();
-
+        //
         // {
         //     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         //         label: Some("fluid: diffuse from prev to curr"),
@@ -230,39 +265,39 @@ impl ImageRenderer {
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
         }
 
-        // self.density_buff.flip();
+        self.density_buff.flip();
 
         // advect density
-        // {
-        //     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        //         label: Some("fluid: advect from prev to curr"),
-        //         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-        //             view: &self.density_buff.curr,
-        //             resolve_target: None,
-        //             ops: wgpu::Operations {
-        //                 load: wgpu::LoadOp::Clear(wgpu::Color {
-        //                     r: 0.0,
-        //                     g: 0.0,
-        //                     b: 0.0,
-        //                     a: 1.0,
-        //                 }),
-        //                 store: wgpu::StoreOp::Store,
-        //             },
-        //             depth_slice: None,
-        //         })],
-        //
-        //         depth_stencil_attachment: None,
-        //         timestamp_writes: None,
-        //         occlusion_query_set: None,
-        //     });
-        //     rpass.set_pipeline(&self.advect_pipeline);
-        //     rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-        //     rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
-        //     rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
-        //     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        //     rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
-        //     rpass.draw_indexed(0..self.indices.len, 0, 0..1);
-        // }
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("fluid: advect from prev to curr"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.density_buff.curr,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            rpass.set_pipeline(&self.advect_pipeline);
+            rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
+            rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
+            rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.indices.len, 0, 0..1);
+        }
     }
 }
 
@@ -289,8 +324,8 @@ impl DoubleBuff {
         let format = gpu.texture_format;
 
         let size = wgpu::Extent3d {
-            width: 1080,
-            height: 720,
+            width: 200,
+            height: 200,
             depth_or_array_layers: 1,
         };
 
@@ -300,7 +335,7 @@ impl DoubleBuff {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format,
+            format: wgpu::TextureFormat::Rgba32Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
@@ -312,7 +347,7 @@ impl DoubleBuff {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format,
+            format: wgpu::TextureFormat::Rgba32Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
@@ -322,8 +357,8 @@ impl DoubleBuff {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            min_filter: wgpu::FilterMode::Nearest,
-            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
@@ -348,7 +383,7 @@ impl DoubleBuff {
                         count: None,
                     },
                 ],
-                label: Some("texture_bind_group_layout"),
+                label: Some("density_texture_bind_group_layout"),
             });
 
         let curr_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -451,7 +486,7 @@ impl VelDoubleBuff {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format,
+            format: wgpu::TextureFormat::Rgba32Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_DST,
@@ -492,7 +527,7 @@ impl VelDoubleBuff {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format,
+            format: wgpu::TextureFormat::Rgba32Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_DST,
@@ -548,6 +583,7 @@ impl VelDoubleBuff {
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("velocity texture_bind_group_layout"),
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -566,7 +602,6 @@ impl VelDoubleBuff {
                         count: None,
                     },
                 ],
-                label: Some("texture_bind_group_layout"),
             });
 
         let curr_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -581,7 +616,7 @@ impl VelDoubleBuff {
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
-            label: Some("diffuse_bind_group"),
+            label: Some("vel_bind_group_curr"),
         });
 
         let prev_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -596,7 +631,7 @@ impl VelDoubleBuff {
                     resource: wgpu::BindingResource::Sampler(&prev_sampler),
                 },
             ],
-            label: Some("diffuse_bind_group"),
+            label: Some("vel_bind_group_prev"),
         });
 
         Self {

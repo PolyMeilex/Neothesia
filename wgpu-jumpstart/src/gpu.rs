@@ -95,7 +95,7 @@ impl Gpu {
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
-                required_features: wgpu::Features::empty(),
+                required_features: wgpu::Features::FLOAT32_FILTERABLE,
                 required_limits: wgpu::Limits {
                     max_compute_workgroup_storage_size: 0,
                     max_compute_invocations_per_workgroup: 0,

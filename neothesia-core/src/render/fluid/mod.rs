@@ -1,12 +1,13 @@
 mod texture;
 
-use image::GenericImageView as _;
+mod divergence;
+
+use divergence::DivergencePipeline;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
 pub struct ImageRenderer {
     copy_pipeline: wgpu::RenderPipeline,
-    diffuse_pipeline: wgpu::RenderPipeline,
     advect_pipeline: wgpu::RenderPipeline,
 
     transform_uniform_bind_group: wgpu::BindGroup,
@@ -19,6 +20,8 @@ pub struct ImageRenderer {
 
     density_buff: DoubleBuff,
     vel_buff: VelDoubleBuff,
+
+    divergence: DivergencePipeline,
 }
 
 impl ImageRenderer {
@@ -35,10 +38,6 @@ impl ImageRenderer {
         let shader_copy = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
-        });
-        let shader_diffuse = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("ShaderDiffuse"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("diffuse.wgsl").into()),
         });
         let shader_advect = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("ShaderAdvect"),
@@ -65,23 +64,6 @@ impl ImageRenderer {
             )),
             ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                 &shader_copy,
-                &[Vertex2D::layout()],
-            ))
-        });
-
-        let diffuse_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("diffuse_pipeline"),
-            layout: Some(&render_pipeline_layout),
-            fragment: Some(wgpu_jumpstart::default_fragment(
-                &shader_diffuse,
-                &[Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba32Float,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            )),
-            ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
-                &shader_diffuse,
                 &[Vertex2D::layout()],
             ))
         });
@@ -122,7 +104,6 @@ impl ImageRenderer {
 
         Self {
             copy_pipeline,
-            diffuse_pipeline,
             advect_pipeline,
 
             transform_uniform_bind_group: transform_uniform.bind_group.clone(),
@@ -134,6 +115,8 @@ impl ImageRenderer {
 
             density_buff: double_buff,
             vel_buff,
+
+            divergence: DivergencePipeline::new(gpu),
         }
     }
 
@@ -297,6 +280,10 @@ impl ImageRenderer {
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
+        }
+
+        {
+            self.divergence.render(encoder, &self.vel_buff.curr);
         }
     }
 }

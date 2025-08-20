@@ -222,14 +222,12 @@ impl ImageRenderer {
         //     rpass.draw_indexed(0..self.indices.len, 0, 0..1);
         // }
 
-        self.vel_buff.flip();
-
         // advect velocity
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("fluid: advect vel from prev to curr"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.vel_buff.curr,
+                    view: &self.vel_buff.prev,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -249,21 +247,21 @@ impl ImageRenderer {
             });
             rpass.set_pipeline(&self.advect_pipeline);
             rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-            rpass.set_bind_group(1, &self.vel_buff.prev_bind_group, &[]);
-            rpass.set_bind_group(2, &self.vel_buff.prev_bind_group, &[]);
+            rpass.set_bind_group(1, &self.vel_buff.curr_bind_group, &[]);
+            rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
         }
 
-        self.density_buff.flip();
+        self.vel_buff.flip();
 
         // advect density
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("fluid: advect from prev to curr"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.density_buff.curr,
+                    view: &self.density_buff.prev,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -283,12 +281,14 @@ impl ImageRenderer {
             });
             rpass.set_pipeline(&self.advect_pipeline);
             rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-            rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
+            rpass.set_bind_group(1, &self.density_buff.curr_bind_group, &[]);
             rpass.set_bind_group(2, &self.vel_buff.curr_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.indices.len, 0, 0..1);
         }
+
+        self.density_buff.flip();
 
         {
             self.divergence.render(encoder, &self.vel_buff.curr);

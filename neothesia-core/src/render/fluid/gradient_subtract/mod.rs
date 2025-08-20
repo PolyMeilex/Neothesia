@@ -18,36 +18,6 @@ pub struct GradientSubtractPipeline {
 
 impl GradientSubtractPipeline {
     pub fn new(gpu: &Gpu) -> Self {
-        let size = wgpu::Extent3d {
-            width: 200,
-            height: 200,
-            depth_or_array_layers: 1,
-        };
-
-        let texture_curr = gpu.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("gradient_subtract_curr"),
-            size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba32Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-        let texture_view_curr = texture_curr.create_view(&Default::default());
-
-        let texture_prev = gpu.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("gradient_subtract_prev"),
-            size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba32Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-        let texture_view_prev = texture_prev.create_view(&Default::default());
-
         let sampler_linear = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,

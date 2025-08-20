@@ -167,6 +167,30 @@ impl PressurePipeline {
     }
 
     pub fn render(&mut self, encoder: &mut wgpu::CommandEncoder, divergence: &wgpu::TextureView) {
+        // Clear
+        {
+            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("fluid: pressure pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.texture_view_curr,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+        }
+
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.bind_group_layout,
             entries: &[

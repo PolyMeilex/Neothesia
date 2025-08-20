@@ -3,16 +3,11 @@ use wgpu_jumpstart::Gpu;
 
 use super::{Indices, Vertex2D};
 
-pub struct PressurePipeline {
+pub struct GradientSubtractPipeline {
     device: wgpu::Device,
 
-    pub texture_view_curr: wgpu::TextureView,
-    texture_curr: wgpu::Texture,
-
-    texture_view_prev: wgpu::TextureView,
-    texture_prev: wgpu::Texture,
-
-    sampler: wgpu::Sampler,
+    sampler_linear: wgpu::Sampler,
+    sampler_nearest: wgpu::Sampler,
 
     bind_group_layout: wgpu::BindGroupLayout,
 
@@ -21,7 +16,7 @@ pub struct PressurePipeline {
     pipeline: wgpu::RenderPipeline,
 }
 
-impl PressurePipeline {
+impl GradientSubtractPipeline {
     pub fn new(gpu: &Gpu) -> Self {
         let size = wgpu::Extent3d {
             width: 200,
@@ -30,7 +25,7 @@ impl PressurePipeline {
         };
 
         let texture_curr = gpu.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("pressure_curr"),
+            label: Some("gradient_subtract_curr"),
             size,
             mip_level_count: 1,
             sample_count: 1,
@@ -42,7 +37,7 @@ impl PressurePipeline {
         let texture_view_curr = texture_curr.create_view(&Default::default());
 
         let texture_prev = gpu.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("pressure_prev"),
+            label: Some("gradient_subtract_prev"),
             size,
             mip_level_count: 1,
             sample_count: 1,
@@ -53,7 +48,16 @@ impl PressurePipeline {
         });
         let texture_view_prev = texture_prev.create_view(&Default::default());
 
-        let sampler = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
+        let sampler_linear = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+        let sampler_nearest = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -66,7 +70,7 @@ impl PressurePipeline {
         let bind_group_layout =
             gpu.device
                 .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("pressure bind_group_layout"),
+                    label: Some("gradient_subtract bind_group_layout"),
                     entries: &[
                         wgpu::BindGroupLayoutEntry {
                             binding: 0,
@@ -94,6 +98,12 @@ impl PressurePipeline {
                             ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                             count: None,
                         },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                            count: None,
+                        },
                     ],
                 });
 
@@ -110,14 +120,14 @@ impl PressurePipeline {
         let shader = gpu
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("pressure"),
+                label: Some("gradient_subtract"),
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
             });
 
         let pipeline_layout = gpu
             .device
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("pressure pipeline layout"),
+                label: Some("gradient_subtract pipeline layout"),
                 bind_group_layouts: &[&bind_group_layout],
                 push_constant_ranges: &[],
             });
@@ -125,7 +135,7 @@ impl PressurePipeline {
         let pipeline = gpu
             .device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("pressure"),
+                label: Some("gradient_subtract"),
                 layout: Some(&pipeline_layout),
                 fragment: Some(wgpu_jumpstart::default_fragment(
                     &shader,
@@ -144,13 +154,8 @@ impl PressurePipeline {
         Self {
             device: gpu.device.clone(),
 
-            texture_view_curr,
-            texture_curr,
-
-            texture_view_prev,
-            texture_prev,
-
-            sampler,
+            sampler_linear,
+            sampler_nearest,
 
             bind_group_layout,
 
@@ -161,35 +166,40 @@ impl PressurePipeline {
         }
     }
 
-    fn flip(&mut self) {
-        std::mem::swap(&mut self.texture_curr, &mut self.texture_prev);
-        std::mem::swap(&mut self.texture_view_curr, &mut self.texture_view_prev);
-    }
-
-    pub fn render(&mut self, encoder: &mut wgpu::CommandEncoder, divergence: &wgpu::TextureView) {
+    pub fn render(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        pressure: &wgpu::TextureView,
+        velocity: &wgpu::TextureView,
+        target_velocity: &wgpu::TextureView,
+    ) {
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&self.texture_view_curr),
+                    resource: wgpu::BindingResource::TextureView(pressure),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::TextureView(divergence),
+                    resource: wgpu::BindingResource::TextureView(velocity),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
+                    resource: wgpu::BindingResource::Sampler(&self.sampler_linear),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::Sampler(&self.sampler_nearest),
                 },
             ],
-            label: Some("pressure_bind_group"),
+            label: Some("gradient_subtract_bind_group"),
         });
 
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("fluid: pressure pass"),
+            label: Some("fluid: gradient_subtract pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.texture_view_prev,
+                view: target_velocity,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -212,7 +222,5 @@ impl PressurePipeline {
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
         rpass.draw_indexed(0..self.indices.len, 0, 0..1);
-
-        self.flip();
     }
 }

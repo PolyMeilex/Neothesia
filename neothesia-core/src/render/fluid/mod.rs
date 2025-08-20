@@ -1,9 +1,11 @@
 mod texture;
 
 mod divergence;
+mod gradient_subtract;
 mod pressure;
 
 use divergence::DivergencePipeline;
+use gradient_subtract::GradientSubtractPipeline;
 use pressure::PressurePipeline;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
@@ -25,6 +27,7 @@ pub struct ImageRenderer {
 
     divergence: DivergencePipeline,
     pressure: PressurePipeline,
+    gradient_subtract: GradientSubtractPipeline,
 }
 
 impl ImageRenderer {
@@ -121,6 +124,7 @@ impl ImageRenderer {
 
             divergence: DivergencePipeline::new(gpu),
             pressure: PressurePipeline::new(gpu),
+            gradient_subtract: GradientSubtractPipeline::new(gpu),
         }
     }
 
@@ -289,6 +293,13 @@ impl ImageRenderer {
         {
             self.divergence.render(encoder, &self.vel_buff.curr);
             self.pressure.render(encoder, &self.divergence.texture_view);
+            self.gradient_subtract.render(
+                encoder,
+                &self.pressure.texture_view_curr,
+                &self.vel_buff.curr,
+                &self.vel_buff.prev,
+            );
+            self.vel_buff.flip();
         }
     }
 }

@@ -1,8 +1,10 @@
 mod texture;
 
 mod divergence;
+mod pressure;
 
 use divergence::DivergencePipeline;
+use pressure::PressurePipeline;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
@@ -22,6 +24,7 @@ pub struct ImageRenderer {
     vel_buff: VelDoubleBuff,
 
     divergence: DivergencePipeline,
+    pressure: PressurePipeline,
 }
 
 impl ImageRenderer {
@@ -117,6 +120,7 @@ impl ImageRenderer {
             vel_buff,
 
             divergence: DivergencePipeline::new(gpu),
+            pressure: PressurePipeline::new(gpu),
         }
     }
 
@@ -284,6 +288,7 @@ impl ImageRenderer {
 
         {
             self.divergence.render(encoder, &self.vel_buff.curr);
+            self.pressure.render(encoder, &self.divergence.texture_view);
         }
     }
 }

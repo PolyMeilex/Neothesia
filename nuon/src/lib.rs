@@ -272,8 +272,8 @@ pub struct Ui {
     pub hovered: Option<Id>,
     pub active: Option<Id>,
 
-    pointer_pos: Point,
-    pointer_pos_delta: Point,
+    pub pointer_pos: Point,
+    pub pointer_pos_delta: Point,
     pub mouse_pressed: bool,
     pub mouse_down: bool,
 

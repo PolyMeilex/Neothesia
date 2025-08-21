@@ -3,10 +3,12 @@ mod texture;
 mod divergence;
 mod gradient_subtract;
 mod pressure;
+mod splat;
 
 use divergence::DivergencePipeline;
 use gradient_subtract::GradientSubtractPipeline;
 use pressure::PressurePipeline;
+use splat::SplatPipeline;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
@@ -21,10 +23,12 @@ pub struct ImageRenderer {
     vertex_buffer: wgpu::Buffer,
 
     first: bool,
+    pointer_pos: Point,
 
     density_buff: DoubleBuff,
     vel_buff: VelDoubleBuff,
 
+    splat: SplatPipeline,
     divergence: DivergencePipeline,
     pressure: PressurePipeline,
     gradient_subtract: GradientSubtractPipeline,
@@ -116,12 +120,15 @@ impl ImageRenderer {
             indices: Indices::new(device),
             vertex_buffer,
 
+            pointer_pos: Point::zero(),
+
             animation,
             first: true,
 
             density_buff: double_buff,
             vel_buff,
 
+            splat: SplatPipeline::new(gpu),
             divergence: DivergencePipeline::new(gpu),
             pressure: PressurePipeline::new(gpu),
             gradient_subtract: GradientSubtractPipeline::new(gpu),
@@ -137,7 +144,13 @@ impl ImageRenderer {
         rpass.draw_indexed(0..self.indices.len, 0, 0..1);
     }
 
-    pub fn post_render(&mut self, encoder: &mut wgpu::CommandEncoder) {
+    pub fn post_render(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        pointer_pos: Point,
+        mouse_down: bool,
+    ) {
+        self.first = false;
         if self.first {
             self.first = false;
             {
@@ -189,38 +202,6 @@ impl ImageRenderer {
                 self.animation.render(&mut rpass);
             }
         }
-
-        // self.density_buff.flip();
-        //
-        // {
-        //     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        //         label: Some("fluid: diffuse from prev to curr"),
-        //         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-        //             view: &self.density_buff.curr,
-        //             resolve_target: None,
-        //             ops: wgpu::Operations {
-        //                 load: wgpu::LoadOp::Clear(wgpu::Color {
-        //                     r: 0.0,
-        //                     g: 0.0,
-        //                     b: 0.0,
-        //                     a: 1.0,
-        //                 }),
-        //                 store: wgpu::StoreOp::Store,
-        //             },
-        //             depth_slice: None,
-        //         })],
-        //
-        //         depth_stencil_attachment: None,
-        //         timestamp_writes: None,
-        //         occlusion_query_set: None,
-        //     });
-        //     rpass.set_pipeline(&self.diffuse_pipeline);
-        //     rpass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
-        //     rpass.set_bind_group(1, &self.density_buff.prev_bind_group, &[]);
-        //     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        //     rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
-        //     rpass.draw_indexed(0..self.indices.len, 0, 0..1);
-        // }
 
         // advect velocity
         {
@@ -290,6 +271,38 @@ impl ImageRenderer {
 
         self.density_buff.flip();
 
+        if mouse_down {
+            let pointer_delta = if self.pointer_pos == Point::zero() {
+                Point::<f32>::zero() - Point::zero()
+            } else {
+                pointer_pos - self.pointer_pos
+            };
+            self.pointer_pos = pointer_pos;
+
+            let x = pointer_pos.x / 1080.0;
+            let y = pointer_pos.y / 720.0;
+
+            self.splat.render(
+                encoder,
+                &self.vel_buff.curr,
+                &self.vel_buff.prev,
+                [pointer_delta.x, -pointer_delta.y, 0.0],
+                [x, y],
+            );
+            self.vel_buff.flip();
+
+            self.splat.render(
+                encoder,
+                &self.density_buff.curr,
+                &self.density_buff.prev,
+                [233.0 / 255.0, 1.0 / 255.0, 1.0],
+                [x, y],
+            );
+            self.density_buff.flip();
+        } else {
+            self.pointer_pos = Point::zero();
+        }
+
         {
             self.divergence.render(encoder, &self.vel_buff.curr);
             self.pressure.render(encoder, &self.divergence.texture_view);
@@ -305,6 +318,8 @@ impl ImageRenderer {
 }
 
 use bytemuck::{Pod, Zeroable};
+
+use crate::Point;
 
 use super::BgPipeline;
 

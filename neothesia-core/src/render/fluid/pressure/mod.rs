@@ -191,52 +191,55 @@ impl PressurePipeline {
             });
         }
 
-        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&self.texture_view_curr),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(divergence),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-            ],
-            label: Some("pressure_bind_group"),
-        });
+        for _ in 0..20 {
+            // TODO: We only need two bind groups, not 20
+            let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &self.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&self.texture_view_curr),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(divergence),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&self.sampler),
+                    },
+                ],
+                label: Some("pressure_bind_group"),
+            });
 
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("fluid: pressure pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.texture_view_prev,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
-                    }),
-                    store: wgpu::StoreOp::Store,
-                },
-                depth_slice: None,
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("fluid: pressure pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.texture_view_prev,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
 
-        rpass.set_pipeline(&self.pipeline);
-        rpass.set_bind_group(0, &bind_group, &[]);
-        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
-        rpass.draw_indexed(0..self.indices.len, 0, 0..1);
+            rpass.set_pipeline(&self.pipeline);
+            rpass.set_bind_group(0, &bind_group, &[]);
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.set_index_buffer(self.indices.buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.indices.len, 0, 0..1);
 
-        self.flip();
+            self.flip();
+        }
     }
 }

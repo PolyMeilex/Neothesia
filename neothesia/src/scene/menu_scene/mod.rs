@@ -411,6 +411,8 @@ impl Scene for MenuScene {
         // self.fluid_renderer.render(&mut rpass);
         self.fluid_renderer
             .post_render(encoder, self.nuon.pointer_pos, self.nuon.mouse_down);
+
+        self.nuon.done();
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

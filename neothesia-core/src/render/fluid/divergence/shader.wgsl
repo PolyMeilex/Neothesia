@@ -17,8 +17,8 @@ fn vs_main(
     out.position = vec4<f32>(vertex.position, 0.0, 1.0);
     out.uv = vertex.tex_coords;
 
-    var x: f32 = 1.0 / 200.0;
-    var y: f32 = 1.0 / 200.0;
+    var x: f32 = 1.0 / 256.0;
+    var y: f32 = 1.0 / 256.0;
 
     out.texel_size = vec2(x, y);
 

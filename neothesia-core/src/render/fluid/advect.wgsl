@@ -29,8 +29,8 @@ fn vs_main(
 
     out.vUv = out.tex_coords;
 
-    var x: f32 = 1.0 / 200.0;
-    var y: f32 = 1.0 / 200.0;
+    var x: f32 = 1.0 / 256.0;
+    var y: f32 = 1.0 / 256.0;
 
     out.texelSize = vec2(x, y);
 
@@ -64,6 +64,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let velocity = textureSample(t_vel, s_samper, in.vUv).xy;
     let coord = in.vUv - 0.16 * vec2(velocity.x, -velocity.y) * in.texelSize;
-    var color = textureSample(t_diffuse, s_samper, coord);
+    var color = 0.98 * textureSample(t_diffuse, s_samper, coord);
     return vec4(color.rgb, 1.0);
 }

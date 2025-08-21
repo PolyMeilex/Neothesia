@@ -13,6 +13,7 @@ use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
 
 pub struct ImageRenderer {
+    frame: f32,
     copy_pipeline: wgpu::RenderPipeline,
     advect_pipeline: wgpu::RenderPipeline,
 
@@ -113,6 +114,7 @@ impl ImageRenderer {
         });
 
         Self {
+            frame: 0.0,
             copy_pipeline,
             advect_pipeline,
 
@@ -144,6 +146,33 @@ impl ImageRenderer {
         rpass.draw_indexed(0..self.indices.len, 0, 0..1);
     }
 
+    pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> [f32; 3] {
+        #[inline]
+        fn saturate(x: f32) -> f32 {
+            x.clamp(0.0, 1.0)
+        }
+
+        let s = saturate(s);
+        let v = saturate(v);
+        // wrap hue; allow any float (e.g. -0.2, 1.3)
+        let h = h.rem_euclid(1.0) * 6.0;
+
+        let i = h.floor() as i32; // sector 0..5
+        let f = h - i as f32; // fractional part
+        let p = v * (1.0 - s);
+        let q = v * (1.0 - s * f);
+        let t = v * (1.0 - s * (1.0 - f));
+
+        match i % 6 {
+            0 => [v, t, p],
+            1 => [q, v, p],
+            2 => [p, v, t],
+            3 => [p, q, v],
+            4 => [t, p, v],
+            _ => [v, p, q], // sector 5
+        }
+    }
+
     pub fn post_render(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -151,6 +180,7 @@ impl ImageRenderer {
         mouse_down: bool,
     ) {
         self.first = false;
+        self.frame += 0.001;
         if self.first {
             self.first = false;
             {
@@ -291,11 +321,14 @@ impl ImageRenderer {
             );
             self.vel_buff.flip();
 
+            let color = Self::hsv_to_rgb(self.frame, 1.0, 1.0);
+
             self.splat.render(
                 encoder,
                 &self.density_buff.curr,
                 &self.density_buff.prev,
-                [233.0 / 255.0, 1.0 / 255.0, 1.0],
+                color,
+                // [233.0 / 255.0, 1.0 / 255.0, 1.0],
                 [x, y],
             );
             self.density_buff.flip();
@@ -342,8 +375,8 @@ impl DoubleBuff {
         let format = gpu.texture_format;
 
         let size = wgpu::Extent3d {
-            width: 200,
-            height: 200,
+            width: 256,
+            height: 256,
             depth_or_array_layers: 1,
         };
 
@@ -493,8 +526,8 @@ impl VelDoubleBuff {
         let format = gpu.texture_format;
 
         let size = wgpu::Extent3d {
-            width: 200,
-            height: 200,
+            width: 256,
+            height: 256,
             depth_or_array_layers: 1,
         };
 

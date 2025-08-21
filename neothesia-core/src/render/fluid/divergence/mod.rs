@@ -20,8 +20,8 @@ pub struct DivergencePipeline {
 impl DivergencePipeline {
     pub fn new(gpu: &Gpu) -> Self {
         let size = wgpu::Extent3d {
-            width: 200,
-            height: 200,
+            width: 256,
+            height: 256,
             depth_or_array_layers: 1,
         };
 

@@ -44,7 +44,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     var velocity = textureSample(velocity, sampler_linear, in.uv).xy;
     velocity.x -= halfrdx * (r - l);
+
+    velocity.y = -velocity.y;
     velocity.y -= halfrdx * (t - b);
+    velocity.y = -velocity.y;
 
     return vec4(velocity, 0.0, 1.0);
 }

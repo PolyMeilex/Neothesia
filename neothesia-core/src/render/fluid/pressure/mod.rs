@@ -170,7 +170,7 @@ impl PressurePipeline {
         // Clear
         {
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("fluid: pressure pass"),
+                label: Some("fluid: pressure clear pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.texture_view_curr,
                     resolve_target: None,

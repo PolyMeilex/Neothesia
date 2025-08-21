@@ -32,10 +32,13 @@ var s_samper: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let t = textureSample(velocity, s_samper, in.uv + vec2(0.0, in.texel_size.y)).xy;
-    let b = textureSample(velocity, s_samper, in.uv - vec2(0.0, in.texel_size.y)).xy;
+    var t = textureSample(velocity, s_samper, in.uv + vec2(0.0, in.texel_size.y)).xy;
+    var b = textureSample(velocity, s_samper, in.uv - vec2(0.0, in.texel_size.y)).xy;
     let r = textureSample(velocity, s_samper, in.uv + vec2(in.texel_size.x, 0.0)).xy;
     let l = textureSample(velocity, s_samper, in.uv - vec2(in.texel_size.x, 0.0)).xy;
+
+    t.y = -t.y;
+    b.y = -b.y;
 
     let halfrdx = 0.5;
     let div = halfrdx * (r.x - l.x + t.y - b.y);

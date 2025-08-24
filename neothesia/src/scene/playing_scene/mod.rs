@@ -44,6 +44,8 @@ pub struct PlayingScene {
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
 
+    fluid_renderer: neothesia_core::render::fluid::ImageRenderer,
+
     note_labels: Option<NoteLabels>,
 
     player: MidiPlayer,
@@ -121,6 +123,10 @@ impl PlayingScene {
             note_labels,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
+            fluid_renderer: neothesia_core::render::fluid::ImageRenderer::new(
+                &ctx.gpu,
+                &ctx.transform,
+            ),
 
             waterfall,
             player,
@@ -268,6 +274,7 @@ impl Scene for PlayingScene {
     #[profiling::function]
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
+        self.fluid_renderer.render(rpass);
         self.waterfall.render(rpass);
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.render(rpass);
@@ -279,6 +286,31 @@ impl Scene for PlayingScene {
         self.text_renderer.render(rpass);
 
         self.nuon_renderer.render(rpass);
+    }
+
+    fn post_render(&mut self, encoder: &mut wgpu::CommandEncoder) {
+        let key_states = self.keyboard.key_states();
+
+        let notes: Vec<_> = self
+            .keyboard
+            .layout()
+            .keys
+            .iter()
+            .filter_map(|key| Some((key, key_states[key.id()].pressed_by_file()?)))
+            .map(|(key, color)| {
+                let y = self.keyboard.pos().y;
+                (nuon::Point::new(key.x() + key.width() / 2.0, y), *color)
+            })
+            .collect();
+
+        self.fluid_renderer.post_render(
+            encoder,
+            self.nuon.pointer_pos,
+            self.nuon.mouse_down,
+            &notes,
+        );
+
+        self.nuon.done();
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {

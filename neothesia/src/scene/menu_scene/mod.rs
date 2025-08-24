@@ -370,7 +370,7 @@ impl Scene for MenuScene {
         self.quad_pipeline.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
-        self.fluid_renderer.render(rpass);
+        // self.fluid_renderer.render(rpass);
     }
 
     fn post_render(&mut self, encoder: &mut wgpu::CommandEncoder) {
@@ -409,8 +409,15 @@ impl Scene for MenuScene {
         // });
         //
         // self.fluid_renderer.render(&mut rpass);
-        self.fluid_renderer
-            .post_render(encoder, self.nuon.pointer_pos, self.nuon.mouse_down);
+
+        let notes = vec![];
+
+        self.fluid_renderer.post_render(
+            encoder,
+            self.nuon.pointer_pos,
+            self.nuon.mouse_down,
+            &notes,
+        );
 
         self.nuon.done();
     }

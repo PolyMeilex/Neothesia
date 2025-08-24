@@ -10,7 +10,7 @@ use gradient_subtract::GradientSubtractPipeline;
 use pressure::PressurePipeline;
 use splat::SplatPipeline;
 use wgpu::util::DeviceExt;
-use wgpu_jumpstart::{Gpu, TransformUniform, Uniform};
+use wgpu_jumpstart::{Color, Gpu, TransformUniform, Uniform};
 
 pub struct ImageRenderer {
     frame: f32,
@@ -178,6 +178,7 @@ impl ImageRenderer {
         encoder: &mut wgpu::CommandEncoder,
         pointer_pos: Point,
         mouse_down: bool,
+        notes: &[(Point, Color)],
     ) {
         self.first = false;
         self.frame += 0.001;
@@ -334,6 +335,49 @@ impl ImageRenderer {
             self.density_buff.flip();
         } else {
             self.pointer_pos = Point::zero();
+        }
+
+        for (note, color) in notes {
+            let x = note.x / 1080.0;
+            let y = note.y / 720.0;
+
+            self.splat.render(
+                encoder,
+                &self.vel_buff.curr,
+                &self.vel_buff.prev,
+                [0.0, 50.0 * 5.0, 0.0],
+                [x, y],
+            );
+            self.vel_buff.flip();
+
+            // let color = wgpu_jumpstart::Color {
+            //     r: color.r * 2.0,
+            //     g: color.g * 2.0,
+            //     b: color.b * 2.0,
+            //     a: color.r,
+            // }
+            // .into_linear_rgb();
+
+            // let color = Self::hsv_to_rgb(self.frame, 1.0, 1.0);
+            // let color = wgpu_jumpstart::Color::new(color[0], color[1], color[2], 1.0);
+
+            let color = wgpu_jumpstart::Color {
+                r: color.r * 3.0,
+                g: color.g * 3.0,
+                b: color.b * 3.0,
+                a: color.r,
+            }
+            .into_linear_rgb();
+
+            self.splat.render(
+                encoder,
+                &self.density_buff.curr,
+                &self.density_buff.prev,
+                color,
+                // [233.0 / 255.0, 1.0 / 255.0, 1.0],
+                [x, y],
+            );
+            self.density_buff.flip();
         }
 
         {

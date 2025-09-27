@@ -62,12 +62,22 @@ impl TextRenderer {
     }
 
     pub fn queue_buffer(&mut self, x: f32, y: f32, buffer: glyphon::Buffer) {
+        self.queue_buffer_with_bounds(x, y, buffer, glyphon::TextBounds::default());
+    }
+
+    pub fn queue_buffer_with_bounds(
+        &mut self,
+        x: f32,
+        y: f32,
+        buffer: glyphon::Buffer,
+        bounds: glyphon::TextBounds,
+    ) {
         self.queue(TextArea {
             buffer,
             left: x,
             top: y,
             scale: 1.0,
-            bounds: glyphon::TextBounds::default(),
+            bounds,
             default_color: glyphon::Color::rgb(255, 255, 255),
         });
     }
@@ -78,10 +88,19 @@ impl TextRenderer {
         let origin = rect.origin;
         let size = rect.size;
 
-        self.queue_buffer(
-            origin.x,
-            origin.y + size.height / 2.0 - text_h / 2.0,
+        let x = origin.x;
+        let y = origin.y + size.height / 2.0 - text_h / 2.0;
+
+        self.queue_buffer_with_bounds(
+            x,
+            y,
             buffer,
+            glyphon::TextBounds {
+                left: i32::MIN,
+                top: i32::MIN,
+                right: (x + rect.width()) as i32,
+                bottom: (y + rect.height()) as i32,
+            },
         );
     }
 
@@ -91,6 +110,7 @@ impl TextRenderer {
         let origin = rect.origin;
         let size = rect.size;
 
+        // TODO: Bounds
         self.queue_buffer(
             origin.x + size.width - text_w,
             origin.y + size.height / 2.0 - text_h / 2.0,
@@ -104,6 +124,7 @@ impl TextRenderer {
         let origin = rect.origin;
         let size = rect.size;
 
+        // TODO: Bounds
         self.queue_buffer(
             origin.x + size.width / 2.0 - text_w / 2.0,
             origin.y + size.height / 2.0 - text_h / 2.0,

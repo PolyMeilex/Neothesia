@@ -54,14 +54,14 @@ impl super::MenuScene {
                 .build(ui, |ui| {
                     let gap = 14.0;
 
-                    let layout = CardsLayout::new(win_w);
-
                     let mut tracks = song
                         .file
                         .tracks
                         .iter()
                         .filter(|t| !t.notes.is_empty())
                         .enumerate();
+
+                    let layout = CardsLayout::new(win_w, tracks.clone().count());
 
                     let top_margin = 60.0;
 
@@ -120,28 +120,30 @@ struct CardsLayout {
 }
 
 impl CardsLayout {
-    fn new(w: f32) -> Self {
+    fn new(w: f32, tracks_count: usize) -> Self {
         const GAP: f32 = 14.0;
 
         const LAYOUT_1: f32 = CARD_W;
         const LAYOUT_2: f32 = LAYOUT_1 + GAP + CARD_W;
         const LAYOUT_3: f32 = LAYOUT_2 + GAP + CARD_W;
 
-        if w > LAYOUT_3 {
-            Self {
-                columns: 3,
-                width: LAYOUT_3,
-            }
+        let columns = if w > LAYOUT_3 {
+            3
         } else if w > LAYOUT_2 {
-            Self {
-                columns: 2,
-                width: LAYOUT_2,
-            }
+            2
         } else {
-            Self {
-                columns: 1,
-                width: LAYOUT_1,
-            }
+            1
+        };
+
+        let columns = columns.min(tracks_count).max(1) as u8;
+
+        Self {
+            columns,
+            width: match columns {
+                3 => LAYOUT_3,
+                2 => LAYOUT_2,
+                _ => LAYOUT_1,
+            },
         }
     }
 }

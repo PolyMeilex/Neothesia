@@ -1116,7 +1116,10 @@ impl Button {
             let pad_x = pad_x * 10.0;
 
             layer.text.push(TextRenderElement {
-                rect: Rect::new(Point::new(rect.origin.x + pad_x, rect.origin.y), rect.size),
+                rect: Rect::new(
+                    Point::new(rect.origin.x + pad_x, rect.origin.y),
+                    Size::new(rect.size.width - pad_x * 2.0, rect.size.height),
+                ),
                 text_justify: self.text_justify,
                 size: 16.0,
                 bold: false,

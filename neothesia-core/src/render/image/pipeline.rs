@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use neothesia_image::ImageIdentifier;
 use wgpu::util::DeviceExt;
 use wgpu_jumpstart::{TransformUniform, Uniform};
 
@@ -189,8 +190,8 @@ impl Image {
         self.rect
     }
 
-    pub fn bytes(&self) -> &Bytes {
-        &self.bytes
+    pub fn identifier(&self) -> ImageIdentifier {
+        ImageIdentifier::from_bytes_ptr(&self.bytes)
     }
 }
 

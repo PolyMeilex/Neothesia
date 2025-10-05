@@ -2073,6 +2073,7 @@ dependencies = [
  "image",
  "log",
  "midi-file",
+ "neothesia-image",
  "objc",
  "piano-layout",
  "profiling",
@@ -2080,6 +2081,14 @@ dependencies = [
  "serde",
  "wgpu",
  "wgpu-jumpstart",
+]
+
+[[package]]
+name = "neothesia-image"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "image",
 ]
 
 [[package]]
@@ -2180,8 +2189,8 @@ dependencies = [
 name = "nuon"
 version = "0.1.0"
 dependencies = [
- "bytes",
  "euclid",
+ "neothesia-image",
 ]
 
 [[package]]

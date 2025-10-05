@@ -3,7 +3,7 @@ pub mod playing_scene;
 
 use crate::context::Context;
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{Image, ImageRenderer, QuadRenderer, TextRenderer};
+use neothesia_core::render::{Image, ImageIdentifier, ImageRenderer, QuadRenderer, TextRenderer};
 use std::{collections::HashMap, time::Duration};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
@@ -25,7 +25,7 @@ struct NuonLayer {
 
 pub struct NuonRenderer {
     layers: Vec<NuonLayer>,
-    image_map: HashMap<*const u8, Image>,
+    image_map: HashMap<ImageIdentifier, Image>,
     image_renderer: ImageRenderer,
 }
 
@@ -50,8 +50,10 @@ impl NuonRenderer {
         });
     }
 
-    pub fn add_image(&mut self, image: Image) {
-        self.image_map.insert(image.bytes().as_ptr(), image);
+    pub fn add_image(&mut self, image: Image) -> ImageIdentifier {
+        let ident = image.identifier();
+        self.image_map.insert(ident, image);
+        ident
     }
 
     pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu_jumpstart::RenderPass<'rpass>) {
@@ -100,7 +102,7 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
         }
 
         for img in layer.images.iter() {
-            if let Some(image) = nuon_renderer.image_map.get_mut(&img.bytes.as_ptr()) {
+            if let Some(image) = nuon_renderer.image_map.get_mut(&img.image) {
                 image.set_rect(img.rect);
                 out.images.push(image.clone());
             }

@@ -7,6 +7,7 @@ members = [
   "neothesia-ai",
   "neothesia-cli",
   "neothesia-core",
+  "neothesia-image",
   "midi-file",
   "midi-io",
   "nuon",
@@ -18,6 +19,7 @@ resolver = "2"
 [workspace.dependencies]
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia-core = { path = "./neothesia-core" }
+neothesia-image = { path = "./neothesia-image" }
 midi-file = { path = "./midi-file" }
 midi-io = { path = "./midi-io" }
 piano-layout = { path = "./piano-layout" }
@@ -67,7 +69,13 @@ midly = "0.5"
 
 # neothesia-cli deps
 ffmpeg = { package = "ffmpeg-sys-next", version = "7.0.3", default-features = false }
-clap = { version = "4.5.41", default-features = false, features = ["color", "error-context", "help", "std", "usage"] }
+clap = { version = "4.5.41", default-features = false, features = [
+  "color",
+  "error-context",
+  "help",
+  "std",
+  "usage",
+] }
 
 # neothesia-ai deps
 ndarray = "0.16"

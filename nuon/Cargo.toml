@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 euclid.workspace = true
-bytes.workspace = true
+neothesia-image.workspace = true

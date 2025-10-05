@@ -3,7 +3,6 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use bytes::Bytes;
 pub use euclid;
 
 pub type Point = euclid::default::Point2D<f32>;
@@ -12,6 +11,7 @@ pub type Box2D = euclid::default::Box2D<f32>;
 pub type Rect = euclid::default::Rect<f32>;
 
 mod settings;
+use neothesia_image::ImageIdentifier;
 pub use settings::*;
 
 pub fn center_y(container_h: f32, item_h: f32) -> f32 {
@@ -265,7 +265,7 @@ pub struct TextRenderElement {
 #[derive(Debug, Clone)]
 pub struct ImageRenderElement {
     pub rect: Rect,
-    pub bytes: Bytes,
+    pub image: ImageIdentifier,
 }
 
 pub struct Ui {
@@ -756,18 +756,18 @@ impl Quad {
 #[derive(Debug, Clone)]
 pub struct Image {
     rect: Rect,
-    bytes: Bytes,
+    image: ImageIdentifier,
 }
 
-pub fn image(bytes: Bytes) -> Image {
-    Image::new(bytes)
+pub fn image(image: ImageIdentifier) -> Image {
+    Image::new(image)
 }
 
 impl Image {
-    pub fn new(bytes: Bytes) -> Self {
+    pub fn new(image: ImageIdentifier) -> Self {
         Self {
             rect: Rect::zero(),
-            bytes,
+            image,
         }
     }
 
@@ -806,7 +806,7 @@ impl Image {
         );
         ui.layers.current_mut().images.push(ImageRenderElement {
             rect,
-            bytes: self.bytes.clone(),
+            image: self.image,
         });
     }
 }

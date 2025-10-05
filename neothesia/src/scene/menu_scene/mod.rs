@@ -11,7 +11,7 @@ mod tracks;
 use std::{future::Future, time::Duration};
 
 use crate::utils::BoxFuture;
-use neothesia_core::render::{BgPipeline, QuadRenderer, TextRenderer};
+use neothesia_core::render::{BgPipeline, ImageIdentifier, QuadRenderer, TextRenderer};
 
 use winit::{
     event::{ElementState, KeyEvent, MouseButton, WindowEvent},
@@ -80,7 +80,7 @@ pub struct MenuScene {
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
 
-    logo: Bytes,
+    logo: ImageIdentifier,
 
     state: UiState,
 
@@ -105,10 +105,10 @@ impl MenuScene {
         let mut nuon_renderer = NuonRenderer::new(ctx);
 
         let logo = Bytes::from_static(include_bytes!("../../../../assets/banner.png"));
-        nuon_renderer.add_image(neothesia_core::render::Image::new(
+        let logo = nuon_renderer.add_image(neothesia_core::render::Image::new(
             &ctx.gpu.device,
             &ctx.gpu.queue,
-            logo.clone(),
+            logo,
         ));
 
         Self {
@@ -210,7 +210,7 @@ impl MenuScene {
             .x(win_w / 2.0)
             .y(win_h / 5.0)
             .build(ui, |ui| {
-                nuon::image(self.logo.clone())
+                nuon::image(self.logo)
                     .x(-logo_w / 2.0)
                     .size(logo_w, logo_h)
                     .build(ui);

@@ -19,28 +19,7 @@ impl ImageRenderer {
         format: wgpu::TextureFormat,
         transform_uniform: &Uniform<TransformUniform>,
     ) -> Self {
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
+        let texture_bind_group_layout = texture_bind_group_layout(device);
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -85,43 +64,70 @@ impl ImageRenderer {
     }
 }
 
+fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(
+                        std::mem::size_of::<QuadUniform>() as u64
+                    ),
+                },
+                count: None,
+            },
+        ],
+        label: Some("texture_bind_group_layout"),
+    })
+}
+
 use bytemuck::{Pod, Zeroable};
 
 #[derive(Clone)]
 pub struct Image {
     vertex_buffer: wgpu::Buffer,
+    quad_buffer: wgpu::Buffer,
     diffuse_bind_group: wgpu::BindGroup,
     queue: wgpu::Queue,
     rect: Rect,
     bytes: Bytes,
+    border_radius: [f32; 4],
 }
 
 impl Image {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, bytes: Bytes) -> Self {
         let diffuse_texture = texture::Texture::from_bytes(device, queue, &bytes).unwrap();
 
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
+        let texture_bind_group_layout = texture_bind_group_layout(device);
+
+        let quad_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[QuadUniform {
+                pos: [0.0, 0.0],
+                size: [1.0, 1.0],
+                border_radius: [0.0, 0.0, 0.0, 0.0],
+            }]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
         let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_bind_group_layout,
@@ -133,6 +139,14 @@ impl Image {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &quad_buffer,
+                        offset: 0,
+                        size: None,
+                    }),
                 },
             ],
             label: Some("diffuse_bind_group"),
@@ -146,10 +160,12 @@ impl Image {
 
         Self {
             vertex_buffer,
+            quad_buffer,
             diffuse_bind_group,
             rect: Rect::new((0.0, 0.0).into(), (1.0, 1.0).into()),
             queue: queue.clone(),
             bytes,
+            border_radius: [0.0; 4],
         }
     }
 
@@ -174,16 +190,27 @@ impl Image {
         ]
     }
 
-    pub fn set_rect(&mut self, rect: Rect) {
-        if self.rect == rect {
+    pub fn set_rect(&mut self, rect: Rect, border_radius: [f32; 4]) {
+        if self.rect == rect && self.border_radius == border_radius {
             return;
         }
 
+        // TODO: No longer needed, as we have QuadUniform
         let vertex = Self::vertex(rect.min_x(), rect.min_y(), rect.width(), rect.height());
         self.queue
             .write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&vertex));
 
+        let quad = QuadUniform {
+            pos: [rect.min_x(), rect.min_y()],
+            size: [rect.width(), rect.height()],
+            border_radius,
+        };
+
+        self.queue
+            .write_buffer(&self.quad_buffer, 0, bytemuck::cast_slice(&[quad]));
+
         self.rect = rect;
+        self.border_radius = border_radius;
     }
 
     pub fn rect(&self) -> Rect {
@@ -219,6 +246,14 @@ impl Indices {
             len: INDICES.len() as u32,
         }
     }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct QuadUniform {
+    pos: [f32; 2],
+    size: [f32; 2],
+    border_radius: [f32; 4],
 }
 
 #[repr(C)]

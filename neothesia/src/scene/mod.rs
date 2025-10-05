@@ -103,7 +103,7 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
 
         for img in layer.images.iter() {
             if let Some(image) = nuon_renderer.image_map.get_mut(&img.image) {
-                image.set_rect(img.rect);
+                image.set_rect(img.rect, img.border_radius);
                 out.images.push(image.clone());
             }
         }

@@ -266,6 +266,7 @@ pub struct TextRenderElement {
 pub struct ImageRenderElement {
     pub rect: Rect,
     pub image: ImageIdentifier,
+    pub border_radius: [f32; 4],
 }
 
 pub struct Ui {
@@ -757,6 +758,7 @@ impl Quad {
 pub struct Image {
     rect: Rect,
     image: ImageIdentifier,
+    border_radius: [f32; 4],
 }
 
 pub fn image(image: ImageIdentifier) -> Image {
@@ -768,6 +770,7 @@ impl Image {
         Self {
             rect: Rect::zero(),
             image,
+            border_radius: [0.0; 4],
         }
     }
 
@@ -799,6 +802,11 @@ impl Image {
         self
     }
 
+    pub fn border_radius(mut self, border_radius: [f32; 4]) -> Self {
+        self.border_radius = border_radius;
+        self
+    }
+
     pub fn build(&self, ui: &mut Ui) {
         let rect = Rect::new(
             ui.translation_stack.translate(self.rect.origin),
@@ -807,6 +815,7 @@ impl Image {
         ui.layers.current_mut().images.push(ImageRenderElement {
             rect,
             image: self.image,
+            border_radius: self.border_radius,
         });
     }
 }

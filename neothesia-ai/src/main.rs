@@ -75,7 +75,7 @@ fn main() -> anyhow::Result<()> {
 
 fn enframe(x: &ArrayView2<f32>, segment_samples: usize) -> Array2<f32> {
     // Ensure that the number of audio samples is divisible by segment_samples
-    assert!(x.shape()[1] % segment_samples == 0);
+    assert!(x.shape()[1].is_multiple_of(segment_samples));
 
     let mut batch: Vec<Array2<f32>> = Vec::new();
     let mut pointer = 0;

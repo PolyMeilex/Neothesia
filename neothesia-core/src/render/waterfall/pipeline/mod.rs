@@ -2,7 +2,7 @@ mod instance_data;
 
 pub use instance_data::NoteInstance;
 
-use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
+use wgpu_jumpstart::{Gpu, Instances, Shape, TransformUniform, Uniform, wgpu};
 
 use bytemuck::{Pod, Zeroable};
 

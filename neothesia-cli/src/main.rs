@@ -8,7 +8,7 @@ use neothesia_core::{
         TextRendererFactory, WaterfallRenderer,
     },
 };
-use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
+use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, wgpu};
 
 mod cli;
 

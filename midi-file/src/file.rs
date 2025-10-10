@@ -1,4 +1,4 @@
-use crate::{program_track::ProgramTrack, tempo_track::TempoTrack, MidiTrack};
+use crate::{MidiTrack, program_track::ProgramTrack, tempo_track::TempoTrack};
 use midly::{Format, Smf, Timing};
 use std::{fs, path::Path, sync::Arc};
 

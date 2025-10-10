@@ -1,5 +1,5 @@
-use ndarray::{concatenate, s, Axis};
 use ndarray::{Array2, Array3, ArrayView1, ArrayView2};
+use ndarray::{Axis, concatenate, s};
 use rten::{NodeId, ValueOrView};
 use rten_tensor::prelude::*;
 use rten_tensor::*;
@@ -26,8 +26,15 @@ fn main() -> anyhow::Result<()> {
 
     let inputs: Vec<(NodeId, ValueOrView)> = vec![(model.input_ids()[0], input.view().into())];
 
-    let [reg_onset_output, reg_offset_output, frame_output, _velocity_output, _reg_pedal_onset_output, _reg_pedal_offset_output, _pedal_frame_output] =
-        model.run_n::<7>(inputs, model.output_ids().try_into()?, None)?;
+    let [
+        reg_onset_output,
+        reg_offset_output,
+        frame_output,
+        _velocity_output,
+        _reg_pedal_onset_output,
+        _reg_pedal_offset_output,
+        _pedal_frame_output,
+    ] = model.run_n::<7>(inputs, model.output_ids().try_into()?, None)?;
 
     let (onset_output, onset_shift_output) = {
         let output = reg_onset_output.into_tensor::<f32>().unwrap();

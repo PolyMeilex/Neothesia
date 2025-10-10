@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{config::Config, TransformUniform, Uniform};
+use crate::{TransformUniform, Uniform, config::Config};
 use midi_file::{MidiNote, MidiTrack};
 use wgpu_jumpstart::{Color, Gpu};
 

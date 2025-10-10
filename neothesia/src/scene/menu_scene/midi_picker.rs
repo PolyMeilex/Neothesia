@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    scene::menu_scene::{on_async, MsgFn},
+    scene::menu_scene::{MsgFn, on_async},
     song::Song,
     utils::BoxFuture,
 };

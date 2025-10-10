@@ -1,6 +1,6 @@
 use crate::utils::Point;
 
-use super::{waterfall::NoteList, KeyboardRenderer, TextRenderer};
+use super::{KeyboardRenderer, TextRenderer, waterfall::NoteList};
 
 #[derive(Default)]
 struct LabelsCache {

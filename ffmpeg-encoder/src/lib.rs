@@ -3,7 +3,7 @@
 use std::ffi::CString;
 use std::path::Path;
 
-use ffmpeg::{AVPixelFormat, AVERROR, AVERROR_EOF, EAGAIN};
+use ffmpeg::{AVERROR, AVERROR_EOF, AVPixelFormat, EAGAIN};
 
 mod audio;
 mod ff;

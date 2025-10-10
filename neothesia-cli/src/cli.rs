@@ -1,4 +1,4 @@
-use clap::{arg, value_parser, Command};
+use clap::{Command, arg, value_parser};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]

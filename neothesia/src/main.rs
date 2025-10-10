@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use context::Context;
-use scene::{menu_scene, playing_scene, Scene};
+use scene::{Scene, menu_scene, playing_scene};
 use song::Song;
 use utils::window::WindowState;
 
@@ -319,8 +319,8 @@ fn main() {
 }
 
 fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
-    use image::codecs::png::PngDecoder;
     use image::ImageDecoder;
+    use image::codecs::png::PngDecoder;
     use std::io::Cursor;
 
     let icon = PngDecoder::new(Cursor::new(include_bytes!(

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{context::Context, output_manager::OutputDescriptor, song::Song, NeothesiaEvent};
+use crate::{NeothesiaEvent, context::Context, output_manager::OutputDescriptor, song::Song};
 
 type InputDescriptor = midi_io::MidiInputPort;
 

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wgpu_jumpstart::{wgpu, Gpu, Shape, Uniform};
+use wgpu_jumpstart::{Gpu, Shape, Uniform, wgpu};
 
 use bytemuck::{Pod, Zeroable};
 

@@ -1,4 +1,4 @@
-use midly::{num::u4, MidiMessage, TrackEvent, TrackEventKind};
+use midly::{MidiMessage, TrackEvent, TrackEventKind, num::u4};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::tempo_track::TempoTrack;

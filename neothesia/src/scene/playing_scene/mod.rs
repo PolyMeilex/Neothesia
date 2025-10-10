@@ -11,7 +11,7 @@ use winit::{
 use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
-use crate::{context::Context, render::WaterfallRenderer, song::Song, NeothesiaEvent};
+use crate::{NeothesiaEvent, context::Context, render::WaterfallRenderer, song::Song};
 
 mod keyboard;
 use keyboard::Keyboard;

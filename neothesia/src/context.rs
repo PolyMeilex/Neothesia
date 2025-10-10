@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::config::Config;
 use crate::input_manager::InputManager;
 use crate::utils::window::WindowState;
-use crate::{output_manager::OutputManager, NeothesiaEvent, TransformUniform};
+use crate::{NeothesiaEvent, TransformUniform, output_manager::OutputManager};
 use neothesia_core::render::{QuadRendererFactory, TextRendererFactory};
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;

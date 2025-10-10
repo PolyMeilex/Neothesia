@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     context::Context,
-    scene::menu_scene::{icons, neo_btn_icon, on_async, MsgFn, Popup},
+    scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
 use nuon::TextJustify;

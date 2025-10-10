@@ -42,7 +42,7 @@ impl Args {
             .map(|w| w.parse::<u32>().unwrap())
             .unwrap_or(1080);
 
-        if width % 2 != 0 || height % 2 != 0 {
+        if !width.is_multiple_of(2) || !height.is_multiple_of(2) {
             eprintln!("width and height must be a multiple of two");
             std::process::exit(1);
         }

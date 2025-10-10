@@ -17,7 +17,7 @@ impl NoteInstance {
         vertex_attr_array!(1 => Float32x2, 2 => Float32x2, 3 => Float32x3, 4 => Float32)
     }
 
-    pub fn layout(attributes: &[wgpu::VertexAttribute]) -> wgpu::VertexBufferLayout {
+    pub fn layout(attributes: &[wgpu::VertexAttribute]) -> wgpu::VertexBufferLayout<'_> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<NoteInstance>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,

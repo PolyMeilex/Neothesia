@@ -109,15 +109,15 @@ impl KeyboardRange {
         self.black_keys.len()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<KeyId> {
+    pub fn iter(&self) -> std::slice::Iter<'_, KeyId> {
         self.keys.iter()
     }
 
-    pub fn white_iter(&self) -> std::slice::Iter<KeyId> {
+    pub fn white_iter(&self) -> std::slice::Iter<'_, KeyId> {
         self.white_keys.iter()
     }
 
-    pub fn black_iter(&self) -> std::slice::Iter<KeyId> {
+    pub fn black_iter(&self) -> std::slice::Iter<'_, KeyId> {
         self.black_keys.iter()
     }
 }

@@ -154,13 +154,13 @@ impl OutputManager {
                                 desc,
                                 OutputConnection::Synth(synth.new_output_connection(&font)),
                             );
-                        } else if let Some(path) = crate::utils::resources::default_sf2() {
-                            if path.exists() {
-                                self.output_connection = (
-                                    desc,
-                                    OutputConnection::Synth(synth.new_output_connection(&path)),
-                                );
-                            }
+                        } else if let Some(path) = crate::utils::resources::default_sf2()
+                            && path.exists()
+                        {
+                            self.output_connection = (
+                                desc,
+                                OutputConnection::Synth(synth.new_output_connection(&path)),
+                            );
                         }
                     }
                 }

@@ -17,10 +17,10 @@ fn xdg_config() -> Option<PathBuf> {
 pub fn default_sf2() -> Option<PathBuf> {
     #[cfg(all(target_family = "unix", not(target_os = "macos")))]
     {
-        if let Some(path) = xdg_config().map(|p| p.join("default.sf2")) {
-            if path.exists() {
-                return Some(path);
-            }
+        if let Some(path) = xdg_config().map(|p| p.join("default.sf2"))
+            && path.exists()
+        {
+            return Some(path);
         }
 
         // <prefix>/bin/neothesia -> <prefix>/share/neothesia/default.sf2
@@ -29,10 +29,9 @@ pub fn default_sf2() -> Option<PathBuf> {
                 .parent()
                 .and_then(|path| path.parent())
                 .map(|pfx_path| pfx_path.join("share").join("neothesia").join("default.sf2"))
-        }) {
-            if path.exists() {
-                return Some(path);
-            }
+        }) && path.exists()
+        {
+            return Some(path);
         }
 
         let flatpak = PathBuf::from("/app/share/neothesia/default.sf2");

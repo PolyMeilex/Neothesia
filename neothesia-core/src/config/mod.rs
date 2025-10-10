@@ -249,11 +249,11 @@ impl Config {
             ron::ser::PrettyConfig::default(),
         );
 
-        if let Ok(s) = res {
-            if let Some(path) = crate::utils::resources::settings_ron() {
-                std::fs::create_dir_all(path.parent().unwrap()).ok();
-                std::fs::write(path, s).ok();
-            }
+        if let Ok(s) = res
+            && let Some(path) = crate::utils::resources::settings_ron()
+        {
+            std::fs::create_dir_all(path.parent().unwrap()).ok();
+            std::fs::write(path, s).ok();
         }
     }
 }

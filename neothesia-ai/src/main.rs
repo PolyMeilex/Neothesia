@@ -280,51 +280,51 @@ fn note_detection_with_onset_offset_regress_inner(
             bgn = Some((i, *onset_shift));
         }
 
-        if let Some((bgn_time, bgn_shift)) = bgn {
-            if i > bgn_time {
-                // If onset found, then search offset
+        if let Some((bgn_time, bgn_shift)) = bgn
+            && i > bgn_time
+        {
+            // If onset found, then search offset
 
-                if *frame <= frame_threshold && frame_disappear.is_none() {
-                    // Frame disappear detected
-                    frame_disappear = Some((i, *offset_shift));
-                }
+            if *frame <= frame_threshold && frame_disappear.is_none() {
+                // Frame disappear detected
+                frame_disappear = Some((i, *offset_shift));
+            }
 
-                if *offset && offset_occur.is_none() {
-                    // Offset detected
-                    offset_occur = Some((i, *offset_shift));
-                }
+            if *offset && offset_occur.is_none() {
+                // Offset detected
+                offset_occur = Some((i, *offset_shift));
+            }
 
-                if let Some((frame_disappear_time, frame_disappear_shift)) = frame_disappear {
-                    let (fin, fin_shift) = match offset_occur {
-                        Some((offset_occur, shift))
-                            if offset_occur - bgn_time > frame_disappear_time - offset_occur =>
-                        {
-                            // bgn --------- offset_occur --- frame_disappear
-                            (offset_occur, shift)
-                        }
-                        _ => {
-                            // bgn --- offset_occur --------- frame_disappear
-                            (frame_disappear_time, frame_disappear_shift)
-                        }
-                    };
-                    output_tuples.push((bgn_time, fin, bgn_shift, fin_shift));
-
-                    bgn = None;
-                    frame_disappear = None;
-                    offset_occur = None;
-                }
-
-                if let Some((bgn_time, bgn_shift)) = bgn {
-                    if i - bgn_time >= 600 || i == len - 1 {
-                        // Offset not detected
-                        let fin = i;
-                        output_tuples.push((bgn_time, fin, bgn_shift, *offset_shift));
-
-                        bgn = None;
-                        frame_disappear = None;
-                        offset_occur = None;
+            if let Some((frame_disappear_time, frame_disappear_shift)) = frame_disappear {
+                let (fin, fin_shift) = match offset_occur {
+                    Some((offset_occur, shift))
+                        if offset_occur - bgn_time > frame_disappear_time - offset_occur =>
+                    {
+                        // bgn --------- offset_occur --- frame_disappear
+                        (offset_occur, shift)
                     }
-                }
+                    _ => {
+                        // bgn --- offset_occur --------- frame_disappear
+                        (frame_disappear_time, frame_disappear_shift)
+                    }
+                };
+                output_tuples.push((bgn_time, fin, bgn_shift, fin_shift));
+
+                bgn = None;
+                frame_disappear = None;
+                offset_occur = None;
+            }
+
+            if let Some((bgn_time, bgn_shift)) = bgn
+                && (i - bgn_time >= 600 || i == len - 1)
+            {
+                // Offset not detected
+                let fin = i;
+                output_tuples.push((bgn_time, fin, bgn_shift, *offset_shift));
+
+                bgn = None;
+                frame_disappear = None;
+                offset_occur = None;
             }
         }
     }

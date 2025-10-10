@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
-use crate::{context::Context, NeothesiaEvent};
+use crate::{NeothesiaEvent, context::Context};
 
 use super::{
-    animation::{Animated, Easing},
     PlayingScene,
+    animation::{Animated, Easing},
 };
 
 mod icons {
@@ -320,13 +320,13 @@ impl TopBar {
         }
     }
 
-    fn proggress_bar_looper(
+    fn proggress_bar_looper<'a>(
         this: &mut PlayingScene,
         ctx: &mut Context,
         ui: &mut nuon::Ui,
         w: f32,
         h: f32,
-    ) -> impl FnOnce(&mut nuon::Ui) {
+    ) -> impl FnOnce(&mut nuon::Ui) + 'a {
         let loop_start = this.top_bar.loop_start;
         let loop_start = this.player.time_to_percentage(&loop_start) * w;
 

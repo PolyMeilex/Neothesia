@@ -188,12 +188,12 @@ fn libmidi_to_oxisynth_event(channel: u4, message: midly::MidiMessage) -> oxisyn
 }
 
 #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
-fn oxisynth_adapter(
+fn oxisynth_adapter<'a>(
     this: &SynthBackend,
     rx: Receiver<SynthEvent>,
     path: &Path,
     gain: f32,
-) -> impl FnMut() -> (f32, f32) {
+) -> impl FnMut() -> (f32, f32) + 'a {
     let sample_rate = this.stream_config.sample_rate.0 as f32;
 
     let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
@@ -228,11 +228,11 @@ fn oxisynth_adapter(
 }
 
 #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
-fn fluidsynth_adapter(
+fn fluidsynth_adapter<'a>(
     this: &SynthBackend,
     rx: Receiver<SynthEvent>,
     path: &Path,
-) -> impl FnMut() -> (f32, f32) {
+) -> impl FnMut() -> (f32, f32) + 'a {
     use fluidlite::{IsSettings, Settings};
 
     let synth = {

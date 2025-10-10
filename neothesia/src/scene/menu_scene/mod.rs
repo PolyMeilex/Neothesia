@@ -18,7 +18,7 @@ use winit::{
     keyboard::{Key, NamedKey},
 };
 
-use crate::{context::Context, scene::Scene, song::Song, NeothesiaEvent};
+use crate::{NeothesiaEvent, context::Context, scene::Scene, song::Song};
 
 use std::task::Waker;
 

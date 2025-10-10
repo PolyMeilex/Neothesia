@@ -253,11 +253,7 @@ fn track_card(
 
         nuon::translate().y(icon_size + 15.0).build(ui, |ui| {
             let color = |m: PlayerConfig| {
-                if m == config.player {
-                    accent
-                } else {
-                    regular
-                }
+                if m == config.player { accent } else { regular }
             };
             let hover_color = |m: PlayerConfig| {
                 if m == config.player {

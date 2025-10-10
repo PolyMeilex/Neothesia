@@ -1,4 +1,4 @@
-use midi_file::midly::{num::u4, MidiMessage};
+use midi_file::midly::{MidiMessage, num::u4};
 
 use crate::{
     output_manager::OutputConnection,

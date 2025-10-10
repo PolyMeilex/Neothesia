@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 
 use ffmpeg::{AVCodecID, AVRational};
 
-use crate::{ff, FRAME_RATE, SRC_STREAM_PIX_FMT, STREAM_PIX_FMT};
+use crate::{FRAME_RATE, SRC_STREAM_PIX_FMT, STREAM_PIX_FMT, ff};
 
 pub struct VideoOutputStream {
     pub stream: ff::Stream,

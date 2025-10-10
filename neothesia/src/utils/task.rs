@@ -1,7 +1,7 @@
 pub mod thread {
     use async_channel::Receiver;
     use std::any::Any;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::thread as sync;
 
     #[derive(Debug)]

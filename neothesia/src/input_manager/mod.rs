@@ -1,4 +1,4 @@
-use midi_file::midly::{self, live::LiveEvent, MidiMessage};
+use midi_file::midly::{self, MidiMessage, live::LiveEvent};
 use winit::event_loop::EventLoopProxy;
 
 use crate::NeothesiaEvent;

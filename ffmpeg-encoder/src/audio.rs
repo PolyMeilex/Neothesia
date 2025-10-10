@@ -1,8 +1,9 @@
 use std::ptr;
 
 use ffmpeg::{
-    av_rescale_q, AVChannelLayout, AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodecID,
-    AVRational, AVSampleFormat, AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE,
+    AV_CH_LAYOUT_STEREO, AV_CODEC_CAP_VARIABLE_FRAME_SIZE, AVChannelLayout,
+    AVChannelLayout__bindgen_ty_1, AVChannelOrder, AVCodecID, AVRational, AVSampleFormat,
+    av_rescale_q,
 };
 
 use crate::ff;

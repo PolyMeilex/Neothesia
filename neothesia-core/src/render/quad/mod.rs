@@ -1,7 +1,7 @@
 mod instance_data;
 pub use instance_data::QuadInstance;
 
-use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
+use wgpu_jumpstart::{Gpu, Instances, Shape, TransformUniform, Uniform, wgpu};
 
 use crate::utils::Rect;
 

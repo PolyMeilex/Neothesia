@@ -1,7 +1,7 @@
 mod instance_data;
 pub use instance_data::GlowInstance;
 
-use wgpu_jumpstart::{wgpu, Gpu, Instances, Shape, TransformUniform, Uniform};
+use wgpu_jumpstart::{Gpu, Instances, Shape, TransformUniform, Uniform, wgpu};
 
 pub struct GlowPipeline {
     render_pipeline: wgpu::RenderPipeline,

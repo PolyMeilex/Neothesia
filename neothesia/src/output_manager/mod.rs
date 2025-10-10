@@ -12,7 +12,7 @@ use std::{
     path::PathBuf,
 };
 
-use midi_file::midly::{num::u4, MidiMessage};
+use midi_file::midly::{MidiMessage, num::u4};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum OutputDescriptor {

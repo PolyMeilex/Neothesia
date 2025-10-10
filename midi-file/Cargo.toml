@@ -2,7 +2,7 @@
 name = "midi-file"
 version = "0.1.0"
 authors = ["Poly <bartek.marynczak@op.pl>"]
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 midly.workspace = true

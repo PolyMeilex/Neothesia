@@ -328,7 +328,14 @@ fn main() {
 
             slice.map_async(wgpu::MapMode::Read, move |_| {});
 
-            recorder.gpu.device.poll(wgpu::PollType::Wait).unwrap();
+            recorder
+                .gpu
+                .device
+                .poll(wgpu::PollType::Wait {
+                    submission_index: None,
+                    timeout: None,
+                })
+                .unwrap();
 
             let mapping = slice.get_mapped_range();
 

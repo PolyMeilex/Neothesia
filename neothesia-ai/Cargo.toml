@@ -2,7 +2,7 @@
 name = "neothesia-ai"
 description = "AI audio to piano transciption interface"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true

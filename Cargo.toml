@@ -17,7 +17,7 @@ default-members = ["neothesia"]
 resolver = "2"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 
 [workspace.dependencies]
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }

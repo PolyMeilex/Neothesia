@@ -119,7 +119,7 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
                     text.size,
                     &text.text,
                     cosmic_text::Attrs::new()
-                        .family(cosmic_text::Family::Name("Roboto"))
+                        .family(cosmic_text::Family::Name(&text.font_family))
                         .weight(cosmic_text::Weight::BOLD)
                         .color(cosmic_text::Color(text.color.packet_u32())),
                 )
@@ -128,7 +128,7 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
                     text.size,
                     &text.text,
                     cosmic_text::Attrs::new()
-                        .family(cosmic_text::Family::Name("Roboto"))
+                        .family(cosmic_text::Family::Name(&text.font_family))
                         .color(cosmic_text::Color(text.color.packet_u32())),
                 )
             };

@@ -260,6 +260,7 @@ pub struct TextRenderElement {
     pub bold: bool,
     pub text: String,
     pub color: Color,
+    pub font_family: Cow<'static, str>,
 }
 
 #[derive(Debug, Clone)]
@@ -1134,6 +1135,7 @@ impl Button {
                 bold: false,
                 text: self.label.to_string(),
                 color: Color::new_u8(255, 255, 255, 1.0),
+                font_family: Cow::Borrowed("Roboto"),
             });
         }
 
@@ -1151,6 +1153,7 @@ pub struct Label {
     text: String,
     icon: String,
     bold: bool,
+    font_family: Cow<'static, str>,
 }
 
 pub fn label() -> Label {
@@ -1174,6 +1177,7 @@ impl Label {
             text: String::new(),
             icon: String::new(),
             bold: false,
+            font_family: Cow::Borrowed("Roboto"),
         }
     }
 
@@ -1220,6 +1224,11 @@ impl Label {
         self
     }
 
+    pub fn font_family(mut self, font_family: &'static str) -> Self {
+        self.font_family = Cow::Borrowed(font_family);
+        self
+    }
+
     pub fn text(mut self, text: impl Into<String>) -> Self {
         self.text = text.into();
         self
@@ -1247,6 +1256,7 @@ impl Label {
                 bold: self.bold,
                 text: self.text.to_string(),
                 color: self.color,
+                font_family: self.font_family.clone(),
             });
         }
 

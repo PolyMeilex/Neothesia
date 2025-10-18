@@ -1169,6 +1169,10 @@ pub fn label() -> Label {
     Label::new()
 }
 
+pub fn leland() -> Label {
+    label().font_family("Leland").font_size(60.0)
+}
+
 impl Default for Label {
     fn default() -> Self {
         Self::new()

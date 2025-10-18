@@ -118,11 +118,20 @@ impl TopBar {
     pub fn ui(this: &mut PlayingScene, ctx: &mut Context) {
         let mut ui = std::mem::replace(&mut this.nuon, nuon::Ui::new());
 
-        {
+        nuon::translate().y(100.0).build(&mut ui, |ui| {
             let spacing = 15.0;
             let half_spacing = spacing / 2.0;
-            let y = 150.0;
+            let y = 50.0;
             let x = 40.0;
+
+            let color = [0; 3];
+
+            nuon::quad()
+                .color([255; 3])
+                .pos(0.0, 0.0)
+                .size(250.0, 130.0)
+                .border_radius([0.0, 10.0, 10.0, 0.0])
+                .build(ui);
 
             {
                 let y = y + 39.0;
@@ -131,9 +140,9 @@ impl TopBar {
                     nuon::quad()
                         .y(y - id as f32 * spacing)
                         .height(1.0)
-                        .width(500.0)
-                        .color([255; 3])
-                        .build(&mut ui);
+                        .width(250.0)
+                        .color(color)
+                        .build(ui);
                 }
             }
 
@@ -142,45 +151,61 @@ impl TopBar {
 
             nuon::label()
                 .text("")
+                .color(color)
                 .font_family("Leland")
                 .font_size(60.0)
                 .x(x)
                 .y(y)
-                .build(&mut ui);
+                .build(ui);
 
-            nuon::label()
-                .text("")
-                .font_family("Leland")
-                .font_size(60.0)
-                .x(x + 60.0)
-                .y(y + spacing / 2.0)
-                .build(&mut ui);
+            // nuon::label()
+            //     .text("")
+            //     .color(color)
+            //     .font_family("Leland")
+            //     .font_size(60.0)
+            //     .x(x + 60.0)
+            //     .y(y + spacing / 2.0)
+            //     .build(ui);
 
             let flat = "";
             let sharp = "";
 
-            for pitch in 0..10 {
-                if pitch == 0 {
-                    let y = y + 39.0 + spacing;
-                    nuon::quad()
-                        .x(x + 90.0 + 20.0 - 10.0)
-                        .y(y)
-                        .height(1.0)
-                        .width(30.0)
-                        .color([255; 3])
-                        .build(&mut ui);
-                }
-
-                let y = y + pitch_y(pitch);
+            {
+                let y = y + pitch_y(9);
 
                 nuon::label()
                     .text(sharp)
+                    .color(color)
                     .font_family("Leland")
                     .font_size(60.0)
-                    .x(x + 90.0 + 40.0 * (pitch % 2) as f32)
+                    .x(x + 60.0 + 22.0)
                     .y(y)
-                    .build(&mut ui);
+                    .build(ui);
             }
+
+            // for pitch in 0..10 {
+            //     if pitch == 0 {
+            //         let y = y + 39.0 + spacing;
+            //         nuon::quad()
+            //             .x(x + 60.0 + 20.0 - 10.0)
+            //             .y(y)
+            //             .height(1.0)
+            //             .width(30.0)
+            //             .color(color)
+            //             .build(ui);
+            //     }
+            //
+            //     let y = y + pitch_y(pitch);
+            //
+            //     nuon::label()
+            //         .text(sharp)
+            //         .color(color)
+            //         .font_family("Leland")
+            //         .font_size(60.0)
+            //         .x(x + 60.0 + 22.0 * (pitch % 2) as f32)
+            //         .y(y)
+            //         .build(ui);
+            // }
 
             // nuon::label()
             //     .text("")
@@ -189,7 +214,7 @@ impl TopBar {
             //     .x(100.0)
             //     .y(y)
             //     .build(&mut ui);
-        }
+        });
 
         nuon::translate()
             .y(this.top_bar.topbar_expand_animation.animate_bool(

@@ -4,8 +4,8 @@ use neothesia_core::{
     config::Config,
     piano_layout,
     render::{
-        GuidelineRenderer, KeyboardRenderer, QuadRenderer, QuadRendererFactory, TextRenderer,
-        TextRendererFactory, WaterfallRenderer,
+        GuidelineRenderer, KeyboardRenderer, NoteLabels, QuadRenderer, QuadRendererFactory,
+        TextRenderer, TextRendererFactory, WaterfallRenderer,
     },
 };
 use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, wgpu};
@@ -23,6 +23,7 @@ struct Recorder {
     waterfall: WaterfallRenderer,
     text: TextRenderer,
     guidelines: GuidelineRenderer,
+    note_labels: Option<NoteLabels>,
 
     config: Config,
     width: u32,
@@ -112,8 +113,8 @@ impl Recorder {
 
         waterfall.update(time_without_lead_in(&playback));
 
-        let text = TextRendererFactory::new(&gpu);
-        let text = text.new_renderer();
+        let text_renderer_factory = TextRendererFactory::new(&gpu);
+        let text = text_renderer_factory.new_renderer();
 
         let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
             sample_rate: 44100.0,
@@ -128,6 +129,12 @@ impl Recorder {
             synth.add_font(font, true);
         }
 
+        let note_labels = config.note_labels().then_some(NoteLabels::new(
+            *keyboard.pos(),
+            waterfall.notes(),
+            text_renderer_factory.new_renderer(),
+        ));
+
         Self {
             gpu,
 
@@ -139,6 +146,7 @@ impl Recorder {
             waterfall,
             text,
             guidelines,
+            note_labels,
 
             config,
             width,
@@ -172,6 +180,19 @@ impl Recorder {
 
         self.quad_renderer_bg.prepare();
         self.quad_renderer_fg.prepare();
+
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.update(
+                neothesia_core::dpi::PhysicalSize {
+                    width: self.width,
+                    height: self.height,
+                },
+                1.0,
+                &self.keyboard,
+                self.config.animation_speed(),
+                time,
+            );
+        }
 
         self.text.update(
             neothesia_core::dpi::PhysicalSize::new(self.width, self.height),
@@ -212,6 +233,9 @@ impl Recorder {
 
             self.quad_renderer_bg.render(&mut rpass);
             self.waterfall.render(&mut rpass);
+            if let Some(note_labels) = self.note_labels.as_mut() {
+                note_labels.render(&mut rpass);
+            }
             self.quad_renderer_fg.render(&mut rpass);
             self.text.render(&mut rpass);
         }

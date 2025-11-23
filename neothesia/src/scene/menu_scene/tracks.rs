@@ -232,11 +232,13 @@ fn track_card(
 
         let btn_w = inner_card_w / 3.0;
 
-        nuon::translate().x(icon_size + 15.0).build(ui, |ui| {
+        let labels_x = icon_size + 15.0;
+        nuon::translate().x(labels_x).build(ui, |ui| {
             let label_h = icon_size / 2.0;
+            let label_w = inner_card_w - labels_x;
 
             nuon::label()
-                .height(label_h)
+                .size(label_w, label_h)
                 .text(title)
                 .text_justify(TextJustify::Left)
                 .font_size(16.0)
@@ -244,7 +246,7 @@ fn track_card(
 
             nuon::label()
                 .y(label_h)
-                .height(label_h)
+                .size(label_w, label_h)
                 .text(subtitle)
                 .text_justify(TextJustify::Left)
                 .font_size(14.0)

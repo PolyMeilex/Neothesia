@@ -474,7 +474,10 @@ impl SwsContext {
                 dist_width,
                 dist_height,
                 dist_pix_fmt,
-                ffmpeg::SWS_BICUBIC,
+                // TODO:
+                // - ffmpeg::SWS_BICUBIC,
+                // + ffmpeg_sys::SwsFlags::SWS_BICUBIC as i32,
+                4,
                 ptr::null_mut(),
                 ptr::null_mut(),
                 ptr::null_mut(),

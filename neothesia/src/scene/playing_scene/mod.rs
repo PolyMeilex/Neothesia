@@ -289,6 +289,46 @@ impl Scene for PlayingScene {
             self.keyboard.reset_notes();
         }
 
+        match event {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state,
+                        logical_key: Key::Character(ch),
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } if matches!(
+                ch.as_str(),
+                "a" | "s" | "d" | "f" | "g" | "h" | "j" | "k" | "l"
+            ) =>
+            {
+                let note = match ch.as_str() {
+                    "a" => 0,
+                    "s" => 1,
+                    "d" => 2,
+                    "f" => 3,
+                    "g" => 4,
+                    "h" => 5,
+                    "j" => 6,
+                    "k" => 7,
+                    "l" => 8,
+                    _ => unreachable!(),
+                } + 21;
+
+                match state {
+                    ElementState::Pressed => self
+                        .waterfall
+                        .push_note(self.player.time_without_lead_in(), note),
+                    ElementState::Released => {
+                        self.waterfall.pop_note(note);
+                    }
+                }
+            }
+            _ => {}
+        }
+
         handle_back_button(ctx, self.player.song(), event);
         handle_pause_button(&mut self.player, event);
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);

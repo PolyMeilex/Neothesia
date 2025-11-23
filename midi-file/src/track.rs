@@ -31,6 +31,29 @@ pub struct MidiNote {
     pub track_color_id: usize,
 }
 
+impl MidiNote {
+    pub fn note_mod_12(&self) -> u8 {
+        self.note % 12
+    }
+
+    pub fn is_sharp(&self) -> bool {
+        #![allow(unused)]
+        const C: u8 = 0;
+        const CS: u8 = 1;
+        const D: u8 = 2;
+        const DS: u8 = 3;
+        const E: u8 = 4;
+        const F: u8 = 5;
+        const FS: u8 = 6;
+        const G: u8 = 7;
+        const GS: u8 = 8;
+        const A: u8 = 9;
+        const AS: u8 = 10;
+        const B: u8 = 11;
+        matches!(self.note_mod_12(), CS | DS | FS | GS | AS)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct MidiTrack {
     // Translated notes with calculated timings

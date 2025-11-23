@@ -14,6 +14,8 @@ pub struct WaterfallPipeline {
     instances: Instances<NoteInstance>,
     time_uniform: Uniform<TimeUniform>,
     transform_uniform_bind_group: wgpu::BindGroup,
+
+    is_dirty: bool,
 }
 
 impl WaterfallPipeline {
@@ -73,6 +75,7 @@ impl WaterfallPipeline {
             instances,
             time_uniform,
             transform_uniform_bind_group: transform_uniform.bind_group.clone(),
+            is_dirty: false,
         }
     }
 
@@ -97,7 +100,20 @@ impl WaterfallPipeline {
         &mut self.instances.data
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.instances.is_empty()
+    }
+
+    pub fn is_diry(&self) -> bool {
+        self.is_dirty
+    }
+
+    pub fn set_diry(&mut self) {
+        self.is_dirty = true;
+    }
+
     pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.is_dirty = false;
         self.instances.update(device, queue);
     }
 

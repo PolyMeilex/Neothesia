@@ -80,6 +80,10 @@ impl WaterfallPipeline {
     }
 
     pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        if self.is_empty() {
+            return;
+        }
+
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.transform_uniform_bind_group, &[]);
         render_pass.set_bind_group(1, &self.time_uniform.bind_group, &[]);

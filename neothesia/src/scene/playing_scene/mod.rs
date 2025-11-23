@@ -318,11 +318,17 @@ impl Scene for PlayingScene {
                 } + 21;
 
                 match state {
-                    ElementState::Pressed => self
-                        .waterfall
-                        .push_note(self.player.time_without_lead_in(), note),
+                    ElementState::Pressed => self.waterfall.push_note(
+                        &ctx.config,
+                        self.player.time_without_lead_in(),
+                        note,
+                    ),
                     ElementState::Released => {
-                        self.waterfall.pop_note(note);
+                        self.waterfall.pop_note(
+                            &ctx.config,
+                            self.player.time_without_lead_in(),
+                            note,
+                        );
                     }
                 }
             }

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Duration};
 
 use crate::{
     TransformUniform, Uniform,
@@ -11,19 +11,28 @@ use wgpu_jumpstart::{Color, Gpu};
 mod pipeline;
 use pipeline::{NoteInstance, WaterfallPipeline};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct NoteList {
-    pub(crate) inner: Rc<[MidiNote]>,
+    pub(crate) inner: Rc<RefCell<Vec<MidiNote>>>,
 }
 
 impl NoteList {
     fn new(tracks: &[MidiTrack], hidden_tracks: &[usize]) -> Self {
-        let mut notes: Vec<_> = tracks
+        let notes: Vec<_> = tracks
             .iter()
             .filter(|track| !hidden_tracks.contains(&track.track_id))
             .flat_map(|track| track.notes.iter().cloned())
             .collect();
 
+        let mut notes = Self {
+            inner: Rc::new(RefCell::new(notes)),
+        };
+        notes.sort();
+        notes
+    }
+
+    fn sort(&mut self) {
+        let mut notes = self.inner.borrow_mut();
         notes.sort_unstable_by(|a, b| {
             // We want to render newer or sharp notes on top of other notes
             match a.is_sharp().cmp(&b.is_sharp()) {
@@ -31,14 +40,15 @@ impl NoteList {
                 other => other,
             }
         });
+    }
 
-        Self {
-            inner: notes.into(),
-        }
+    fn push(&mut self, note: MidiNote) {
+        self.inner.borrow_mut().push(note);
+        self.sort();
     }
 
     fn len(&self) -> usize {
-        self.inner.len()
+        self.inner.borrow().len()
     }
 }
 
@@ -99,6 +109,7 @@ impl WaterfallRenderer {
         layout: piano_layout::KeyboardLayout,
     ) -> Self {
         let notes = NoteList::new(tracks, hidden_tracks);
+        let notes = NoteList::default();
 
         let staging_notes_pipeline = WaterfallPipeline::new(gpu, transform_uniform, 32);
 
@@ -138,7 +149,7 @@ impl WaterfallRenderer {
         self.notes_pipeline.clear();
 
         let mut longer_than_range = false;
-        for note in self.notes.inner.iter() {
+        for note in self.notes.inner.borrow().iter() {
             if let Some(key) = layout_key(&layout, note.note) {
                 if note.channel != 9 {
                     let color_schema = config.color_schema();
@@ -170,10 +181,10 @@ impl WaterfallRenderer {
         self.layout = layout;
     }
 
-    pub fn push_note(&mut self, start: f32, note: u8) {
+    pub fn push_note(&mut self, config: &Config, start: f32, note: u8) {
         // Staring a note should auto stop the previous one
         if self.staging_notes_in_proggress.contains_key(&note) {
-            self.pop_note(note);
+            self.pop_note(config, start, note);
         }
 
         let Some(key) = layout_key(&self.layout, note) else {
@@ -197,17 +208,13 @@ impl WaterfallRenderer {
         self.staging_notes_in_proggress.insert(note, idx);
     }
 
-    pub fn pop_note(&mut self, note: u8) {
-        let Some(idx) = self.staging_notes_in_proggress.remove(&note) else {
+    pub fn pop_note(&mut self, config: &Config, end: f32, note_id: u8) {
+        let Some(idx) = self.staging_notes_in_proggress.remove(&note_id) else {
             return;
         };
 
         let mut note = self.staging_notes_pipeline.instances().remove(idx);
         self.staging_notes_pipeline.set_diry();
-
-        if note.size[1] <= 0.0 {
-            return;
-        }
 
         for (_note, note_idx) in self.staging_notes_in_proggress.iter_mut() {
             if *note_idx >= idx {
@@ -215,10 +222,30 @@ impl WaterfallRenderer {
             }
         }
 
+        if note.size[1] <= 0.0 {
+            return;
+        }
+        if note.position[1] < 0.0 || end < 0.0 {
+            return;
+        }
+
         note.size[1] = note_height(note.size[1]);
 
-        self.notes_pipeline.instances().push(note);
-        self.notes_pipeline.set_diry();
+        let start = Duration::from_secs_f32(note.position[1]);
+        let end = Duration::from_secs_f32(end);
+
+        self.notes.push(MidiNote {
+            start,
+            end,
+            duration: end - start,
+            note: note_id,
+            velocity: 127,
+            channel: 0,
+            track_id: 0,
+            track_color_id: 0,
+        });
+
+        self.resize(config, self.layout.clone());
     }
 
     fn update_staging_notes(&mut self, time: f32) {
@@ -250,8 +277,6 @@ impl WaterfallRenderer {
     #[profiling::function]
     pub fn render<'rpass>(&'rpass mut self, render_pass: &mut wgpu::RenderPass<'rpass>) {
         self.notes_pipeline.render(render_pass);
-        if !self.staging_notes_pipeline.is_empty() {
-            self.staging_notes_pipeline.render(render_pass);
-        }
+        self.staging_notes_pipeline.render(render_pass);
     }
 }

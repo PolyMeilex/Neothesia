@@ -97,9 +97,8 @@ impl NoteLabels {
         let labels = self.labels_cache.get(keyboard);
         let animation_speed = animation_speed / scale;
 
-        let iter = self
-            .notes
-            .inner
+        let notes = self.notes.inner.borrow();
+        let iter = notes
             .iter()
             .filter(|note| layout.range.contains(note.note) && note.channel != 9)
             .map(|note| {

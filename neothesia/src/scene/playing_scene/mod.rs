@@ -1,6 +1,6 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
-    GlowInstance, GlowPipeline, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
+    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
 };
 use std::time::Duration;
 use winit::{
@@ -28,15 +28,6 @@ use toast_manager::ToastManager;
 mod animation;
 mod top_bar;
 
-struct GlowState {
-    time: f32,
-}
-
-struct Glow {
-    pipeline: GlowPipeline,
-    states: Vec<GlowState>,
-}
-
 pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
@@ -50,7 +41,7 @@ pub struct PlayingScene {
     rewind_controller: RewindController,
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
-    glow: Option<Glow>,
+    glow: Option<GlowRenderer>,
     toast_manager: ToastManager,
 
     nuon: nuon::Ui,
@@ -108,12 +99,11 @@ impl PlayingScene {
         let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
         let quad_renderer_fg = ctx.quad_renderer_facotry.new_renderer();
 
-        let glow_states: Vec<GlowState> = keyboard
-            .layout()
-            .range
-            .iter()
-            .map(|_| GlowState { time: 0.0 })
-            .collect();
+        let glow = ctx.config.glow().then_some(GlowRenderer::new(
+            &ctx.gpu,
+            &ctx.transform,
+            keyboard.layout(),
+        ));
 
         Self {
             keyboard,
@@ -127,10 +117,7 @@ impl PlayingScene {
             rewind_controller: RewindController::new(),
             quad_renderer_bg,
             quad_renderer_fg,
-            glow: ctx.config.glow().then_some(Glow {
-                pipeline: GlowPipeline::new(&ctx.gpu, &ctx.transform),
-                states: glow_states,
-            }),
+            glow,
             toast_manager: ToastManager::default(),
 
             nuon: nuon::Ui::new(),
@@ -144,30 +131,24 @@ impl PlayingScene {
             return;
         };
 
-        glow.pipeline.clear();
+        glow.clear();
 
-        let key_states = self.keyboard.key_states();
-        for key in self.keyboard.layout().keys.iter() {
-            let glow_state = &mut glow.states[key.id()];
-            let glow_w = 150.0 + glow_state.time.sin() * 10.0;
-            let glow_h = 150.0 + glow_state.time.sin() * 10.0;
+        let keys = &self.keyboard.layout().keys;
+        let states = self.keyboard.key_states();
 
-            let y = self.keyboard.pos().y;
-            if let Some(color) = key_states[key.id()].pressed_by_file() {
-                glow_state.time += delta.as_secs_f32() * 5.0;
-                let mut color = color.into_linear_rgba();
-                let v = 0.2 * glow_state.time.cos().abs();
-                let v = v.min(1.0);
-                color[0] += v;
-                color[1] += v;
-                color[2] += v;
-                color[3] = 0.2;
-                glow.pipeline.instances().push(GlowInstance {
-                    position: [key.x() - glow_w / 2.0 + key.width() / 2.0, y - glow_w / 2.0],
-                    size: [glow_w, glow_h],
-                    color,
-                });
-            }
+        for (key, state) in keys.iter().zip(states) {
+            let Some(color) = state.pressed_by_file() else {
+                continue;
+            };
+
+            glow.push(
+                key.id(),
+                *color,
+                key.x(),
+                self.keyboard.pos().y,
+                key.width(),
+                delta,
+            );
         }
     }
 
@@ -243,7 +224,7 @@ impl Scene for PlayingScene {
         self.quad_renderer_fg.prepare();
 
         if let Some(glow) = &mut self.glow {
-            glow.pipeline.prepare();
+            glow.prepare();
         }
 
         #[cfg(debug_assertions)]
@@ -274,7 +255,7 @@ impl Scene for PlayingScene {
         }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
-            glow.pipeline.render(rpass);
+            glow.render(rpass);
         }
         self.text_renderer.render(rpass);
 

@@ -9,7 +9,7 @@ mod text;
 mod waterfall;
 
 pub use background_animation::BgPipeline;
-pub use glow::{GlowInstance, GlowPipeline};
+pub use glow::GlowRenderer;
 pub use guidelines::GuidelineRenderer;
 pub use image::{Image, ImageIdentifier, ImageRenderer};
 pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};

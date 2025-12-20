@@ -107,11 +107,7 @@ pub enum Page {
     TrackSelection,
 }
 
-pub fn play(data: &UiState, ctx: &mut Context) {
-    let Some(song) = data.song.as_ref() else {
-        return;
-    };
-
+fn connect_io(data: &UiState, ctx: &mut Context) {
     if let Some(out) = data.selected_output.clone() {
         let out = match out {
             #[cfg(feature = "synth")]
@@ -130,8 +126,24 @@ pub fn play(data: &UiState, ctx: &mut Context) {
     if let Some(port) = data.selected_input.clone() {
         ctx.input_manager.connect_input(port);
     }
+}
+
+pub fn play(data: &UiState, ctx: &mut Context) {
+    let Some(song) = data.song.as_ref() else {
+        return;
+    };
+
+    connect_io(data, ctx);
 
     ctx.proxy
         .send_event(NeothesiaEvent::Play(song.clone()))
+        .ok();
+}
+
+pub fn freeplay(data: &UiState, ctx: &mut Context) {
+    connect_io(data, ctx);
+
+    ctx.proxy
+        .send_event(NeothesiaEvent::FreePlay(data.song.clone()))
         .ok();
 }

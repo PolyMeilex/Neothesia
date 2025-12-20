@@ -21,12 +21,14 @@ use wgpu_jumpstart::Surface;
 use wgpu_jumpstart::{Gpu, TransformUniform};
 use winit::application::ApplicationHandler;
 use winit::event_loop::EventLoopProxy;
+use winit::keyboard::NamedKey;
 use winit::{event::WindowEvent, event_loop::EventLoop};
 
 #[derive(Debug)]
 pub enum NeothesiaEvent {
     /// Go to playing scene
     Play(song::Song),
+    FreePlay(Option<song::Song>),
     /// Go to main menu scene
     MainMenu(Option<song::Song>),
     MidiInput {
@@ -91,8 +93,16 @@ impl Neothesia {
                         ..
                     },
                 ..
-            } => match logical_key {
-                winit::keyboard::Key::Character(c) if c.as_str() == "f" => {
+            } => {
+                let matched = match logical_key {
+                    winit::keyboard::Key::Character(ch) if ch.as_str() == "f" => {
+                        self.context.window_state.modifiers_state.control_key()
+                    }
+                    winit::keyboard::Key::Named(NamedKey::F11) => true,
+                    _ => false,
+                };
+
+                if matched {
                     if self.context.window.fullscreen().is_some() {
                         self.context.window.set_fullscreen(None);
                     } else {
@@ -106,8 +116,7 @@ impl Neothesia {
                         }
                     }
                 }
-                _ => {}
-            },
+            }
             WindowEvent::RedrawRequested => {
                 let delta = self.context.frame_timestamp.elapsed();
                 self.context.frame_timestamp = std::time::Instant::now();
@@ -133,6 +142,10 @@ impl Neothesia {
         match event {
             NeothesiaEvent::Play(song) => {
                 let to = playing_scene::PlayingScene::new(&mut self.context, song);
+                self.game_scene = Box::new(to);
+            }
+            NeothesiaEvent::FreePlay(song) => {
+                let to = scene::freeplay::FreeplayScene::new(&mut self.context, song);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MainMenu(song) => {

@@ -29,6 +29,11 @@ mod icons {
         "\u{f4f4}"
     }
 
+    #[allow(unused)]
+    pub fn balloon_icon() -> &'static str {
+        "\u{f709}"
+    }
+
     pub fn note_list_icon() -> &'static str {
         "\u{f49f}"
     }
@@ -39,6 +44,10 @@ mod icons {
 
     pub fn caret_down() -> &'static str {
         "\u{f229}"
+    }
+
+    pub fn cone_icon() -> &'static str {
+        "\u{F2D2}"
     }
 }
 
@@ -238,10 +247,6 @@ impl MenuScene {
             });
 
         nuon::translate().x(0.0).y(win_h).build(ui, |ui| {
-            let Some(song) = self.state.song() else {
-                return;
-            };
-
             let gap = 10.0;
             let btn_w = 80.0;
             let btn_h = 60.0;
@@ -249,22 +254,43 @@ impl MenuScene {
             nuon::translate().y(-gap).add_to_current(ui);
             nuon::translate().y(-btn_h).add_to_current(ui);
 
-            nuon::label()
-                .text(&song.file.name)
-                .size(win_w, 60.0)
-                .font_size(16.0)
-                .build(ui);
+            if let Some(song) = self.state.song() {
+                nuon::label()
+                    .text(&song.file.name)
+                    .size(win_w, 60.0)
+                    .font_size(16.0)
+                    .build(ui);
+            }
+
+            nuon::translate().build(ui, |ui| {
+                nuon::translate().x(gap).add_to_current(ui);
+
+                if neo_btn_icon_with_color(
+                    ui,
+                    btn_w,
+                    btn_h,
+                    icons::cone_icon(),
+                    [100; 3],
+                    "FreePlay",
+                ) {
+                    state::freeplay(&self.state, ctx);
+                }
+            });
+
+            if self.state.song().is_none() {
+                return;
+            }
 
             nuon::translate().x(win_w).build(ui, |ui| {
                 nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
-                if neo_btn_icon(ui, btn_w, btn_h, icons::play_icon()) {
+                if neo_btn_icon_with_tooltip(ui, btn_w, btn_h, icons::play_icon(), "Play") {
                     state::play(&self.state, ctx);
                 }
 
                 nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
-                if neo_btn_icon(ui, btn_w, btn_h, icons::note_list_icon()) {
+                if neo_btn_icon_with_tooltip(ui, btn_w, btn_h, icons::note_list_icon(), "Tracks") {
                     self.state.go_to(Page::TrackSelection);
                 }
             });
@@ -273,7 +299,7 @@ impl MenuScene {
 }
 
 fn neo_btn(ui: &mut nuon::Ui, w: f32, h: f32, label: &str) -> bool {
-    neo_btn_child(ui, label, w, h, |ui| {
+    neo_btn_child(ui, label, w, h, "", |ui| {
         nuon::label()
             .text(label)
             .size(w, h)
@@ -283,11 +309,27 @@ fn neo_btn(ui: &mut nuon::Ui, w: f32, h: f32, label: &str) -> bool {
 }
 
 fn neo_btn_icon(ui: &mut nuon::Ui, w: f32, h: f32, icon: &str) -> bool {
-    neo_btn_child(ui, icon, w, h, |ui| {
+    neo_btn_icon_with_tooltip(ui, w, h, icon, "")
+}
+
+fn neo_btn_icon_with_tooltip(ui: &mut nuon::Ui, w: f32, h: f32, icon: &str, tooltip: &str) -> bool {
+    neo_btn_icon_with_color(ui, w, h, icon, [255; 3], tooltip)
+}
+
+fn neo_btn_icon_with_color(
+    ui: &mut nuon::Ui,
+    w: f32,
+    h: f32,
+    icon: &str,
+    color: impl Into<nuon::Color>,
+    tooltip: &str,
+) -> bool {
+    neo_btn_child(ui, icon, w, h, tooltip, |ui| {
         nuon::label()
             .icon(icon)
             .size(w, h)
             .font_size(30.0)
+            .color(color)
             .build(ui);
     })
 }
@@ -297,6 +339,7 @@ fn neo_btn_child(
     id: impl Into<nuon::Id>,
     w: f32,
     h: f32,
+    tooltip: &str,
     child: impl FnOnce(&mut nuon::Ui),
 ) -> bool {
     let event = nuon::click_area(id).size(w, h).build(ui);
@@ -326,6 +369,10 @@ fn neo_btn_child(
         .build(ui);
 
     child(ui);
+
+    if event.is_hovered() || event.is_pressed() {
+        nuon::label().text(tooltip).size(w, 13.0).y(-13.0).build(ui);
+    }
 
     event.is_clicked()
 }

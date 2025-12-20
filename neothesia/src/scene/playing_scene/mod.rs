@@ -14,7 +14,7 @@ use super::{NuonRenderer, Scene};
 use crate::{NeothesiaEvent, context::Context, render::WaterfallRenderer, song::Song};
 
 mod keyboard;
-use keyboard::Keyboard;
+pub use keyboard::Keyboard;
 
 mod midi_player;
 use midi_player::MidiPlayer;

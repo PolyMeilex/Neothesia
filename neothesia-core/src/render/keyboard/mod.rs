@@ -164,7 +164,7 @@ impl KeyboardRenderer {
                     right: x.round() as i32 + w.round() as i32,
                     bottom: y.round() as i32 + h.round() as i32,
                 },
-                default_color: glyphon::Color::rgb(153, 153, 153),
+                default_color: glyphon::Color::rgba(0, 0, 0, 150),
             });
         }
     }

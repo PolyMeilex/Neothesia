@@ -1,5 +1,6 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::{
+    config::ColorSchemaV1,
     piano_layout,
     render::{KeyboardKeyState, QuadRenderer, TextRenderer},
     utils::Point,
@@ -11,6 +12,7 @@ use crate::{config::Config, context::Context, render::KeyboardRenderer, song::So
 pub struct Keyboard {
     renderer: KeyboardRenderer,
     song_config: SongConfig,
+    pressed_by_user_colors: ColorSchemaV1,
 }
 
 fn get_layout(
@@ -39,10 +41,21 @@ impl Keyboard {
         let mut renderer = KeyboardRenderer::new(layout);
         renderer.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
 
+        let v = (255.0 * 0.3) as u8;
+        let dark = (v, v, v);
+
+        let v = (255.0 * 0.5) as u8;
+        let base = (v, v, v);
+
         Self {
             renderer,
             song_config,
+            pressed_by_user_colors: ColorSchemaV1 { base, dark },
         }
+    }
+
+    pub fn set_pressed_by_user_colors(&mut self, colors: ColorSchemaV1) {
+        self.pressed_by_user_colors = colors;
     }
 
     pub fn renderer(&self) -> &KeyboardRenderer {
@@ -106,7 +119,7 @@ impl Keyboard {
             let id = key as usize - range_start;
             let key = &mut self.renderer.key_states_mut()[id];
 
-            key.set_pressed_by_user(is_on);
+            key.set_pressed_by_user(is_on, &self.pressed_by_user_colors);
             self.renderer.invalidate_cache();
         }
     }

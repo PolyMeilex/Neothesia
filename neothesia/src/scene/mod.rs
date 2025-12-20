@@ -1,3 +1,4 @@
+pub mod freeplay;
 pub mod menu_scene;
 pub mod playing_scene;
 

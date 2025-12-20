@@ -203,6 +203,20 @@ fn oxisynth_adapter<'a>(
     })
     .unwrap();
 
+    synth.set_reverb_params(&oxisynth::ReverbParams {
+        roomsize: 0.5,
+        damp: 0.3,
+        width: 0.8,
+        level: 0.7,
+    });
+    synth.set_chorus_params(&oxisynth::ChorusParams {
+        nr: 4,
+        level: 0.55,
+        speed: 0.36,
+        depth: 3.6,
+        mode: Default::default(),
+    });
+
     {
         let mut file = std::fs::File::open(path).unwrap();
         let font = oxisynth::SoundFont::load(&mut file).unwrap();

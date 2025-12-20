@@ -16,7 +16,7 @@ pub struct TrackConfig {
     pub visible: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct SongConfig {
     pub tracks: Box<[TrackConfig]>,
 }

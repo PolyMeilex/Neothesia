@@ -10,7 +10,7 @@ pub struct KeyState {
     is_sharp: bool,
 
     pressed_by_file: Option<Color>,
-    pressed_by_user: bool,
+    pressed_by_user: Option<Color>,
 }
 
 impl KeyState {
@@ -19,7 +19,7 @@ impl KeyState {
             is_sharp,
 
             pressed_by_file: None,
-            pressed_by_user: false,
+            pressed_by_user: None,
         }
     }
 
@@ -27,8 +27,18 @@ impl KeyState {
         self.pressed_by_file.as_ref()
     }
 
-    pub fn set_pressed_by_user(&mut self, is: bool) {
-        self.pressed_by_user = is;
+    pub fn set_pressed_by_user(&mut self, is: bool, scheme: &ColorSchemaV1) {
+        let (r, g, b) = if self.is_sharp {
+            scheme.dark
+        } else {
+            scheme.base
+        };
+
+        if is {
+            self.pressed_by_user = Some(Color::from_rgba8(r, g, b, 1.0));
+        } else {
+            self.pressed_by_user = None;
+        }
     }
 
     pub fn pressed_by_file_on(&mut self, scheme: &ColorSchemaV1) {
@@ -46,9 +56,8 @@ impl KeyState {
     }
 
     pub fn color(&self) -> Color {
-        if self.pressed_by_user {
-            let v = if self.is_sharp { 0.3 } else { 0.5 };
-            Color::new(v, v, v, 1.0)
+        if let Some(color) = self.pressed_by_user {
+            color
         } else if let Some(color) = self.pressed_by_file {
             color
         } else if self.is_sharp {

@@ -1,7 +1,6 @@
 // Based on: https://ffmpeg.org/doxygen/trunk/mux_8c-example.html
 
-use std::ffi::CString;
-use std::path::Path;
+use std::{ffi::CString, path::Path};
 
 use ffmpeg::{AVERROR, AVERROR_EOF, AVPixelFormat, EAGAIN};
 

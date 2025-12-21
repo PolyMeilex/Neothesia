@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::config::Config;
-use crate::input_manager::InputManager;
-use crate::utils::window::WindowState;
-use crate::{NeothesiaEvent, TransformUniform, output_manager::OutputManager};
+use crate::{
+    NeothesiaEvent, TransformUniform, config::Config, input_manager::InputManager,
+    output_manager::OutputManager, utils::window::WindowState,
+};
 use neothesia_core::render::{QuadRendererFactory, TextRendererFactory};
 use wgpu_jumpstart::{Gpu, Uniform};
 use winit::event_loop::EventLoopProxy;

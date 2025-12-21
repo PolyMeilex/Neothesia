@@ -62,8 +62,11 @@ pub fn settings_ron() -> Option<PathBuf> {
 
 #[cfg(target_os = "macos")]
 fn bundled_resource_path(name: &str, extension: &str) -> Option<String> {
-    use objc::runtime::{Class, Object};
-    use objc::{msg_send, sel, sel_impl};
+    use objc::{
+        msg_send,
+        runtime::{Class, Object},
+        sel, sel_impl,
+    };
 
     unsafe {
         let cls = Class::get("NSBundle").unwrap();

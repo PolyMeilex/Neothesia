@@ -7,8 +7,7 @@ mod scene;
 mod song;
 mod utils;
 
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use context::Context;
 use scene::{Scene, menu_scene, playing_scene};
@@ -17,12 +16,13 @@ use utils::window::WindowState;
 
 use midi_file::midly::MidiMessage;
 use neothesia_core::{config, render};
-use wgpu_jumpstart::Surface;
-use wgpu_jumpstart::{Gpu, TransformUniform};
-use winit::application::ApplicationHandler;
-use winit::event_loop::EventLoopProxy;
-use winit::keyboard::NamedKey;
-use winit::{event::WindowEvent, event_loop::EventLoop};
+use wgpu_jumpstart::{Gpu, Surface, TransformUniform};
+use winit::{
+    application::ApplicationHandler,
+    event::WindowEvent,
+    event_loop::{EventLoop, EventLoopProxy},
+    keyboard::NamedKey,
+};
 
 use crate::utils::window::WinitEvent;
 
@@ -326,8 +326,7 @@ fn main() {
 }
 
 fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
-    use image::ImageDecoder;
-    use image::codecs::png::PngDecoder;
+    use image::{ImageDecoder, codecs::png::PngDecoder};
     use std::io::Cursor;
 
     let icon = PngDecoder::new(Cursor::new(include_bytes!(

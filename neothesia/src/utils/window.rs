@@ -1,10 +1,8 @@
-use winit::dpi::LogicalPosition;
-use winit::dpi::PhysicalPosition;
-use winit::event::ElementState;
-use winit::event::KeyEvent;
-use winit::event::MouseButton;
-use winit::keyboard::Key;
-use winit::keyboard::ModifiersState;
+use winit::{
+    dpi::{LogicalPosition, PhysicalPosition},
+    event::{ElementState, KeyEvent, MouseButton},
+    keyboard::{Key, ModifiersState},
+};
 
 use winit::{
     dpi::{LogicalSize, PhysicalSize},

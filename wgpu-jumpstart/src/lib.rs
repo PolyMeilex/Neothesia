@@ -14,18 +14,16 @@ mod uniform;
 
 mod transform_uniform;
 
-pub use wgpu;
-pub use {
-    color::Color,
-    gpu::{Gpu, Surface},
-    instances::Instances,
-    render_pipeline_builder::{
-        default_color_target_state, default_fragment, default_render_pipeline, default_vertex,
-    },
-    shape::Shape,
-    transform_uniform::TransformUniform,
-    uniform::Uniform,
+pub use color::Color;
+pub use gpu::{Gpu, Surface};
+pub use instances::Instances;
+pub use render_pipeline_builder::{
+    default_color_target_state, default_fragment, default_render_pipeline, default_vertex,
 };
+pub use shape::Shape;
+pub use transform_uniform::TransformUniform;
+pub use uniform::Uniform;
+pub use wgpu;
 
 pub struct RenderPass<'a>(wgpu::RenderPass<'a>, wgpu::Extent3d);
 

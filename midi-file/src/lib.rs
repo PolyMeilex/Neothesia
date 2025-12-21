@@ -4,8 +4,10 @@ pub mod program_track;
 pub mod tempo_track;
 mod track;
 
+pub use file::*;
 pub use midly;
-pub use {file::*, playback::*, track::*};
+pub use playback::*;
+pub use track::*;
 
 pub static INSTRUMENT_NAMES: [&str; 128] = [
     "Acoustic Grand Piano",

@@ -362,6 +362,18 @@ impl Scene for MenuScene {
             }
         }
 
+        if let WindowEvent::HoveredFile(path) = event {
+            log::info!("HoveredFile = {:?}", path);
+        }
+
+        if let WindowEvent::DroppedFile(path) = event {
+            log::info!("File path = {:?}", path);
+            if let Ok(midi) = midi_file::MidiFile::new(path).inspect_err(|err| log::error!("{err}"))
+            {
+                self.state.song = Some(Song::new(midi));
+            }
+        }
+
         if event.cursor_moved() {
             self.nuon.mouse_move(
                 ctx.window_state.cursor_logical_position.x,

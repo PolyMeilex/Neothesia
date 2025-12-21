@@ -5,6 +5,9 @@ use state::{Page, UiState};
 mod midi_picker;
 use midi_picker::open_midi_file_picker;
 
+mod neo_btn;
+use neo_btn::{neo_btn, neo_btn_icon};
+
 mod settings;
 mod tracks;
 
@@ -190,14 +193,14 @@ impl MenuScene {
 
                 nuon::translate().y(text_h).add_to_current(ui);
 
-                if neo_btn(ui, btn_w, btn_h, "No") {
+                if neo_btn().size(btn_w, btn_h).label("No").build(ui) {
                     self.state.go_back();
                 }
 
                 nuon::translate().x(btn_w).add_to_current(ui);
                 nuon::translate().x(btn_gap).add_to_current(ui);
 
-                if neo_btn(ui, btn_w, btn_h, "Yes") {
+                if neo_btn().size(btn_w, btn_h).label("Yes").build(ui) {
                     ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
                 }
             });
@@ -228,19 +231,19 @@ impl MenuScene {
                     .x(-w / 2.0)
                     .y(logo_h + post_logo_gap)
                     .build(ui, |ui| {
-                        if neo_btn(ui, w, h, "Select File") {
+                        if neo_btn().size(w, h).label("Select File").build(ui) {
                             self.futures.push(open_midi_file_picker(&mut self.state));
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn(ui, w, h, "Settings") {
+                        if neo_btn().size(w, h).label("Settings").build(ui) {
                             self.state.go_to(Page::Settings);
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn(ui, w, h, "Exit") {
+                        if neo_btn().size(w, h).label("Exit").build(ui) {
                             self.state.go_back();
                         }
                     });
@@ -265,14 +268,13 @@ impl MenuScene {
             nuon::translate().build(ui, |ui| {
                 nuon::translate().x(gap).add_to_current(ui);
 
-                if neo_btn_icon_with_color(
-                    ui,
-                    btn_w,
-                    btn_h,
-                    icons::cone_icon(),
-                    [100; 3],
-                    "FreePlay",
-                ) {
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .icon(icons::cone_icon())
+                    .color([100; 3])
+                    .tooltip("FreePlay")
+                    .build(ui)
+                {
                     state::freeplay(&self.state, ctx);
                 }
             });
@@ -284,97 +286,28 @@ impl MenuScene {
             nuon::translate().x(win_w).build(ui, |ui| {
                 nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
-                if neo_btn_icon_with_tooltip(ui, btn_w, btn_h, icons::play_icon(), "Play") {
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .icon(icons::play_icon())
+                    .tooltip("Play")
+                    .build(ui)
+                {
                     state::play(&self.state, ctx);
                 }
 
                 nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
-                if neo_btn_icon_with_tooltip(ui, btn_w, btn_h, icons::note_list_icon(), "Tracks") {
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .icon(icons::note_list_icon())
+                    .tooltip("Tracks")
+                    .build(ui)
+                {
                     self.state.go_to(Page::TrackSelection);
                 }
             });
         });
     }
-}
-
-fn neo_btn(ui: &mut nuon::Ui, w: f32, h: f32, label: &str) -> bool {
-    neo_btn_child(ui, label, w, h, "", |ui| {
-        nuon::label()
-            .text(label)
-            .size(w, h)
-            .font_size(30.0)
-            .build(ui);
-    })
-}
-
-fn neo_btn_icon(ui: &mut nuon::Ui, w: f32, h: f32, icon: &str) -> bool {
-    neo_btn_icon_with_tooltip(ui, w, h, icon, "")
-}
-
-fn neo_btn_icon_with_tooltip(ui: &mut nuon::Ui, w: f32, h: f32, icon: &str, tooltip: &str) -> bool {
-    neo_btn_icon_with_color(ui, w, h, icon, [255; 3], tooltip)
-}
-
-fn neo_btn_icon_with_color(
-    ui: &mut nuon::Ui,
-    w: f32,
-    h: f32,
-    icon: &str,
-    color: impl Into<nuon::Color>,
-    tooltip: &str,
-) -> bool {
-    neo_btn_child(ui, icon, w, h, tooltip, |ui| {
-        nuon::label()
-            .icon(icon)
-            .size(w, h)
-            .font_size(30.0)
-            .color(color)
-            .build(ui);
-    })
-}
-
-fn neo_btn_child(
-    ui: &mut nuon::Ui,
-    id: impl Into<nuon::Id>,
-    w: f32,
-    h: f32,
-    tooltip: &str,
-    child: impl FnOnce(&mut nuon::Ui),
-) -> bool {
-    let event = nuon::click_area(id).size(w, h).build(ui);
-
-    let (bg, accent) = if event.is_hovered() || event.is_pressed() {
-        (
-            nuon::Color::new_u8(9, 9, 9, 0.6),
-            nuon::Color::new_u8(56, 145, 255, 1.0),
-        )
-    } else {
-        (
-            nuon::Color::new_u8(17, 17, 17, 0.6),
-            nuon::Color::new_u8(160, 81, 255, 1.0),
-        )
-    };
-
-    nuon::quad()
-        .size(w, h)
-        .color(bg)
-        .border_radius([7.0; 4])
-        .build(ui);
-    nuon::quad()
-        .size(w, 7.0)
-        .y(h - 7.0)
-        .color(accent)
-        .border_radius([0.0, 0.0, 7.0, 7.0])
-        .build(ui);
-
-    child(ui);
-
-    if event.is_hovered() || event.is_pressed() {
-        nuon::label().text(tooltip).size(w, 13.0).y(-13.0).build(ui);
-    }
-
-    event.is_clicked()
 }
 
 impl Scene for MenuScene {

@@ -10,7 +10,7 @@ use winit::{
 use crate::{
     NeothesiaEvent,
     context::Context,
-    scene::{MouseToMidiEventState, Scene, playing_scene::Keyboard},
+    scene::{MouseToMidiEventState, NuonRenderer, Scene, playing_scene::Keyboard},
     song::Song,
     utils::window::WinitEvent,
 };
@@ -26,7 +26,10 @@ pub struct FreeplayScene {
     // TODO: This does not make sens, but get's us going without refactoring
     song: Option<Song>,
 
+    nuon_renderer: NuonRenderer,
+    nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
+    deduced_chord_name: String,
 }
 
 impl FreeplayScene {
@@ -56,7 +59,10 @@ impl FreeplayScene {
             quad_renderer_bg,
             quad_renderer_fg,
             song,
+            nuon_renderer: NuonRenderer::new(ctx),
+            nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
+            deduced_chord_name: String::new(),
         }
     }
 
@@ -90,12 +96,23 @@ impl Scene for FreeplayScene {
             ctx.window_state.physical_size,
             ctx.window_state.scale_factor as f32,
         );
+
+        nuon::label()
+            .text(&self.deduced_chord_name)
+            .font_size(25.0)
+            .y(self.keyboard.pos().y - 25.0 - 10.0)
+            .height(25.0)
+            .width(ctx.window_state.logical_size.width)
+            .build(&mut self.nuon);
+
+        super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
     }
 
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
         self.quad_renderer_fg.render(rpass);
         self.text_renderer.render(rpass);
+        self.nuon_renderer.render(rpass);
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
@@ -123,5 +140,147 @@ impl Scene for FreeplayScene {
         ctx.output_manager
             .connection()
             .midi_event(0.into(), *message);
+
+        if let MidiMessage::NoteOn { .. } = message {
+            let start = self.keyboard.layout().range.start();
+
+            let notes: Vec<u8> = self
+                .keyboard
+                .key_states()
+                .iter()
+                .enumerate()
+                .filter(|(_, state)| state.pressed_by_user().is_some())
+                .map(|(id, _)| id as u8 + start)
+                .collect();
+
+            self.deduced_chord_name = chords::deduce_name(&notes);
+        }
+    }
+}
+
+mod chords {
+    /// Get chord name based on notes, eg. Cmaj7
+    pub fn deduce_name(midi_notes: &[u8]) -> String {
+        if midi_notes.len() == 1 {
+            return note_name(midi_notes[0]).to_string();
+        }
+
+        // Normalize notes to a single octave and sort
+        let mut normalized: Vec<u8> = midi_notes.iter().map(|&n| n % 12).collect();
+        normalized.sort_unstable();
+        normalized.dedup();
+
+        if normalized.is_empty() {
+            return String::new();
+        }
+
+        // Try each note as potential root
+        for i in 0..normalized.len() {
+            let root = normalized[i];
+            let intervals = get_intervals(&normalized, root);
+
+            if let Some(chord_type) = match_chord_type(intervals) {
+                return format!("{}{}", note_name(root), chord_type);
+            }
+        }
+
+        String::new()
+    }
+
+    // TODO: This is clunky, we should change names based on the scale in use
+    fn note_name(midi: u8) -> &'static str {
+        const NAMES: [&str; 12] = [
+            "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+        ];
+        NAMES[(midi % 12) as usize]
+    }
+
+    fn get_intervals(notes: &[u8], root: u8) -> Vec<u8> {
+        notes
+            .iter()
+            .map(|&n| (n + 12 - root) % 12)
+            .filter(|&i| i != 0)
+            .collect()
+    }
+
+    fn match_chord_type(mut intervals: Vec<u8>) -> Option<&'static str> {
+        intervals.sort_unstable();
+
+        match intervals.as_slice() {
+            // Triads
+            [3, 7] => Some("m"),   // minor
+            [4, 7] => Some("M"),   // major
+            [3, 6] => Some("dim"), // diminished
+            [4, 8] => Some("aug"), // augmented
+
+            // Seventh chords
+            [3, 7, 10] => Some("m7"),      // minor 7th
+            [4, 7, 11] => Some("maj7"),    // major 7th
+            [4, 7, 10] => Some("7"),       // dominant 7th
+            [3, 6, 9] => Some("dim7"),     // diminished 7th
+            [3, 6, 10] => Some("m7b5"),    // half-diminished
+            [4, 8, 10] => Some("aug7"),    // augmented 7th
+            [4, 8, 11] => Some("augmaj7"), // augmented major 7th
+            [3, 7, 11] => Some("mmaj7"),   // minor major 7th
+
+            // Sixth chords
+            [4, 7, 9] => Some("6"),  // major 6th
+            [3, 7, 9] => Some("m6"), // minor 6th
+
+            // Suspended chords
+            [2, 7] => Some("sus2"),      // suspended 2nd
+            [5, 7] => Some("sus4"),      // suspended 4th
+            [5, 7, 10] => Some("7sus4"), // dominant 7th suspended 4th
+
+            // Extended chords (9ths)
+            [2, 4, 7, 10] => Some("9"),    // dominant 9th
+            [2, 4, 7, 11] => Some("maj9"), // major 9th
+            [2, 3, 7, 10] => Some("m9"),   // minor 9th
+
+            // Power chord
+            [7] => Some("5"), // power chord
+
+            _ => None,
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_major_chords() {
+            assert_eq!(deduce_name(&[60, 64, 67]), "CM"); // C major
+            assert_eq!(deduce_name(&[62, 66, 69]), "DM"); // D major
+        }
+
+        #[test]
+        fn test_minor_chords() {
+            assert_eq!(deduce_name(&[60, 63, 67]), "Cm"); // C minor
+            assert_eq!(deduce_name(&[57, 60, 64]), "Am"); // A minor
+        }
+
+        #[test]
+        fn test_seventh_chords() {
+            assert_eq!(deduce_name(&[60, 64, 67, 71]), "Cmaj7"); // C major 7
+            assert_eq!(deduce_name(&[60, 64, 67, 70]), "C7"); // C dominant 7
+            assert_eq!(deduce_name(&[60, 63, 67, 70]), "Cm7"); // C minor 7
+        }
+
+        #[test]
+        fn test_other_chords() {
+            assert_eq!(deduce_name(&[60, 63, 66]), "Cdim"); // C diminished
+            assert_eq!(deduce_name(&[60, 64, 68]), "Caug"); // C augmented
+            assert_eq!(deduce_name(&[60, 65, 67]), "Csus4"); // C sus4
+            assert_eq!(deduce_name(&[60, 67]), "C5"); // C power chord
+        }
+
+        #[test]
+        fn test_edge_cases() {
+            assert_eq!(deduce_name(&[]), "No notes");
+            assert_eq!(deduce_name(&[60]), "single");
+            // Multiple octaves should normalize
+            assert_eq!(deduce_name(&[48, 64, 67, 72]), "CM");
+        }
     }
 }

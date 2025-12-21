@@ -23,6 +23,10 @@ impl KeyState {
         }
     }
 
+    pub fn pressed_by_user(&self) -> Option<&Color> {
+        self.pressed_by_user.as_ref()
+    }
+
     pub fn pressed_by_file(&self) -> Option<&Color> {
         self.pressed_by_file.as_ref()
     }

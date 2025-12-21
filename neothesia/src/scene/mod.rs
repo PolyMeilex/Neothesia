@@ -65,7 +65,7 @@ pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) 
     let message = match state {
         ElementState::Pressed => MidiMessage::NoteOn {
             key: note.into(),
-            vel: 50.into(),
+            vel: 100.into(),
         },
         ElementState::Released => MidiMessage::NoteOff {
             key: note.into(),
@@ -158,7 +158,7 @@ fn handle_mouse_to_midi_event(
 
         let message = MidiMessage::NoteOn {
             key: key.into(),
-            vel: 50.into(),
+            vel: 100.into(),
         };
         ctx.proxy
             .send_event(NeothesiaEvent::MidiInput {

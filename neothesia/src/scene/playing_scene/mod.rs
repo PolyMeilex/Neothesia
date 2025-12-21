@@ -273,6 +273,7 @@ impl Scene for PlayingScene {
         handle_back_button(ctx, self.player.song(), event);
         handle_pause_button(&mut self.player, event);
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
+        super::handle_pc_keyboard_to_midi_event(ctx, event);
 
         if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
             self.resize(ctx)

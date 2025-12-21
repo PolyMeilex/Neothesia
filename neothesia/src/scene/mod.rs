@@ -2,13 +2,14 @@ pub mod freeplay;
 pub mod menu_scene;
 pub mod playing_scene;
 
-use crate::context::Context;
+use crate::{NeothesiaEvent, context::Context};
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{Image, ImageIdentifier, ImageRenderer, QuadRenderer, TextRenderer};
 use std::{collections::HashMap, time::Duration};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
-    event::WindowEvent,
+    event::{ElementState, KeyEvent, WindowEvent},
+    keyboard::Key,
 };
 
 pub trait Scene {
@@ -16,6 +17,65 @@ pub trait Scene {
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>);
     fn window_event(&mut self, _ctx: &mut Context, _event: &WindowEvent) {}
     fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, _message: &MidiMessage) {}
+}
+
+pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) {
+    let WindowEvent::KeyboardInput {
+        event:
+            KeyEvent {
+                state,
+                logical_key: Key::Character(ch),
+                repeat: false,
+                ..
+            },
+        ..
+    } = event
+    else {
+        return;
+    };
+
+    let mut note: u8 = match ch.as_str() {
+        "a" => 0,
+        "w" => 1,
+        "s" => 2,
+        "e" => 3,
+        "d" => 4,
+        "f" => 5,
+        "t" => 6,
+        "g" => 7,
+        "y" => 8,
+        "h" => 9,
+        "u" => 10,
+        "j" => 11,
+        "k" => 12,
+        "o" => 13,
+        "l" => 14,
+        "p" => 15,
+        ";" => 16,
+        "'" => 17,
+        _ => return,
+    };
+
+    note += 21; // Start of 88 keyboard
+    note += 3; // Offset to C
+    note += 12 * 3; // Move 3oct up
+
+    let message = match state {
+        ElementState::Pressed => MidiMessage::NoteOn {
+            key: note.into(),
+            vel: 50.into(),
+        },
+        ElementState::Released => MidiMessage::NoteOff {
+            key: note.into(),
+            vel: 0.into(),
+        },
+    };
+    ctx.proxy
+        .send_event(NeothesiaEvent::MidiInput {
+            channel: 0,
+            message,
+        })
+        .ok();
 }
 
 struct NuonLayer {

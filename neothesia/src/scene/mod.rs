@@ -2,7 +2,7 @@ pub mod freeplay;
 pub mod menu_scene;
 pub mod playing_scene;
 
-use crate::{NeothesiaEvent, context::Context};
+use crate::{NeothesiaEvent, context::Context, scene::playing_scene::Keyboard};
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{Image, ImageIdentifier, ImageRenderer, QuadRenderer, TextRenderer};
 use std::{collections::HashMap, time::Duration};
@@ -76,6 +76,99 @@ pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) 
             message,
         })
         .ok();
+}
+
+#[derive(Default, Debug)]
+struct MouseToMidiEventState {
+    mouse_key_press: Option<u8>,
+}
+
+fn handle_mouse_to_midi_event(
+    keyboard: &mut Keyboard,
+    state: &mut MouseToMidiEventState,
+    ctx: &Context,
+    event: &WindowEvent,
+) {
+    if !matches!(
+        event,
+        WindowEvent::MouseInput { .. } | WindowEvent::CursorMoved { .. }
+    ) {
+        return;
+    }
+
+    fn cancel_mouse_key_press(state: &mut MouseToMidiEventState, ctx: &Context) {
+        let Some(key) = state.mouse_key_press else {
+            return;
+        };
+
+        state.mouse_key_press = None;
+
+        let message = MidiMessage::NoteOff {
+            key: key.into(),
+            vel: 0.into(),
+        };
+        ctx.proxy
+            .send_event(NeothesiaEvent::MidiInput {
+                channel: 0,
+                message,
+            })
+            .ok();
+    }
+
+    let bbox = nuon::Rect::new(
+        (keyboard.pos().x, keyboard.pos().y).into(),
+        (keyboard.layout().width, keyboard.layout().height).into(),
+    );
+    let mouse_pos = nuon::Point::new(
+        ctx.window_state.cursor_logical_position.x,
+        ctx.window_state.cursor_logical_position.y,
+    );
+
+    if !bbox.contains(mouse_pos) || !ctx.window_state.left_mouse_btn {
+        cancel_mouse_key_press(state, ctx);
+        return;
+    }
+
+    let sharp = keyboard
+        .layout()
+        .keys
+        .iter()
+        .filter(|key| key.kind().is_sharp());
+    let neutral = keyboard
+        .layout()
+        .keys
+        .iter()
+        .filter(|key| key.kind().is_neutral());
+
+    for key in sharp.chain(neutral) {
+        let pos = nuon::Point::new(key.x(), keyboard.pos().y);
+        let size = nuon::Size::from(key.size());
+        let rect = nuon::Rect::new(pos, size);
+        if !rect.contains(mouse_pos) {
+            continue;
+        }
+
+        let key = keyboard.layout().range.start() + key.id() as u8;
+
+        if Some(key) == state.mouse_key_press {
+            return;
+        }
+
+        cancel_mouse_key_press(state, ctx);
+        state.mouse_key_press = Some(key);
+
+        let message = MidiMessage::NoteOn {
+            key: key.into(),
+            vel: 50.into(),
+        };
+        ctx.proxy
+            .send_event(NeothesiaEvent::MidiInput {
+                channel: 0,
+                message,
+            })
+            .ok();
+        return;
+    }
 }
 
 struct NuonLayer {

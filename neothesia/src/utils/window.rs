@@ -1,5 +1,7 @@
 use winit::dpi::LogicalPosition;
 use winit::dpi::PhysicalPosition;
+use winit::event::ElementState;
+use winit::event::MouseButton;
 use winit::keyboard::ModifiersState;
 
 use winit::{
@@ -19,6 +21,8 @@ pub struct WindowState {
     pub focused: bool,
 
     pub modifiers_state: ModifiersState,
+    pub left_mouse_btn: bool,
+    pub right_mouse_btn: bool,
 }
 
 impl WindowState {
@@ -46,6 +50,8 @@ impl WindowState {
             focused: false,
 
             modifiers_state: ModifiersState::default(),
+            left_mouse_btn: false,
+            right_mouse_btn: false,
         }
     }
 
@@ -70,6 +76,20 @@ impl WindowState {
             }
             WindowEvent::ModifiersChanged(state) => {
                 self.modifiers_state = state.state();
+            }
+            WindowEvent::MouseInput {
+                state,
+                button: MouseButton::Left,
+                ..
+            } => {
+                self.left_mouse_btn = *state == ElementState::Pressed;
+            }
+            WindowEvent::MouseInput {
+                state,
+                button: MouseButton::Right,
+                ..
+            } => {
+                self.right_mouse_btn = *state == ElementState::Pressed;
             }
             _ => {}
         }

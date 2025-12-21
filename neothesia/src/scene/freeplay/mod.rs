@@ -10,7 +10,7 @@ use winit::{
 use crate::{
     NeothesiaEvent,
     context::Context,
-    scene::{Scene, playing_scene::Keyboard},
+    scene::{MouseToMidiEventState, Scene, playing_scene::Keyboard},
     song::Song,
 };
 
@@ -24,6 +24,8 @@ pub struct FreeplayScene {
 
     // TODO: This does not make sens, but get's us going without refactoring
     song: Option<Song>,
+
+    mouse_to_midi_state: MouseToMidiEventState,
 }
 
 impl FreeplayScene {
@@ -53,6 +55,7 @@ impl FreeplayScene {
             quad_renderer_bg,
             quad_renderer_fg,
             song,
+            mouse_to_midi_state: MouseToMidiEventState::default(),
         }
     }
 
@@ -101,6 +104,12 @@ impl Scene for FreeplayScene {
 
         handle_back_button(ctx, event, self.song.as_ref());
         super::handle_pc_keyboard_to_midi_event(ctx, event);
+        super::handle_mouse_to_midi_event(
+            &mut self.keyboard,
+            &mut self.mouse_to_midi_state,
+            ctx,
+            event,
+        );
     }
 
     fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {

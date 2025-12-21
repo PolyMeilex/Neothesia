@@ -13,11 +13,11 @@ mod tracks;
 
 use std::{future::Future, time::Duration};
 
-use crate::utils::BoxFuture;
+use crate::utils::{BoxFuture, window::WinitEvent};
 use neothesia_core::render::{BgPipeline, ImageIdentifier, QuadRenderer, TextRenderer};
 
 use winit::{
-    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    event::WindowEvent,
     keyboard::{Key, NamedKey},
 };
 
@@ -362,98 +362,62 @@ impl Scene for MenuScene {
             }
         }
 
-        if let WindowEvent::CursorMoved { .. } = event {
+        if event.cursor_moved() {
             self.nuon.mouse_move(
                 ctx.window_state.cursor_logical_position.x,
                 ctx.window_state.cursor_logical_position.y,
             );
-        }
-
-        if let WindowEvent::MouseInput {
-            state,
-            button: MouseButton::Left,
-            ..
-        } = event
-        {
-            match state {
-                ElementState::Pressed => self.nuon.mouse_down(),
-                ElementState::Released => self.nuon.mouse_up(),
-            }
-        }
-
-        if let WindowEvent::MouseInput {
-            state: ElementState::Pressed,
-            button: MouseButton::Back,
-            ..
-        } = event
-        {
+        } else if event.left_mouse_pressed() {
+            self.nuon.mouse_down();
+        } else if event.left_mouse_released() {
+            self.nuon.mouse_up();
+        } else if event.back_mouse_pressed() {
             self.state.go_back();
         }
 
-        if let WindowEvent::KeyboardInput {
-            event:
-                KeyEvent {
-                    state: ElementState::Pressed,
-                    logical_key,
-                    ..
-                },
-            ..
-        } = event
-        {
-            match self.state.current() {
-                Page::Exit => {
-                    match logical_key {
-                        Key::Named(NamedKey::Enter) => {
-                            ctx.proxy.send_event(NeothesiaEvent::Exit).unwrap();
-                        }
-                        Key::Named(NamedKey::Escape) => {
-                            self.state.go_back();
-                        }
-                        _ => {}
-                    };
+        match self.state.current() {
+            Page::Exit => {
+                if event.key_pressed(Key::Named(NamedKey::Enter)) {
+                    ctx.proxy.send_event(NeothesiaEvent::Exit).unwrap();
                 }
-                Page::Main => {
-                    match logical_key {
-                        Key::Named(key) => match key {
-                            NamedKey::Tab => {
-                                self.futures.push(open_midi_file_picker(&mut self.state));
-                            }
-                            NamedKey::Enter => state::play(&self.state, ctx),
-                            NamedKey::Escape => {
-                                self.state.go_back();
-                            }
-                            _ => {}
-                        },
-                        Key::Character(ch) => match ch.as_ref() {
-                            "s" => {
-                                self.state.go_to(Page::Settings);
-                            }
-                            "t" => {
-                                self.state.go_to(Page::TrackSelection);
-                            }
-                            _ => {}
-                        },
-                        _ => {}
-                    };
+
+                if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    self.state.go_back();
                 }
-                Page::Settings => {
-                    match logical_key {
-                        Key::Named(NamedKey::Escape) => {
-                            self.state.go_back();
-                        }
-                        _ => {}
-                    };
+            }
+            Page::Main => {
+                if event.key_pressed(Key::Named(NamedKey::Tab)) {
+                    self.futures.push(open_midi_file_picker(&mut self.state));
                 }
-                Page::TrackSelection => {
-                    match logical_key {
-                        Key::Named(NamedKey::Enter) => {
-                            state::play(&self.state, ctx);
-                        }
-                        Key::Named(NamedKey::Escape) => {
-                            self.state.go_back();
-                        }
-                        _ => {}
-                    };
+
+                if event.key_pressed(Key::Named(NamedKey::Enter)) {
+                    state::play(&self.state, ctx)
+                }
+
+                if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    self.state.go_back();
+                }
+
+                if event.key_pressed(Key::Character("s")) {
+                    self.state.go_to(Page::Settings);
+                }
+
+                if event.key_pressed(Key::Character("t")) {
+                    self.state.go_to(Page::TrackSelection);
+                }
+            }
+            Page::Settings => {
+                if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    self.state.go_back();
+                }
+            }
+            Page::TrackSelection => {
+                if event.key_pressed(Key::Named(NamedKey::Enter)) {
+                    state::play(&self.state, ctx);
+                }
+
+                if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    self.state.go_back();
                 }
             }
         }

@@ -3,7 +3,7 @@ use std::time::Duration;
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{GuidelineRenderer, QuadRenderer, TextRenderer};
 use winit::{
-    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    event::WindowEvent,
     keyboard::{Key, NamedKey},
 };
 
@@ -12,6 +12,7 @@ use crate::{
     context::Context,
     scene::{MouseToMidiEventState, Scene, playing_scene::Keyboard},
     song::Song,
+    utils::window::WinitEvent,
 };
 
 pub struct FreeplayScene {
@@ -98,11 +99,16 @@ impl Scene for FreeplayScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
-        if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
+        if event.window_resized() || event.scale_factor_changed() {
             self.resize(ctx)
         }
 
-        handle_back_button(ctx, event, self.song.as_ref());
+        if event.back_mouse_pressed() || event.key_released(Key::Named(NamedKey::Escape)) {
+            ctx.proxy
+                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
+                .ok();
+        }
+
         super::handle_pc_keyboard_to_midi_event(ctx, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,
@@ -117,34 +123,5 @@ impl Scene for FreeplayScene {
         ctx.output_manager
             .connection()
             .midi_event(0.into(), *message);
-    }
-}
-
-fn handle_back_button(ctx: &Context, event: &WindowEvent, song: Option<&Song>) {
-    let mut is_back_event = matches!(
-        event,
-        WindowEvent::KeyboardInput {
-            event: KeyEvent {
-                state: ElementState::Released,
-                logical_key: Key::Named(NamedKey::Escape),
-                ..
-            },
-            ..
-        }
-    );
-
-    is_back_event |= matches!(
-        event,
-        WindowEvent::MouseInput {
-            state: ElementState::Pressed,
-            button: MouseButton::Back,
-            ..
-        }
-    );
-
-    if is_back_event {
-        ctx.proxy
-            .send_event(NeothesiaEvent::MainMenu(song.cloned()))
-            .ok();
     }
 }

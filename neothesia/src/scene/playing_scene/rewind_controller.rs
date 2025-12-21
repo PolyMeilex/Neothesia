@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use winit::{
-    dpi::PhysicalPosition,
-    event::{ElementState, WindowEvent},
-};
+use winit::{dpi::PhysicalPosition, event::WindowEvent};
 
 use super::MidiPlayer;
-use crate::{context::Context, utils::window::WindowState};
+use crate::{
+    context::Context,
+    utils::window::{WindowState, WinitEvent},
+};
 
 pub enum RewindController {
     Keyboard { speed: i64, was_paused: bool },
@@ -21,6 +21,14 @@ impl RewindController {
 
     pub fn is_rewinding(&self) -> bool {
         !matches!(self, RewindController::None)
+    }
+
+    pub fn is_keyboard_rewinding(&self) -> bool {
+        matches!(self, RewindController::Keyboard { .. })
+    }
+
+    pub fn is_mouse_rewinding(&self) -> bool {
+        matches!(self, RewindController::Mouse { .. })
     }
 
     pub fn start_mouse_rewind(&mut self, player: &mut MidiPlayer) {
@@ -74,7 +82,7 @@ impl RewindController {
         player: &mut MidiPlayer,
     ) {
         match &event {
-            WindowEvent::KeyboardInput { event, .. } => {
+            WindowEvent::KeyboardInput { .. } => {
                 self.handle_keyboard_input(player, event);
             }
             WindowEvent::CursorMoved { position, .. } => {
@@ -84,39 +92,28 @@ impl RewindController {
         }
     }
 
-    fn handle_keyboard_input(&mut self, player: &mut MidiPlayer, input: &winit::event::KeyEvent) {
+    fn handle_keyboard_input(&mut self, player: &mut MidiPlayer, event: &WindowEvent) {
         use winit::keyboard::{Key, NamedKey};
 
-        let Key::Named(name) = input.logical_key else {
+        if event.key_pressed(Key::Named(NamedKey::ArrowLeft)) {
+            if !self.is_rewinding() {
+                self.start_keyboard_rewind(player, -100);
+            }
             return;
-        };
+        }
 
-        match name {
-            NamedKey::ArrowLeft => match input.state {
-                ElementState::Pressed => {
-                    if !self.is_rewinding() {
-                        self.start_keyboard_rewind(player, -100);
-                    }
-                }
-                ElementState::Released => {
-                    if let RewindController::Keyboard { .. } = self {
-                        self.stop_rewind(player);
-                    }
-                }
-            },
-            NamedKey::ArrowRight => match input.state {
-                ElementState::Pressed => {
-                    if !self.is_rewinding() {
-                        self.start_keyboard_rewind(player, 100);
-                    }
-                }
-                ElementState::Released => {
-                    if let RewindController::Keyboard { .. } = self {
-                        self.stop_rewind(player);
-                    }
-                }
-            },
-            _ => {}
+        if event.key_pressed(Key::Named(NamedKey::ArrowRight)) {
+            if !self.is_rewinding() {
+                self.start_keyboard_rewind(player, 100);
+            }
+            return;
+        }
+
+        if self.is_keyboard_rewinding()
+            && (event.key_released(Key::Named(NamedKey::ArrowLeft))
+                || event.key_released(Key::Named(NamedKey::ArrowRight)))
+        {
+            self.stop_rewind(player);
         }
     }
 
@@ -126,7 +123,7 @@ impl RewindController {
         window_state: &WindowState,
         position: &PhysicalPosition<f64>,
     ) {
-        if let RewindController::Mouse { .. } = self {
+        if self.is_mouse_rewinding() {
             let x = position.to_logical::<f32>(window_state.scale_factor).x;
             let w = &window_state.logical_size.width;
 

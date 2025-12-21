@@ -2,7 +2,9 @@ pub mod freeplay;
 pub mod menu_scene;
 pub mod playing_scene;
 
-use crate::{NeothesiaEvent, context::Context, scene::playing_scene::Keyboard};
+use crate::{
+    NeothesiaEvent, context::Context, scene::playing_scene::Keyboard, utils::window::WinitEvent,
+};
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{Image, ImageIdentifier, ImageRenderer, QuadRenderer, TextRenderer};
 use std::{collections::HashMap, time::Duration};
@@ -89,10 +91,7 @@ fn handle_mouse_to_midi_event(
     ctx: &Context,
     event: &WindowEvent,
 ) {
-    if !matches!(
-        event,
-        WindowEvent::MouseInput { .. } | WindowEvent::CursorMoved { .. }
-    ) {
+    if !(event.left_mouse_pressed() || event.left_mouse_released() || event.cursor_moved()) {
         return;
     }
 

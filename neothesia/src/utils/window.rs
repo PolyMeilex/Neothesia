@@ -1,7 +1,9 @@
 use winit::dpi::LogicalPosition;
 use winit::dpi::PhysicalPosition;
 use winit::event::ElementState;
+use winit::event::KeyEvent;
 use winit::event::MouseButton;
+use winit::keyboard::Key;
 use winit::keyboard::ModifiersState;
 
 use winit::{
@@ -92,6 +94,134 @@ impl WindowState {
                 self.right_mouse_btn = *state == ElementState::Pressed;
             }
             _ => {}
+        }
+    }
+}
+
+#[allow(unused)]
+pub trait WinitEvent {
+    fn scale_factor_changed(&self) -> bool;
+    fn window_resized(&self) -> bool;
+    fn cursor_moved(&self) -> bool;
+    fn redraw_requested(&self) -> bool;
+
+    fn mouse_pressed(&self, btn: MouseButton) -> bool;
+    fn mouse_released(&self, btn: MouseButton) -> bool;
+
+    fn left_mouse_pressed(&self) -> bool {
+        self.mouse_pressed(MouseButton::Left)
+    }
+
+    fn left_mouse_released(&self) -> bool {
+        self.mouse_released(MouseButton::Left)
+    }
+
+    fn right_mouse_pressed(&self) -> bool {
+        self.mouse_pressed(MouseButton::Right)
+    }
+
+    fn right_mouse_released(&self) -> bool {
+        self.mouse_released(MouseButton::Right)
+    }
+
+    fn back_mouse_pressed(&self) -> bool {
+        self.mouse_pressed(MouseButton::Back)
+    }
+
+    fn back_mouse_released(&self) -> bool {
+        self.mouse_released(MouseButton::Back)
+    }
+
+    fn key_pressed(&self, key: Key<&str>) -> bool;
+    fn key_released(&self, key: Key<&str>) -> bool;
+
+    fn character_released(&self) -> Option<&str>;
+}
+
+impl WinitEvent for WindowEvent {
+    fn scale_factor_changed(&self) -> bool {
+        matches!(self, Self::ScaleFactorChanged { .. })
+    }
+
+    fn window_resized(&self) -> bool {
+        matches!(self, Self::Resized { .. })
+    }
+
+    fn cursor_moved(&self) -> bool {
+        matches!(self, Self::CursorMoved { .. })
+    }
+
+    fn redraw_requested(&self) -> bool {
+        matches!(self, Self::RedrawRequested { .. })
+    }
+
+    fn mouse_pressed(&self, btn: MouseButton) -> bool {
+        match self {
+            Self::MouseInput {
+                state: ElementState::Pressed,
+                button,
+                ..
+            } => button == &btn,
+            _ => false,
+        }
+    }
+
+    fn mouse_released(&self, btn: MouseButton) -> bool {
+        match self {
+            Self::MouseInput {
+                state: ElementState::Released,
+                button,
+                ..
+            } => button == &btn,
+            _ => false,
+        }
+    }
+
+    fn key_pressed(&self, key: Key<&str>) -> bool {
+        match self {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Pressed,
+                        logical_key,
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } => logical_key.as_ref() == key,
+            _ => false,
+        }
+    }
+
+    fn key_released(&self, key: Key<&str>) -> bool {
+        match self {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Released,
+                        logical_key,
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } => logical_key.as_ref() == key,
+            _ => false,
+        }
+    }
+
+    fn character_released(&self) -> Option<&str> {
+        match self {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Released,
+                        logical_key: Key::Character(ch),
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } => Some(ch.as_str()),
+            _ => None,
         }
     }
 }

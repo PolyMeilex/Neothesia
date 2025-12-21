@@ -24,6 +24,8 @@ use winit::event_loop::EventLoopProxy;
 use winit::keyboard::NamedKey;
 use winit::{event::WindowEvent, event_loop::EventLoop};
 
+use crate::utils::window::WinitEvent;
+
 #[derive(Debug)]
 pub enum NeothesiaEvent {
     /// Go to playing scene
@@ -85,24 +87,14 @@ impl Neothesia {
             WindowEvent::ScaleFactorChanged { .. } => {
                 self.context.resize();
             }
-            WindowEvent::KeyboardInput {
-                event:
-                    winit::event::KeyEvent {
-                        state: winit::event::ElementState::Pressed,
-                        logical_key,
-                        ..
-                    },
-                ..
-            } => {
-                let matched = match logical_key {
-                    winit::keyboard::Key::Character(ch) if ch.as_str() == "f" => {
-                        self.context.window_state.modifiers_state.control_key()
-                    }
-                    winit::keyboard::Key::Named(NamedKey::F11) => true,
-                    _ => false,
-                };
+            WindowEvent::KeyboardInput { .. } => {
+                use winit::keyboard::Key;
 
-                if matched {
+                let modifiers = self.context.window_state.modifiers_state;
+
+                if event.key_released(Key::Named(NamedKey::F11))
+                    || (event.key_pressed(Key::Character("f")) && modifiers.control_key())
+                {
                     if self.context.window.fullscreen().is_some() {
                         self.context.window.set_fullscreen(None);
                     } else {
@@ -131,7 +123,9 @@ impl Neothesia {
             _ => {}
         }
 
-        self.game_scene.window_event(&mut self.context, &event);
+        if !event.redraw_requested() {
+            self.game_scene.window_event(&mut self.context, &event);
+        }
     }
 
     fn user_event(

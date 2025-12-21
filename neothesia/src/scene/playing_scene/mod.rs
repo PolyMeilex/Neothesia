@@ -4,7 +4,7 @@ use neothesia_core::render::{
 };
 use std::time::Duration;
 use winit::{
-    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    event::WindowEvent,
     keyboard::{Key, NamedKey},
 };
 
@@ -13,7 +13,7 @@ use self::top_bar::TopBar;
 use super::{NuonRenderer, Scene};
 use crate::{
     NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
-    song::Song,
+    song::Song, utils::window::WinitEvent,
 };
 
 mod keyboard;
@@ -275,8 +275,16 @@ impl Scene for PlayingScene {
             self.keyboard.reset_notes();
         }
 
-        handle_back_button(ctx, self.player.song(), event);
-        handle_pause_button(&mut self.player, event);
+        if event.back_mouse_pressed() || event.key_released(Key::Named(NamedKey::Escape)) {
+            ctx.proxy
+                .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
+                .ok();
+        }
+
+        if event.key_released(Key::Named(NamedKey::Space)) {
+            self.player.pause_resume();
+        }
+
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
         super::handle_pc_keyboard_to_midi_event(ctx, event);
         super::handle_mouse_to_midi_event(
@@ -286,27 +294,19 @@ impl Scene for PlayingScene {
             event,
         );
 
-        if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
+        if event.window_resized() || event.scale_factor_changed() {
             self.resize(ctx)
         }
 
-        if let WindowEvent::CursorMoved { .. } = event {
+        if event.cursor_moved() {
             self.nuon.mouse_move(
                 ctx.window_state.cursor_logical_position.x,
                 ctx.window_state.cursor_logical_position.y,
             );
-        }
-
-        if let WindowEvent::MouseInput {
-            state,
-            button: MouseButton::Left,
-            ..
-        } = event
-        {
-            match state {
-                ElementState::Pressed => self.nuon.mouse_down(),
-                ElementState::Released => self.nuon.mouse_up(),
-            }
+        } else if event.left_mouse_pressed() {
+            self.nuon.mouse_down();
+        } else if event.left_mouse_released() {
+            self.nuon.mouse_up();
         }
     }
 
@@ -318,124 +318,72 @@ impl Scene for PlayingScene {
     }
 }
 
-fn handle_pause_button(player: &mut MidiPlayer, event: &WindowEvent) {
-    match event {
-        WindowEvent::KeyboardInput {
-            event:
-                KeyEvent {
-                    state: ElementState::Released,
-                    logical_key: Key::Named(NamedKey::Space),
-                    ..
-                },
-            ..
-        } => {
-            player.pause_resume();
-        }
-        _ => {}
-    }
-}
-
-fn handle_back_button(ctx: &Context, song: &Song, event: &WindowEvent) {
-    let mut is_back_event = matches!(
-        event,
-        WindowEvent::KeyboardInput {
-            event: KeyEvent {
-                state: ElementState::Released,
-                logical_key: Key::Named(NamedKey::Escape),
-                ..
-            },
-            ..
-        }
-    );
-
-    is_back_event |= matches!(
-        event,
-        WindowEvent::MouseInput {
-            state: ElementState::Pressed,
-            button: MouseButton::Back,
-            ..
-        }
-    );
-
-    if is_back_event {
-        ctx.proxy
-            .send_event(NeothesiaEvent::MainMenu(Some(song.clone())))
-            .ok();
-    }
-}
-
 fn handle_settings_input(
     ctx: &mut Context,
     toast_manager: &mut ToastManager,
     waterfall: &mut WaterfallRenderer,
     event: &WindowEvent,
 ) {
-    let WindowEvent::KeyboardInput { event, .. } = event else {
-        return;
-    };
+    if event.key_released(Key::Named(NamedKey::ArrowUp))
+        || event.key_released(Key::Named(NamedKey::ArrowDown))
+    {
+        let amount = if ctx.window_state.modifiers_state.shift_key() {
+            0.5
+        } else {
+            0.1
+        };
 
-    if event.state != ElementState::Released {
+        if event.key_released(Key::Named(NamedKey::ArrowUp)) {
+            ctx.config
+                .set_speed_multiplier(ctx.config.speed_multiplier() + amount);
+        } else {
+            ctx.config
+                .set_speed_multiplier(ctx.config.speed_multiplier() - amount);
+        }
+
+        toast_manager.speed_toast(ctx.config.speed_multiplier());
         return;
     }
 
-    match event.logical_key {
-        Key::Named(key @ (NamedKey::ArrowUp | NamedKey::ArrowDown)) => {
-            let amount = if ctx.window_state.modifiers_state.shift_key() {
-                0.5
-            } else {
-                0.1
-            };
+    if event.key_released(Key::Named(NamedKey::PageUp))
+        || event.key_released(Key::Named(NamedKey::PageDown))
+    {
+        let amount = if ctx.window_state.modifiers_state.shift_key() {
+            500.0
+        } else {
+            100.0
+        };
 
-            if key == NamedKey::ArrowUp {
-                ctx.config
-                    .set_speed_multiplier(ctx.config.speed_multiplier() + amount);
-            } else {
-                ctx.config
-                    .set_speed_multiplier(ctx.config.speed_multiplier() - amount);
-            }
-
-            toast_manager.speed_toast(ctx.config.speed_multiplier());
+        if event.key_released(Key::Named(NamedKey::PageUp)) {
+            ctx.config
+                .set_animation_speed(ctx.config.animation_speed() + amount);
+        } else {
+            ctx.config
+                .set_animation_speed(ctx.config.animation_speed() - amount);
         }
 
-        Key::Named(key @ (NamedKey::PageUp | NamedKey::PageDown)) => {
-            let amount = if ctx.window_state.modifiers_state.shift_key() {
-                500.0
-            } else {
-                100.0
-            };
+        waterfall
+            .pipeline()
+            .set_speed(&ctx.gpu.queue, ctx.config.animation_speed());
+        toast_manager.animation_speed_toast(ctx.config.animation_speed());
+        return;
+    }
 
-            if key == NamedKey::PageUp {
-                ctx.config
-                    .set_animation_speed(ctx.config.animation_speed() + amount);
-            } else {
-                ctx.config
-                    .set_animation_speed(ctx.config.animation_speed() - amount);
-            }
+    if let Some(ch @ ("_" | "-" | "+" | "=")) = event.character_released() {
+        let amount = if ctx.window_state.modifiers_state.shift_key() {
+            0.1
+        } else {
+            0.01
+        };
 
-            waterfall
-                .pipeline()
-                .set_speed(&ctx.gpu.queue, ctx.config.animation_speed());
-            toast_manager.animation_speed_toast(ctx.config.animation_speed());
+        if matches!(ch, "-" | "_") {
+            ctx.config
+                .set_animation_offset(ctx.config.animation_offset() - amount);
+        } else {
+            ctx.config
+                .set_animation_offset(ctx.config.animation_offset() + amount);
         }
 
-        Key::Character(ref ch) if matches!(ch.as_str(), "_" | "-" | "+" | "=") => {
-            let amount = if ctx.window_state.modifiers_state.shift_key() {
-                0.1
-            } else {
-                0.01
-            };
-
-            if matches!(ch.as_str(), "-" | "_") {
-                ctx.config
-                    .set_animation_offset(ctx.config.animation_offset() - amount);
-            } else {
-                ctx.config
-                    .set_animation_offset(ctx.config.animation_offset() + amount);
-            }
-
-            toast_manager.offset_toast(ctx.config.animation_offset());
-        }
-
-        _ => {}
+        toast_manager.offset_toast(ctx.config.animation_offset());
     }
 }

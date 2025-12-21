@@ -1,8 +1,6 @@
-use ndarray::{Array2, Array3, ArrayView1, ArrayView2};
-use ndarray::{Axis, concatenate, s};
+use ndarray::{Array2, Array3, ArrayView1, ArrayView2, Axis, concatenate, s};
 use rten::{NodeId, ValueOrView};
-use rten_tensor::prelude::*;
-use rten_tensor::*;
+use rten_tensor::{prelude::*, *};
 
 const FRAMES_PER_SECOND: f32 = 100.0;
 const SAMPLE_RATE: u32 = 16000;

@@ -1,8 +1,10 @@
 pub mod thread {
     use async_channel::Receiver;
-    use std::any::Any;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-    use std::thread as sync;
+    use std::{
+        any::Any,
+        panic::{AssertUnwindSafe, catch_unwind},
+        thread as sync,
+    };
 
     #[derive(Debug)]
     pub struct JoinHandle<T> {

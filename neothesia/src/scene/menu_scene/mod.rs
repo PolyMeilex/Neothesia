@@ -425,8 +425,10 @@ impl Scene for MenuScene {
 }
 
 fn noop_waker_ref() -> &'static Waker {
-    use std::ptr::null;
-    use std::task::{RawWaker, RawWakerVTable};
+    use std::{
+        ptr::null,
+        task::{RawWaker, RawWakerVTable},
+    };
 
     unsafe fn noop_clone(_data: *const ()) -> RawWaker {
         noop_raw_waker()

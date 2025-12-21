@@ -1,5 +1,4 @@
-use super::GpuInitError;
-use super::color::Color;
+use super::{GpuInitError, color::Color};
 
 pub struct Gpu {
     pub device: wgpu::Device,

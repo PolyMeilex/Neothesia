@@ -11,7 +11,10 @@ use winit::{
 use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
-use crate::{NeothesiaEvent, context::Context, render::WaterfallRenderer, song::Song};
+use crate::{
+    NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
+    song::Song,
+};
 
 mod keyboard;
 pub use keyboard::Keyboard;
@@ -45,6 +48,7 @@ pub struct PlayingScene {
     toast_manager: ToastManager,
 
     nuon: nuon::Ui,
+    mouse_to_midi_state: MouseToMidiEventState,
 
     top_bar: TopBar,
 }
@@ -121,6 +125,7 @@ impl PlayingScene {
             toast_manager: ToastManager::default(),
 
             nuon: nuon::Ui::new(),
+            mouse_to_midi_state: MouseToMidiEventState::default(),
 
             top_bar: TopBar::new(),
         }
@@ -274,6 +279,12 @@ impl Scene for PlayingScene {
         handle_pause_button(&mut self.player, event);
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
         super::handle_pc_keyboard_to_midi_event(ctx, event);
+        super::handle_mouse_to_midi_event(
+            &mut self.keyboard,
+            &mut self.mouse_to_midi_state,
+            ctx,
+            event,
+        );
 
         if let WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } = event {
             self.resize(ctx)

@@ -250,6 +250,7 @@ pub struct IconRenderElement {
     pub origin: Point,
     pub size: f32,
     pub icon: String,
+    pub color: Color,
 }
 
 #[derive(Debug, Clone)]
@@ -1121,6 +1122,7 @@ impl Button {
                 origin: Point::new(x, y),
                 size: icon_size,
                 icon: self.icon.to_string(),
+                color: Color::WHITE,
             });
         } else {
             let pad_x = pad_x * 10.0;
@@ -1284,6 +1286,7 @@ impl Label {
                 origin: Point::new(x, y),
                 size: icon_size,
                 icon: self.icon.to_string(),
+                color: self.color,
             });
         }
     }

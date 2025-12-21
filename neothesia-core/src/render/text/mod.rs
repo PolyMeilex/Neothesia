@@ -132,11 +132,13 @@ impl TextRenderer {
         );
     }
 
-    pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str) {
+    pub fn queue_icon(&mut self, x: f32, y: f32, size: f32, icon: &str, color: cosmic_text::Color) {
         let buffer = Self::gen_buffer_with_attr(
             size,
             icon,
-            glyphon::Attrs::new().family(glyphon::Family::Name("bootstrap-icons")),
+            glyphon::Attrs::new()
+                .family(glyphon::Family::Name("bootstrap-icons"))
+                .color(color),
         );
 
         self.queue_buffer(x, y, buffer);

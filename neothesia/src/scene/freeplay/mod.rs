@@ -100,7 +100,14 @@ impl Scene for FreeplayScene {
         }
 
         handle_back_button(ctx, event, self.song.as_ref());
-        handle_simulated_midi(self, ctx, event);
+        super::handle_pc_keyboard_to_midi_event(ctx, event);
+    }
+
+    fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {
+        self.keyboard.user_midi_event(message);
+        ctx.output_manager
+            .connection()
+            .midi_event(0.into(), *message);
     }
 }
 
@@ -130,61 +137,5 @@ fn handle_back_button(ctx: &Context, event: &WindowEvent, song: Option<&Song>) {
         ctx.proxy
             .send_event(NeothesiaEvent::MainMenu(song.cloned()))
             .ok();
-    }
-}
-
-fn handle_simulated_midi(scene: &mut FreeplayScene, ctx: &mut Context, event: &WindowEvent) {
-    let WindowEvent::KeyboardInput {
-        event:
-            KeyEvent {
-                state,
-                logical_key: Key::Character(ch),
-                repeat: false,
-                ..
-            },
-        ..
-    } = event
-    else {
-        return;
-    };
-
-    // TODO: Move this out, and make it a virtual midi device
-    let mut note: u8 = match ch.as_str() {
-        "a" => 0,
-        "w" => 1,
-        "s" => 2,
-        "e" => 3,
-        "d" => 4,
-        "f" => 5,
-        "t" => 6,
-        "g" => 7,
-        "y" => 8,
-        "h" => 9,
-        "u" => 10,
-        "j" => 11,
-        _ => return,
-    };
-
-    note += 21; // Start of 88 keyboard
-    note += 3; // Offset to C
-    note += 12 * 3; // Move 3oct up
-
-    match state {
-        ElementState::Pressed => {
-            let msg = MidiMessage::NoteOn {
-                key: note.into(),
-                vel: 50.into(),
-            };
-            scene.keyboard.user_midi_event(&msg);
-            ctx.output_manager.connection().midi_event(0.into(), msg);
-        }
-        ElementState::Released => {
-            let msg = MidiMessage::NoteOff {
-                key: note.into(),
-                vel: 0.into(),
-            };
-            scene.keyboard.user_midi_event(&msg);
-            ctx.output_manager.connection().midi_event(0.into(), msg);
-        }
     }
 }

@@ -109,8 +109,13 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
         }
 
         for icon in layer.icons.iter() {
-            out.text_renderer
-                .queue_icon(icon.origin.x, icon.origin.y, icon.size, &icon.icon);
+            out.text_renderer.queue_icon(
+                icon.origin.x,
+                icon.origin.y,
+                icon.size,
+                &icon.icon,
+                cosmic_text::Color(icon.color.packet_u32()),
+            );
         }
 
         for text in layer.text.iter() {

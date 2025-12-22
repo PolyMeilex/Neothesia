@@ -33,7 +33,7 @@ impl ImageRenderer {
                     &transform_uniform.bind_group_layout,
                     &texture_bind_group_layout,
                 ],
-                push_constant_ranges: &[],
+                immediate_size: 0,
             });
 
         let target = wgpu_jumpstart::default_color_target_state(format);

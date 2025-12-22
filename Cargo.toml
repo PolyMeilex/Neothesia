@@ -33,8 +33,8 @@ anyhow = "1"
 thiserror = "2.0"
 log = "0.4"
 
-wgpu = "27"
-glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "de4b5b8d4e52310be8df56d82a759593920acc04" }
+wgpu = "28"
+glyphon = "0.10"
 
 bytes = "1"
 
@@ -65,8 +65,7 @@ profiling = "1.0"
 puffin = "0.19"
 puffin_http = "0.16"
 
-half = "2.2"
-cosmic-text = "0.14"
+cosmic-text = "0.15"
 image = { version = "0.25", features = ["png"], default-features = false }
 midly = "0.5"
 

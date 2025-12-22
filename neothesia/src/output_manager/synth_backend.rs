@@ -194,7 +194,7 @@ fn oxisynth_adapter<'a>(
     path: &Path,
     gain: f32,
 ) -> impl FnMut() -> (f32, f32) + 'a {
-    let sample_rate = this.stream_config.sample_rate.0 as f32;
+    let sample_rate = this.stream_config.sample_rate as f32;
 
     let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {
         sample_rate,

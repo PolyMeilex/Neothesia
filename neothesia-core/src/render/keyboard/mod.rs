@@ -149,8 +149,8 @@ impl KeyboardRenderer {
                 &format!("C{}", oct_number as i8 - 1),
                 &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                 glyphon::Shaping::Basic,
+                Some(glyphon::cosmic_text::Align::Center),
             );
-            buffer.lines[0].set_align(Some(glyphon::cosmic_text::Align::Center));
             buffer.shape_until_scroll(font_system, false);
 
             self.text_cache.push(super::text::TextArea {

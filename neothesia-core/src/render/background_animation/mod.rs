@@ -35,7 +35,7 @@ impl BgPipeline {
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
                     bind_group_layouts: &[&time_uniform.bind_group_layout],
-                    push_constant_ranges: &[],
+                    immediate_size: 0,
                 });
 
         let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);

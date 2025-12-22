@@ -45,7 +45,7 @@ impl WaterfallPipeline {
                         &transform_uniform.bind_group_layout,
                         &time_uniform.bind_group_layout,
                     ],
-                    push_constant_ranges: &[],
+                    immediate_size: 0,
                 });
 
         let ni_attrs = NoteInstance::attributes();

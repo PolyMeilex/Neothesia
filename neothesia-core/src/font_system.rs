@@ -25,6 +25,9 @@ pub fn font_system() -> Rc<RefCell<FontSystem>> {
                     glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
                         "../../assets/fonts/bootstrap-icons.ttf"
                     ))),
+                    glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                        "../../assets/fonts/Leland.otf"
+                    ))),
                 ])))
             })
             .clone()

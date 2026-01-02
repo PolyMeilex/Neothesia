@@ -30,5 +30,8 @@ Arch Linux (**Unofficial AUR** built from source, maintained by @zayn7lie): <htt
 (on MacOS audio out is included out of the box)
 
 - Download [default.sf2](https://github.com/PolyMeilex/Neothesia/blob/master/default.sf2)
-- Place `default.sf2` in the Neothesia configuration directory `~/.config/neothesia` (to make it a default one)
+- On Windows:
+    - Place `default.sf2` in the same dir as executable (to make it a default one)
+- On Linux:
+    - Place `default.sf2` in the Neothesia configuration directory `~/.config/neothesia` (to make it a default one)
 - Or select any sf2 file from the in-app menu

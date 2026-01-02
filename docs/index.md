@@ -31,7 +31,7 @@ features:
 
 ##
 
-Neothesia is a cross-platform MIDI visualizer, build completely in Rust.
+Neothesia is a cross-platform MIDI visualizer.
 It helps people to quickly learn how to play piano.
 It takes music notes from a MIDI file as an input and displays them as colorful falling blocks on a virtual piano.
 

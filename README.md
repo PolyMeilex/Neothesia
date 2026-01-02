@@ -3,7 +3,7 @@
 
 # Neothesia
 
-Neothesia is a cross-platform MIDI visualizer, build completely in Rust.
+Neothesia is a cross-platform MIDI visualizer build in Rust.
 It helps people to quickly learn how to play piano.
 It takes music notes from a MIDI file as an input and displays them as colorful falling blocks on a virtual piano.
 
@@ -36,18 +36,8 @@ All binary releases:
 
 ## FAQ
 
-- [FAQ](https://github.com/PolyMeilex/Neothesia/wiki/FAQ)
-
-## Video encoding
-
-- For Linux and Windows you can download neothesia-cli / recorder build from releasses
-- For macOS
-    - To encode video you need to install [rust](https://www.rust-lang.org/)
-    - You also need to install [ffmpeg](https://ffmpeg.org/)
-    - And compile the `neothesia-cli`, like so `cargo build --release -p neothesia-cli` (if you have make: `make build-recorder`)
-    - It will compile `neothesia-cli`, from now on it is used as a command line tool
-- To encode a `test.mid` file run `./target/release/neothesia-cli ./test.mid`
-- Video will be outputted to `./out` directory`
+- [FAQ](https://polymeilex.github.io/Neothesia/pages/installation.html)
+- [Video encoding](https://polymeilex.github.io/Neothesia/pages/video-encoding.html)
 
 ## Thanks to
 

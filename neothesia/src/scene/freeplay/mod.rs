@@ -137,10 +137,9 @@ impl Scene for FreeplayScene {
 
     fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {
         self.keyboard.user_midi_event(message);
-        ctx.output_manager
-            .connection()
-            .midi_event(0.into(), *message);
-
+        for connection in ctx.output_manager.connections() {
+            connection.midi_event(0.into(), *message);
+        }
         if let MidiMessage::NoteOn { .. } = message {
             let start = self.keyboard.layout().range.start();
 

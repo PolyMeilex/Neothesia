@@ -93,7 +93,7 @@ impl PlayingScene {
         ));
 
         let player = MidiPlayer::new(
-            ctx.output_manager.connection().clone(),
+            ctx.output_manager.connections().cloned().collect(),
             song,
             keyboard_layout.range.clone(),
             ctx.config.separate_channels(),

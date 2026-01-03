@@ -127,8 +127,8 @@ impl Default for LayoutConfig {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DevicesConfigV1 {
-    #[serde(default = "default_output")]
-    pub output: Option<String>,
+    #[serde(default = "default_outputs")]
+    pub outputs: Option<Vec<String>>,
     pub input: Option<String>,
 
     #[serde(default = "default_separate_channels")]
@@ -143,7 +143,7 @@ pub enum DevicesConfig {
 impl Default for DevicesConfig {
     fn default() -> Self {
         Self::V1(DevicesConfigV1 {
-            output: default_output(),
+            outputs: default_outputs(),
             input: None,
             separate_channels: default_separate_channels(),
         })
@@ -260,6 +260,6 @@ fn default_color_schema() -> Vec<ColorSchemaV1> {
     ]
 }
 
-fn default_output() -> Option<String> {
-    Some("Buildin Synth".into())
+fn default_outputs() -> Option<Vec<String>> {
+    Some(vec!["Buildin Synth".into()])
 }

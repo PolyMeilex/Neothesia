@@ -6,7 +6,7 @@ type InputDescriptor = midi_io::MidiInputPort;
 
 pub struct UiState {
     pub outputs: Vec<OutputDescriptor>,
-    pub selected_output: Option<OutputDescriptor>,
+    pub selected_outputs: Vec<OutputDescriptor>,
 
     pub inputs: Vec<InputDescriptor>,
     pub selected_input: Option<InputDescriptor>,
@@ -25,7 +25,7 @@ impl UiState {
 
         Self {
             outputs: Vec::new(),
-            selected_output: None,
+            selected_outputs: vec![],
             inputs: Vec::new(),
             selected_input: None,
             is_loading: false,
@@ -69,19 +69,22 @@ impl UiState {
         self.outputs = ctx.output_manager.outputs();
         self.inputs = ctx.input_manager.inputs();
 
-        if self.selected_output.is_none() {
-            if let Some(name) = ctx.config.output() {
-                if let Some(out) = self
-                    .outputs
-                    .iter()
-                    .find(|output| output.to_string().as_str() == name)
-                {
-                    self.selected_output = Some(out.clone());
-                } else {
-                    self.selected_output = self.outputs.first().cloned();
+        if self.selected_outputs.is_empty() {
+            if let Some(outputs_config) = ctx.config.outputs()
+                && outputs_config.len() > 0
+            {
+                for output_config in outputs_config.iter() {
+                    if let Some(out) = self
+                        .outputs
+                        .iter()
+                        .find(|output| output.to_string().as_str() == output_config)
+                    {
+                        self.selected_outputs.push(out.clone());
+                    }
                 }
             } else {
-                self.selected_output = Some(OutputDescriptor::DummyOutput);
+                self.selected_outputs
+                    .push(self.outputs.first().cloned().unwrap());
             }
         }
 
@@ -108,19 +111,23 @@ pub enum Page {
 }
 
 fn connect_io(data: &UiState, ctx: &mut Context) {
-    if let Some(out) = data.selected_output.clone() {
-        let out = match out {
-            #[cfg(feature = "synth")]
-            OutputDescriptor::Synth(_) => {
-                OutputDescriptor::Synth(ctx.config.soundfont_path().cloned())
-            }
-            o => o,
-        };
+    if !data.selected_outputs.is_empty() {
+        let outs = data
+            .selected_outputs
+            .iter()
+            .map(|out| match out {
+                #[cfg(feature = "synth")]
+                OutputDescriptor::Synth(_) => {
+                    OutputDescriptor::Synth(ctx.config.soundfont_path().cloned())
+                }
+                o => o.clone(),
+            })
+            .collect();
 
-        ctx.output_manager.connect(out);
-        ctx.output_manager
-            .connection()
-            .set_gain(ctx.config.audio_gain());
+        ctx.output_manager.connect(outs);
+        for connection in ctx.output_manager.connections() {
+            connection.set_gain(ctx.config.audio_gain());
+        }
     }
 
     if let Some(port) = data.selected_input.clone() {

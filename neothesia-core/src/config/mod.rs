@@ -166,12 +166,12 @@ impl Config {
         self.synth.soundfont_path = soundfont_path;
     }
 
-    pub fn output(&self) -> Option<&str> {
-        self.devices.output.as_deref()
+    pub fn outputs(&self) -> Option<Vec<String>> {
+        self.devices.outputs.clone()
     }
 
-    pub fn set_output(&mut self, output: Option<String>) {
-        self.devices.output = output;
+    pub fn set_outputs(&mut self, outputs: Option<Vec<String>>) {
+        self.devices.outputs = outputs;
     }
 
     pub fn input(&self) -> Option<&str> {

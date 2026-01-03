@@ -90,7 +90,7 @@ pub struct OutputManager {
     synth_backend: Option<SynthBackend>,
     midi_backend: Option<MidiBackend>,
 
-    output_connection: (OutputDescriptor, OutputConnection),
+    output_connections: Vec<(OutputDescriptor, OutputConnection)>,
 }
 
 impl Default for OutputManager {
@@ -123,7 +123,7 @@ impl OutputManager {
             synth_backend,
             midi_backend,
 
-            output_connection: (OutputDescriptor::DummyOutput, OutputConnection::DummyOutput),
+            output_connections: vec![],
         }
     }
 
@@ -143,40 +143,45 @@ impl OutputManager {
         outs
     }
 
-    pub fn connect(&mut self, desc: OutputDescriptor) {
-        if desc != self.output_connection.0 {
-            match desc {
+    pub fn connect(&mut self, descs: Vec<OutputDescriptor>) {
+        self.output_connections = descs
+            .iter()
+            .filter_map(|desc| match desc {
                 #[cfg(feature = "synth")]
-                OutputDescriptor::Synth(ref font) => {
+                OutputDescriptor::Synth(font) => {
                     if let Some(ref mut synth) = self.synth_backend {
                         if let Some(font) = font.clone() {
-                            self.output_connection = (
-                                desc,
+                            Some((
+                                desc.clone(),
                                 OutputConnection::Synth(synth.new_output_connection(&font)),
-                            );
+                            ))
                         } else if let Some(path) = crate::utils::resources::default_sf2()
                             && path.exists()
                         {
-                            self.output_connection = (
-                                desc,
+                            Some((
+                                desc.clone(),
                                 OutputConnection::Synth(synth.new_output_connection(&path)),
-                            );
+                            ))
+                        } else {
+                            None
                         }
+                    } else {
+                        None
                     }
                 }
-                OutputDescriptor::MidiOut(ref info) => {
+                OutputDescriptor::MidiOut(info) => {
                     if let Some(conn) = MidiBackend::new_output_connection(info) {
-                        self.output_connection = (desc, OutputConnection::Midi(conn));
+                        Some((desc.clone(), OutputConnection::Midi(conn)))
+                    } else {
+                        None
                     }
                 }
-                OutputDescriptor::DummyOutput => {
-                    self.output_connection = (desc, OutputConnection::DummyOutput);
-                }
-            }
-        }
+                OutputDescriptor::DummyOutput => Some((desc.clone(), OutputConnection::DummyOutput)),
+            })
+            .collect();
     }
 
-    pub fn connection(&self) -> &OutputConnection {
-        &self.output_connection.1
+    pub fn connections(&self) -> impl Iterator<Item = &OutputConnection> {
+        self.output_connections.iter().map(|(_, conn)| conn)
     }
 }

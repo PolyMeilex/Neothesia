@@ -73,7 +73,7 @@ where
 enum Popup {
     #[default]
     None,
-    OutputSelector,
+    OutputSelector(usize),
     InputSelector,
 }
 

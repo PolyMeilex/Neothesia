@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     context::Context,
+    output_manager::OutputDescriptor,
     scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
@@ -156,6 +157,7 @@ impl super::MenuScene {
         ctx: &mut Context,
         row_w: f32,
         row_h: f32,
+        output_idx: usize,
     ) {
         let btn_w = 320.0;
         let btn_h = 31.0;
@@ -163,21 +165,17 @@ impl super::MenuScene {
         let btn_x = row_w - btn_w;
         let btn_y = nuon::center_y(row_h, btn_h);
 
+        let current_output = self.state.selected_outputs[output_idx].clone();
+
         if button()
             .pos(btn_x, btn_y)
             .size(btn_w, btn_h)
-            .id("select_output")
-            .label(
-                self.state
-                    .selected_output
-                    .as_ref()
-                    .map(|o| o.to_string())
-                    .unwrap_or_default(),
-            )
+            .id(format!("select_output_{}", output_idx))
+            .label(current_output.to_string())
             .text_justify(TextJustify::Left)
             .build(ui)
         {
-            self.popup.toggle(Popup::OutputSelector);
+            self.popup.toggle(Popup::OutputSelector(output_idx));
         }
 
         nuon::label()
@@ -187,49 +185,88 @@ impl super::MenuScene {
             .text_justify(TextJustify::Right)
             .build(ui);
 
-        if self.popup == Popup::OutputSelector {
+        if self.popup == Popup::OutputSelector(output_idx) {
             nuon::layer().overlay(true).build(ui, |ui| {
                 nuon::translate()
                     .x(btn_x)
                     .y(btn_y + btn_h)
                     .add_to_current(ui);
 
+                let selected_outputs = self.state.selected_outputs.clone();
                 let data = &mut self.state;
 
-                if let Some(output) =
-                    nuon::combo_list(ui, "select_output_", (btn_w, btn_h), &data.outputs)
-                {
-                    ctx.config
-                        .set_output(output.is_not_dummy().then(|| output.to_string()));
-                    data.selected_output = Some(output.clone());
+                let available_outputs: Vec<OutputDescriptor> = data
+                    .outputs
+                    .iter()
+                    .filter(|o| {
+                        **o == current_output
+                            || o.is_dummy()
+                            || selected_outputs.iter().any(|so| so == *o)
+                    })
+                    .cloned()
+                    .collect();
+
+                if let Some(output) = nuon::combo_list(
+                    ui,
+                    format!("select_output_{}_", output_idx),
+                    (btn_w, btn_h),
+                    &available_outputs,
+                ) {
+                    data.selected_outputs[output_idx] = output.clone();
+                    let outputs: Vec<String> = data
+                        .selected_outputs
+                        .iter()
+                        .filter_map(|o| {
+                            if !o.is_dummy() {
+                                Some(o.to_string())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    ctx.config.set_outputs(Some(outputs));
                     self.popup.close();
                 }
             });
         }
     }
 
-    fn settings_output_section(
+    fn settings_each_output(
         &mut self,
         ctx: &mut Context,
         ui: &mut nuon::Ui,
         rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
-        spacer: &dyn Fn(&mut nuon::Ui),
+        output_idx: usize,
     ) {
         nuon::settings_row()
-            .title("Output")
-            .body(|ui, row_w, row_h| self.settings_output_picker(ui, ctx, row_w, row_h))
+            .title(format!("Output {}", output_idx + 1))
+            .body(|ui, row_w, row_h| {
+                let w = 93.0;
+                let h = 31.0;
+                if self.state.selected_outputs.len() > 1 {
+                    if button()
+                        .x(row_w - w)
+                        .y(nuon::center_y(row_h, h))
+                        .size(w, h)
+                        .id(format!("remove_output_{}", output_idx))
+                        .label("Remove")
+                        .build(ui)
+                    {
+                        self.futures.push(remove_output(output_idx));
+                    }
+                }
+            })
             .build(ui, rows);
 
-        let (is_synth, is_midi) = self
-            .state
-            .selected_output
-            .as_ref()
-            .map(|o| (o.is_synth(), o.is_midi()))
-            .unwrap_or((false, false));
+        nuon::settings_row()
+            .title("Output")
+            .body(|ui, row_w, row_h| self.settings_output_picker(ui, ctx, row_w, row_h, output_idx))
+            .build(ui, rows);
+
+        let output = self.state.selected_outputs[output_idx].clone();
+        let (is_synth, is_midi) = (output.is_synth(), output.is_midi());
 
         if is_synth {
-            spacer(ui);
-
             nuon::settings_row()
                 .title("SoundFont")
                 .subtitle(
@@ -246,6 +283,7 @@ impl super::MenuScene {
                         .x(row_w - w)
                         .y(nuon::center_y(row_h, h))
                         .size(w, h)
+                        .id(format!("select_soundfont_{}", output_idx))
                         .label("Select File")
                         .build(ui)
                     {
@@ -255,28 +293,60 @@ impl super::MenuScene {
                 })
                 .build(ui, rows);
 
-            spacer(ui);
-
             self::update_audio_gain(
                 ctx,
                 nuon::settings_row_spin()
                     .title("Audio Gain")
                     .subtitle(ctx.config.audio_gain().to_string())
-                    .id("gain")
+                    .id(format!("gain_{}", output_idx))
                     .build(ui, rows),
             );
-        } else if is_midi {
+        }
+    }
+    fn settings_output_section(
+        &mut self,
+        ctx: &mut Context,
+        ui: &mut nuon::Ui,
+        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+        spacer: &dyn Fn(&mut nuon::Ui),
+    ) {
+        let num_outputs = self.state.selected_outputs.len();
+        for output_idx in 0..num_outputs {
+            self.settings_each_output(ctx, ui, rows, output_idx);
             spacer(ui);
+        }
 
-            if nuon::settings_row_toggler()
-                .title("Separate Channels")
-                .subtitle("Assign different MIDI channel to each track")
-                .value(ctx.config.separate_channels())
-                .build(ui, rows)
-            {
-                ctx.config
-                    .set_separate_channels(!ctx.config.separate_channels());
-            }
+        if self.state.selected_outputs.len()
+            < self.state.outputs.iter().filter(|o| !o.is_dummy()).count()
+        {
+            nuon::settings_row()
+                .body(|ui, row_w, row_h| {
+                    let w = 120.0;
+                    let h = 31.0;
+                    if button()
+                        .x(row_w - w)
+                        .y(nuon::center_y(row_h, h))
+                        .size(w, h)
+                        .label("Add Output")
+                        .build(ui)
+                    {
+                        self.state
+                            .selected_outputs
+                            .push(OutputDescriptor::DummyOutput);
+                    }
+                })
+                .build(ui, rows);
+        }
+
+        if nuon::settings_row_toggler()
+            .title("Separate Channels")
+            .subtitle("Assign different MIDI channel to each track")
+            .value(ctx.config.separate_channels())
+            .id("separate_channels")
+            .build(ui, rows)
+        {
+            ctx.config
+                .set_separate_channels(!ctx.config.separate_channels());
         }
     }
 }
@@ -447,6 +517,21 @@ pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
         }
         nuon::SettingsRowSpinResult::Idle => {}
     }
+}
+
+fn remove_output(output_idx: usize) -> BoxFuture<MsgFn> {
+    on_async(async move { output_idx }, |output_idx, data, _ctx| {
+        if output_idx < data.selected_outputs.len() {
+            data.selected_outputs.remove(output_idx);
+
+            let outputs: Vec<String> = data
+                .selected_outputs
+                .iter()
+                .filter_map(|o| (!o.is_dummy()).then(|| o.to_string()))
+                .collect();
+            _ctx.config.set_outputs(Some(outputs));
+        }
+    })
 }
 
 pub fn open_soundfont_picker(data: &mut UiState) -> BoxFuture<MsgFn> {

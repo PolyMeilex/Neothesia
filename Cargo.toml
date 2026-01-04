@@ -44,9 +44,6 @@ pollster = "0.4"
 async-channel = "2"
 euclid = "0.22"
 
-num-traits = "0.2"
-unicode-segmentation = "1.12.0"
-
 lilt = "0.8"
 winit = "0.30"
 dpi = "0.1"
@@ -81,8 +78,8 @@ clap = { version = "4.5.41", default-features = false, features = [
 
 # neothesia-ai deps
 ndarray = "0.17"
-rten = "0.23"
-rten-tensor = "0.23"
+rten = "0.24"
+rten-tensor = "0.24"
 serde_json = "1"
 symphonia = { version = "0.5", features = ["mp3"] }
 symphonium = { version = "0.6", features = ["mp3"] }

@@ -6,7 +6,6 @@ edition.workspace = true
 [dependencies]
 serde = { workspace = true, features = ["serde_derive"] }
 neothesia-image.workspace = true
-image.workspace = true
 bytes.workspace = true
 ron.workspace = true
 log.workspace = true

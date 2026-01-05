@@ -1,5 +1,3 @@
-use image::GenericImageView;
-
 pub struct Texture {
     #[allow(unused)]
     pub texture: wgpu::Texture,
@@ -9,18 +7,24 @@ pub struct Texture {
 
 impl Texture {
     pub fn from_bytes(device: &wgpu::Device, queue: &wgpu::Queue, bytes: &[u8]) -> Option<Self> {
-        let img = image::load_from_memory(bytes).ok()?;
-        Some(Self::from_image(device, queue, &img, None))
+        let img = neothesia_image::load_png(std::io::Cursor::new(bytes)).ok()?;
+
+        Some(Self::from_image(
+            device,
+            queue,
+            (&img.0, img.1, img.2),
+            None,
+        ))
     }
 
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        img: &image::DynamicImage,
+        img: (&[u8], u32, u32),
         label: Option<&str>,
     ) -> Self {
-        let rgba = img.to_rgba8();
-        let dimensions = img.dimensions();
+        let rgba = img.0;
+        let dimensions = (img.1, img.2);
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
@@ -46,7 +50,7 @@ impl Texture {
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
-            &rgba,
+            rgba,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * dimensions.0),

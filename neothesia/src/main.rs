@@ -327,19 +327,13 @@ fn main() {
 }
 
 fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
-    use image::{ImageDecoder, codecs::png::PngDecoder};
     use std::io::Cursor;
 
-    let icon = PngDecoder::new(Cursor::new(include_bytes!(
+    let (icon, w, h) = neothesia_image::load_png(Cursor::new(include_bytes!(
         "../../flatpak/com.github.polymeilex.neothesia.png"
     )))?;
 
-    let (w, h) = icon.dimensions();
-
-    let mut buff = vec![0; icon.total_bytes() as usize];
-    icon.read_image(&mut buff)?;
-
-    window.set_window_icon(Some(winit::window::Icon::from_rgba(buff, w, h)?));
+    window.set_window_icon(Some(winit::window::Icon::from_rgba(icon, w, h)?));
 
     Ok(())
 }

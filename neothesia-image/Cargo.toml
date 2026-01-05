@@ -4,5 +4,5 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-image.workspace = true
+png.workspace = true
 bytes.workspace = true

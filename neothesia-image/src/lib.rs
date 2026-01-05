@@ -1,7 +1,7 @@
 use bytes::Bytes;
 
 mod load;
-pub use load::{load_from_bytes, load_from_path, load_from_rgba};
+pub use load::load_png;
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum ImageIdentifier {

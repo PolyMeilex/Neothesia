@@ -298,16 +298,7 @@ impl Scene for PlayingScene {
             self.resize(ctx)
         }
 
-        if event.cursor_moved() {
-            self.nuon.mouse_move(
-                ctx.window_state.cursor_logical_position.x,
-                ctx.window_state.cursor_logical_position.y,
-            );
-        } else if event.left_mouse_pressed() {
-            self.nuon.mouse_down();
-        } else if event.left_mouse_released() {
-            self.nuon.mouse_up();
-        }
+        super::handle_nuon_window_event(&mut self.nuon, event, ctx);
     }
 
     fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {

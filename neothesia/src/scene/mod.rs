@@ -220,6 +220,19 @@ impl NuonRenderer {
     }
 }
 
+fn handle_nuon_window_event(nuon: &mut nuon::Ui, event: &WindowEvent, ctx: &Context) {
+    if event.cursor_moved() {
+        nuon.mouse_move(
+            ctx.window_state.cursor_logical_position.x,
+            ctx.window_state.cursor_logical_position.y,
+        );
+    } else if event.left_mouse_pressed() {
+        nuon.mouse_down();
+    } else if event.left_mouse_released() {
+        nuon.mouse_up();
+    }
+}
+
 fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Context) {
     nuon_renderer.ensure_layers(ctx, ui.layers.len());
 

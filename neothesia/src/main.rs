@@ -69,46 +69,11 @@ impl Neothesia {
         &mut self,
         event_loop: &winit::event_loop::ActiveEventLoop,
         _window_id: winit::window::WindowId,
-        event: WindowEvent,
+        event: &WindowEvent,
     ) {
-        if let WindowEvent::Touch(touch) = &event {
+        self.context.window_state.window_event(event);
 
-            // 1) Feed a CursorMoved equivalent (important for hit testing)
-            let cursor_ev = WindowEvent::CursorMoved {
-                device_id: touch.device_id,
-                position: touch.location,
-                // If your winit version requires extra fields here (e.g. modifiers),
-                // the compiler will tell you. Add them based on the type error.
-            };
-
-            self.context.window_state.window_event(&cursor_ev);
-            self.game_scene.window_event(&mut self.context, &cursor_ev);
-
-            // 2) Feed a synthetic left mouse press/release on touch start/end
-            let maybe_state = match touch.phase {
-                TouchPhase::Started => Some(ElementState::Pressed),
-                TouchPhase::Ended | TouchPhase::Cancelled => Some(ElementState::Released),
-                TouchPhase::Moved => None,
-            };
-
-            if let Some(state) = maybe_state {
-                let mouse_ev = WindowEvent::MouseInput {
-                    device_id: touch.device_id,
-                    state,
-                    button: MouseButton::Left,
-                    // Same note: if your winit version requires modifiers here, add them.
-                };
-
-                self.context.window_state.window_event(&mouse_ev);
-                self.game_scene.window_event(&mut self.context, &mouse_ev);
-            }
-
-            // Don’t also pass through the raw Touch event.
-            return;
-        }
-        self.context.window_state.window_event(&event);
-
-        match &event {
+        match event {
             // Windows sets size to 0 on minimise
             WindowEvent::Resized(ps) if ps.width > 0 && ps.height > 0 => {
                 self.surface.resize_swap_chain(
@@ -160,7 +125,7 @@ impl Neothesia {
         }
 
         if !event.redraw_requested() {
-            self.game_scene.window_event(&mut self.context, &event);
+            self.game_scene.window_event(&mut self.context, event);
         }
     }
 
@@ -333,8 +298,47 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
-        if let Some(app) = self.0.as_mut() {
-            app.window_event(event_loop, window_id, event)
+        let Some(app) = self.0.as_mut() else {
+            return;
+        };
+
+        let mut on_event = |event: WindowEvent| {
+            app.window_event(event_loop, window_id, &event);
+        };
+
+        // Touch event to mouse event translation (temporary until we get touch support)
+        if let WindowEvent::Touch(touch) = &event {
+            // TODO: What to do with touch.id? We somehow want to ignore multitouch
+
+            match touch.phase {
+                TouchPhase::Started => {
+                    // Touch might happen anywhere on the screen, so send moved event
+                    on_event(WindowEvent::CursorMoved {
+                        device_id: touch.device_id,
+                        position: touch.location,
+                    });
+                    on_event(WindowEvent::MouseInput {
+                        device_id: touch.device_id,
+                        state: ElementState::Pressed,
+                        button: MouseButton::Left,
+                    });
+                }
+                TouchPhase::Ended | TouchPhase::Cancelled => {
+                    on_event(WindowEvent::MouseInput {
+                        device_id: touch.device_id,
+                        state: ElementState::Released,
+                        button: MouseButton::Left,
+                    });
+                }
+                TouchPhase::Moved => {
+                    on_event(WindowEvent::CursorMoved {
+                        device_id: touch.device_id,
+                        position: touch.location,
+                    });
+                }
+            }
+        } else {
+            app.window_event(event_loop, window_id, &event)
         }
     }
 

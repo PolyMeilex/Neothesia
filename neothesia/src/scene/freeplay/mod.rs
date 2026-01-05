@@ -7,15 +7,10 @@ use winit::{
     keyboard::{Key, NamedKey},
 };
 
-mod icons {
-    pub fn left_arrow_icon() -> &'static str {
-        "\u{f12f}"
-    }
-}
-
 use crate::{
     NeothesiaEvent,
     context::Context,
+    icons,
     scene::{MouseToMidiEventState, NuonRenderer, Scene, playing_scene::Keyboard},
     song::Song,
     utils::window::WinitEvent,

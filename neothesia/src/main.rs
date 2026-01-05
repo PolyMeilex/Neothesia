@@ -20,7 +20,7 @@ use neothesia_core::{config, render};
 use wgpu_jumpstart::{Gpu, Surface, TransformUniform};
 use winit::{
     application::ApplicationHandler,
-    event::WindowEvent,
+    event::{ElementState, MouseButton, TouchPhase, WindowEvent},
     event_loop::{EventLoop, EventLoopProxy},
     keyboard::NamedKey,
 };
@@ -71,6 +71,41 @@ impl Neothesia {
         _window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
+        if let WindowEvent::Touch(touch) = &event {
+
+            // 1) Feed a CursorMoved equivalent (important for hit testing)
+            let cursor_ev = WindowEvent::CursorMoved {
+                device_id: touch.device_id,
+                position: touch.location,
+                // If your winit version requires extra fields here (e.g. modifiers),
+                // the compiler will tell you. Add them based on the type error.
+            };
+
+            self.context.window_state.window_event(&cursor_ev);
+            self.game_scene.window_event(&mut self.context, &cursor_ev);
+
+            // 2) Feed a synthetic left mouse press/release on touch start/end
+            let maybe_state = match touch.phase {
+                TouchPhase::Started => Some(ElementState::Pressed),
+                TouchPhase::Ended | TouchPhase::Cancelled => Some(ElementState::Released),
+                TouchPhase::Moved => None,
+            };
+
+            if let Some(state) = maybe_state {
+                let mouse_ev = WindowEvent::MouseInput {
+                    device_id: touch.device_id,
+                    state,
+                    button: MouseButton::Left,
+                    // Same note: if your winit version requires modifiers here, add them.
+                };
+
+                self.context.window_state.window_event(&mouse_ev);
+                self.game_scene.window_event(&mut self.context, &mouse_ev);
+            }
+
+            // Don’t also pass through the raw Touch event.
+            return;
+        }
         self.context.window_state.window_event(&event);
 
         match &event {

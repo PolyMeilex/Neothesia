@@ -6,7 +6,7 @@ use winit::{
 
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
-    event::{TouchPhase, WindowEvent},
+    event::WindowEvent,
 };
 
 pub struct WindowState {
@@ -91,25 +91,6 @@ impl WindowState {
             } => {
                 self.right_mouse_btn = *state == ElementState::Pressed;
             }
-            WindowEvent::Touch(touch) => {
-                // Touch location is a PhysicalPosition<f64>
-                self.cursor_physical_position = touch.location;
-                self.cursor_logical_position = touch.location.to_logical(self.scale_factor);
-
-                match touch.phase {
-                    TouchPhase::Started => {
-                        // Finger down -> treat like left button press
-                        self.left_mouse_btn = true;
-                    }
-                    TouchPhase::Ended | TouchPhase::Cancelled => {
-                        // Finger up/cancel -> treat like left button release
-                        self.left_mouse_btn = false;
-                    }
-                    TouchPhase::Moved => {
-                        // Just movement; button state unchanged
-                    }
-                }
-            }
             _ => {}
         }
     }
@@ -179,9 +160,6 @@ impl WinitEvent for WindowEvent {
                 button,
                 ..
             } => button == &btn,
-            Self::Touch(touch) => {
-                btn == MouseButton::Left && matches!(touch.phase, TouchPhase::Started)
-            }
             _ => false,
         }
     }
@@ -193,10 +171,6 @@ impl WinitEvent for WindowEvent {
                 button,
                 ..
             } => button == &btn,
-            Self::Touch(touch) => {
-                btn == MouseButton::Left
-                    && matches!(touch.phase, TouchPhase::Ended | TouchPhase::Cancelled)
-            }
             _ => false,
         }
     }

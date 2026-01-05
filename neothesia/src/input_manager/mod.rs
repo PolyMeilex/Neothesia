@@ -31,16 +31,11 @@ impl InputManager {
         // Skip reconnect if already connected to same port
         if self.current_connection.is_some()
             && self.current_port_name.as_deref() == Some(port_name.as_str())
-        {
-            log::info!("connect_input: already connected to {port_name}, skipping");
-            return;
-        }
+        { return; }
 
         // Explicitly drop previous connection
         self.current_connection.take();
         self.current_port_name = Some(port_name.clone());
-
-        log::info!("connect_input: connecting to {port_name}");
 
         let tx = self.tx.clone();
         self.current_connection = midi_io::MidiInputManager::connect_input(port, move |message| {

@@ -41,7 +41,7 @@ bytes = "1"
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = "0.11"
 pollster = "0.4"
-async-channel = "2"
+futures-channel = "0.3"
 euclid = "0.22"
 
 lilt = "0.8"

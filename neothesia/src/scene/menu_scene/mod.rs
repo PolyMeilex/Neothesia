@@ -405,6 +405,10 @@ impl Scene for MenuScene {
                 if event.key_pressed(Key::Character("t")) {
                     self.state.go_to(Page::TrackSelection);
                 }
+
+                if event.key_pressed(Key::Character("f")) {
+                    state::freeplay(&self.state, ctx);
+                }
             }
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {

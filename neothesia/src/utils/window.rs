@@ -6,9 +6,8 @@ use winit::{
 
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
-    event::{WindowEvent, TouchPhase},
+    event::{TouchPhase, WindowEvent},
 };
-
 
 pub struct WindowState {
     pub physical_size: PhysicalSize<u32>,

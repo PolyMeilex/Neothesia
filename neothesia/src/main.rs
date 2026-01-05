@@ -1,6 +1,7 @@
 #![allow(clippy::collapsible_match, clippy::single_match)]
 
 mod context;
+mod icons;
 mod input_manager;
 mod output_manager;
 mod scene;

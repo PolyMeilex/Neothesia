@@ -7,6 +7,12 @@ use winit::{
     keyboard::{Key, NamedKey},
 };
 
+mod icons {
+    pub fn left_arrow_icon() -> &'static str {
+        "\u{f12f}"
+    }
+}
+
 use crate::{
     NeothesiaEvent,
     context::Context,
@@ -104,6 +110,27 @@ impl FreeplayScene {
         }
     }
 
+    fn update_ui(&mut self, ctx: &mut Context) {
+        nuon::label()
+            .text(&self.deduced_chord_name)
+            .font_size(25.0)
+            .y(self.keyboard.pos().y - 25.0 - 10.0)
+            .height(25.0)
+            .width(ctx.window_state.logical_size.width)
+            .build(&mut self.nuon);
+
+        if nuon::button()
+            .size(30.0, 30.0)
+            .border_radius([5.0; 4])
+            .icon(icons::left_arrow_icon())
+            .build(&mut self.nuon)
+        {
+            ctx.proxy
+                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
+                .ok();
+        }
+    }
+
     fn resize(&mut self, ctx: &mut Context) {
         self.keyboard.resize(ctx);
         self.guidelines.set_layout(self.keyboard.layout().clone());
@@ -142,13 +169,7 @@ impl Scene for FreeplayScene {
             ctx.window_state.scale_factor as f32,
         );
 
-        nuon::label()
-            .text(&self.deduced_chord_name)
-            .font_size(25.0)
-            .y(self.keyboard.pos().y - 25.0 - 10.0)
-            .height(25.0)
-            .width(ctx.window_state.logical_size.width)
-            .build(&mut self.nuon);
+        self.update_ui(ctx);
 
         super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
     }
@@ -174,6 +195,7 @@ impl Scene for FreeplayScene {
                 .ok();
         }
 
+        super::handle_nuon_window_event(&mut self.nuon, event, ctx);
         super::handle_pc_keyboard_to_midi_event(ctx, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,

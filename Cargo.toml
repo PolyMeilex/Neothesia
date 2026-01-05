@@ -63,7 +63,7 @@ puffin = "0.19"
 puffin_http = "0.16"
 
 cosmic-text = "0.15"
-image = { version = "0.25", features = ["png"], default-features = false }
+png = "0.18"
 midly = "0.5"
 
 # neothesia-cli deps

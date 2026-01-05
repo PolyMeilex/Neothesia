@@ -7,7 +7,7 @@ pub struct InputManager {
     input: midi_io::MidiInputManager,
     tx: EventLoopProxy<NeothesiaEvent>,
     current_connection: Option<midi_io::MidiInputConnection>,
-    current_port_name: Option<String>,
+    current_port: Option<midi_io::MidiInputPort>, // store the actual port object
 }
 
 impl InputManager {
@@ -17,7 +17,7 @@ impl InputManager {
             input,
             tx,
             current_connection: None,
-            current_port_name: None,
+            current_port: None,
         }
     }
 
@@ -26,16 +26,26 @@ impl InputManager {
     }
 
     pub fn connect_input(&mut self, port: midi_io::MidiInputPort) {
-        let port_name = port.to_string();
+        // If we think we're connected, but the port no longer exists, drop connection.
+        if self.current_connection.is_some() {
+            if let Some(cur) = &self.current_port {
+                if !self.input.has_input_port(cur) {
+                    self.current_connection.take();
+                    self.current_port = None;
+                }
+            }
+        }
 
-        // Skip reconnect if already connected to same port
+        // Skip reconnect if already connected to same port *and it still exists*
         if self.current_connection.is_some()
-            && self.current_port_name.as_deref() == Some(port_name.as_str())
-        { return; }
+            && self.current_port.as_ref() == Some(&port)
+            && self.input.has_input_port(&port)
+        {
+            return;
+        }
 
-        // Explicitly drop previous connection
         self.current_connection.take();
-        self.current_port_name = Some(port_name.clone());
+        self.current_port = Some(port.clone());
 
         let tx = self.tx.clone();
         self.current_connection = midi_io::MidiInputManager::connect_input(port, move |message| {
@@ -43,23 +53,74 @@ impl InputManager {
 
             if let LiveEvent::Midi { channel, message } = event {
                 match message {
-                    // Some keyboards send NoteOn event with vel 0 instead of NoteOff
                     midly::MidiMessage::NoteOn { key, vel } if vel == 0 => {
                         tx.send_event(NeothesiaEvent::MidiInput {
                             channel: channel.as_int(),
                             message: MidiMessage::NoteOff { key, vel },
-                        })
-                        .ok();
+                        }).ok();
                     }
                     message => {
                         tx.send_event(NeothesiaEvent::MidiInput {
                             channel: channel.as_int(),
                             message,
-                        })
-                        .ok();
+                        }).ok();
                     }
                 }
             }
         });
+    }
+
+    pub fn maybe_reconnect(&mut self, desired: Option<&midi_io::MidiInputPort>) {
+        let Some(port) = desired else { return; };
+
+        // If port exists but we're not connected (or think we are but it vanished), connect.
+        let exists = self.input.has_input_port(port);
+
+        if !exists {
+            // device not present; drop dead connection if it's for this port
+            if self.current_port.as_ref() == Some(port) {
+                self.current_connection.take();
+                self.current_port = None;
+            }
+            return;
+        }
+
+        if self.current_connection.is_none() || self.current_port.as_ref() != Some(port) {
+            self.connect_input(port.clone());
+        }
+    }
+
+    pub fn force_reconnect(&mut self) {
+        // Drop the connection and clear the "already connected" guard
+        self.current_connection.take();
+        self.current_port = None;
+    }
+
+    pub fn connect_selected_name(&mut self, name: &str) {
+        // Build a port object by name (your midi-io currently uses MidiInputPort(String))
+        self.connect_input(midi_io::MidiInputPort::from_name(name.to_string()));
+    }
+
+        /// Connect to the user's preferred input if it exists; otherwise connect to first available.
+    /// Returns the chosen port name (for storing back into config/UI if you want).
+    pub fn connect_preferred_by_name(&mut self, preferred: Option<&str>) -> Option<String> {
+        let inputs = self.inputs();
+
+        // Try preferred
+        if let Some(name) = preferred {
+            if let Some(port) = inputs.iter().find(|p| p.to_string() == name).cloned() {
+                self.connect_input(port);
+                return Some(name.to_string());
+            }
+        }
+
+        // Fallback to first
+        if let Some(port) = inputs.first().cloned() {
+            let chosen = port.to_string();
+            self.connect_input(port);
+            return Some(chosen);
+        }
+
+        None
     }
 }

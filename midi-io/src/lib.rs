@@ -55,23 +55,30 @@ impl MidiOutputManager {
     }
 }
 
-pub struct MidiInputManager {
-    input: midir::MidiInput,
-}
+pub struct MidiInputManager;
 
 impl MidiInputManager {
     pub fn new() -> Result<Self, InitError> {
-        let input = midir::MidiInput::new("MidiIo-in-manager")?;
-
-        Ok(Self { input })
+        let _ = midir::MidiInput::new("MidiIo-in-manager")?;
+        Ok(Self)
     }
 
     pub fn inputs(&self) -> Vec<MidiInputPort> {
-        self.input
+        let input = match midir::MidiInput::new("MidiIo-in-enum") {
+            Ok(i) => i,
+            Err(_) => return Vec::new(),
+        };
+
+        input
             .ports()
             .iter()
-            .filter_map(|p| self.input.port_name(p).ok())
-            .map(MidiInputPort)
+            .enumerate()
+            .filter_map(|(index, p)| {
+                input
+                    .port_name(p)
+                    .ok()
+                    .map(|name| MidiInputPort { name, index })
+            })
             .collect()
     }
 
@@ -80,29 +87,54 @@ impl MidiInputManager {
         F: FnMut(&[u8]) + Send + 'static,
     {
         let input = midir::MidiInput::new("MidiIo-in").unwrap();
+        let ports = input.ports();
 
-        let port = input.ports().into_iter().find(|info| {
-            input
-                .port_name(info)
-                .ok()
-                .map(|name| name == port.0)
-                .unwrap_or(false)
+        let mut chosen = None;
+
+        // Prefer index if valid
+        if port.index != usize::MAX {
+            if let Some(p) = ports.get(port.index) {
+                if input.port_name(p).ok().as_deref() == Some(port.name.as_str()) {
+                    chosen = Some(p);
+                }
+            }
+        }
+
+        // Fallback by name
+        let chosen = chosen.or_else(|| {
+            ports.iter().find(|p| input.port_name(p).ok().as_deref() == Some(port.name.as_str()))
         });
 
-        port.and_then(move |port| {
-            input
-                .connect(
-                    &port,
+        chosen
+            .and_then(|p| {
+                input.connect(
+                    p,
                     "MidiIo-in-conn",
-                    move |_, data, _| {
-                        callback(data);
-                        //
-                    },
+                    move |_, data, _| callback(data),
                     (),
-                )
-                .ok()
-        })
-        .map(MidiInputConnection)
+                ).ok()
+            })
+            .map(MidiInputConnection)
+    }
+
+
+    pub fn has_input_port(&self, port: &MidiInputPort) -> bool {
+        let input = match midir::MidiInput::new("MidiIo-in-has") {
+            Ok(i) => i,
+            Err(_) => return false,
+        };
+
+        let ports = input.ports();
+
+        // index+name fast path
+        if let Some(p) = ports.get(port.index) {
+            if input.port_name(p).ok().as_deref() == Some(port.name.as_str()) {
+                return true;
+            }
+        }
+
+        // fallback by name
+        ports.iter().any(|p| input.port_name(p).ok().as_deref() == Some(port.name.as_str()))
     }
 }
 
@@ -116,11 +148,14 @@ impl std::fmt::Display for MidiOutputPort {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MidiInputPort(String);
+pub struct MidiInputPort {
+    pub(crate) name: String,
+    pub(crate) index: usize,
+}
 
 impl std::fmt::Display for MidiInputPort {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.name)
     }
 }
 
@@ -159,6 +194,15 @@ impl From<midir::SendError> for SendError {
         match err {
             midir::SendError::InvalidData(e) => Self::InvalidData(e),
             midir::SendError::Other(e) => Self::Other(e),
+        }
+    }
+}
+
+impl MidiInputPort {
+    pub fn from_name(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            index: usize::MAX, // sentinel meaning “unknown index”
         }
     }
 }

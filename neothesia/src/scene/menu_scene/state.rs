@@ -16,6 +16,7 @@ pub struct UiState {
     pub song: Option<Song>,
 
     page_stack: VecDeque<Page>,
+    last_input_names: Vec<String>
 }
 
 impl UiState {
@@ -32,6 +33,7 @@ impl UiState {
             song,
 
             page_stack,
+            last_input_names: Vec::new(),
         }
     }
 
@@ -68,7 +70,11 @@ impl UiState {
     pub fn tick(&mut self, ctx: &mut Context) {
         self.outputs = ctx.output_manager.outputs();
         self.inputs = ctx.input_manager.inputs();
-
+    
+        let input_names: Vec<String> = self.inputs.iter().map(|p| p.to_string()).collect();
+        let changed = input_names != self.last_input_names;
+        self.last_input_names = input_names;
+        
         if self.selected_output.is_none() {
             if let Some(name) = ctx.config.output() {
                 if let Some(out) = self
@@ -94,6 +100,14 @@ impl UiState {
                 self.selected_input = Some(input.clone());
             } else {
                 self.selected_input = self.inputs.first().cloned();
+            }
+        }
+
+        if changed {
+            // A hotplug likely happened. Force reconnect if we have a selected device.
+            if let Some(sel) = &self.selected_input {
+                ctx.input_manager.force_reconnect();
+                ctx.input_manager.connect_input(sel.clone());
             }
         }
     }
@@ -123,8 +137,15 @@ fn connect_io(data: &UiState, ctx: &mut Context) {
             .set_gain(ctx.config.audio_gain());
     }
 
-    if let Some(port) = data.selected_input.clone() {
-        ctx.input_manager.connect_input(port);
+    if let Some(chosen) = ctx
+        .input_manager
+        .connect_preferred_by_name(ctx.config.input())
+    {
+        // Keep config aligned (useful if we had to fall back)
+        if ctx.config.input() != Some(chosen.as_str()) {
+            ctx.config.set_input(Some(chosen));
+            ctx.config.save();
+        }
     }
 }
 

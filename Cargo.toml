@@ -47,7 +47,7 @@ euclid = "0.22"
 lilt = "0.8"
 winit = "0.30"
 dpi = "0.1"
-rfd = "0.16"
+rfd = { git = "https://github.com/PolyMeilex/rfd" }
 cpal = "0.17"
 fluidlite = { version = "0.2", features = ["builtin"] }
 oxisynth = "0.1.0"

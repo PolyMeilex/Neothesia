@@ -1,5 +1,5 @@
 pub mod thread {
-    use async_channel::Receiver;
+    use futures_channel::oneshot::{self, Receiver};
     use std::{
         any::Any,
         panic::{AssertUnwindSafe, catch_unwind},
@@ -16,7 +16,6 @@ pub mod thread {
         pub async fn join(self) -> sync::Result<T> {
             let ret = self
                 .chan
-                .recv()
                 .await
                 .map_err(|x| -> Box<dyn Any + Send + 'static> { Box::new(x) })
                 .and_then(|x| x);
@@ -38,10 +37,10 @@ pub mod thread {
     {
         let builder = std::thread::Builder::new().name(name);
 
-        let (send, recv) = async_channel::bounded(1);
+        let (send, recv) = oneshot::channel();
         let handle = builder
             .spawn(move || {
-                let _ = send.send_blocking(catch_unwind(AssertUnwindSafe(f)));
+                let _ = send.send(catch_unwind(AssertUnwindSafe(f)));
             })
             .unwrap();
 

@@ -1451,6 +1451,7 @@ dependencies = [
 name = "midi-io"
 version = "0.1.0"
 dependencies = [
+ "log",
  "midir",
 ]
 

@@ -5,3 +5,4 @@ edition.workspace = true
 
 [dependencies]
 midir.workspace = true
+log.workspace = true

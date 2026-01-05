@@ -70,39 +70,14 @@ impl InputManager {
         });
     }
 
-    pub fn maybe_reconnect(&mut self, desired: Option<&midi_io::MidiInputPort>) {
-        let Some(port) = desired else { return; };
-
-        // If port exists but we're not connected (or think we are but it vanished), connect.
-        let exists = self.input.has_input_port(port);
-
-        if !exists {
-            // device not present; drop dead connection if it's for this port
-            if self.current_port.as_ref() == Some(port) {
-                self.current_connection.take();
-                self.current_port = None;
-            }
-            return;
-        }
-
-        if self.current_connection.is_none() || self.current_port.as_ref() != Some(port) {
-            self.connect_input(port.clone());
-        }
-    }
-
     pub fn force_reconnect(&mut self) {
         // Drop the connection and clear the "already connected" guard
         self.current_connection.take();
         self.current_port = None;
     }
 
-    pub fn connect_selected_name(&mut self, name: &str) {
-        // Build a port object by name (your midi-io currently uses MidiInputPort(String))
-        self.connect_input(midi_io::MidiInputPort::from_name(name.to_string()));
-    }
-
-        /// Connect to the user's preferred input if it exists; otherwise connect to first available.
-    /// Returns the chosen port name (for storing back into config/UI if you want).
+    // Connect to the user's preferred input if it exists; otherwise connect to first available.
+    // Returns the chosen port name (for storing back into config/UI if you want).
     pub fn connect_preferred_by_name(&mut self, preferred: Option<&str>) -> Option<String> {
         let inputs = self.inputs();
 

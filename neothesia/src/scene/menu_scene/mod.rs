@@ -21,38 +21,11 @@ use winit::{
     keyboard::{Key, NamedKey},
 };
 
-use crate::{NeothesiaEvent, context::Context, scene::Scene, song::Song};
+use crate::{NeothesiaEvent, context::Context, icons, scene::Scene, song::Song};
 
 use std::task::Waker;
 
 use super::NuonRenderer;
-
-mod icons {
-    pub fn play_icon() -> &'static str {
-        "\u{f4f4}"
-    }
-
-    #[allow(unused)]
-    pub fn balloon_icon() -> &'static str {
-        "\u{f709}"
-    }
-
-    pub fn note_list_icon() -> &'static str {
-        "\u{f49f}"
-    }
-
-    pub fn left_arrow_icon() -> &'static str {
-        "\u{f12f}"
-    }
-
-    pub fn caret_down() -> &'static str {
-        "\u{f229}"
-    }
-
-    pub fn cone_icon() -> &'static str {
-        "\u{F2D2}"
-    }
-}
 
 type MsgFn = Box<dyn FnOnce(&mut UiState, &mut Context)>;
 
@@ -404,6 +377,10 @@ impl Scene for MenuScene {
 
                 if event.key_pressed(Key::Character("t")) {
                     self.state.go_to(Page::TrackSelection);
+                }
+
+                if event.key_pressed(Key::Character("f")) {
+                    state::freeplay(&self.state, ctx);
                 }
             }
             Page::Settings => {

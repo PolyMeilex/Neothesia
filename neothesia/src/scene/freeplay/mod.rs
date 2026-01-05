@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GuidelineRenderer, QuadRenderer, TextRenderer};
+use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
 use winit::{
     event::WindowEvent,
     keyboard::{Key, NamedKey},
@@ -10,6 +10,7 @@ use winit::{
 use crate::{
     NeothesiaEvent,
     context::Context,
+    icons,
     scene::{MouseToMidiEventState, NuonRenderer, Scene, playing_scene::Keyboard},
     song::Song,
     utils::window::WinitEvent,
@@ -22,6 +23,7 @@ pub struct FreeplayScene {
     text_renderer: TextRenderer,
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
+    glow: Option<GlowRenderer>,
 
     // TODO: This does not make sens, but get's us going without refactoring
     song: Option<Song>,
@@ -52,17 +54,75 @@ impl FreeplayScene {
         let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
         let quad_renderer_fg = ctx.quad_renderer_facotry.new_renderer();
 
+        let glow = ctx.config.glow().then_some(GlowRenderer::new(
+            &ctx.gpu,
+            &ctx.transform,
+            keyboard.layout(),
+        ));
+
         Self {
             keyboard,
             guidelines,
             text_renderer,
             quad_renderer_bg,
             quad_renderer_fg,
+            glow,
             song,
             nuon_renderer: NuonRenderer::new(ctx),
             nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
             deduced_chord_name: String::new(),
+        }
+    }
+
+    fn update_glow(&mut self, delta: Duration) {
+        let Some(glow) = &mut self.glow else {
+            return;
+        };
+
+        glow.clear();
+
+        let keys = &self.keyboard.layout().keys;
+        let states = self.keyboard.key_states();
+
+        for (key, state) in keys.iter().zip(states) {
+            let Some(mut color) = state.pressed_by_user().copied() else {
+                continue;
+            };
+
+            color.r *= 0.5;
+            color.g *= 0.5;
+            color.b *= 0.5;
+
+            glow.push(
+                key.id(),
+                color,
+                key.x(),
+                self.keyboard.pos().y,
+                key.width(),
+                delta,
+            );
+        }
+    }
+
+    fn update_ui(&mut self, ctx: &mut Context) {
+        nuon::label()
+            .text(&self.deduced_chord_name)
+            .font_size(25.0)
+            .y(self.keyboard.pos().y - 25.0 - 10.0)
+            .height(25.0)
+            .width(ctx.window_state.logical_size.width)
+            .build(&mut self.nuon);
+
+        if nuon::button()
+            .size(30.0, 30.0)
+            .border_radius([5.0; 4])
+            .icon(icons::left_arrow_icon())
+            .build(&mut self.nuon)
+        {
+            ctx.proxy
+                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
+                .ok();
         }
     }
 
@@ -74,7 +134,7 @@ impl FreeplayScene {
 }
 
 impl Scene for FreeplayScene {
-    fn update(&mut self, ctx: &mut Context, _delta: Duration) {
+    fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_renderer_bg.clear();
         self.quad_renderer_fg.clear();
 
@@ -90,20 +150,21 @@ impl Scene for FreeplayScene {
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
 
+        self.update_glow(delta);
+
         self.quad_renderer_bg.prepare();
         self.quad_renderer_fg.prepare();
+
+        if let Some(glow) = &mut self.glow {
+            glow.prepare();
+        }
+
         self.text_renderer.update(
             ctx.window_state.physical_size,
             ctx.window_state.scale_factor as f32,
         );
 
-        nuon::label()
-            .text(&self.deduced_chord_name)
-            .font_size(25.0)
-            .y(self.keyboard.pos().y - 25.0 - 10.0)
-            .height(25.0)
-            .width(ctx.window_state.logical_size.width)
-            .build(&mut self.nuon);
+        self.update_ui(ctx);
 
         super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
     }
@@ -111,6 +172,9 @@ impl Scene for FreeplayScene {
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
         self.quad_renderer_fg.render(rpass);
+        if let Some(glow) = &self.glow {
+            glow.render(rpass);
+        }
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
     }
@@ -126,6 +190,7 @@ impl Scene for FreeplayScene {
                 .ok();
         }
 
+        super::handle_nuon_window_event(&mut self.nuon, event, ctx);
         super::handle_pc_keyboard_to_midi_event(ctx, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,

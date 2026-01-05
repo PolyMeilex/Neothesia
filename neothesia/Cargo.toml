@@ -20,11 +20,11 @@ env_logger.workspace = true
 wgpu.workspace = true
 wgpu-jumpstart.workspace = true
 neothesia-core.workspace = true
+neothesia-image.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true
 nuon.workspace = true
-image.workspace = true
-async-channel.workspace = true
+futures-channel.workspace = true
 cosmic-text.workspace = true
 
 bytes.workspace = true
@@ -45,5 +45,4 @@ piano-layout.workspace = true
 name = "neothesia"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
-image = { workspace = true, features = ["png", "ico"]}
 embed-resource.workspace = true

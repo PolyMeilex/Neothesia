@@ -1,16 +1,15 @@
 use midi_file::midly::{self, MidiMessage, live::LiveEvent};
-use winit::event_loop::EventLoopProxy;
 
-use crate::NeothesiaEvent;
+use crate::{NeothesiaEvent, context::EventLoopProxy};
 
 pub struct InputManager {
     input: midi_io::MidiInputManager,
-    tx: EventLoopProxy<NeothesiaEvent>,
+    tx: EventLoopProxy,
     current_connection: Option<midi_io::MidiInputConnection>,
 }
 
 impl InputManager {
-    pub fn new(tx: EventLoopProxy<NeothesiaEvent>) -> Self {
+    pub fn new(tx: EventLoopProxy) -> Self {
         let input = midi_io::MidiInputManager::new().unwrap();
         Self {
             input,

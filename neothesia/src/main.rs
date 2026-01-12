@@ -20,12 +20,13 @@ use neothesia_core::{config, render};
 use wgpu_jumpstart::{Gpu, Surface, TransformUniform};
 use winit::{
     application::ApplicationHandler,
-    event::{ElementState, MouseButton, TouchPhase, WindowEvent},
-    event_loop::{EventLoop, EventLoopProxy},
+    event::{ButtonSource, ElementState, MouseButton, PointerSource, WindowEvent},
+    event_loop::EventLoop,
     keyboard::NamedKey,
+    window::{Window, WindowAttributes},
 };
 
-use crate::utils::window::WinitEvent;
+use crate::{context::EventLoopProxy, utils::window::WinitEvent};
 
 #[derive(Debug)]
 pub enum NeothesiaEvent {
@@ -67,7 +68,7 @@ impl Neothesia {
 
     fn window_event(
         &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
+        event_loop: &dyn winit::event_loop::ActiveEventLoop,
         _window_id: winit::window::WindowId,
         event: &WindowEvent,
     ) {
@@ -75,7 +76,7 @@ impl Neothesia {
 
         match event {
             // Windows sets size to 0 on minimise
-            WindowEvent::Resized(ps) if ps.width > 0 && ps.height > 0 => {
+            WindowEvent::SurfaceResized(ps) if ps.width > 0 && ps.height > 0 => {
                 self.surface.resize_swap_chain(
                     &self.context.gpu.device,
                     self.context.window_state.physical_size.width,
@@ -101,10 +102,10 @@ impl Neothesia {
                     } else {
                         let monitor = self.context.window.current_monitor();
                         if let Some(monitor) = monitor {
-                            let f = winit::window::Fullscreen::Borderless(Some(monitor));
+                            let f = winit::monitor::Fullscreen::Borderless(Some(monitor));
                             self.context.window.set_fullscreen(Some(f));
                         } else {
-                            let f = winit::window::Fullscreen::Borderless(None);
+                            let f = winit::monitor::Fullscreen::Borderless(None);
                             self.context.window.set_fullscreen(Some(f));
                         }
                     }
@@ -131,7 +132,7 @@ impl Neothesia {
 
     fn user_event(
         &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
+        event_loop: &dyn winit::event_loop::ActiveEventLoop,
         event: NeothesiaEvent,
     ) {
         match event {
@@ -157,7 +158,7 @@ impl Neothesia {
         }
     }
 
-    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
+    fn about_to_wait(&mut self, _event_loop: &dyn winit::event_loop::ActiveEventLoop) {
         self.context.window.request_redraw();
     }
 
@@ -222,22 +223,97 @@ impl Neothesia {
     }
 }
 
-// This is so stupid, but winit holds us at gunpoint with create_window deprecation
-struct NeothesiaBootstrap(Option<Neothesia>, EventLoopProxy<NeothesiaEvent>);
+struct NeothesiaBootstrap {
+    app: Option<Neothesia>,
+    proxy: EventLoopProxy,
+    rx: std::sync::mpsc::Receiver<NeothesiaEvent>,
+}
 
-impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
-    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        if self.0.is_some() {
+impl ApplicationHandler for NeothesiaBootstrap {
+    fn proxy_wake_up(&mut self, event_loop: &dyn winit::event_loop::ActiveEventLoop) {
+        let Some(app) = self.app.as_mut() else {
+            return;
+        };
+
+        while let Ok(event) = self.rx.try_recv() {
+            app.user_event(event_loop, event);
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &dyn winit::event_loop::ActiveEventLoop,
+        window_id: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
+        let Some(app) = self.app.as_mut() else {
+            return;
+        };
+
+        let mut on_event = |event: WindowEvent| {
+            app.window_event(event_loop, window_id, &event);
+        };
+
+        match event {
+            // Touch event to mouse event translation (temporary until we get touch support)
+            WindowEvent::PointerButton {
+                device_id,
+                state,
+                position,
+                primary,
+                button: ButtonSource::Touch { finger_id, force },
+            } => {
+                let button = ButtonSource::Mouse(MouseButton::Left);
+                match state {
+                    ElementState::Pressed => {
+                        // Touch might happen anywhere on the screen, so send moved event
+                        on_event(WindowEvent::PointerMoved {
+                            device_id,
+                            position,
+                            primary,
+                            source: PointerSource::Touch { finger_id, force },
+                        });
+                        on_event(WindowEvent::PointerButton {
+                            device_id,
+                            state,
+                            position,
+                            primary,
+                            button,
+                        });
+                    }
+                    ElementState::Released => {
+                        on_event(WindowEvent::PointerButton {
+                            device_id,
+                            state,
+                            position,
+                            primary,
+                            button,
+                        });
+                    }
+                }
+            }
+            event => on_event(event),
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &dyn winit::event_loop::ActiveEventLoop) {
+        if let Some(app) = self.app.as_mut() {
+            app.about_to_wait(event_loop)
+        }
+    }
+
+    fn can_create_surfaces(&mut self, event_loop: &dyn winit::event_loop::ActiveEventLoop) {
+        if self.app.is_some() {
             return;
         }
 
-        let mut attributes = winit::window::Window::default_attributes()
-            .with_inner_size(winit::dpi::LogicalSize {
+        let mut attributes = WindowAttributes::default()
+            .with_surface_size(winit::dpi::LogicalSize {
                 width: 1080.0,
                 height: 720.0,
             })
             .with_title("Neothesia")
-            .with_min_inner_size(winit::dpi::LogicalSize {
+            .with_min_surface_size(winit::dpi::LogicalSize {
                 width: 670.0,
                 height: 620.0,
             })
@@ -246,29 +322,30 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         #[cfg(all(unix, not(target_os = "macos")))]
         {
             use winit::platform::{
-                startup_notify::{
-                    self, EventLoopExtStartupNotify, WindowAttributesExtStartupNotify,
-                },
-                wayland::WindowAttributesExtWayland,
+                startup_notify::{self, EventLoopExtStartupNotify},
+                wayland::WindowAttributesWayland,
             };
+
+            let mut wayland_attrs = WindowAttributesWayland::default()
+                .with_name("com.github.polymeilex.neothesia", "main");
 
             if let Some(token) = event_loop.read_token_from_env() {
                 startup_notify::reset_activation_token_env();
-                attributes = attributes.with_activation_token(token);
+                wayland_attrs = WindowAttributesWayland::default().with_activation_token(token);
             }
 
-            attributes = attributes.with_name("com.github.polymeilex.neothesia", "main");
+            attributes = attributes.with_platform_attributes(Box::new(wayland_attrs));
         };
 
-        let window = event_loop.create_window(attributes).unwrap();
+        let window: Arc<dyn Window> = Arc::from(event_loop.create_window(attributes).unwrap());
 
-        if let Err(err) = set_window_icon(&window) {
+        if let Err(err) = set_window_icon(window.as_ref()) {
             log::error!("Failed to load window icon: {err}");
         }
 
-        let window_state = WindowState::new(&window);
-        let size = window.inner_size();
-        let window = Arc::new(window);
+        let window_state = WindowState::new(window.as_ref());
+        let size = window.surface_size();
+
         let (gpu, surface) = pollster::block_on(Gpu::for_window(
             || window.clone().into(),
             size.width,
@@ -276,76 +353,10 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         ))
         .unwrap();
 
-        let ctx = Context::new(window, window_state, self.1.clone(), gpu);
+        let ctx = Context::new(window, window_state, self.proxy.clone(), gpu);
 
         let app = Neothesia::new(ctx, surface);
-        self.0 = Some(app);
-    }
-
-    fn user_event(
-        &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-        event: NeothesiaEvent,
-    ) {
-        if let Some(app) = self.0.as_mut() {
-            app.user_event(event_loop, event);
-        }
-    }
-
-    fn window_event(
-        &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-        window_id: winit::window::WindowId,
-        event: WindowEvent,
-    ) {
-        let Some(app) = self.0.as_mut() else {
-            return;
-        };
-
-        let mut on_event = |event: WindowEvent| {
-            app.window_event(event_loop, window_id, &event);
-        };
-
-        // Touch event to mouse event translation (temporary until we get touch support)
-        if let WindowEvent::Touch(touch) = &event {
-            // TODO: What to do with touch.id? We somehow want to ignore multitouch
-
-            match touch.phase {
-                TouchPhase::Started => {
-                    // Touch might happen anywhere on the screen, so send moved event
-                    on_event(WindowEvent::CursorMoved {
-                        device_id: touch.device_id,
-                        position: touch.location,
-                    });
-                    on_event(WindowEvent::MouseInput {
-                        device_id: touch.device_id,
-                        state: ElementState::Pressed,
-                        button: MouseButton::Left,
-                    });
-                }
-                TouchPhase::Ended | TouchPhase::Cancelled => {
-                    on_event(WindowEvent::MouseInput {
-                        device_id: touch.device_id,
-                        state: ElementState::Released,
-                        button: MouseButton::Left,
-                    });
-                }
-                TouchPhase::Moved => {
-                    on_event(WindowEvent::CursorMoved {
-                        device_id: touch.device_id,
-                        position: touch.location,
-                    });
-                }
-            }
-        } else {
-            app.window_event(event_loop, window_id, &event)
-        }
-    }
-
-    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        if let Some(app) = self.0.as_mut() {
-            app.about_to_wait(event_loop)
-        }
+        self.app = Some(app);
     }
 }
 
@@ -358,22 +369,28 @@ fn main() {
     puffin::set_scopes_on(true); // tell puffin to collect data
     let _server = puffin_http::Server::new("127.0.0.1:8585").ok();
 
-    let event_loop: EventLoop<NeothesiaEvent> = EventLoop::with_user_event().build().unwrap();
+    let event_loop: EventLoop = EventLoop::new().unwrap();
     let proxy = event_loop.create_proxy();
 
+    let (proxy, rx) = crate::context::EventLoopProxy::new(proxy);
+
     event_loop
-        .run_app(&mut NeothesiaBootstrap(None, proxy))
+        .run_app(NeothesiaBootstrap {
+            app: None,
+            proxy,
+            rx,
+        })
         .unwrap();
 }
 
-fn set_window_icon(window: &winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
+fn set_window_icon(window: &dyn winit::window::Window) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::Cursor;
 
     let (icon, w, h) = neothesia_image::load_png(Cursor::new(include_bytes!(
         "../../flatpak/com.github.polymeilex.neothesia.png"
     )))?;
 
-    window.set_window_icon(Some(winit::window::Icon::from_rgba(icon, w, h)?));
+    window.set_window_icon(Some(winit::icon::RgbaIcon::new(icon, w, h)?.into()));
 
     Ok(())
 }

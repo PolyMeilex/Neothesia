@@ -6,12 +6,37 @@ use crate::{
 };
 use neothesia_core::render::{QuadRendererFactory, TextRendererFactory};
 use wgpu_jumpstart::{Gpu, Uniform};
-use winit::event_loop::EventLoopProxy;
 
 use winit::window::Window;
 
+#[derive(Clone)]
+pub struct EventLoopProxy {
+    proxy: winit::event_loop::EventLoopProxy,
+    tx: std::sync::mpsc::Sender<NeothesiaEvent>,
+}
+
+impl EventLoopProxy {
+    pub fn new(
+        proxy: winit::event_loop::EventLoopProxy,
+    ) -> (Self, std::sync::mpsc::Receiver<NeothesiaEvent>) {
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        (Self { proxy, tx }, rx)
+    }
+
+    pub fn send_event(&self, event: NeothesiaEvent) -> Result<(), ()> {
+        if let Err(err) = self.tx.send(event) {
+            log::error!("winit event send: {err}");
+            // TODO: Drop this once winit 0.31 is stable and merge conflits are no longer a concern
+            return Err(());
+        }
+        self.proxy.wake_up();
+        Ok(())
+    }
+}
+
 pub struct Context {
-    pub window: Arc<Window>,
+    pub window: Arc<dyn Window>,
 
     pub window_state: WindowState,
     pub gpu: Gpu,
@@ -24,7 +49,7 @@ pub struct Context {
     pub input_manager: InputManager,
     pub config: Config,
 
-    pub proxy: EventLoopProxy<NeothesiaEvent>,
+    pub proxy: EventLoopProxy,
 
     /// Last frame timestamp
     pub frame_timestamp: std::time::Instant,
@@ -41,9 +66,9 @@ impl Drop for Context {
 
 impl Context {
     pub fn new(
-        window: Arc<Window>,
+        window: Arc<dyn Window>,
         window_state: WindowState,
-        proxy: EventLoopProxy<NeothesiaEvent>,
+        proxy: EventLoopProxy,
         gpu: Gpu,
     ) -> Self {
         let transform_uniform = Uniform::new(

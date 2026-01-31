@@ -38,15 +38,15 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
-    let speed = time_uniform.speed;
+    let speed = time_uniform.speed / view_uniform.scale;
 
-    let size = vec2<f32>(note.size.x, note.size.y * abs(speed)) * view_uniform.scale;
+    let size = vec2<f32>(note.size.x, note.size.y * abs(speed));
 
     // In an ideal world this should not be hard-coded
     let keyboard_h = view_uniform.size.y / 5.0;
     let keyboard_y = view_uniform.size.y - keyboard_h;
 
-    var pos = vec2<f32>(note.n_position.x * view_uniform.scale, keyboard_y);
+    var pos = vec2<f32>(note.n_position.x, keyboard_y);
 
     if speed > 0.0 {
         // If notes are falling from top to down, we need to adjust the position,
@@ -71,7 +71,7 @@ fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     out.src_position = vertex.position;
     out.size = size;
     out.color = note.color;
-    out.radius = note.radius * view_uniform.scale;
+    out.radius = note.radius;
 
     return out;
 }
@@ -100,7 +100,7 @@ fn dist(
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let dist: f32 = dist(
-        in.position.xy,
+        in.position.xy / view_uniform.scale,
         in.note_pos,
         in.size,
         in.radius,

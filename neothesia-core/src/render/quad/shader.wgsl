@@ -57,22 +57,13 @@ fn vs_main(vertex: Vertex, quad: QuadInstance) -> VertexOutput {
     return out;
 }
 
-// SFD code is licenced under: MIT by Héctor Ramón & Iced contributors
-fn distance_alg(
-    frag_coord: vec2<f32>,
-    position: vec2<f32>,
-    size: vec2<f32>,
-    radius: f32
-) -> f32 {
-    var inner_half_size: vec2<f32> = (size - vec2<f32>(radius, radius) * 2.0) / 2.0;
-    var top_left: vec2<f32> = position + vec2<f32>(radius, radius);
-    return rounded_box_sdf(frag_coord - top_left - inner_half_size, inner_half_size, 0.0);
-}
-
-// Given a vector from a point to the center of a rounded rectangle of the given `size` and
-// border `radius`, determines the point's distance from the nearest edge of the rounded rectangle
+// Point's distance from the nearest edge of the rounded rectangle
+//
+// https://www.shadertoy.com/view/Nlc3zf
 fn rounded_box_sdf(to_center: vec2<f32>, size: vec2<f32>, radius: f32) -> f32 {
-    return length(max(abs(to_center) - size + vec2<f32>(radius, radius), vec2<f32>(0.0, 0.0))) - radius;
+    let half_size = size * 0.5;
+    let q = abs(to_center) - half_size + vec2(radius, radius);
+    return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
 }
 
 // Based on the fragment position and the center of the quad, select one of the 4 radii.
@@ -89,24 +80,17 @@ fn select_border_radius(radii: vec4<f32>, position: vec2<f32>, center: vec2<f32>
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var border_radius = select_border_radius(
+    let center = in.quad_position + in.quad_size * 0.5;
+    
+    let border_radius = select_border_radius(
         in.quad_border_radius,
         in.position.xy,
-        (in.quad_position + (in.quad_size * 0.5)).xy
+        center
     );
 
-    var dist: f32 = distance_alg(
-        vec2<f32>(in.position.x, in.position.y),
-        in.quad_position,
-        in.quad_size,
-        border_radius
-    );
-
-    var alpha: f32 = 1.0 - smoothstep(
-        max(border_radius - 0.5, 0.0),
-        border_radius + 0.5,
-        dist
-    );
+    let local_center = in.position.xy - center;
+    let dist = rounded_box_sdf(local_center, in.quad_size, border_radius);
+    let alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
 
     return vec4(in.quad_color.xyz, in.quad_color.w * alpha);
 }

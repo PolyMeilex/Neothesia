@@ -79,8 +79,8 @@ impl Context {
 
     pub fn resize(&mut self) {
         self.transform.data.update(
-            self.window_state.logical_size.width,
-            self.window_state.logical_size.height,
+            self.window_state.physical_size.width as f32,
+            self.window_state.physical_size.height as f32,
             self.window_state.scale_factor as f32,
         );
         self.transform.update(&self.gpu.queue);

@@ -243,7 +243,7 @@ impl MenuScene {
 
                 if neo_btn()
                     .size(btn_w, btn_h)
-                    .icon(icons::cone_icon())
+                    .icon(icons::balloon_icon())
                     .color([100; 3])
                     .tooltip("FreePlay")
                     .build(ui)

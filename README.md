@@ -8,7 +8,7 @@ It helps people to quickly learn how to play piano.
 It takes music notes from a MIDI file as an input and displays them as colorful falling blocks on a virtual piano.
 
 Opensource Synthesia was abandoned in favour of [closed source commercial project](https://www.synthesiagame.com/)  
-Goal of this project is to bring back Opensource Synthesia to live, and make it look and work as good (or even better) than commercial Synthesia.
+The goal of this project is to bring Opensource Synthesia back to life, and make it look and work as good (or even better) than commercial Synthesia.
 
 If you have any questions, feel free to join my Discord
 

@@ -100,6 +100,7 @@ impl MidiInputManager {
                     },
                     (),
                 )
+                .inspect_err(|err| log::error!("MIDI-in connection fail: {err}"))
                 .ok()
         })
         .map(MidiInputConnection)

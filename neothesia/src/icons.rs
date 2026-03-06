@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub fn cone_icon() -> &'static str {
     "\u{F2D2}"
 }
@@ -34,7 +36,6 @@ pub fn plus_icon() -> &'static str {
     "\u{F4FE}"
 }
 
-#[allow(unused)]
 pub fn balloon_icon() -> &'static str {
     "\u{f709}"
 }

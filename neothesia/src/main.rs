@@ -109,6 +109,7 @@ impl Neothesia {
                             self.context.window.set_fullscreen(Some(f));
                         }
                     }
+                    return;
                 }
             }
             WindowEvent::RedrawRequested => {

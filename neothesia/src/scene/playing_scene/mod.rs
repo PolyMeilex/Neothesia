@@ -5,7 +5,7 @@ use neothesia_core::render::{
 use std::time::Duration;
 use winit::{
     event::WindowEvent,
-    keyboard::{Key, NamedKey},
+    keyboard::{Key, KeyCode, NamedKey},
 };
 
 use self::top_bar::TopBar;
@@ -281,7 +281,9 @@ impl Scene for PlayingScene {
                 .ok();
         }
 
-        if event.key_released(Key::Named(NamedKey::Space)) {
+        if event.key_released_physical_key(KeyCode::Space)
+            || event.key_released(Key::Character(" "))
+        {
             self.player.pause_resume();
         }
 

@@ -45,7 +45,7 @@ futures-channel = "0.3"
 euclid = "0.22"
 
 lilt = "0.8"
-winit = "0.30"
+winit = "0.31.0-beta.2"
 dpi = "0.1"
 rfd = "0.17"
 cpal = "0.17"

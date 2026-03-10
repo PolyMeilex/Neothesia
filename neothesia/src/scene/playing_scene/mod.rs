@@ -1,4 +1,5 @@
 use midi_file::midly::MidiMessage;
+use crate::lumi_controller::LumiController;
 use neothesia_core::render::{
     GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
 };
@@ -41,6 +42,7 @@ pub struct PlayingScene {
     note_labels: Option<NoteLabels>,
 
     player: MidiPlayer,
+    lumi: LumiController,
     rewind_controller: RewindController,
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
@@ -98,6 +100,11 @@ impl PlayingScene {
             keyboard_layout.range.clone(),
             ctx.config.separate_channels(),
         );
+        let mut lumi = LumiController::new(ctx.output_manager.lumi_connection());
+        lumi.clear_all();
+        // Apply initial config values from settings
+        lumi.set_color_mode(ctx.config.lumi_color_mode());
+        lumi.set_brightness(ctx.config.lumi_brightness());
         waterfall.update(player.time_without_lead_in());
 
         let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
@@ -118,6 +125,7 @@ impl PlayingScene {
 
             waterfall,
             player,
+            lumi,
             rewind_controller: RewindController::new(),
             quad_renderer_bg,
             quad_renderer_fg,
@@ -165,10 +173,54 @@ impl PlayingScene {
             self.keyboard.reset_notes();
         }
 
-        if self.player.play_along().are_required_keys_pressed() {
+        if !ctx.config.wait_mode() || self.player.play_along().are_required_keys_pressed() {
             let delta = (delta / 10) * (ctx.config.speed_multiplier() * 10.0) as u32;
             let midi_events = self.player.update(delta);
             self.keyboard.file_midi_events(&ctx.config, &midi_events);
+        }
+
+        // LUMI Keys logic
+        let expected_notes = self.player.play_along().get_required_notes();
+        let upcoming = self.waterfall.notes();
+        let target_time = self.player.time_without_lead_in() + ctx.config.animation_offset();
+        
+        let key_states = self.keyboard.key_states();
+        
+        for key in self.keyboard.layout().keys.iter() {
+            let note_id = key.note_id();
+
+            // 1. Is the user holding the key? (Highest priority feedback)
+            if let Some(user_color) = key_states[key.id()].pressed_by_user().map(|c| c.into_linear_rgba()) {
+                self.lumi.set_key_color(
+                    note_id,
+                    (user_color[0] * 255.0) as u8,
+                    (user_color[1] * 255.0) as u8,
+                    (user_color[2] * 255.0) as u8,
+                );
+                continue;
+            }
+
+            // 2. Is the key currently required for 'Wait Mode' or actively overlapping playhead?
+            if expected_notes.contains_key(&note_id) {
+                self.lumi.set_key_color(note_id, 0, 255, 0); // Green for "Play me!"
+                continue;
+            }
+
+            // 3. Is the key approaching in the waterfall within 2 seconds? (Hinting)
+            let mut is_hinted = false;
+            for note in upcoming.inner().iter().filter(|n| n.note == note_id) {
+                if note.start.as_secs_f32() > target_time && (note.start.as_secs_f32() - target_time) < 2.0 {
+                    is_hinted = true;
+                    break;
+                }
+            }
+            if is_hinted {
+                self.lumi.set_key_dim(note_id, 0, 100, 255); // Dim blue
+                continue;
+            }
+
+            // 4. Otherwise, dark.
+            self.lumi.clear_key(note_id);
         }
 
         self.player.time_without_lead_in() + ctx.config.animation_offset()

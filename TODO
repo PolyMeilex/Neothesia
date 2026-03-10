@@ -1,0 +1,8 @@
+- Add way to "hide" midi channels from the waterfall
+- I understand how does hourglass mode works, I need to ensure one channel is set to "human"
+- When set to wait/pause (hourglass), the sound doesn't play when I press the keys but at then end of the notes
+- In the settings, allow to continuously tick on + and - when keeping pressing the button
+- Add a specific Lumi settings section only visible when a Lumi keyboard is connected and selected (after input selector)
+- Allow setting a soundFont folder in the settings and to easily switch/cycle between them, and also during play
+- Add an interim screen when clicking play to select play mode: watch, learn, or play. In this screen, allow selection of channels (left hand only, right hand only, or both).
+- Add score screen at the end of the song showing accuracy, timing, etc.

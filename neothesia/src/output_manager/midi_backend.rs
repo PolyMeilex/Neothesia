@@ -82,6 +82,11 @@ impl MidiOutputConnection {
         inner.conn.send(&inner.buf).ok();
     }
 
+    pub fn send_sysex(&self, message: &[u8]) {
+        let inner = &mut *self.inner.borrow_mut();
+        inner.conn.send(message).ok();
+    }
+
     pub fn stop_all(&self) {
         let inner = &mut *self.inner.borrow_mut();
         for note in std::mem::take(&mut inner.active_notes).iter() {

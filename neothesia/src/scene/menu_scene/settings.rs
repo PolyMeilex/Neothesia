@@ -145,6 +145,36 @@ impl super::MenuScene {
                             ctx.config.set_note_labels(!ctx.config.note_labels());
                         }
                     });
+
+                nuon::settings_section("LUMI Hardware")
+                    .width(body_w)
+                    .build(ui, |ui, rows, spacer| {
+                        self::update_lumi_brightness(
+                            ctx,
+                            nuon::settings_row_spin()
+                                .title("LED Brightness")
+                                .subtitle(format!("{}%", (ctx.config.lumi_brightness() as f32 / 127.0 * 100.0) as u8))
+                                .id("lumi-brightness")
+                                .build(ui, rows),
+                        );
+
+                        spacer(ui);
+
+                        self::update_lumi_mode(
+                            ctx,
+                            nuon::settings_row_spin()
+                                .title("Color Mode")
+                                .subtitle(match ctx.config.lumi_color_mode() {
+                                    0 => "Rainbow",
+                                    1 => "Single Color",
+                                    2 => "Piano",
+                                    3 => "Night",
+                                    _ => "Unknown",
+                                }.to_string())
+                                .id("lumi-mode")
+                                .build(ui, rows),
+                        );
+                    });
             });
     }
 }
@@ -447,6 +477,38 @@ pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
         }
         nuon::SettingsRowSpinResult::Idle => {}
     }
+}
+
+pub fn update_lumi_brightness(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
+    use crate::lumi_controller::{lumi_send_brightness, lumi_brightness_from_u8};
+    match kind {
+        nuon::SettingsRowSpinResult::Plus => {
+            ctx.config.set_lumi_brightness(ctx.config.lumi_brightness().saturating_add(5).min(127));
+        }
+        nuon::SettingsRowSpinResult::Minus => {
+            ctx.config.set_lumi_brightness(ctx.config.lumi_brightness().saturating_sub(5));
+        }
+        nuon::SettingsRowSpinResult::Idle => { return; }
+    }
+    // Send the new brightness to hardware immediately
+    let conn = ctx.output_manager.lumi_connection();
+    lumi_send_brightness(&conn, lumi_brightness_from_u8(ctx.config.lumi_brightness()));
+}
+
+pub fn update_lumi_mode(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
+    use crate::lumi_controller::lumi_send_color_mode;
+    match kind {
+        nuon::SettingsRowSpinResult::Plus => {
+            ctx.config.set_lumi_color_mode((ctx.config.lumi_color_mode() + 1).rem_euclid(4));
+        }
+        nuon::SettingsRowSpinResult::Minus => {
+            ctx.config.set_lumi_color_mode((ctx.config.lumi_color_mode() as i8 - 1).rem_euclid(4) as u8);
+        }
+        nuon::SettingsRowSpinResult::Idle => { return; }
+    }
+    // Send the new mode to hardware immediately
+    let conn = ctx.output_manager.lumi_connection();
+    lumi_send_color_mode(&conn, ctx.config.lumi_color_mode());
 }
 
 pub fn open_soundfont_picker(data: &mut UiState) -> BoxFuture<MsgFn> {

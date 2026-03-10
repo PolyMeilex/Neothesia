@@ -68,6 +68,12 @@ impl OutputConnection {
             OutputConnection::DummyOutput => {}
         }
     }
+    pub fn send_sysex(&self, message: &[u8]) {
+        match self {
+            OutputConnection::Midi(b) => b.send_sysex(message),
+            _ => {}
+        }
+    }
     pub fn set_gain(&self, gain: f32) {
         match self {
             #[cfg(feature = "synth")]
@@ -91,6 +97,11 @@ pub struct OutputManager {
     midi_backend: Option<MidiBackend>,
 
     output_connection: (OutputDescriptor, OutputConnection),
+
+    /// Dedicated MIDI output connection used exclusively for LUMI SysEx and LED control.
+    /// Separate from the audio output so the user can keep the synth for sound
+    /// while still driving the LUMI LEDs.
+    lumi_connection: Option<midi_backend::MidiOutputConnection>,
 }
 
 impl Default for OutputManager {
@@ -124,6 +135,7 @@ impl OutputManager {
             midi_backend,
 
             output_connection: (OutputDescriptor::DummyOutput, OutputConnection::DummyOutput),
+            lumi_connection: None,
         }
     }
 
@@ -178,5 +190,45 @@ impl OutputManager {
 
     pub fn connection(&self) -> &OutputConnection {
         &self.output_connection.1
+    }
+
+    /// Open a dedicated MIDI output connection to the LUMI device.
+    /// Matches by port name (the LUMI appears with identical names on input and output).
+    /// This is independent of the main audio output connection.
+    pub fn connect_lumi_by_port_name(&mut self, port_name: &str) {
+        let Some(backend) = &self.midi_backend else { return; };
+        let outputs = backend.get_outputs();
+
+        // The LUMI port name on input and output might differ slightly; try exact match first,
+        // then substring match (e.g. "LUMI Keys" appears in both directions).
+        let found = outputs.iter().find(|o| o.to_string() == port_name)
+            .or_else(|| {
+                let lower = port_name.to_lowercase();
+                outputs.iter().find(|o| {
+                    let n = o.to_string().to_lowercase();
+                    n.contains("lumi") || lower.contains(&n) || n.contains(&lower)
+                })
+            });
+
+        if let Some(OutputDescriptor::MidiOut(info)) = found {
+            self.lumi_connection = MidiBackend::new_output_connection(info);
+            log::info!("LUMI SysEx output connected: {}", info);
+        } else {
+            log::warn!("LUMI SysEx output not found for input port: {}", port_name);
+        }
+    }
+
+    pub fn disconnect_lumi(&mut self) {
+        self.lumi_connection = None;
+    }
+
+    /// Returns the connection to use for LUMI SysEx.
+    /// Prefers the dedicated LUMI connection; falls back to the main output if it is a MIDI port.
+    pub fn lumi_connection(&self) -> OutputConnection {
+        if let Some(ref c) = self.lumi_connection {
+            return OutputConnection::Midi(c.clone());
+        }
+        // Fallback: main output if it happens to be MIDI
+        self.output_connection.1.clone()
     }
 }

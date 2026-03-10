@@ -248,7 +248,7 @@ impl PlayerStats {
 }
 
 #[derive(Debug)]
-struct NotePress {
+pub struct NotePress {
     timestamp: Instant,
 }
 
@@ -368,5 +368,9 @@ impl PlayAlong {
 
     pub fn are_required_keys_pressed(&self) -> bool {
         self.required_notes.is_empty()
+    }
+
+    pub fn get_required_notes(&self) -> &HashMap<NoteId, NotePress> {
+        &self.required_notes
     }
 }

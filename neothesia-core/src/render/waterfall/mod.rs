@@ -27,6 +27,10 @@ impl NoteList {
         }
     }
 
+    pub fn inner(&self) -> &Rc<[MidiNote]> {
+        &self.inner
+    }
+
     fn len(&self) -> usize {
         self.inner.len()
     }

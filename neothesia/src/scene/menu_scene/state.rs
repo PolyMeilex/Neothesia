@@ -124,6 +124,9 @@ fn connect_io(data: &UiState, ctx: &mut Context) {
     }
 
     if let Some(port) = data.selected_input.clone() {
+        // Auto-open a dedicated LUMI SysEx output matching the selected input port name.
+        // This mirrors how lumi-web-control works: it sets selectedOutput = same name as input.
+        ctx.output_manager.connect_lumi_by_port_name(&port.to_string());
         ctx.input_manager.connect_input(port);
     }
 }

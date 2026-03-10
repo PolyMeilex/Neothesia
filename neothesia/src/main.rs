@@ -7,6 +7,7 @@ mod output_manager;
 mod scene;
 mod song;
 mod utils;
+mod lumi_controller;
 
 use std::{sync::Arc, time::Duration};
 

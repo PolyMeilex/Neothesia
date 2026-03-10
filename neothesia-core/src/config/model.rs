@@ -52,6 +52,15 @@ impl Default for WaterfallConfig {
 pub struct PlaybackConfigV1 {
     #[serde(default = "default_speed_multiplier")]
     pub speed_multiplier: f32,
+
+    #[serde(default = "default_wait_mode")]
+    pub wait_mode: bool,
+
+    #[serde(default = "default_lumi_color_mode")]
+    pub lumi_color_mode: u8,
+
+    #[serde(default = "default_lumi_brightness")]
+    pub lumi_brightness: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -63,6 +72,9 @@ impl Default for PlaybackConfig {
     fn default() -> Self {
         Self::V1(PlaybackConfigV1 {
             speed_multiplier: default_speed_multiplier(),
+            wait_mode: default_wait_mode(),
+            lumi_color_mode: default_lumi_color_mode(),
+            lumi_brightness: default_lumi_brightness(),
         })
     }
 }
@@ -197,6 +209,18 @@ fn default_piano_range() -> (u8, u8) {
 
 fn default_speed_multiplier() -> f32 {
     1.0
+}
+
+fn default_wait_mode() -> bool {
+    false
+}
+
+fn default_lumi_color_mode() -> u8 {
+    3 // Night mode
+}
+
+fn default_lumi_brightness() -> u8 {
+    64 // 50%
 }
 
 fn default_animation_speed() -> f32 {

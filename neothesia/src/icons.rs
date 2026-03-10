@@ -24,6 +24,10 @@ pub fn pause_icon() -> &'static str {
     "\u{f4c3}"
 }
 
+pub fn hourglass_icon() -> &'static str {
+    "\u{f421}" // Hourglass
+}
+
 pub fn left_arrow_icon() -> &'static str {
     "\u{f12f}"
 }

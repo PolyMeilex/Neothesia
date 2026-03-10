@@ -243,6 +243,30 @@ impl Config {
         self.playback.speed_multiplier = speed_multiplier.max(0.0);
     }
 
+    pub fn wait_mode(&self) -> bool {
+        self.playback.wait_mode
+    }
+
+    pub fn set_wait_mode(&mut self, wait_mode: bool) {
+        self.playback.wait_mode = wait_mode;
+    }
+
+    pub fn lumi_color_mode(&self) -> u8 {
+        self.playback.lumi_color_mode
+    }
+
+    pub fn set_lumi_color_mode(&mut self, mode: u8) {
+        self.playback.lumi_color_mode = mode;
+    }
+
+    pub fn lumi_brightness(&self) -> u8 {
+        self.playback.lumi_brightness
+    }
+
+    pub fn set_lumi_brightness(&mut self, brightness: u8) {
+        self.playback.lumi_brightness = brightness;
+    }
+
     pub fn save(&self) {
         let res = ron_options().to_string_pretty(
             &Model::from_config(self.clone()),

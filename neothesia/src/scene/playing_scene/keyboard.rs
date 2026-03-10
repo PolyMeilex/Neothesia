@@ -109,9 +109,10 @@ impl Keyboard {
     pub fn user_midi_event(&mut self, message: &MidiMessage) {
         let range_start = self.range().start() as usize;
 
-        let (is_on, key) = match message {
-            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
-            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+        let (is_on, key, pressure) = match message {
+            MidiMessage::NoteOn { key, vel } => (true, key.as_int(), u8::from(*vel)),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int(), 0),
+            MidiMessage::Aftertouch { key, vel } => (true, key.as_int(), u8::from(*vel)),
             _ => return,
         };
 
@@ -119,7 +120,17 @@ impl Keyboard {
             let id = key as usize - range_start;
             let key = &mut self.renderer.key_states_mut()[id];
 
-            key.set_pressed_by_user(is_on, &self.pressed_by_user_colors);
+            // Adjust color dynamically based on pressure (0-127 mapped to 0-255)
+            // Default `base` is 127 for a standard key press.
+            let mut dynamic_color = self.pressed_by_user_colors.clone();
+            if pressure > 0 && is_on {
+                let p_fac = (pressure as f32 / 127.0).clamp(0.1, 1.0);
+                dynamic_color.base.0 = (dynamic_color.base.0 as f32 * p_fac) as u8;
+                dynamic_color.base.1 = (dynamic_color.base.1 as f32 * p_fac) as u8;
+                dynamic_color.base.2 = (dynamic_color.base.2 as f32 * p_fac) as u8;
+            }
+
+            key.set_pressed_by_user(is_on, &dynamic_color);
             self.renderer.invalidate_cache();
         }
     }

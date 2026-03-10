@@ -176,6 +176,17 @@ impl TopBar {
             .build(ui, |ui| {
                 nuon::translate().x(-30.0).add_to_current(ui);
 
+                let is_wait_mode = ctx.config.wait_mode();
+                if Self::button()
+                    .icon(icons::hourglass_icon())
+                    .color(if is_wait_mode { [56, 145, 255] } else { [67, 67, 67] })
+                    .build(ui)
+                {
+                    ctx.config.set_wait_mode(!is_wait_mode);
+                }
+
+                nuon::translate().x(-30.0).add_to_current(ui);
+
                 if Self::button()
                     .icon(if this.top_bar.settings_active {
                         icons::gear_fill_icon()

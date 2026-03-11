@@ -10,7 +10,6 @@ use winit::{
 use crate::{
     NeothesiaEvent,
     context::Context,
-    icons,
     scene::{MouseToMidiEventState, NuonRenderer, Scene, playing_scene::Keyboard},
     song::Song,
     utils::window::WinitEvent,
@@ -32,6 +31,15 @@ pub struct FreeplayScene {
     nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
     deduced_chord_name: String,
+
+    // SoundFont management
+    soundfonts: Vec<crate::output_manager::SoundFontEntry>,
+    current_soundfont_index: usize,
+
+    // Gain button hold state
+    gain_decrease_held: bool,
+    gain_increase_held: bool,
+    gain_hold_timer: f32,
 }
 
 impl FreeplayScene {
@@ -60,6 +68,13 @@ impl FreeplayScene {
             keyboard.layout(),
         ));
 
+        // Discover SoundFonts from config
+        let soundfont_folders = ctx.config.synth_config.soundfont_folders().clone();
+        let soundfonts = crate::output_manager::discover_soundfonts(&soundfont_folders);
+
+        // Determine current index from config or default to 0
+        let current_soundfont_index = ctx.config.synth_config.soundfont_index().unwrap_or(0);
+
         Self {
             keyboard,
             guidelines,
@@ -72,6 +87,11 @@ impl FreeplayScene {
             nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
             deduced_chord_name: String::new(),
+            soundfonts,
+            current_soundfont_index,
+            gain_decrease_held: false,
+            gain_increase_held: false,
+            gain_hold_timer: 0.0,
         }
     }
 
@@ -106,24 +126,267 @@ impl FreeplayScene {
     }
 
     fn update_ui(&mut self, ctx: &mut Context) {
-        nuon::label()
-            .text(&self.deduced_chord_name)
-            .font_size(25.0)
-            .y(self.keyboard.pos().y - 25.0 - 10.0)
-            .height(25.0)
-            .width(ctx.window_state.logical_size.width)
-            .build(&mut self.nuon);
+        let mut ui = std::mem::replace(&mut self.nuon, nuon::Ui::new());
+        let window_size = ctx.window_state.logical_size;
 
-        if nuon::button()
-            .size(30.0, 30.0)
-            .border_radius([5.0; 4])
-            .icon(icons::left_arrow_icon())
-            .build(&mut self.nuon)
-        {
-            ctx.proxy
-                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
-                .ok();
+        // Render ribbon background (always visible)
+        nuon::quad()
+            .size(window_size.width, 40.0)
+            .color([37, 35, 42])
+            .build(&mut ui);
+        
+        // Left panel: Back button
+        nuon::translate()
+            .x(10.0)
+            .y(5.0)
+            .build(&mut ui, |ui| {
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .icon(crate::icons::left_arrow_icon())
+                    .build(ui)
+                {
+                    ctx.proxy
+                        .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
+                        .ok();
+                }
+            });
+        
+        // Center panel: SoundFont controls
+        let soundfont_name = self.current_soundfont_name();
+        nuon::translate()
+            .x(window_size.width / 2.0 - 200.0)
+            .y(10.0)
+            .build(&mut ui, |ui| {
+                nuon::label()
+                    .text(soundfont_name)
+                    .size(400.0, 20.0)
+                    .build(ui);
+            });
+        
+        nuon::translate()
+            .x(window_size.width / 2.0 - 250.0)
+            .y(5.0)
+            .build(&mut ui, |ui| {
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .icon(crate::icons::left_arrow_icon())
+                    .build(ui)
+                {
+                    self.previous_soundfont(ctx);
+                }
+            });
+        
+        nuon::translate()
+            .x(window_size.width / 2.0 + 220.0)
+            .y(5.0)
+            .build(&mut ui, |ui| {
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .icon(crate::icons::right_arrow_icon())
+                    .build(ui)
+                {
+                    self.next_soundfont(ctx);
+                }
+            });
+        
+        // Right panel: Audio Gain controls
+        let gain = ctx.config.synth_config.audio_gain();
+        nuon::translate()
+            .x(window_size.width - 180.0)
+            .y(10.0)
+            .build(&mut ui, |ui| {
+                nuon::label()
+                    .text(format!("Gain: {:.1}", gain))
+                    .size(80.0, 20.0)
+                    .build(ui);
+            });
+        
+        nuon::translate()
+            .x(window_size.width - 100.0)
+            .y(5.0)
+            .build(&mut ui, |ui| {
+                let res = nuon::click_area("gain_decrease")
+                    .size(30.0, 30.0)
+                    .build(ui);
+
+                let color = if res.is_pressed() {
+                    [97, 97, 97]
+                } else if res.is_hovered() {
+                    [87, 87, 87]
+                } else {
+                    [67, 67, 67]
+                };
+
+                nuon::quad()
+                    .size(30.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color(color)
+                    .build(ui);
+
+                nuon::label()
+                    .icon(crate::icons::minus_icon())
+                    .size(30.0, 30.0)
+                    .build(ui);
+
+                if res.is_press_start() {
+                    self.gain_decrease_held = true;
+                    self.gain_hold_timer = 0.1; // Trigger immediately
+                    self.decrease_audio_gain(ctx);
+                } else if res.is_clicked() && !self.gain_decrease_held {
+                    self.decrease_audio_gain(ctx);
+                }
+
+                if !res.is_pressed() && self.gain_decrease_held {
+                    self.gain_decrease_held = false;
+                    self.gain_hold_timer = 0.0;
+                }
+            });
+        
+        nuon::translate()
+            .x(window_size.width - 65.0)
+            .y(5.0)
+            .build(&mut ui, |ui| {
+                let res = nuon::click_area("gain_increase")
+                    .size(30.0, 30.0)
+                    .build(ui);
+
+                let color = if res.is_pressed() {
+                    [97, 97, 97]
+                } else if res.is_hovered() {
+                    [87, 87, 87]
+                } else {
+                    [67, 67, 67]
+                };
+
+                nuon::quad()
+                    .size(30.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color(color)
+                    .build(ui);
+
+                nuon::label()
+                    .icon(crate::icons::plus_icon())
+                    .size(30.0, 30.0)
+                    .build(ui);
+
+                if res.is_press_start() {
+                    self.gain_increase_held = true;
+                    self.gain_hold_timer = 0.1; // Trigger immediately
+                    self.increase_audio_gain(ctx);
+                } else if res.is_clicked() && !self.gain_increase_held {
+                    self.increase_audio_gain(ctx);
+                }
+
+                if !res.is_pressed() && self.gain_increase_held {
+                    self.gain_increase_held = false;
+                    self.gain_hold_timer = 0.0;
+                }
+            });
+
+        self.nuon = ui;
+    }
+
+    /// Get the current SoundFont name for display
+    fn current_soundfont_name(&self) -> String {
+        if let Some(entry) = self.soundfonts.get(self.current_soundfont_index) {
+            let file_name = entry.path.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Unknown");
+            
+            let folder_name = entry.folder.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Unknown");
+            
+            let count = self.soundfonts.len();
+            if count > 0 {
+                format!("{} ({} of {}) from [{}]",
+                    file_name,
+                    self.current_soundfont_index + 1,
+                    count,
+                    folder_name
+                )
+            } else {
+                file_name.to_string()
+            }
+        } else {
+            "No SoundFont".to_string()
         }
+    }
+
+    /// Switch to previous SoundFont
+    fn previous_soundfont(&mut self, ctx: &mut Context) {
+        if self.soundfonts.is_empty() {
+            return;
+        }
+        
+        let count = self.soundfonts.len();
+        let new_index = if self.current_soundfont_index == 0 {
+            count - 1
+        } else {
+            self.current_soundfont_index - 1
+        };
+        
+        self.switch_to_soundfont_index(new_index, ctx);
+    }
+
+    /// Switch to next SoundFont
+    fn next_soundfont(&mut self, ctx: &mut Context) {
+        if self.soundfonts.is_empty() {
+            return;
+        }
+        
+        let count = self.soundfonts.len();
+        let new_index = (self.current_soundfont_index + 1) % count;
+        self.switch_to_soundfont_index(new_index, ctx);
+    }
+
+    /// Switch to a specific SoundFont by index
+    fn switch_to_soundfont_index(&mut self, index: usize, ctx: &mut Context) {
+        if let Some(entry) = self.soundfonts.get(index) {
+            self.current_soundfont_index = index;
+            
+            // Use the existing switch_soundfont method for hot-swapping
+            if let Err(e) = ctx.output_manager.switch_soundfont(&entry.path) {
+                eprintln!("Failed to switch SoundFont: {}", e);
+            }
+            
+            // Update config to persist the selection
+            ctx.config.synth_config.set_soundfont_path(Some(entry.path.clone()));
+            ctx.config.synth_config.set_soundfont_index(Some(index));
+            
+            // Save config
+            ctx.config.save();
+        }
+    }
+
+    /// Decrease audio gain
+    fn decrease_audio_gain(&mut self, ctx: &mut Context) {
+        let current = ctx.config.synth_config.audio_gain();
+        let new_gain = (current - 0.1).max(0.0);
+        ctx.config.synth_config.set_audio_gain(new_gain);
+        ctx.output_manager.connection().set_gain(new_gain);
+        let _ = ctx.config.save();
+    }
+
+    /// Increase audio gain
+    fn increase_audio_gain(&mut self, ctx: &mut Context) {
+        let current = ctx.config.synth_config.audio_gain();
+        let new_gain = current + 0.1;
+        ctx.config.synth_config.set_audio_gain(new_gain);
+        ctx.output_manager.connection().set_gain(new_gain);
+        let _ = ctx.config.save();
     }
 
     fn resize(&mut self, ctx: &mut Context) {
@@ -165,6 +428,24 @@ impl Scene for FreeplayScene {
         );
 
         self.update_ui(ctx);
+
+        // Handle continuous hold for gain buttons
+        const GAIN_HOLD_DELAY: f32 = 0.1; // Seconds between increments when held
+        let delta_secs = delta.as_secs_f32();
+
+        if self.gain_decrease_held {
+            self.gain_hold_timer += delta_secs;
+            if self.gain_hold_timer >= GAIN_HOLD_DELAY {
+                self.gain_hold_timer = 0.0;
+                self.decrease_audio_gain(ctx);
+            }
+        } else if self.gain_increase_held {
+            self.gain_hold_timer += delta_secs;
+            if self.gain_hold_timer >= GAIN_HOLD_DELAY {
+                self.gain_hold_timer = 0.0;
+                self.increase_audio_gain(ctx);
+            }
+        }
 
         super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
     }

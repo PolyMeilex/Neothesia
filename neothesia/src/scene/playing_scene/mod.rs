@@ -1,4 +1,4 @@
-use midi_file::midly::MidiMessage;
+use midi_file::midly::{MidiMessage, num::u4};
 use crate::lumi_controller::LumiController;
 use neothesia_core::render::{
     GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
@@ -43,6 +43,7 @@ pub struct PlayingScene {
 
     player: MidiPlayer,
     lumi: LumiController,
+    saved_color_mode: u8,  // Store to restore when exiting API mode
     rewind_controller: RewindController,
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
@@ -101,9 +102,11 @@ impl PlayingScene {
             ctx.config.separate_channels(),
         );
         let mut lumi = LumiController::new(ctx.output_manager.lumi_connection());
+        // IMPORTANT: Enter API mode FIRST to enable manual per-key LED control
+        // Without this, color mode patterns override our hinting commands
+        lumi.begin_api_mode();
         lumi.clear_all();
-        // Apply initial config values from settings
-        lumi.set_color_mode(ctx.config.lumi_color_mode());
+        // Brightness still works in API mode, but NOT color mode
         lumi.set_brightness(ctx.config.lumi_brightness());
         waterfall.update(player.time_without_lead_in());
 
@@ -126,6 +129,7 @@ impl PlayingScene {
             waterfall,
             player,
             lumi,
+            saved_color_mode: ctx.config.lumi_color_mode(),  // Save for later restoration
             rewind_controller: RewindController::new(),
             quad_renderer_bg,
             quad_renderer_fg,
@@ -182,7 +186,9 @@ impl PlayingScene {
         // LUMI Keys logic
         let expected_notes = self.player.play_along().get_required_notes();
         let upcoming = self.waterfall.notes();
-        let target_time = self.player.time_without_lead_in() + ctx.config.animation_offset();
+        // Use raw playback time for hinting distance (not time_without_lead_in)
+        // so hinting works correctly during the lead-in period
+        let target_time = self.player.time().as_secs_f32() + ctx.config.animation_offset();
         
         let key_states = self.keyboard.key_states();
         
@@ -208,26 +214,56 @@ impl PlayingScene {
 
             // 3. Is the key approaching in the waterfall within 2 seconds? (Hinting)
             let mut is_hinted = false;
+            if log::log_enabled!(log::Level::Debug) {
+                // Debug: show first few notes for troubleshooting
+                let debug_notes: Vec<_> = upcoming.inner().iter().take(5).collect();
+                log::debug!("Hinting check for note_id={}: target_time={:.2}, debug_notes={:?}", 
+                         note_id, target_time, debug_notes);
+            }
             for note in upcoming.inner().iter().filter(|n| n.note == note_id) {
                 if note.start.as_secs_f32() > target_time && (note.start.as_secs_f32() - target_time) < 2.0 {
                     is_hinted = true;
+                    log::debug!("HINTING note_id={} (start={:.2}, target={:.2}, diff={:.2})", 
+                             note_id, note.start.as_secs_f32(), target_time, 
+                             note.start.as_secs_f32() - target_time);
                     break;
                 }
             }
             if is_hinted {
                 self.lumi.set_key_dim(note_id, 0, 100, 255); // Dim blue
+                log::debug!("Sent hinting for note_id={}", note_id);
                 continue;
             }
-
             // 4. Otherwise, dark.
             self.lumi.clear_key(note_id);
+        }
+
+        // LUMI-specific hinting: Check all upcoming notes in LUMI's octave range (48-71)
+        // This handles notes that may not have physical keys in the current keyboard layout
+        let lumi_hint_notes: Vec<_> = upcoming
+            .inner()
+            .iter()
+            .filter(|note| {
+                // LUMI range: C3 (48) to B4 (71) = 2 octaves
+                note.note >= 48 && note.note <= 71 && 
+                note.start.as_secs_f32() > target_time && 
+                (note.start.as_secs_f32() - target_time) < 2.0
+            })
+            .map(|note| note.note)
+            .collect();
+        
+        for note_id in lumi_hint_notes {
+            self.lumi.set_key_dim(note_id, 0, 100, 255); // Dim blue hinting
+            if log::log_enabled!(log::Level::Debug) {
+                log::debug!("LUMI HINTING note_id={} (in LUMI range 48-71)", note_id);
+            }
         }
 
         self.player.time_without_lead_in() + ctx.config.animation_offset()
     }
 
     #[profiling::function]
-    fn resize(&mut self, ctx: &mut Context) {
+    fn resize(&mut self, ctx: &Context) {
         self.keyboard.resize(ctx);
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
@@ -353,7 +389,30 @@ impl Scene for PlayingScene {
         super::handle_nuon_window_event(&mut self.nuon, event, ctx);
     }
 
-    fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {
+    fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {
+        // In wait mode, trigger sound immediately when user presses a required note
+        if ctx.config.wait_mode() {
+            match message {
+                MidiMessage::NoteOn { key, .. } => {
+                    let note_id = key.as_int();
+                    if self.player.play_along_mut().is_required_note(note_id) {
+                        // User pressed a required note - play sound immediately and mark as triggered
+                        ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
+                        self.player.play_along_mut().mark_note_as_triggered(note_id);
+                    }
+                }
+                MidiMessage::NoteOff { key, .. } => {
+                    let note_id = key.as_int();
+                    if self.player.play_along_mut().was_note_triggered(note_id) {
+                        // User released a note they triggered - send NoteOff immediately
+                        ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
+                    }
+                }
+                _ => {}
+            }
+        }
+        
+        // Always update PlayAlong state and keyboard visual feedback
         self.player
             .play_along_mut()
             .midi_event(midi_player::MidiEventSource::User, message);
@@ -428,5 +487,14 @@ fn handle_settings_input(
         }
 
         toast_manager.offset_toast(ctx.config.animation_offset());
+    }
+}
+
+impl Drop for PlayingScene {
+    fn drop(&mut self) {
+        // Restore menu settings when exiting playing scene
+        log::info!("PlayingScene: Exiting, restoring LUMI menu mode {}", self.saved_color_mode);
+        self.lumi.end_api_mode();
+        self.lumi.set_color_mode(self.saved_color_mode);
     }
 }

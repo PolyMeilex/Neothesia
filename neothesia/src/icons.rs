@@ -29,7 +29,11 @@ pub fn hourglass_icon() -> &'static str {
 }
 
 pub fn left_arrow_icon() -> &'static str {
-    "\u{f12f}"
+    "\u{f284}"  // bi-chevron-left (correct!)
+}
+
+pub fn right_arrow_icon() -> &'static str {
+    "\u{f285}"  // bi-chevron-right (correct!)
 }
 
 pub fn minus_icon() -> &'static str {

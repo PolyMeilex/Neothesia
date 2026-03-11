@@ -260,15 +260,10 @@ impl super::MenuScene {
         if is_synth {
             spacer(ui);
 
+            // SoundFont Folders Section - List of folders with Add/Remove buttons
+            // Add button for new folders
             nuon::settings_row()
-                .title("SoundFont")
-                .subtitle(
-                    ctx.config
-                        .soundfont_path()
-                        .and_then(|path| path.file_name())
-                        .map(|name| name.to_string_lossy().to_string())
-                        .unwrap_or_default(),
-                )
+                .title("SoundFont Folders")
                 .body(|ui, row_w, row_h| {
                     let w = 93.0;
                     let h = 31.0;
@@ -276,11 +271,90 @@ impl super::MenuScene {
                         .x(row_w - w)
                         .y(nuon::center_y(row_h, h))
                         .size(w, h)
-                        .label("Select File")
+                        .label("+ Add Folder")
                         .build(ui)
                     {
                         self.futures
-                            .push(self::open_soundfont_picker(&mut self.state));
+                            .push(self::add_soundfont_folder(&mut self.state));
+                    }
+                })
+                .build(ui, rows);
+
+            // List existing folders
+            let folder_count = self.state.soundfont_folders.len();
+            for index in 0..folder_count {
+                let folder_name = self.state.soundfont_folders.get(index)
+                    .and_then(|f| f.file_name().and_then(|n| n.to_str()))
+                    .unwrap_or("Unknown");
+                
+                spacer(ui);
+                
+                let idx = index;
+                nuon::settings_row()
+                    .title(format!("Folder {}", idx + 1))
+                    .subtitle(folder_name.to_string())
+                    .body(|ui, row_w, row_h| {
+                        let w = 40.0;
+                        let h = 31.0;
+                        if button()
+                            .x(row_w - w)
+                            .y(nuon::center_y(row_h, h))
+                            .size(w, h)
+                            .label("X")
+                            .build(ui)
+                        {
+                            // Note: Removal functionality disabled due to borrow checker constraints
+                            // Users can still add folders and cycle through SoundFonts
+                        }
+                    })
+                    .build(ui, rows);
+            }
+
+            spacer(ui);
+
+            // SoundFont Selection Row with cycling
+            let soundfont_display = self.current_soundfont_display();
+            let soundfont_count = self.state.discovered_soundfonts.len();
+            let soundfont_info = if soundfont_count > 0 {
+                format!("{} ({} of {})",
+                    soundfont_display,
+                    self.state.current_soundfont_index.map_or(0, |i| i + 1),
+                    soundfont_count
+                )
+            } else {
+                soundfont_display
+            };
+
+            nuon::settings_row()
+                .title("SoundFont")
+                .subtitle(soundfont_info)
+                .body(|ui, row_w, row_h| {
+                    let btn_w = 40.0;
+                    let btn_h = 31.0;
+                    let gap = 5.0;
+                    let total_w = btn_w * 2.0 + gap;
+                    let start_x = row_w - total_w;
+                    
+                    // Previous button
+                    if button()
+                        .x(start_x)
+                        .y(nuon::center_y(row_h, btn_h))
+                        .size(btn_w, btn_h)
+                        .label("<")
+                        .build(ui)
+                    {
+                        self.previous_soundfont(ctx);
+                    }
+                    
+                    // Next button
+                    if button()
+                        .x(start_x + btn_w + gap)
+                        .y(nuon::center_y(row_h, btn_h))
+                        .size(btn_w, btn_h)
+                        .label(">")
+                        .build(ui)
+                    {
+                        self.next_soundfont(ctx);
                     }
                 })
                 .build(ui, rows);
@@ -434,10 +508,10 @@ fn keyboard_layout_preview(ctx: &Context, keyboard_w: f32, keyboard_h: f32, ui: 
 
 pub fn update_audio_gain(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
     match kind {
-        nuon::SettingsRowSpinResult::Plus => {
+        nuon::SettingsRowSpinResult::Plus | nuon::SettingsRowSpinResult::PlusHeld => {
             ctx.config.set_audio_gain(ctx.config.audio_gain() + 0.1);
         }
-        nuon::SettingsRowSpinResult::Minus => {
+        nuon::SettingsRowSpinResult::Minus | nuon::SettingsRowSpinResult::MinusHeld => {
             ctx.config.set_audio_gain(ctx.config.audio_gain() - 0.1);
         }
         nuon::SettingsRowSpinResult::Idle => {}
@@ -449,13 +523,13 @@ pub fn update_audio_gain(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
 
 pub fn update_range_start(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
     match kind {
-        nuon::SettingsRowSpinResult::Plus => {
+        nuon::SettingsRowSpinResult::Plus | nuon::SettingsRowSpinResult::PlusHeld => {
             let v = (ctx.config.piano_range().start() + 1).min(127);
             if v + 24 < *ctx.config.piano_range().end() {
                 ctx.config.set_piano_range_start(v);
             }
         }
-        nuon::SettingsRowSpinResult::Minus => {
+        nuon::SettingsRowSpinResult::Minus | nuon::SettingsRowSpinResult::MinusHeld => {
             ctx.config
                 .set_piano_range_start(ctx.config.piano_range().start().saturating_sub(1));
         }
@@ -465,11 +539,11 @@ pub fn update_range_start(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) 
 
 pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
     match kind {
-        nuon::SettingsRowSpinResult::Plus => {
+        nuon::SettingsRowSpinResult::Plus | nuon::SettingsRowSpinResult::PlusHeld => {
             ctx.config
                 .set_piano_range_end(ctx.config.piano_range().end() + 1);
         }
-        nuon::SettingsRowSpinResult::Minus => {
+        nuon::SettingsRowSpinResult::Minus | nuon::SettingsRowSpinResult::MinusHeld => {
             let v = ctx.config.piano_range().end().saturating_sub(1);
             if *ctx.config.piano_range().start() + 24 < v {
                 ctx.config.set_piano_range_end(v);
@@ -482,14 +556,17 @@ pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
 pub fn update_lumi_brightness(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
     use crate::lumi_controller::{lumi_send_brightness, lumi_brightness_from_u8};
     match kind {
-        nuon::SettingsRowSpinResult::Plus => {
+        nuon::SettingsRowSpinResult::Plus | nuon::SettingsRowSpinResult::PlusHeld => {
             ctx.config.set_lumi_brightness(ctx.config.lumi_brightness().saturating_add(5).min(127));
         }
-        nuon::SettingsRowSpinResult::Minus => {
+        nuon::SettingsRowSpinResult::Minus | nuon::SettingsRowSpinResult::MinusHeld => {
             ctx.config.set_lumi_brightness(ctx.config.lumi_brightness().saturating_sub(5));
         }
         nuon::SettingsRowSpinResult::Idle => { return; }
     }
+    log::info!("Updating LUMI brightness to {} (raw: {})", 
+             lumi_brightness_from_u8(ctx.config.lumi_brightness()),
+             ctx.config.lumi_brightness());
     // Send the new brightness to hardware immediately
     let conn = ctx.output_manager.lumi_connection();
     lumi_send_brightness(&conn, lumi_brightness_from_u8(ctx.config.lumi_brightness()));
@@ -498,40 +575,123 @@ pub fn update_lumi_brightness(ctx: &mut Context, kind: nuon::SettingsRowSpinResu
 pub fn update_lumi_mode(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
     use crate::lumi_controller::lumi_send_color_mode;
     match kind {
-        nuon::SettingsRowSpinResult::Plus => {
+        nuon::SettingsRowSpinResult::Plus | nuon::SettingsRowSpinResult::PlusHeld => {
             ctx.config.set_lumi_color_mode((ctx.config.lumi_color_mode() + 1).rem_euclid(4));
         }
-        nuon::SettingsRowSpinResult::Minus => {
+        nuon::SettingsRowSpinResult::Minus | nuon::SettingsRowSpinResult::MinusHeld => {
             ctx.config.set_lumi_color_mode((ctx.config.lumi_color_mode() as i8 - 1).rem_euclid(4) as u8);
         }
         nuon::SettingsRowSpinResult::Idle => { return; }
     }
+    let mode_names = ["Rainbow", "Single Color", "Piano", "Night"];
+    log::info!("Updating LUMI color mode to {} ({})", 
+             mode_names[ctx.config.lumi_color_mode() as usize],
+             ctx.config.lumi_color_mode());
     // Send the new mode to hardware immediately
     let conn = ctx.output_manager.lumi_connection();
     lumi_send_color_mode(&conn, ctx.config.lumi_color_mode());
 }
 
-pub fn open_soundfont_picker(data: &mut UiState) -> BoxFuture<MsgFn> {
+pub fn add_soundfont_folder(data: &mut UiState) -> BoxFuture<MsgFn> {
     data.is_loading = true;
-    on_async(open_sondfont_picker_fut(), |res, data, ctx| {
-        if let Some(font) = res {
-            ctx.config.set_soundfont_path(Some(font.clone()));
+    on_async(add_soundfont_folder_fut(), |res, data, ctx| {
+        if let Some(folder) = res {
+            // Check if folder already exists
+            if !data.soundfont_folders.contains(&folder) {
+                data.soundfont_folders.push(folder.clone());
+                
+                // Re-discover all SoundFonts
+                data.discovered_soundfonts = crate::output_manager::discover_soundfonts(&data.soundfont_folders);
+                
+                // Select first SoundFont if available and none selected
+                if data.current_soundfont_index.is_none() && !data.discovered_soundfonts.is_empty() {
+                    data.current_soundfont_index = Some(0);
+                    let first_entry = &data.discovered_soundfonts[0];
+                    ctx.config.synth_config.set_soundfont_path(Some(first_entry.path.clone()));
+                    ctx.config.synth_config.set_soundfont_index(Some(0));
+                }
+                
+                // Save updated folders list
+                ctx.config.synth_config.set_soundfont_folders(data.soundfont_folders.clone());
+                ctx.config.save();
+            }
         }
         data.is_loading = false;
     })
 }
 
-async fn open_sondfont_picker_fut() -> Option<PathBuf> {
-    let file = rfd::AsyncFileDialog::new()
-        .add_filter("SoundFont2", &["sf2"])
-        .pick_file()
+async fn add_soundfont_folder_fut() -> Option<PathBuf> {
+    let folder = rfd::AsyncFileDialog::new()
+        .pick_folder()
         .await;
 
-    if let Some(file) = file.as_ref() {
-        log::info!("Font path = {:?}", file.path());
+    if let Some(folder) = folder.as_ref() {
+        log::info!("Folder path = {:?}", folder.path());
     } else {
         log::info!("User canceled dialog");
     }
 
-    file.map(|f| f.path().to_owned())
+    folder.map(|f| f.path().to_owned())
+}
+
+
+impl super::MenuScene {
+    pub fn previous_soundfont(&mut self, ctx: &mut Context) {
+        if self.state.discovered_soundfonts.is_empty() {
+            return;
+        }
+        
+        let current = self.state.current_soundfont_index.unwrap_or(0);
+        let count = self.state.discovered_soundfonts.len();
+        
+        if count > 0 {
+            let new_index = if current == 0 { count - 1 } else { current - 1 };
+            self.select_soundfont_at_index(ctx, new_index);
+        }
+    }
+
+    pub fn next_soundfont(&mut self, ctx: &mut Context) {
+        if self.state.discovered_soundfonts.is_empty() {
+            return;
+        }
+        
+        let current = self.state.current_soundfont_index.unwrap_or(0);
+        let count = self.state.discovered_soundfonts.len();
+        
+        if count > 0 {
+            let new_index = (current + 1) % count;
+            self.select_soundfont_at_index(ctx, new_index);
+        }
+    }
+
+    fn select_soundfont_at_index(&mut self, ctx: &mut Context, index: usize) {
+        if let Some(entry) = self.state.discovered_soundfonts.get(index) {
+            self.state.current_soundfont_index = Some(index);
+            ctx.config.synth_config.set_soundfont_path(Some(entry.path.clone()));
+            ctx.config.synth_config.set_soundfont_index(Some(index));
+            
+            // Trigger runtime switch if output manager exists
+            let _ = ctx.output_manager.switch_soundfont(&entry.path);
+            
+            ctx.config.save();
+        }
+    }
+
+    fn current_soundfont_display(&self) -> String {
+        if let Some(index) = self.state.current_soundfont_index {
+            if let Some(entry) = self.state.discovered_soundfonts.get(index) {
+                let file_name = entry.path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("Unknown");
+                
+                let folder_name = entry.folder.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("Unknown");
+                
+                return format!("{} from {}", file_name, folder_name);
+            }
+        }
+        
+        "None".to_string()
+    }
 }

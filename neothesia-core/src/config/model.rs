@@ -104,17 +104,162 @@ pub struct SynthConfigV1 {
     pub audio_gain: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SynthConfigV2 {
+    pub soundfont_path: Option<PathBuf>,
+    pub soundfont_folders: Vec<PathBuf>,
+    pub soundfont_index: Option<usize>,
+    #[serde(default = "default_audio_gain")]
+    pub audio_gain: f32,
+}
+
+impl From<SynthConfigV1> for SynthConfigV2 {
+    fn from(v1: SynthConfigV1) -> Self {
+        Self {
+            soundfont_path: v1.soundfont_path,
+            soundfont_folders: Vec::new(),
+            soundfont_index: None,
+            audio_gain: v1.audio_gain,
+        }
+    }
+}
+
+impl Default for SynthConfigV2 {
+    fn default() -> Self {
+        Self {
+            soundfont_path: None,
+            soundfont_folders: Vec::new(),
+            soundfont_index: None,
+            audio_gain: default_audio_gain(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub enum SynthConfig {
     V1(SynthConfigV1),
+    V2(SynthConfigV2),
 }
 
 impl Default for SynthConfig {
     fn default() -> Self {
-        Self::V1(SynthConfigV1 {
-            soundfont_path: None,
-            audio_gain: default_audio_gain(),
-        })
+        Self::V2(SynthConfigV2::default())
+    }
+}
+
+impl SynthConfig {
+    pub fn soundfont_path(&self) -> Option<&PathBuf> {
+        match self {
+            SynthConfig::V1(v1) => v1.soundfont_path.as_ref(),
+            SynthConfig::V2(v2) => v2.soundfont_path.as_ref(),
+        }
+    }
+    
+    pub fn set_soundfont_path(&mut self, path: Option<PathBuf>) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                v2.soundfont_path = path;
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => v2.soundfont_path = path,
+        }
+    }
+    
+    pub fn soundfont_folders(&self) -> &Vec<PathBuf> {
+        match self {
+            SynthConfig::V1(_v1) => {
+                static EMPTY: Vec<PathBuf> = Vec::new();
+                &EMPTY
+            }
+            SynthConfig::V2(v2) => &v2.soundfont_folders,
+        }
+    }
+    
+    pub fn add_soundfont_folder(&mut self, folder: PathBuf) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                v2.soundfont_folders.push(folder);
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => v2.soundfont_folders.push(folder),
+        }
+    }
+    
+    pub fn remove_soundfont_folder(&mut self, index: usize) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                if index < v2.soundfont_folders.len() {
+                    v2.soundfont_folders.remove(index);
+                }
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => {
+                if index < v2.soundfont_folders.len() {
+                    v2.soundfont_folders.remove(index);
+                }
+            }
+        }
+    }
+    
+    pub fn clear_soundfont_folders(&mut self) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                v2.soundfont_folders.clear();
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => v2.soundfont_folders.clear(),
+        }
+    }
+    
+    pub fn set_soundfont_folders(&mut self, folders: Vec<PathBuf>) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                v2.soundfont_folders = folders;
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => v2.soundfont_folders = folders,
+        }
+    }
+    
+    pub fn soundfont_index(&self) -> Option<usize> {
+        match self {
+            SynthConfig::V1(_) => None,
+            SynthConfig::V2(v2) => v2.soundfont_index,
+        }
+    }
+    
+    pub fn set_soundfont_index(&mut self, index: Option<usize>) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                v2.soundfont_index = index;
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => v2.soundfont_index = index,
+        }
+    }
+
+    pub fn audio_gain(&self) -> f32 {
+        match self {
+            SynthConfig::V1(v1) => v1.audio_gain,
+            SynthConfig::V2(v2) => v2.audio_gain,
+        }
+    }
+
+    pub fn set_audio_gain(&mut self, gain: f32) {
+        match self {
+            SynthConfig::V1(v1) => {
+                let mut v2 = SynthConfigV2::from(v1.clone());
+                v2.audio_gain = gain;
+                *self = SynthConfig::V2(v2);
+            }
+            SynthConfig::V2(v2) => v2.audio_gain = gain,
+        }
     }
 }
 

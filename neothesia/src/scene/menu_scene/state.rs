@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::path::PathBuf;
 
 use crate::{NeothesiaEvent, context::Context, output_manager::OutputDescriptor, song::Song};
 
@@ -16,12 +17,23 @@ pub struct UiState {
     pub song: Option<Song>,
 
     page_stack: VecDeque<Page>,
+
+    // SoundFont folder management
+    pub soundfont_folders: Vec<PathBuf>,
+    pub discovered_soundfonts: Vec<crate::output_manager::SoundFontEntry>,
+    pub current_soundfont_index: Option<usize>,
 }
 
 impl UiState {
-    pub fn new(_ctx: &Context, song: Option<Song>) -> Self {
+    pub fn new(ctx: &Context, song: Option<Song>) -> Self {
         let mut page_stack = VecDeque::new();
         page_stack.push_front(Page::Main);
+
+        let soundfont_folders = ctx.config.synth_config.soundfont_folders().clone();
+        let current_soundfont_index = ctx.config.synth_config.soundfont_index();
+
+        // Discover SoundFonts from all folders
+        let discovered_soundfonts = crate::output_manager::discover_soundfonts(&soundfont_folders);
 
         Self {
             outputs: Vec::new(),
@@ -32,6 +44,9 @@ impl UiState {
             song,
 
             page_stack,
+            soundfont_folders,
+            discovered_soundfonts,
+            current_soundfont_index,
         }
     }
 
@@ -91,12 +106,24 @@ impl UiState {
                 .iter()
                 .find(|input| Some(input.to_string().as_str()) == ctx.config.input())
             {
+                log::info!("Auto-selecting MIDI input: '{}'", input.to_string());
                 self.selected_input = Some(input.clone());
+                // Immediately connect LUMI SysEx output when input is selected
+                let port_name = input.to_string();
+                log::info!("Connecting LUMI SysEx for input port: '{}'", port_name);
+                ctx.output_manager.connect_lumi_by_port_name(&port_name);
             } else {
-                self.selected_input = self.inputs.first().cloned();
+                if let Some(first) = self.inputs.first() {
+                    log::info!("Selecting first available MIDI input: '{}'", first.to_string());
+                    self.selected_input = Some(first.clone());
+                    // Immediately connect LUMI SysEx output for first available input
+                    let port_name = first.to_string();
+                    log::info!("Connecting LUMI SysEx for input port: '{}'", port_name);
+                    ctx.output_manager.connect_lumi_by_port_name(&port_name);
+                }
             }
-        }
-    }
+}
+}
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -124,9 +151,8 @@ fn connect_io(data: &UiState, ctx: &mut Context) {
     }
 
     if let Some(port) = data.selected_input.clone() {
-        // Auto-open a dedicated LUMI SysEx output matching the selected input port name.
-        // This mirrors how lumi-web-control works: it sets selectedOutput = same name as input.
-        ctx.output_manager.connect_lumi_by_port_name(&port.to_string());
+        // LUMI SysEx output is already connected when input was selected in tick()
+        // Just connect the regular input for MIDI note events
         ctx.input_manager.connect_input(port);
     }
 }

@@ -1,6 +1,15 @@
+use std::collections::HashMap;
 use std::hash::Hash;
+use std::sync::Mutex;
+use std::sync::LazyLock;
+use std::time::{Duration, Instant};
 
 use crate::{self as nuon, Id, TextJustify, Ui};
+
+// Global state for tracking button hold across build() calls
+static BUTTON_HOLD_STATE: LazyLock<Mutex<HashMap<u64, ButtonHoldState>>> = LazyLock::new(|| {
+    Mutex::new(HashMap::new())
+});
 
 pub struct SettingsSection {
     label: String,
@@ -165,7 +174,76 @@ pub fn settings_row<'a>() -> SettingsRow<'a> {
 pub enum SettingsRowSpinResult {
     Plus,
     Minus,
+    PlusHeld,
+    MinusHeld,
     Idle,
+}
+
+/// State for tracking button hold timing
+#[derive(Debug)]
+struct ButtonHoldState {
+    pressed_at: Option<Instant>,
+    last_repeat_at: Option<Instant>,
+    is_holding_plus: bool,
+    is_holding_minus: bool,
+}
+
+impl Default for ButtonHoldState {
+    fn default() -> Self {
+        Self {
+            pressed_at: None,
+            last_repeat_at: None,
+            is_holding_plus: false,
+            is_holding_minus: false,
+        }
+    }
+}
+
+impl ButtonHoldState {
+    const INITIAL_DELAY: Duration = Duration::from_millis(300);
+    const REPEAT_RATE: Duration = Duration::from_millis(50);
+
+    fn reset(&mut self) {
+        self.pressed_at = None;
+        self.last_repeat_at = None;
+        self.is_holding_plus = false;
+        self.is_holding_minus = false;
+    }
+
+    fn start_holding_plus(&mut self) {
+        self.reset();
+        self.is_holding_plus = true;
+        self.pressed_at = Some(Instant::now());
+        self.last_repeat_at = Some(Instant::now());
+    }
+
+    fn start_holding_minus(&mut self) {
+        self.reset();
+        self.is_holding_minus = true;
+        self.pressed_at = Some(Instant::now());
+        self.last_repeat_at = Some(Instant::now());
+    }
+
+    fn check_repeat(&mut self, _is_plus: bool) -> bool {
+        let now = Instant::now();
+        
+        if let Some(pressed_at) = self.pressed_at {
+            let elapsed = now.duration_since(pressed_at);
+            
+            // Check if we should trigger a repeat
+            if elapsed >= Self::INITIAL_DELAY {
+                if let Some(last_repeat) = self.last_repeat_at {
+                    let since_last_repeat = now.duration_since(last_repeat);
+                    if since_last_repeat >= Self::REPEAT_RATE {
+                        self.last_repeat_at = Some(now);
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        false
+    }
 }
 
 pub struct SettingsRowSpin<'a> {
@@ -234,6 +312,11 @@ impl<'a> SettingsRowSpin<'a> {
             "-minus".hash(h);
         });
 
+        // Get the state key for this spin button
+        let state_key = Id::hash(&self.id).as_raw();
+
+        // Note: Button release is handled in the else branches below
+
         self.row
             .body(|ui, row_w, row_h| {
                 let w = 30.0;
@@ -242,27 +325,94 @@ impl<'a> SettingsRowSpin<'a> {
 
                 nuon::translate().x(row_w - w).add_to_current(ui);
 
-                if button()
+                // Plus button
+                let plus_clicked = button()
                     .id(plus_id)
                     .y(nuon::center_y(row_h, h))
                     .size(w, h)
                     .icon(plus_icon())
-                    .build(ui)
-                {
-                    res = SettingsRowSpinResult::Plus;
+                    .build(ui);
+
+                // Handle plus button click and hold
+                // plus_clicked is true only on PressEnd (mouse release), so we need to also
+                // check ui.active to detect when button is being held
+                let plus_pressed = ui.active == Some(plus_id);
+                
+                if plus_pressed {
+                    let mut state_map = BUTTON_HOLD_STATE.lock().unwrap();
+                    let state = state_map.entry(state_key).or_default();
+                    
+                    // If not already holding plus, start holding
+                    if !state.is_holding_plus {
+                        state.start_holding_plus();
+                        res = SettingsRowSpinResult::Plus;
+                    } else if state.check_repeat(true) {
+                        // Already holding, check if we should trigger repeat
+                        res = SettingsRowSpinResult::PlusHeld;
+                    }
+                } else if plus_clicked {
+                    // This is a fresh click (press + release), but the press already
+                    // triggered a value change. We just need to reset hold state.
+                    // The value was already changed when the button was first pressed.
+                    let mut state_map = BUTTON_HOLD_STATE.lock().unwrap();
+                    if let Some(state) = state_map.get_mut(&state_key) {
+                        state.reset();
+                    }
+                } else {
+                    // Button not pressed - check if we should reset hold state
+                    let mut state_map = BUTTON_HOLD_STATE.lock().unwrap();
+                    if let Some(state) = state_map.get_mut(&state_key) {
+                        if state.is_holding_plus {
+                            // Button was being held but is no longer pressed
+                            state.reset();
+                        }
+                    }
                 }
 
                 nuon::translate().x(-w).add_to_current(ui);
                 nuon::translate().x(-gap).add_to_current(ui);
 
-                if button()
+                // Minus button
+                let minus_clicked = button()
                     .id(minus_id)
                     .y(nuon::center_y(row_h, h))
                     .size(w, h)
                     .icon(minus_icon())
-                    .build(ui)
-                {
-                    res = SettingsRowSpinResult::Minus;
+                    .build(ui);
+
+                // Handle minus button click and hold
+                // minus_clicked is true only on PressEnd (mouse release), so we need to also
+                // check ui.active to detect when button is being held
+                let minus_pressed = ui.active == Some(minus_id);
+                
+                if minus_pressed {
+                    let mut state_map = BUTTON_HOLD_STATE.lock().unwrap();
+                    let state = state_map.entry(state_key).or_default();
+                    
+                    // If not already holding minus, start holding
+                    if !state.is_holding_minus {
+                        state.start_holding_minus();
+                        res = SettingsRowSpinResult::Minus;
+                    } else if state.check_repeat(false) {
+                        // Already holding, check if we should trigger repeat
+                        res = SettingsRowSpinResult::MinusHeld;
+                    }
+                } else if minus_clicked {
+                    // This is a fresh click (press + release), but the press already
+                    // triggered a value change. We just need to reset hold state.
+                    let mut state_map = BUTTON_HOLD_STATE.lock().unwrap();
+                    if let Some(state) = state_map.get_mut(&state_key) {
+                        state.reset();
+                    }
+                } else {
+                    // Button not pressed - check if we should reset hold state
+                    let mut state_map = BUTTON_HOLD_STATE.lock().unwrap();
+                    if let Some(state) = state_map.get_mut(&state_key) {
+                        if state.is_holding_minus {
+                            // Button was being held but is no longer pressed
+                            state.reset();
+                        }
+                    }
                 }
             })
             .build(ui, add);

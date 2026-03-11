@@ -83,10 +83,12 @@ impl MidiOutputConnection {
     }
 
     pub fn send_sysex(&self, message: &[u8]) {
+        log::debug!("Sending MIDI SysEx: {:02X?} ({} bytes)", message, message.len());
         let inner = &mut *self.inner.borrow_mut();
-        inner.conn.send(message).ok();
+        if let Err(e) = inner.conn.send(message) {
+            log::error!("Failed to send MIDI SysEx: {:?} - Message: {:02X?}", e, message);
+        }
     }
-
     pub fn stop_all(&self) {
         let inner = &mut *self.inner.borrow_mut();
         for note in std::mem::take(&mut inner.active_notes).iter() {

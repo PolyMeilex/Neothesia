@@ -1761,6 +1761,7 @@ name = "nuon"
 version = "0.1.0"
 dependencies = [
  "euclid",
+ "log",
  "neothesia-image",
 ]
 

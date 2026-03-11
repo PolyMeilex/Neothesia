@@ -65,8 +65,8 @@ fn build_sysex_msg(payload: &[u8; 8]) -> Vec<u8> {
     let mut msg = Vec::with_capacity(13);
     msg.push(0xF0);
     msg.extend_from_slice(&ROLI_MANUFACTURER_ID); // 00 21 10
-    msg.push(0x77);
-    msg.push(0x37);
+    msg.push(0x77);  // ROLI block signature
+    msg.push(0x00);  // topologyIndex - 0x00 for all blocks/single device like LUMI
     msg.extend_from_slice(payload);
     msg.push(checksum);
     msg.push(0xF7);
@@ -76,6 +76,7 @@ fn build_sysex_msg(payload: &[u8; 8]) -> Vec<u8> {
 /// Send a Night-Mode / color-mode command immediately to the connected LUMI.
 /// `mode`: 0=Rainbow, 1=Single Color, 2=Piano, 3=Night
 pub fn lumi_send_color_mode(connection: &crate::output_manager::OutputConnection, mode: u8) {
+    log::info!("Sending LUMI color mode: {}", mode);
     let mut bits = BitArray::new();
     bits.append(0x10, 7);
     bits.append(0x40, 7);
@@ -84,13 +85,15 @@ pub fn lumi_send_color_mode(connection: &crate::output_manager::OutputConnection
     let v = bits.get_padded_8bytes();
     let mut arr = [0u8; 8];
     arr.copy_from_slice(&v[..8]);
-    connection.send_sysex(&build_sysex_msg(&arr));
+    let msg = build_sysex_msg(&arr);
+    log::debug!("Sending SysEx: {:02X?}", msg);  // Show as hex for easier comparison
+    connection.send_sysex(&msg);
 }
-
 /// Send a brightness command immediately.
 /// `value`: 0-100 (percent), matching SYSEX.txt range.
 /// Use `lumi_brightness_from_u8(raw)` to convert from a 0-127 UI slider value.
 pub fn lumi_send_brightness(connection: &crate::output_manager::OutputConnection, value_0_100: u8) {
+    log::info!("Sending LUMI brightness: {}%", value_0_100);
     let mut bits = BitArray::new();
     bits.append(0x10, 7);
     bits.append(0x40, 7);
@@ -99,7 +102,9 @@ pub fn lumi_send_brightness(connection: &crate::output_manager::OutputConnection
     let v = bits.get_padded_8bytes();
     let mut arr = [0u8; 8];
     arr.copy_from_slice(&v[..8]);
-    connection.send_sysex(&build_sysex_msg(&arr));
+    let msg = build_sysex_msg(&arr);
+    log::debug!("Sending SysEx: {:02X?}", msg);
+    connection.send_sysex(&msg);
 }
 
 /// Convert a UI slider value (0-127) to the 0-100 range expected by the LUMI hardware.
@@ -142,12 +147,41 @@ impl LumiController {
         msg.push(0xF0);
         msg.extend_from_slice(&ROLI_MANUFACTURER_ID);  // 00 21 10
         msg.push(0x77);
-        msg.push(0x37);
+        msg.push(0x00);  // topologyIndex - 0x00 for all blocks/single device like LUMI
         msg.extend_from_slice(payload);
         msg.push(checksum);
         msg.push(0xF7);
         self.connection.send_sysex(&msg);
     }
+    // -----------------------------------------------------------------------
+    // API Mode Control - Enable/disable manual per-key LED control
+    // -----------------------------------------------------------------------
+
+    /// Enter API mode to enable manual per-key LED control.
+    /// This MUST be called before sending per-key color commands during gameplay.
+    /// Otherwise, automatic color modes (Rainbow/Piano/Night) will override manual commands.
+    ///
+    /// SysEx: F0 00 21 10 77 00 01 00 00 00 00 00 00 00 08 F7
+    /// From SYSEX.txt: deviceCommandMessage beginAPIMode = 0x00
+    pub fn begin_api_mode(&mut self) {
+        log::info!("LUMI: Entering API mode (manual per-key control enabled)");
+        let payload = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        self.send_sysex_command(&payload);
+    }
+
+    /// Exit API mode to return to automatic color patterns.
+    /// Restores the color mode (Rainbow/Piano/Night) that was active before entering API mode.
+    /// Call this when returning to menu scene.
+    ///
+    /// SysEx: F0 00 21 10 77 00 01 02 00 00 00 00 00 00 45 F7
+    /// From SYSEX.txt: deviceCommandMessage endAPIMode = 0x02
+    pub fn end_api_mode(&mut self) {
+        log::info!("LUMI: Exiting API mode (returning to automatic color patterns)");
+        let payload = [0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        self.send_sysex_command(&payload);
+    }
+
+
 
     // -----------------------------------------------------------------------
     // Global device configuration
@@ -232,9 +266,10 @@ impl LumiController {
         self.send_key_color_cmd(key_index, r, g, b);
     }
 
-    /// Same as `set_key_color` but at ~40% brightness (soft hint).
+    /// Same as `set_key_color` but at ~60% brightness (visible hint).
     pub fn set_key_dim(&mut self, note: u8, r: u8, g: u8, b: u8) {
-        self.set_key_color(note, r.saturating_mul(2) / 5, g.saturating_mul(2) / 5, b.saturating_mul(2) / 5);
+        // Changed from 2/5 (40%) to 3/5 (60%) for better visibility
+        self.set_key_color(note, r.saturating_mul(3) / 5, g.saturating_mul(3) / 5, b.saturating_mul(3) / 5);
     }
 
     /// Turn off an individual key LED.
@@ -249,7 +284,9 @@ impl LumiController {
 
     /// Clear all LEDs (send black to every key).
     pub fn clear_all(&mut self) {
+        // Force re-send by resetting cache to ensure all keys go black
         for note in 48u8..=71 {
+            self.key_colors[note as usize] = None; // Reset cache first
             self.clear_key(note);
         }
     }

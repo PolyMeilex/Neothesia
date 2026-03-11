@@ -6,7 +6,7 @@ pub use model::ColorSchemaV1;
 use model::{
     AppearanceConfig, AppearanceConfigV1, DevicesConfig, DevicesConfigV1, History, HistoryV1,
     LayoutConfig, LayoutConfigV1, Model, PlaybackConfig, PlaybackConfigV1, SynthConfig,
-    SynthConfigV1, WaterfallConfig, WaterfallConfigV1,
+    WaterfallConfig, WaterfallConfigV1,
 };
 
 fn ron_options() -> ron::Options {
@@ -41,7 +41,7 @@ impl Model {
             waterfall,
             devices,
             history,
-            synth,
+            synth_config,
             keyboard_layout,
             appearance,
         } = config;
@@ -50,7 +50,7 @@ impl Model {
             waterfall: WaterfallConfig::V1(waterfall),
             playback: PlaybackConfig::V1(playback),
             history: History::V1(history),
-            synth: SynthConfig::V1(synth),
+            synth: synth_config,
             keyboard_layout: LayoutConfig::V1(keyboard_layout),
             devices: DevicesConfig::V1(devices),
             appearance: AppearanceConfig::V1(appearance),
@@ -71,9 +71,7 @@ impl Model {
             devices: match self.devices {
                 DevicesConfig::V1(v) => v,
             },
-            synth: match self.synth {
-                SynthConfig::V1(v) => v,
-            },
+            synth_config: self.synth,
             history: match self.history {
                 History::V1(v) => v,
             },
@@ -90,7 +88,7 @@ pub struct Config {
     waterfall: WaterfallConfigV1,
     appearance: AppearanceConfigV1,
     devices: DevicesConfigV1,
-    synth: SynthConfigV1,
+    pub synth_config: SynthConfig,
     history: HistoryV1,
     keyboard_layout: LayoutConfigV1,
 }
@@ -159,11 +157,11 @@ impl Config {
     }
 
     pub fn soundfont_path(&self) -> Option<&PathBuf> {
-        self.synth.soundfont_path.as_ref()
+        self.synth_config.soundfont_path()
     }
 
     pub fn set_soundfont_path(&mut self, soundfont_path: Option<PathBuf>) {
-        self.synth.soundfont_path = soundfont_path;
+        self.synth_config.set_soundfont_path(soundfont_path);
     }
 
     pub fn output(&self) -> Option<&str> {
@@ -199,11 +197,17 @@ impl Config {
     }
 
     pub fn audio_gain(&self) -> f32 {
-        self.synth.audio_gain
+        match &self.synth_config {
+            SynthConfig::V1(v1) => v1.audio_gain,
+            SynthConfig::V2(v2) => v2.audio_gain,
+        }
     }
 
     pub fn set_audio_gain(&mut self, gain: f32) {
-        self.synth.audio_gain = gain.max(0.0);
+        match &mut self.synth_config {
+            SynthConfig::V1(v1) => v1.audio_gain = gain.max(0.0),
+            SynthConfig::V2(v2) => v2.audio_gain = gain.max(0.0),
+        }
     }
 
     pub fn animation_offset(&self) -> f32 {

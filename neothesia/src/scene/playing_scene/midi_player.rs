@@ -54,9 +54,13 @@ impl MidiPlayer {
     pub fn update(&mut self, delta: Duration) -> Vec<&midi_file::MidiEvent> {
         self.play_along.update();
 
-        let events = self.playback.update(delta);
+        // Collect triggered notes before borrowing events
+        let triggered_notes: std::collections::HashSet<u8> = 
+            self.play_along.user_triggered_notes.clone();
 
-        events.iter().for_each(|event| {
+        let events: Vec<_> = self.playback.update(delta);
+
+        for event in &events {
             let config = &self.song.config.tracks[event.track_id];
 
             let channel = if self.separate_channels {
@@ -66,23 +70,40 @@ impl MidiPlayer {
             };
             match config.player {
                 PlayerConfig::Auto => {
-                    self.output // TODO: Send to multiple outputs
-                        .midi_event(u4::new(channel), event.message);
+                    // Skip if user already triggered this note in wait mode
+                    if !Self::should_skip_event_with_set(&triggered_notes, &event.message) {
+                        self.output
+                            .midi_event(u4::new(channel), event.message);
+                    }
                 }
                 PlayerConfig::Human => {
                     // Let's play the sound, in case the user does not want it they can just set
                     // no-output output in settings
                     // TODO: Perhaps play on midi-in instead
-                    self.output
-                        .midi_event(u4::new(event.channel), event.message);
+                    // Skip if user already triggered this note in wait mode
+                    if !Self::should_skip_event_with_set(&triggered_notes, &event.message) {
+                        self.output
+                            .midi_event(u4::new(event.channel), event.message);
+                    }
                     self.play_along
                         .midi_event(MidiEventSource::File, &event.message);
                 }
                 PlayerConfig::Mute => {}
             }
-        });
+        }
 
         events
+    }
+
+    /// Helper to check if an event should be skipped, using a pre-collected set of triggered notes.
+    fn should_skip_event_with_set(triggered_notes: &std::collections::HashSet<u8>, 
+                                  message: &midi_file::midly::MidiMessage) -> bool {
+        match message {
+            midi_file::midly::MidiMessage::NoteOn { key, .. } => {
+                triggered_notes.contains(&key.as_int())
+            }
+            _ => false,
+        }
     }
 
     fn clear(&mut self) {
@@ -263,10 +284,11 @@ pub struct PlayAlong {
     user_pressed_recently: HashMap<NoteId, NotePress>,
     /// File notes that had NoteOn event, but no NoteOff yet
     in_proggres_file_notes: HashSet<NoteId>,
+    /// Notes that were already played by the user in wait mode (to avoid double-trigger)
+    user_triggered_notes: HashSet<NoteId>,
 
     stats: PlayerStats,
 }
-
 impl PlayAlong {
     fn new(user_keyboard_range: piano_layout::KeyboardRange) -> Self {
         Self {
@@ -274,6 +296,7 @@ impl PlayAlong {
             required_notes: Default::default(),
             user_pressed_recently: Default::default(),
             in_proggres_file_notes: Default::default(),
+            user_triggered_notes: Default::default(),
             stats: PlayerStats::default(),
         }
     }
@@ -364,6 +387,7 @@ impl PlayAlong {
         self.required_notes.clear();
         self.user_pressed_recently.clear();
         self.in_proggres_file_notes.clear();
+        self.user_triggered_notes.clear();
     }
 
     pub fn are_required_keys_pressed(&self) -> bool {
@@ -372,5 +396,21 @@ impl PlayAlong {
 
     pub fn get_required_notes(&self) -> &HashMap<NoteId, NotePress> {
         &self.required_notes
+    }
+
+    /// Check if a user key press matches a required note in wait mode.
+    /// Returns true if the note is required, without consuming it.
+    pub fn is_required_note(&self, note_id: u8) -> bool {
+        self.required_notes.contains_key(&note_id)
+    }
+
+    /// Mark a note as having been triggered by the user in wait mode.
+    pub fn mark_note_as_triggered(&mut self, note_id: u8) {
+        self.user_triggered_notes.insert(note_id);
+    }
+
+    /// Check if a note was already triggered by the user.
+    pub fn was_note_triggered(&self, note_id: u8) -> bool {
+        self.user_triggered_notes.contains(&note_id)
     }
 }

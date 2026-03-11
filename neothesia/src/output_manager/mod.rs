@@ -9,7 +9,8 @@ use synth_backend::SynthBackend;
 
 use std::{
     fmt::{self, Display, Formatter},
-    path::PathBuf,
+    fs,
+    path::{Path, PathBuf},
 };
 
 use midi_file::midly::{MidiMessage, num::u4};
@@ -196,25 +197,47 @@ impl OutputManager {
     /// Matches by port name (the LUMI appears with identical names on input and output).
     /// This is independent of the main audio output connection.
     pub fn connect_lumi_by_port_name(&mut self, port_name: &str) {
-        let Some(backend) = &self.midi_backend else { return; };
+        log::info!("Attempting to connect LUMI SysEx output for input port: '{}'", port_name);
+        let Some(backend) = &self.midi_backend else { 
+            log::error!("No MIDI backend available!");
+            return; 
+        };
         let outputs = backend.get_outputs();
+        
+        log::debug!("Available MIDI outputs: {}", 
+                   outputs.iter().map(|o| o.to_string()).collect::<Vec<_>>().join(", "));
 
         // The LUMI port name on input and output might differ slightly; try exact match first,
         // then substring match (e.g. "LUMI Keys" appears in both directions).
         let found = outputs.iter().find(|o| o.to_string() == port_name)
             .or_else(|| {
+                log::debug!("No exact match, trying substring match for '{}'", port_name);
                 let lower = port_name.to_lowercase();
                 outputs.iter().find(|o| {
                     let n = o.to_string().to_lowercase();
-                    n.contains("lumi") || lower.contains(&n) || n.contains(&lower)
+                    let matches = n.contains("lumi") || lower.contains(&n) || n.contains(&lower);
+                    if matches {
+                        log::debug!("Substring match: '{}' contains '{}'", n, lower);
+                    }
+                    matches
                 })
             });
 
         if let Some(OutputDescriptor::MidiOut(info)) = found {
-            self.lumi_connection = MidiBackend::new_output_connection(info);
-            log::info!("LUMI SysEx output connected: {}", info);
+            log::info!("Found LUMI output port: {}", info);
+            match MidiBackend::new_output_connection(info) {
+                Some(conn) => {
+                    self.lumi_connection = Some(conn);
+                    log::info!("LUMI SysEx output connected: {}", info);
+                }
+                None => {
+                    log::error!("Failed to connect to LUMI SysEx output: {}", info);
+                }
+            }
         } else {
-            log::warn!("LUMI SysEx output not found for input port: {}", port_name);
+            log::warn!("LUMI SysEx output not found for input port: '{}'", port_name);
+            log::warn!("Available outputs: {}", 
+                       outputs.iter().map(|o| o.to_string()).collect::<Vec<_>>().join(", "));
         }
     }
 
@@ -226,9 +249,95 @@ impl OutputManager {
     /// Prefers the dedicated LUMI connection; falls back to the main output if it is a MIDI port.
     pub fn lumi_connection(&self) -> OutputConnection {
         if let Some(ref c) = self.lumi_connection {
+            log::debug!("Using dedicated LUMI connection");
             return OutputConnection::Midi(c.clone());
         }
         // Fallback: main output if it happens to be MIDI
+        log::warn!("No dedicated LUMI connection, falling back to main output");
         self.output_connection.1.clone()
     }
+
+    /// Switch to a different SoundFont during playback
+    pub fn switch_soundfont(&mut self, new_path: &Path) -> Result<(), String> {
+        // Store current state
+        let was_connected = self.output_connection.0.is_not_dummy();
+        let descriptor = self.output_connection.0.clone();
+        
+        // Disconnect if connected
+        if was_connected {
+            self.connect(OutputDescriptor::DummyOutput);
+        }
+        
+        // Update the path in the descriptor
+        let new_descriptor = match descriptor {
+            #[cfg(feature = "synth")]
+            OutputDescriptor::Synth(_) => OutputDescriptor::Synth(Some(new_path.to_path_buf())),
+            _ => return Err("Cannot switch SoundFont on non-synth output".to_string()),
+        };
+        
+        // Reconnect if it was connected before
+        if was_connected {
+            self.connect(new_descriptor);
+        }
+        
+        Ok(())
+    }
+}
+
+/// SoundFont entry with source folder information
+#[derive(Clone, Debug)]
+pub struct SoundFontEntry {
+    pub path: PathBuf,
+    pub folder: PathBuf,
+}
+
+/// Discover all .sf2 files in multiple folders
+pub fn discover_soundfonts(folders: &[PathBuf]) -> Vec<SoundFontEntry> {
+    let mut soundfonts = Vec::new();
+    
+    // Iterate through folders in order
+    for folder in folders {
+        if !folder.is_dir() {
+            log::warn!("Skipping non-directory folder: {:?}", folder);
+            continue;
+        }
+        
+        let entries = match fs::read_dir(folder) {
+            Ok(entries) => entries,
+            Err(e) => {
+                log::warn!("Failed to read folder {:?}: {}", folder, e);
+                continue;
+            }
+        };
+        
+        // Collect all .sf2 files from this folder
+        let mut folder_soundfonts = Vec::new();
+        for entry in entries {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    log::warn!("Failed to read entry in {:?}: {}", folder, e);
+                    continue;
+                }
+            };
+            
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("sf2") {
+                folder_soundfonts.push(path);
+            }
+        }
+        
+        // Sort files within this folder
+        folder_soundfonts.sort();
+        
+        // Create SoundFontEntry for each file with its source folder
+        for path in folder_soundfonts {
+            soundfonts.push(SoundFontEntry {
+                path,
+                folder: folder.clone(),
+            });
+        }
+    }
+    
+    soundfonts
 }

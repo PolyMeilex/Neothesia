@@ -55,6 +55,7 @@ impl MidiPlayer {
                 channel,
                 mode: ChannelMode::Listen,
                 active: true,
+                interactive: channel != 9, // Channel 9 is drums - not interactive
             })
     }
 
@@ -112,7 +113,11 @@ impl MidiPlayer {
             }
 
             // Update play-along state for file notes (for progression and wait mode logic)
-            self.play_along.midi_event(MidiEventSource::File, &event.message);
+            // Only interactive channels participate in wait mode - non-interactive channels
+            // (like drums, channel 9) play automatically without requiring user input
+            if channel_config.interactive {
+                self.play_along.midi_event(MidiEventSource::File, &event.message);
+            }
 
             // Process audio based on mode
             match channel_config.mode {

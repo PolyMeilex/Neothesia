@@ -149,6 +149,7 @@ impl Keyboard {
                 channel: e.channel,
                 mode: crate::song::ChannelMode::Listen,
                 active: true,
+                interactive: true,
             };
             let channel_config = track.channels
                 .iter()

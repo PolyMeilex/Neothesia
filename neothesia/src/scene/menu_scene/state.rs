@@ -234,6 +234,16 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
             
             for channel_config in track_config.channels.iter_mut() {
                 let notes = channel_notes.get(&channel_config.channel);
+                
+                // Only activate channels that have notes in this track
+                let has_notes = notes.map(|n| !n.is_empty()).unwrap_or(false);
+                
+                if !has_notes {
+                    // Channel has no notes - deactivate it
+                    channel_config.active = false;
+                    continue;
+                }
+                
                 let avg_note = notes.and_then(|n| {
                     if n.is_empty() { None } else {
                         Some(n.iter().map(|&m| m as f32).sum::<f32>() / n.len() as f32)
@@ -242,7 +252,7 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
                 
                 match hand_selection {
                     HandSelection::Left => {
-                        channel_config.active = avg_note < 60.0 || notes.map(|n| n.is_empty()).unwrap_or(true);
+                        channel_config.active = avg_note < 60.0;
                     }
                     HandSelection::Right => {
                         channel_config.active = avg_note >= 60.0;

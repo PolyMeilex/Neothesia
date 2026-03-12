@@ -311,7 +311,7 @@ impl MenuScene {
             });
 
         nuon::translate()
-            .x(nuon::center_x(win_w, w))
+            .x(win_w / 2.0)
             .y(win_h / 3.5)
             .build(ui, |ui| {
                 nuon::label()
@@ -319,9 +319,12 @@ impl MenuScene {
                     .size(w, 30.0)
                     .font_size(18.0)
                     .build(ui);
-            
-                nuon::translate().y(40.0).add_to_current(ui);
-                
+            });
+
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(win_h / 3.5 + 40.0)
+            .build(ui, |ui| {
                 let btn_w = (win_w / 4.0).min(160.0).max(100.0);
                 let btn_h = 50.0;
                 let btn_gap = 10.0;
@@ -370,7 +373,7 @@ impl MenuScene {
                     PlayMode::Play => "Play along freely",
                 };
                 nuon::label()
-                    .x(nuon::center_x(win_w, w) - win_w / 2.0)
+                    .x(-w / 2.0)
                     .text(desc)
                     .size(w, 25.0)
                     .font_size(14.0)
@@ -378,7 +381,7 @@ impl MenuScene {
             });
 
         nuon::translate()
-            .x(nuon::center_x(win_w, w))
+            .x(win_w / 2.0)
             .y(win_h / 2.0 + 40.0)
             .build(ui, |ui| {
                 nuon::label()
@@ -386,9 +389,12 @@ impl MenuScene {
                     .size(w, 30.0)
                     .font_size(18.0)
                     .build(ui);
-                
-                nuon::translate().y(40.0).add_to_current(ui);
-                
+            });
+
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(win_h / 2.0 + 80.0)
+            .build(ui, |ui| {
                 let btn_w = (win_w / 4.0).min(120.0).max(80.0);
                 let btn_h = 45.0;
                 let btn_gap = 10.0;

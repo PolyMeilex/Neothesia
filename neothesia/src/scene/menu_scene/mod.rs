@@ -213,7 +213,7 @@ impl MenuScene {
 
                         // Only show Play Mode button when a song is loaded
                         if self.state.song().is_some() {
-                            if neo_btn().size(w, h).label("Play Mode").icon(icons::gear_icon()).build(ui) {
+                            if neo_btn().size(w, h).label("Play Mode").build(ui) {
                                 self.state.go_to(Page::PlayMode);
                             }
                             nuon::translate().y(h + gap).add_to_current(ui);
@@ -294,7 +294,7 @@ impl MenuScene {
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
 
-        let w = 450.0;
+        let w = win_w.min(500.0);  // Max width 500, but responsive
         let _h = 60.0;
         let _gap = 8.0;
         let _section_gap = 30.0;
@@ -322,11 +322,12 @@ impl MenuScene {
             
                 nuon::translate().y(40.0).add_to_current(ui);
                 
-                let btn_w = 140.0;
+                let btn_w = (win_w / 4.0).min(160.0).max(100.0);  // Responsive button width
                 let btn_h = 50.0;
                 let btn_gap = 10.0;
                 
-                nuon::translate().x(-btn_w * 1.5 - btn_gap).build(ui, |ui| {
+                let total_width = btn_w * 3.0 + btn_gap * 2.0;
+                nuon::translate().x(-total_width / 2.0).build(ui, |ui| {
                     let is_watch = self.state.play_mode == PlayMode::Watch;
                     if neo_btn()
                         .size(btn_w, btn_h)
@@ -341,12 +342,11 @@ impl MenuScene {
                 nuon::translate().x(btn_w / 2.0).add_to_current(ui);
                 nuon::translate().x(btn_w / 2.0 + btn_gap).add_to_current(ui);
                 
-                nuon::translate().x(-btn_w * 1.5 - btn_gap + btn_w * 2.0 + btn_gap).build(ui, |ui| {
+                nuon::translate().x(btn_w + btn_gap).build(ui, |ui| {
                     let is_learn = self.state.play_mode == PlayMode::Learn;
                     if neo_btn()
                         .size(btn_w, btn_h)
                         .label("Learn")
-                        .icon(icons::hourglass_icon())
                         .color(if is_learn { [80, 180, 80] } else { [100; 3] })
                         .build(ui)
                     {
@@ -355,10 +355,8 @@ impl MenuScene {
                 });
                 
                 nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
-                nuon::translate().x(btn_w / 2.0).add_to_current(ui);
-                nuon::translate().x(btn_w / 2.0 + btn_gap).add_to_current(ui);
                 
-                nuon::translate().x(-btn_w * 1.5 - btn_gap + btn_w * 4.0 + btn_gap * 2.0).build(ui, |ui| {
+                nuon::translate().x(btn_w + btn_gap).build(ui, |ui| {
                     let is_play = self.state.play_mode == PlayMode::Play;
                     if neo_btn()
                         .size(btn_w, btn_h)
@@ -395,11 +393,12 @@ impl MenuScene {
                 
                 nuon::translate().y(40.0).add_to_current(ui);
                 
-                let btn_w = 120.0;
+                let btn_w = (win_w / 4.0).min(120.0).max(80.0);  // Responsive
                 let btn_h = 45.0;
                 let btn_gap = 10.0;
                 
-                nuon::translate().x(-btn_w * 1.5 - btn_gap).build(ui, |ui| {
+                let total_width = btn_w * 3.0 + btn_gap * 2.0;
+                nuon::translate().x(-total_width / 2.0).build(ui, |ui| {
                     let is_left = self.state.hand_selection == HandSelection::Left;
                     if neo_btn()
                         .size(btn_w, btn_h)
@@ -412,10 +411,8 @@ impl MenuScene {
                 });
                 
                 nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
-                nuon::translate().x(btn_w / 2.0).add_to_current(ui);
-                nuon::translate().x(btn_w / 2.0 + btn_gap).add_to_current(ui);
                 
-                nuon::translate().x(-btn_w * 1.5 + btn_w * 2.0 + btn_gap).build(ui, |ui| {
+                nuon::translate().x(btn_w + btn_gap).build(ui, |ui| {
                     let is_right = self.state.hand_selection == HandSelection::Right;
                     if neo_btn()
                         .size(btn_w, btn_h)
@@ -428,10 +425,8 @@ impl MenuScene {
                 });
                 
                 nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
-                nuon::translate().x(btn_w / 2.0).add_to_current(ui);
-                nuon::translate().x(btn_w / 2.0 + btn_gap).add_to_current(ui);
                 
-                nuon::translate().x(-btn_w * 1.5 + btn_w * 4.0 + btn_gap * 2.0).build(ui, |ui| {
+                nuon::translate().x(btn_w + btn_gap).build(ui, |ui| {
                     let is_both = self.state.hand_selection == HandSelection::Both;
                     if neo_btn()
                         .size(btn_w, btn_h)
@@ -461,7 +456,6 @@ impl MenuScene {
                 if neo_btn()
                     .size(btn_w, btn_h)
                     .label("Start")
-                    .icon(icons::play_icon())
                     .color([80, 180, 80])
                     .build(ui)
                 {

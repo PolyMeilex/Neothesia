@@ -4,7 +4,7 @@ use std::hash::Hash;
 
 use crate::{
     context::Context,
-    song::{PlayerConfig, TrackConfig},
+    song::{TrackConfig, ChannelMode},
 };
 
 use super::{icons, neo_btn_icon, state};
@@ -48,6 +48,31 @@ impl super::MenuScene {
         });
 
         if let Some(song) = self.state.song.as_mut() {
+            // Global Wait toggle checkbox (above track cards)
+            let wait_toggle_y = 20.0;
+            let wait_toggle_h = 30.0;
+            nuon::translate().x(20.0).y(wait_toggle_y).build(ui, |ui| {
+                let wait_label = if song.config.wait_mode {
+                    "Learn mode: Wait for correct note: ON"
+                } else {
+                    "Learn mode: Wait for correct note: OFF"
+                };
+                
+                if nuon::button()
+                    .id(nuon::Id::hash_with(|h| {
+                        "global_wait_toggle".hash(h);
+                    }))
+                    .size(200.0, wait_toggle_h)
+                    .color(if song.config.wait_mode { [80, 180, 80] } else { [74, 68, 88] })
+                    .hover_color(if song.config.wait_mode { [100, 200, 100] } else { [87, 81, 101] })
+                    .border_radius([4.0; 4])
+                    .label(wait_label.to_string())
+                    .build(ui)
+                {
+                    song.config.wait_mode = !song.config.wait_mode;
+                }
+            });
+
             self.tracks_scroll = nuon::scroll()
                 .scissor_size(win_w, (win_h - bottom_bar_h).max(0.0))
                 .scroll(self.tracks_scroll)
@@ -90,11 +115,34 @@ impl super::MenuScene {
                                         track,
                                         config,
                                     ) {
-                                        TrackCardEvent::PlayerConfig(player) => {
-                                            song.config.tracks[track.track_id].player = player;
-                                        }
                                         TrackCardEvent::SetVisible(visible) => {
                                             song.config.tracks[track.track_id].visible = visible;
+                                        }
+                                        TrackCardEvent::SetChannelMode(channel, mode) => {
+                                            let track_config = &mut song.config.tracks[track.track_id];
+                                            let cc = track_config.channels.iter_mut().find(|cc| cc.channel == channel);
+                                            if let Some(cc) = cc {
+                                                cc.mode = mode;
+                                            } else {
+                                                track_config.channels.push(crate::song::ChannelConfig {
+                                                    channel,
+                                                    mode,
+                                                    active: true,
+                                                });
+                                            }
+                                        }
+                                        TrackCardEvent::ToggleActive(channel) => {
+                                            let track_config = &mut song.config.tracks[track.track_id];
+                                            let cc = track_config.channels.iter_mut().find(|cc| cc.channel == channel);
+                                            if let Some(cc) = cc {
+                                                cc.active = !cc.active;
+                                            } else {
+                                                track_config.channels.push(crate::song::ChannelConfig {
+                                                    channel,
+                                                    mode: crate::song::ChannelMode::Listen,
+                                                    active: false,
+                                                });
+                                            }
                                         }
                                         TrackCardEvent::Idle => {}
                                     }
@@ -150,8 +198,9 @@ impl CardsLayout {
 
 #[derive(Debug)]
 enum TrackCardEvent {
-    PlayerConfig(PlayerConfig),
     SetVisible(bool),
+    SetChannelMode(u8, ChannelMode),
+    ToggleActive(u8),
     Idle,
 }
 
@@ -212,9 +261,6 @@ fn track_card(
             1.0,
         );
 
-        let regular = nuon::Color::from([74, 68, 88]);
-        let regular_hover = nuon::Color::from([87, 81, 101]);
-
         if nuon::button()
             .id(nuon::Id::hash_with(|h| {
                 id.as_raw().hash(h);
@@ -230,7 +276,6 @@ fn track_card(
             res = TrackCardEvent::SetVisible(!config.visible);
         }
 
-        let btn_w = inner_card_w / 3.0;
 
         let labels_x = icon_size + 15.0;
         nuon::translate().x(labels_x).build(ui, |ui| {
@@ -253,67 +298,115 @@ fn track_card(
                 .build(ui);
         });
 
-        nuon::translate().y(icon_size + 15.0).build(ui, |ui| {
-            let color = |m: PlayerConfig| {
-                if m == config.player { accent } else { regular }
-            };
-            let hover_color = |m: PlayerConfig| {
-                if m == config.player {
-                    accent_hover
-                } else {
-                    regular_hover
+        // Button group per channel with mode buttons and activate toggle
+        nuon::translate().x(labels_x).y(icon_size + 5.0).build(ui, |ui| {
+            // Button dimensions - increased for full text labels
+            let btn_w = 52.0;
+            let btn_h = 20.0;
+            let group_gap = 4.0; // Gap between channel groups
+            
+            // Define mode buttons: (mode, label, base_color, hover_color)
+            let modes = [
+                (ChannelMode::Listen, "Listen", [80, 180, 80], [100, 200, 100]),
+                (ChannelMode::Assist, "Assist", [80, 80, 180], [100, 100, 200]),
+                (ChannelMode::Alone, "Alone", [180, 180, 80], [200, 200, 100]),
+            ];
+            
+            // Find which channels have notes in this track
+            let mut channels_with_notes = std::collections::HashSet::new();
+            for note in track.notes.iter() {
+                channels_with_notes.insert(note.channel);
+            }
+            let mut channels: Vec<u8> = channels_with_notes.into_iter().collect();
+            channels.sort();
+            
+            // If no channels found, show all channels (fallback)
+            if channels.is_empty() {
+                channels = (0..16).collect();
+            }
+            
+            // Render button groups for each channel
+            let mut x_offset = 0.0;
+            for channel in channels {
+                let channel_config = config.channels.iter()
+                    .find(|cc| cc.channel == channel)
+                    .cloned()
+                    .unwrap_or(crate::song::ChannelConfig {
+                        channel,
+                        mode: ChannelMode::Listen,
+                        active: true,
+                    });
+                
+                // Render 3 mode buttons for this channel
+                for (mode_idx, (mode, label, base_color, hover_color)) in modes.iter().enumerate() {
+                    let is_active = channel_config.mode == *mode;
+                    
+                    // Dim inactive buttons, brighten active button
+                    let (r, g, b) = if is_active {
+                        (base_color[0], base_color[1], base_color[2])
+                    } else {
+                        // Dim inactive buttons by 40%
+                        (base_color[0] * 3 / 5, base_color[1] * 3 / 5, base_color[2] * 3 / 5)
+                    };
+                    
+                    let btn_color = nuon::Color::from([r, g, b]);
+                    let btn_hover_color = nuon::Color::from(*hover_color);
+                    
+                    let border_radius = [2.0; 4];
+                    
+                    if nuon::button()
+                        .id(nuon::Id::hash_with(|h| {
+                            id.as_raw().hash(h);
+                            "channel_mode_btn".hash(h);
+                            (channel as u64).hash(h);
+                            (mode_idx as u64).hash(h);
+                        }))
+                        .x(x_offset + mode_idx as f32 * btn_w)
+                        .y(0.0)
+                        .size(btn_w, btn_h)
+                        .color(btn_color)
+                        .hover_color(btn_hover_color)
+                        .border_radius(border_radius)
+                        .label(label.to_string())
+                        .build(ui)
+                    {
+                        res = TrackCardEvent::SetChannelMode(channel, *mode);
+                    }
                 }
-            };
-
-            if nuon::button()
-                .id(nuon::Id::hash_with(|h| {
-                    id.as_raw().hash(h);
-                    "mute".hash(h);
-                }))
-                .x(0.0)
-                .size(btn_w, 40.0)
-                .color(color(PlayerConfig::Mute))
-                .hover_color(hover_color(PlayerConfig::Mute))
-                .preseed_color(color(PlayerConfig::Mute))
-                .border_radius([255.0, 0.0, 0.0, 255.0])
-                .label("Mute")
-                .build(ui)
-            {
-                res = TrackCardEvent::PlayerConfig(PlayerConfig::Mute);
-            }
-
-            if nuon::button()
-                .id(nuon::Id::hash_with(|h| {
-                    id.as_raw().hash(h);
-                    "auto".hash(h);
-                }))
-                .x(btn_w)
-                .size(btn_w, 40.0)
-                .color(color(PlayerConfig::Auto))
-                .hover_color(hover_color(PlayerConfig::Auto))
-                .preseed_color(color(PlayerConfig::Auto))
-                .border_radius([0.0; 4])
-                .label("Auto")
-                .build(ui)
-            {
-                res = TrackCardEvent::PlayerConfig(PlayerConfig::Auto);
-            }
-
-            if nuon::button()
-                .id(nuon::Id::hash_with(|h| {
-                    id.as_raw().hash(h);
-                    "human".hash(h);
-                }))
-                .x(btn_w * 2.0)
-                .size(btn_w, 40.0)
-                .color(color(PlayerConfig::Human))
-                .hover_color(hover_color(PlayerConfig::Human))
-                .preseed_color(color(PlayerConfig::Human))
-                .border_radius([0.0, 255.0, 255.0, 0.0])
-                .label("Human")
-                .build(ui)
-            {
-                res = TrackCardEvent::PlayerConfig(PlayerConfig::Human);
+                
+                // Render Activate/Deactivate button for this channel
+                let toggle_y = btn_h + 2.0;
+                let is_active = channel_config.active;
+                let (label, base_color, hover_color) = if is_active {
+                    ("Active", [80, 180, 80], [100, 200, 100]) // Green
+                } else {
+                    ("Inactive", [180, 80, 80], [200, 100, 100]) // Red
+                };
+                
+                let btn_color = nuon::Color::from(base_color);
+                let btn_hover_color = nuon::Color::from(hover_color);
+                let border_radius = [2.0; 4];
+                
+                if nuon::button()
+                    .id(nuon::Id::hash_with(|h| {
+                        id.as_raw().hash(h);
+                        "channel_active_btn".hash(h);
+                        (channel as u64).hash(h);
+                    }))
+                    .x(x_offset)
+                    .y(toggle_y)
+                    .size(btn_w * 3.0 + 4.0, btn_h) // Wider button to span all 3 mode buttons
+                    .color(btn_color)
+                    .hover_color(btn_hover_color)
+                    .border_radius(border_radius)
+                    .label(label.to_string())
+                    .build(ui)
+                {
+                    res = TrackCardEvent::ToggleActive(channel);
+                }
+                
+                // Move to next channel group position
+                x_offset += 3.0 * btn_w + group_gap;
             }
         });
     });

@@ -7,7 +7,7 @@ use neothesia_core::{
 };
 use piano_layout::KeyboardRange;
 
-use crate::{config::Config, context::Context, render::KeyboardRenderer, song::SongConfig};
+use crate::{config::Config, context::Context, render::KeyboardRenderer, song::{SongConfig, ChannelConfig}};
 
 pub struct Keyboard {
     renderer: KeyboardRenderer,
@@ -142,6 +142,21 @@ impl Keyboard {
             let track = &self.song_config.tracks[e.track_id];
             if !track.visible {
                 continue;
+            }
+
+            // Filter by channel state - skip inactive channels
+            let default_config = ChannelConfig {
+                channel: e.channel,
+                mode: crate::song::ChannelMode::Listen,
+                active: true,
+            };
+            let channel_config = track.channels
+                .iter()
+                .find(|cc| cc.channel == e.channel)
+                .unwrap_or(&default_config);
+            
+            if !channel_config.active {
+                continue; // Skip events from inactive channels
             }
 
             let (is_on, key) = match e.message {

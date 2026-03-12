@@ -176,13 +176,18 @@ impl TopBar {
             .build(ui, |ui| {
                 nuon::translate().x(-30.0).add_to_current(ui);
 
-                let is_wait_mode = ctx.config.wait_mode();
+                // Use per-song wait_mode setting instead of global config
+                let is_wait_mode = this.player.song().config.wait_mode;
                 if Self::button()
                     .icon(icons::hourglass_icon())
                     .color(if is_wait_mode { [56, 145, 255] } else { [67, 67, 67] })
                     .build(ui)
                 {
-                    ctx.config.set_wait_mode(!is_wait_mode);
+                    // Toggle per-song wait_mode setting
+                    // Note: This requires mutable access to song config, which needs to be handled carefully
+                    // For now, we'll update the song config directly
+                    let song = this.player.song_mut();
+                    song.config.wait_mode = !is_wait_mode;
                 }
 
                 nuon::translate().x(-30.0).add_to_current(ui);

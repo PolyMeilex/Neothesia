@@ -2,7 +2,7 @@ use midi_file::midly::{MidiMessage, num::u4};
 
 use crate::{
     output_manager::OutputConnection,
-    song::{PlayerConfig, Song},
+    song::{ChannelConfig, ChannelMode, Song},
 };
 use neothesia_core::piano_layout;
 use std::{
@@ -44,8 +44,26 @@ impl MidiPlayer {
         player
     }
 
+    /// Get the channel config for a given event channel from the track configuration.
+    /// Returns a default config (Listen mode, active) if the channel is not found.
+    fn get_channel_config(track_config: &crate::song::TrackConfig, channel: u8) -> ChannelConfig {
+        track_config.channels
+            .iter()
+            .find(|cc| cc.channel == channel)
+            .cloned()
+            .unwrap_or(ChannelConfig {
+                channel,
+                mode: ChannelMode::Listen,
+                active: true,
+            })
+    }
+
     pub fn song(&self) -> &Song {
         &self.song
+    }
+
+    pub fn song_mut(&mut self) -> &mut Song {
+        &mut self.song
     }
 
     /// When playing: returns midi events
@@ -55,40 +73,66 @@ impl MidiPlayer {
         self.play_along.update();
 
         // Collect triggered notes before borrowing events
-        let triggered_notes: std::collections::HashSet<u8> = 
+        let triggered_notes: std::collections::HashMap<u8, std::collections::HashSet<u8>> = 
             self.play_along.user_triggered_notes.clone();
 
-        let events: Vec<_> = self.playback.update(delta);
+        let all_events: Vec<_> = self.playback.update(delta);
 
-        for event in &events {
+        // Filter events based on channel state for visuals (skip inactive channels)
+        let events: Vec<_> = all_events
+            .iter()
+            .filter(|event| {
+                let config = &self.song.config.tracks[event.track_id];
+                let channel = if self.separate_channels {
+                    event.track_color_id as u8
+                } else {
+                    event.channel
+                };
+                let channel_config = Self::get_channel_config(config, channel);
+
+                // Inactive channels are filtered out entirely (no visual, no audio, no waiting)
+                channel_config.active
+            })
+            .cloned()
+            .collect();
+
+        // Process audio for each event based on its channel configuration
+        for event in &all_events {
             let config = &self.song.config.tracks[event.track_id];
-
             let channel = if self.separate_channels {
                 event.track_color_id as u8
             } else {
                 event.channel
             };
-            match config.player {
-                PlayerConfig::Auto => {
-                    // Skip if user already triggered this note in wait mode
-                    if !Self::should_skip_event_with_set(&triggered_notes, &event.message) {
+            let channel_config = Self::get_channel_config(config, channel);
+
+            if !channel_config.active {
+                // Channel deactivated: skip entirely (no audio, no visuals, no waiting)
+                continue;
+            }
+
+            // Update play-along state for file notes (for progression and wait mode logic)
+            self.play_along.midi_event(MidiEventSource::File, &event.message);
+
+            // Process audio based on mode
+            match channel_config.mode {
+                ChannelMode::Listen => {
+                    // Play MIDI audio
+                    self.output
+                        .midi_event(u4::new(channel), event.message);
+                }
+                ChannelMode::Assist => {
+                    // Play MIDI audio only if user has already triggered the note
+                    // (to avoid double-playing and only play human-triggered notes)
+                    if Self::should_skip_event_with_set(&triggered_notes, channel, &event.message) {
                         self.output
                             .midi_event(u4::new(channel), event.message);
                     }
                 }
-                PlayerConfig::Human => {
-                    // Let's play the sound, in case the user does not want it they can just set
-                    // no-output output in settings
-                    // TODO: Perhaps play on midi-in instead
-                    // Skip if user already triggered this note in wait mode
-                    if !Self::should_skip_event_with_set(&triggered_notes, &event.message) {
-                        self.output
-                            .midi_event(u4::new(event.channel), event.message);
-                    }
-                    self.play_along
-                        .midi_event(MidiEventSource::File, &event.message);
+                ChannelMode::Alone => {
+                    // Silence MIDI audio (always) - keyboard audio handled separately
+                    // No MIDI file audio output in Alone mode
                 }
-                PlayerConfig::Mute => {}
             }
         }
 
@@ -96,11 +140,15 @@ impl MidiPlayer {
     }
 
     /// Helper to check if an event should be skipped, using a pre-collected set of triggered notes.
-    fn should_skip_event_with_set(triggered_notes: &std::collections::HashSet<u8>, 
+    fn should_skip_event_with_set(triggered_notes: &std::collections::HashMap<u8, std::collections::HashSet<u8>>, 
+                                  channel: u8,
                                   message: &midi_file::midly::MidiMessage) -> bool {
         match message {
             midi_file::midly::MidiMessage::NoteOn { key, .. } => {
-                triggered_notes.contains(&key.as_int())
+                let note_id = key.as_int();
+                triggered_notes.get(&channel)
+                    .map(|notes| notes.contains(&note_id))
+                    .unwrap_or(false)
             }
             _ => false,
         }
@@ -285,7 +333,8 @@ pub struct PlayAlong {
     /// File notes that had NoteOn event, but no NoteOff yet
     in_proggres_file_notes: HashSet<NoteId>,
     /// Notes that were already played by the user in wait mode (to avoid double-trigger)
-    user_triggered_notes: HashSet<NoteId>,
+    /// Tracks per channel: channel -> set of note_ids
+    user_triggered_notes: HashMap<u8, HashSet<NoteId>>,
 
     stats: PlayerStats,
 }
@@ -405,12 +454,18 @@ impl PlayAlong {
     }
 
     /// Mark a note as having been triggered by the user in wait mode.
-    pub fn mark_note_as_triggered(&mut self, note_id: u8) {
-        self.user_triggered_notes.insert(note_id);
+    pub fn mark_note_as_triggered(&mut self, channel: u8, note_id: u8) {
+        self.user_triggered_notes
+            .entry(channel)
+            .or_default()
+            .insert(note_id);
     }
 
-    /// Check if a note was already triggered by the user.
-    pub fn was_note_triggered(&self, note_id: u8) -> bool {
-        self.user_triggered_notes.contains(&note_id)
+    /// Check if a note was already triggered by the user for a specific channel.
+    pub fn was_note_triggered(&self, channel: u8, note_id: u8) -> bool {
+        self.user_triggered_notes
+            .get(&channel)
+            .map(|notes| notes.contains(&note_id))
+            .unwrap_or(false)
     }
 }

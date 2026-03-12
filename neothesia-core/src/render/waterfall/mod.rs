@@ -7,17 +7,44 @@ use wgpu_jumpstart::{Color, Gpu};
 mod pipeline;
 use pipeline::{NoteInstance, WaterfallPipeline};
 
+// Track configuration for filtering notes
+#[derive(Clone, Debug)]
+pub struct TrackChannelConfig {
+    pub track_id: usize,
+    pub hidden_channels: Vec<u8>,
+}
+
+impl TrackChannelConfig {
+    pub fn is_channel_hidden(&self, channel: u8) -> bool {
+        self.hidden_channels.contains(&channel)
+    }
+}
+
 #[derive(Clone)]
 pub struct NoteList {
     pub(crate) inner: Rc<[MidiNote]>,
 }
 
 impl NoteList {
-    fn new(tracks: &[MidiTrack], hidden_tracks: &[usize]) -> Self {
+    fn new(tracks: &[MidiTrack], hidden_tracks: &[usize], track_channel_configs: &[TrackChannelConfig]) -> Self {
         let mut notes: Vec<_> = tracks
             .iter()
             .filter(|track| !hidden_tracks.contains(&track.track_id))
-            .flat_map(|track| track.notes.iter().cloned())
+            .flat_map(|track| {
+                // Get channel config for this track
+                let track_config = track_channel_configs
+                    .iter()
+                    .find(|tc| tc.track_id == track.track_id);
+                
+                track.notes.iter().cloned().filter(move |note| {
+                    // Filter by channel if config exists for this track
+                    if let Some(config) = track_config {
+                        !config.is_channel_hidden(note.channel)
+                    } else {
+                        true
+                    }
+                })
+            })
             .collect();
         // We want to render newer notes on top of old notes
         notes.sort_unstable_by_key(|note| note.start);
@@ -48,11 +75,12 @@ impl WaterfallRenderer {
         gpu: &Gpu,
         tracks: &[MidiTrack],
         hidden_tracks: &[usize],
+        track_channel_configs: &[TrackChannelConfig],
         config: &Config,
         transform_uniform: &Uniform<TransformUniform>,
         layout: piano_layout::KeyboardLayout,
     ) -> Self {
-        let notes = NoteList::new(tracks, hidden_tracks);
+        let notes = NoteList::new(tracks, hidden_tracks, track_channel_configs);
 
         let notes_pipeline = WaterfallPipeline::new(gpu, transform_uniform, notes.len());
         let mut notes = Self {

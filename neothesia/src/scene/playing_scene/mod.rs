@@ -2,6 +2,7 @@ use midi_file::midly::{MidiMessage, num::u4};
 use crate::lumi_controller::LumiController;
 use neothesia_core::render::{
     GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
+    waterfall::TrackChannelConfig,
 };
 use std::time::Duration;
 use winit::{
@@ -78,10 +79,30 @@ impl PlayingScene {
             .map(|t| t.track_id)
             .collect();
 
+        // Build track channel configs for waterfall renderer
+        let track_channel_configs: Vec<TrackChannelConfig> = song
+            .config
+            .tracks
+            .iter()
+            .map(|t| {
+                let hidden_channels: Vec<u8> = t.channels
+                    .iter()
+                    .filter(|cc| !cc.active)
+                    .map(|cc| cc.channel)
+                    .collect();
+                
+                TrackChannelConfig {
+                    track_id: t.track_id,
+                    hidden_channels,
+                }
+            })
+            .collect();
+
         let mut waterfall = WaterfallRenderer::new(
             &ctx.gpu,
             &song.file.tracks,
             &hidden_tracks,
+            &track_channel_configs,
             &ctx.config,
             &ctx.transform,
             keyboard_layout.clone(),
@@ -177,7 +198,8 @@ impl PlayingScene {
             self.keyboard.reset_notes();
         }
 
-        if !ctx.config.wait_mode() || self.player.play_along().are_required_keys_pressed() {
+        // Check per-song wait_mode setting instead of global config
+        if !self.player.song().config.wait_mode || self.player.play_along().are_required_keys_pressed() {
             let delta = (delta / 10) * (ctx.config.speed_multiplier() * 10.0) as u32;
             let midi_events = self.player.update(delta);
             self.keyboard.file_midi_events(&ctx.config, &midi_events);
@@ -218,14 +240,14 @@ impl PlayingScene {
                 // Debug: show first few notes for troubleshooting
                 let debug_notes: Vec<_> = upcoming.inner().iter().take(5).collect();
                 log::debug!("Hinting check for note_id={}: target_time={:.2}, debug_notes={:?}", 
-                         note_id, target_time, debug_notes);
+                          note_id, target_time, debug_notes);
             }
             for note in upcoming.inner().iter().filter(|n| n.note == note_id) {
                 if note.start.as_secs_f32() > target_time && (note.start.as_secs_f32() - target_time) < 2.0 {
                     is_hinted = true;
                     log::debug!("HINTING note_id={} (start={:.2}, target={:.2}, diff={:.2})", 
-                             note_id, note.start.as_secs_f32(), target_time, 
-                             note.start.as_secs_f32() - target_time);
+                               note_id, note.start.as_secs_f32(), target_time, 
+                               note.start.as_secs_f32() - target_time);
                     break;
                 }
             }
@@ -390,34 +412,35 @@ impl Scene for PlayingScene {
     }
 
     fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {
-        // In wait mode, trigger sound immediately when user presses a required note
-        if ctx.config.wait_mode() {
-            match message {
-                MidiMessage::NoteOn { key, .. } => {
-                    let note_id = key.as_int();
-                    if self.player.play_along_mut().is_required_note(note_id) {
-                        // User pressed a required note - play sound immediately and mark as triggered
-                        ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
-                        self.player.play_along_mut().mark_note_as_triggered(note_id);
-                    }
-                }
-                MidiMessage::NoteOff { key, .. } => {
-                    let note_id = key.as_int();
-                    if self.player.play_along_mut().was_note_triggered(note_id) {
-                        // User released a note they triggered - send NoteOff immediately
-                        ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
-                    }
-                }
-                _ => {}
-            }
-        }
-        
-        // Always update PlayAlong state and keyboard visual feedback
-        self.player
-            .play_along_mut()
-            .midi_event(midi_player::MidiEventSource::User, message);
-        self.keyboard.user_midi_event(message);
-    }
+         // In wait mode, trigger sound immediately when user presses a required note
+          // Check per-song wait_mode setting instead of global config
+          if self.player.song().config.wait_mode {
+              match message {
+                  MidiMessage::NoteOn { key, .. } => {
+                      let note_id = key.as_int();
+                      if self.player.play_along_mut().is_required_note(note_id) {
+                          // User pressed a required note - play sound immediately and mark as triggered
+                          ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
+                          self.player.play_along_mut().mark_note_as_triggered(_channel, note_id);
+                      }
+                  }
+                  MidiMessage::NoteOff { key, .. } => {
+                      let note_id = key.as_int();
+                      if self.player.play_along_mut().was_note_triggered(_channel, note_id) {
+                          // User released a note they triggered - send NoteOff immediately
+                          ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
+                      }
+                  }
+                  _ => {}
+              }
+          }
+          
+          // Always update PlayAlong state and keyboard visual feedback
+          self.player
+              .play_along_mut()
+              .midi_event(midi_player::MidiEventSource::User, message);
+          self.keyboard.user_midi_event(message);
+      }
 }
 
 fn handle_settings_input(

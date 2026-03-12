@@ -6,7 +6,7 @@ mod keyboard;
 mod note_labels;
 mod quad;
 mod text;
-mod waterfall;
+pub mod waterfall;
 
 pub use background_animation::BgPipeline;
 pub use glow::GlowRenderer;
@@ -16,4 +16,4 @@ pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};
 pub use note_labels::NoteLabels;
 pub use quad::{QuadInstance, QuadRenderer, QuadRendererFactory};
 pub use text::{TextRenderer, TextRendererFactory};
-pub use waterfall::WaterfallRenderer;
+pub use waterfall::{WaterfallRenderer, TrackChannelConfig};

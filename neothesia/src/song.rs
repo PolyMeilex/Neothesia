@@ -1,24 +1,33 @@
 use midi_file::MidiTrack;
+use std::collections::HashSet;
 
 use crate::context::Context;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum PlayerConfig {
-    Mute,
-    Auto,
-    Human,
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ChannelMode {
+    Listen,
+    Assist,
+    Alone,
+}
+
+#[derive(Debug, Clone)]
+pub struct ChannelConfig {
+    pub channel: u8,
+    pub mode: ChannelMode,
+    pub active: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct TrackConfig {
     pub track_id: usize,
-    pub player: PlayerConfig,
+    pub channels: Vec<ChannelConfig>,
     pub visible: bool,
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct SongConfig {
     pub tracks: Box<[TrackConfig]>,
+    pub wait_mode: bool,
 }
 
 impl SongConfig {
@@ -27,15 +36,30 @@ impl SongConfig {
             .iter()
             .map(|t| {
                 let is_drums = t.has_drums && !t.has_other_than_drums;
+
+                // Discover channels used by this track
+                let used_channels: HashSet<u8> = t.notes.iter().map(|note| note.channel).collect();
+
+                // Create ChannelConfig for each channel
+                let channels: Vec<ChannelConfig> = used_channels
+                    .into_iter()
+                    .map(|channel| ChannelConfig {
+                        channel,
+                        mode: ChannelMode::Listen, // Default to Listen
+                        active: true,
+                    })
+                    .collect();
+
                 TrackConfig {
                     track_id: t.track_id,
-                    player: PlayerConfig::Auto,
+                    channels,
                     visible: !is_drums,
                 }
             })
             .collect();
         Self {
             tracks: tracks.into(),
+            wait_mode: false,
         }
     }
 }

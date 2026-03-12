@@ -215,23 +215,6 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
                 channel_notes.entry(note.channel).or_default().push(note.note);
             }
             
-            let mut has_left_channel = false;
-            let mut has_right_channel = false;
-            
-            for (_channel, notes) in channel_notes.iter() {
-                if notes.is_empty() {
-                    continue;
-                }
-                
-                let avg_note: f32 = notes.iter().map(|&n| n as f32).sum::<f32>() / notes.len() as f32;
-                
-                if avg_note < 60.0 {
-                    has_left_channel = true;
-                } else {
-                    has_right_channel = true;
-                }
-            }
-            
             for channel_config in track_config.channels.iter_mut() {
                 let notes = channel_notes.get(&channel_config.channel);
                 
@@ -263,14 +246,10 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
                 }
             }
             
+            // Track is visible only if it has at least one active channel
             track_config.visible = track_config.channels.iter().any(|c| c.active);
-            
-            if !track_config.visible && (has_left_channel || has_right_channel) {
-                track_config.visible = true;
-                for channel_config in track_config.channels.iter_mut() {
-                    channel_config.active = true;
-                }
-            }
+            // Note: If filtering results in no active channels, that's the intended behavior
+            // The user can adjust their hand selection if needed
         }
     }
 

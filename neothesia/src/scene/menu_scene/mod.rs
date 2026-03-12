@@ -322,50 +322,46 @@ impl MenuScene {
             
                 nuon::translate().y(40.0).add_to_current(ui);
                 
-                let btn_w = (win_w / 4.0).min(160.0).max(100.0);  // Responsive button width
+                let btn_w = (win_w / 4.0).min(160.0).max(100.0);
                 let btn_h = 50.0;
                 let btn_gap = 10.0;
                 
                 let total_width = btn_w * 3.0 + btn_gap * 2.0;
+                nuon::translate().x(-total_width / 2.0).add_to_current(ui);
                 
-                // Button 1: Watch - positioned to the left
-                nuon::translate().x(-total_width / 2.0 + btn_w / 2.0).build(ui, |ui| {
-                    let is_watch = self.state.play_mode == PlayMode::Watch;
-                    if neo_btn()
-                        .size(btn_w, btn_h)
-                        .label("Watch")
-                        .color(if is_watch { [80, 180, 80] } else { [100; 3] })
-                        .build(ui)
-                    {
-                        self.state.play_mode = PlayMode::Watch;
-                    }
-                });
+                let is_watch = self.state.play_mode == PlayMode::Watch;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Watch")
+                    .color(if is_watch { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.play_mode = PlayMode::Watch;
+                }
                 
-                // Button 2: Learn - positioned in the center
-                nuon::translate().x(-btn_w / 2.0).build(ui, |ui| {
-                    let is_learn = self.state.play_mode == PlayMode::Learn;
-                    if neo_btn()
-                        .size(btn_w, btn_h)
-                        .label("Learn")
-                        .color(if is_learn { [80, 180, 80] } else { [100; 3] })
-                        .build(ui)
-                    {
-                        self.state.play_mode = PlayMode::Learn;
-                    }
-                });
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
                 
-                // Button 3: Play - positioned to the right
-                nuon::translate().x(-total_width / 2.0 + btn_w * 2.5 + btn_gap).build(ui, |ui| {
-                    let is_play = self.state.play_mode == PlayMode::Play;
-                    if neo_btn()
-                        .size(btn_w, btn_h)
-                        .label("Play")
-                        .color(if is_play { [80, 180, 80] } else { [100; 3] })
-                        .build(ui)
-                    {
-                        self.state.play_mode = PlayMode::Play;
-                    }
-                });
+                let is_learn = self.state.play_mode == PlayMode::Learn;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Learn")
+                    .color(if is_learn { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.play_mode = PlayMode::Learn;
+                }
+                
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
+                
+                let is_play = self.state.play_mode == PlayMode::Play;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Play")
+                    .color(if is_play { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.play_mode = PlayMode::Play;
+                }
                 
                 nuon::translate().y(btn_h + 15.0).add_to_current(ui);
                 let desc = match self.state.play_mode {
@@ -392,50 +388,46 @@ impl MenuScene {
                 
                 nuon::translate().y(40.0).add_to_current(ui);
                 
-                let btn_w = (win_w / 4.0).min(120.0).max(80.0);  // Responsive
+                let btn_w = (win_w / 4.0).min(120.0).max(80.0);
                 let btn_h = 45.0;
                 let btn_gap = 10.0;
                 
                 let total_width = btn_w * 3.0 + btn_gap * 2.0;
+                nuon::translate().x(-total_width / 2.0).add_to_current(ui);
                 
-                // Button 1: Left - positioned to the left
-                nuon::translate().x(-total_width / 2.0 + btn_w / 2.0).build(ui, |ui| {
-                    let is_left = self.state.hand_selection == HandSelection::Left;
-                    if neo_btn()
-                        .size(btn_w, btn_h)
-                        .label("Left")
-                        .color(if is_left { [80, 180, 80] } else { [100; 3] })
-                        .build(ui)
-                    {
-                        self.state.hand_selection = HandSelection::Left;
-                    }
-                });
+                let is_left = self.state.hand_selection == HandSelection::Left;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Left")
+                    .color(if is_left { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.hand_selection = HandSelection::Left;
+                }
                 
-                // Button 2: Right - positioned in the center
-                nuon::translate().x(-btn_w / 2.0).build(ui, |ui| {
-                    let is_right = self.state.hand_selection == HandSelection::Right;
-                    if neo_btn()
-                        .size(btn_w, btn_h)
-                        .label("Right")
-                        .color(if is_right { [80, 180, 80] } else { [100; 3] })
-                        .build(ui)
-                    {
-                        self.state.hand_selection = HandSelection::Right;
-                    }
-                });
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
                 
-                // Button 3: Both - positioned to the right
-                nuon::translate().x(-total_width / 2.0 + btn_w * 2.5 + btn_gap).build(ui, |ui| {
-                    let is_both = self.state.hand_selection == HandSelection::Both;
-                    if neo_btn()
-                        .size(btn_w, btn_h)
-                        .label("Both")
-                        .color(if is_both { [80, 180, 80] } else { [100; 3] })
-                        .build(ui)
-                    {
-                        self.state.hand_selection = HandSelection::Both;
-                    }
-                });
+                let is_right = self.state.hand_selection == HandSelection::Right;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Right")
+                    .color(if is_right { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.hand_selection = HandSelection::Right;
+                }
+                
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
+                
+                let is_both = self.state.hand_selection == HandSelection::Both;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Both")
+                    .color(if is_both { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.hand_selection = HandSelection::Both;
+                }
             });
 
         let bottom_y = win_h - 100.0;

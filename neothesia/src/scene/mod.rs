@@ -1,6 +1,7 @@
 pub mod freeplay;
 pub mod menu_scene;
 pub mod playing_scene;
+pub mod score_scene;
 
 use crate::{
     NeothesiaEvent, context::Context, scene::playing_scene::Keyboard, utils::window::WinitEvent,

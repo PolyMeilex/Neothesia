@@ -7,7 +7,12 @@ use neothesia_core::{
 };
 use piano_layout::KeyboardRange;
 
-use crate::{config::Config, context::Context, render::KeyboardRenderer, song::{SongConfig, ChannelConfig}};
+use crate::{
+    config::Config,
+    context::Context,
+    render::KeyboardRenderer,
+    song::{ChannelConfig, SongConfig},
+};
 
 pub struct Keyboard {
     renderer: KeyboardRenderer,
@@ -151,11 +156,12 @@ impl Keyboard {
                 active: true,
                 interactive: e.channel != 9,
             };
-            let channel_config = track.channels
+            let channel_config = track
+                .channels
                 .iter()
                 .find(|cc| cc.channel == e.channel)
                 .unwrap_or(&default_config);
-            
+
             if !channel_config.active {
                 continue; // Skip events from inactive channels
             }

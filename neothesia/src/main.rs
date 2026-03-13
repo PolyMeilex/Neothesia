@@ -35,6 +35,11 @@ pub enum NeothesiaEvent {
     FreePlay(Option<song::Song>),
     /// Go to main menu scene
     MainMenu(Option<song::Song>),
+    /// Show score screen after song completion
+    ShowScore {
+        song: song::Song,
+        score_data: scene::playing_scene::midi_player::ScoreData,
+    },
     MidiInput {
         /// The MIDI channel that this message is associated with.
         channel: u8,
@@ -147,6 +152,10 @@ impl Neothesia {
             }
             NeothesiaEvent::MainMenu(song) => {
                 let to = menu_scene::MenuScene::new(&mut self.context, song);
+                self.game_scene = Box::new(to);
+            }
+            NeothesiaEvent::ShowScore { song, score_data } => {
+                let to = scene::score_scene::ScoreScene::new(&mut self.context, song, score_data);
                 self.game_scene = Box::new(to);
             }
             NeothesiaEvent::MidiInput { channel, message } => {

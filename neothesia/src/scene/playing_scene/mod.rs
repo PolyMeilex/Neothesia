@@ -1,8 +1,8 @@
-use midi_file::midly::{MidiMessage, num::u4};
 use crate::lumi_controller::LumiController;
+use midi_file::midly::{num::u4, MidiMessage};
 use neothesia_core::render::{
-    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
-    waterfall::TrackChannelConfig,
+    waterfall::TrackChannelConfig, GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer,
+    TextRenderer,
 };
 use std::time::Duration;
 use winit::{
@@ -14,14 +14,14 @@ use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
 use crate::{
-    NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
-    song::Song, utils::window::WinitEvent,
+    context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState, song::Song,
+    utils::window::WinitEvent, NeothesiaEvent,
 };
 
 mod keyboard;
 pub use keyboard::Keyboard;
 
-mod midi_player;
+pub mod midi_player;
 use midi_player::MidiPlayer;
 
 mod rewind_controller;
@@ -44,7 +44,7 @@ pub struct PlayingScene {
 
     player: MidiPlayer,
     lumi: LumiController,
-    saved_color_mode: u8,  // Store to restore when exiting API mode
+    saved_color_mode: u8, // Store to restore when exiting API mode
     rewind_controller: RewindController,
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
@@ -85,12 +85,13 @@ impl PlayingScene {
             .tracks
             .iter()
             .map(|t| {
-                let hidden_channels: Vec<u8> = t.channels
+                let hidden_channels: Vec<u8> = t
+                    .channels
                     .iter()
                     .filter(|cc| !cc.active)
                     .map(|cc| cc.channel)
                     .collect();
-                
+
                 TrackChannelConfig {
                     track_id: t.track_id,
                     hidden_channels,
@@ -150,7 +151,7 @@ impl PlayingScene {
             waterfall,
             player,
             lumi,
-            saved_color_mode: ctx.config.lumi_color_mode(),  // Save for later restoration
+            saved_color_mode: ctx.config.lumi_color_mode(), // Save for later restoration
             rewind_controller: RewindController::new(),
             quad_renderer_bg,
             quad_renderer_fg,
@@ -199,7 +200,9 @@ impl PlayingScene {
         }
 
         // Check per-song wait_mode setting instead of global config
-        if !self.player.song().config.wait_mode || self.player.play_along().are_required_keys_pressed() {
+        if !self.player.song().config.wait_mode
+            || self.player.play_along().are_required_keys_pressed()
+        {
             let delta = (delta / 10) * (ctx.config.speed_multiplier() * 10.0) as u32;
             let midi_events = self.player.update(delta);
             self.keyboard.file_midi_events(&ctx.config, &midi_events);
@@ -211,14 +214,17 @@ impl PlayingScene {
         // Use raw playback time for hinting distance (not time_without_lead_in)
         // so hinting works correctly during the lead-in period
         let target_time = self.player.time().as_secs_f32() + ctx.config.animation_offset();
-        
+
         let key_states = self.keyboard.key_states();
-        
+
         for key in self.keyboard.layout().keys.iter() {
             let note_id = key.note_id();
 
             // 1. Is the user holding the key? (Highest priority feedback)
-            if let Some(user_color) = key_states[key.id()].pressed_by_user().map(|c| c.into_linear_rgba()) {
+            if let Some(user_color) = key_states[key.id()]
+                .pressed_by_user()
+                .map(|c| c.into_linear_rgba())
+            {
                 self.lumi.set_key_color(
                     note_id,
                     (user_color[0] * 255.0) as u8,
@@ -239,15 +245,25 @@ impl PlayingScene {
             if log::log_enabled!(log::Level::Debug) {
                 // Debug: show first few notes for troubleshooting
                 let debug_notes: Vec<_> = upcoming.inner().iter().take(5).collect();
-                log::debug!("Hinting check for note_id={}: target_time={:.2}, debug_notes={:?}", 
-                          note_id, target_time, debug_notes);
+                log::debug!(
+                    "Hinting check for note_id={}: target_time={:.2}, debug_notes={:?}",
+                    note_id,
+                    target_time,
+                    debug_notes
+                );
             }
             for note in upcoming.inner().iter().filter(|n| n.note == note_id) {
-                if note.start.as_secs_f32() > target_time && (note.start.as_secs_f32() - target_time) < 2.0 {
+                if note.start.as_secs_f32() > target_time
+                    && (note.start.as_secs_f32() - target_time) < 2.0
+                {
                     is_hinted = true;
-                    log::debug!("HINTING note_id={} (start={:.2}, target={:.2}, diff={:.2})", 
-                               note_id, note.start.as_secs_f32(), target_time, 
-                               note.start.as_secs_f32() - target_time);
+                    log::debug!(
+                        "HINTING note_id={} (start={:.2}, target={:.2}, diff={:.2})",
+                        note_id,
+                        note.start.as_secs_f32(),
+                        target_time,
+                        note.start.as_secs_f32() - target_time
+                    );
                     break;
                 }
             }
@@ -267,13 +283,14 @@ impl PlayingScene {
             .iter()
             .filter(|note| {
                 // LUMI range: C3 (48) to B4 (71) = 2 octaves
-                note.note >= 48 && note.note <= 71 && 
-                note.start.as_secs_f32() > target_time && 
-                (note.start.as_secs_f32() - target_time) < 2.0
+                note.note >= 48
+                    && note.note <= 71
+                    && note.start.as_secs_f32() > target_time
+                    && (note.start.as_secs_f32() - target_time) < 2.0
             })
             .map(|note| note.note)
             .collect();
-        
+
         for note_id in lumi_hint_notes {
             self.lumi.set_key_dim(note_id, 0, 100, 255); // Dim blue hinting
             if log::log_enabled!(log::Level::Debug) {
@@ -355,9 +372,27 @@ impl Scene for PlayingScene {
         );
 
         if self.player.is_finished() && !self.player.is_paused() {
-            ctx.proxy
-                .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
-                .ok();
+            use crate::song::PlayMode;
+
+            // Only show score for Learn and Play modes (not Watch mode)
+            match self.player.song().config.play_mode {
+                PlayMode::Watch => {
+                    // Watch mode goes directly to menu
+                    ctx.proxy
+                        .send_event(NeothesiaEvent::MainMenu(Some(self.player.song().clone())))
+                        .ok();
+                }
+                PlayMode::Learn | PlayMode::Play => {
+                    // Extract stats before transitioning
+                    let score_data = self.player.play_along().stats().to_score_data();
+                    ctx.proxy
+                        .send_event(NeothesiaEvent::ShowScore {
+                            song: self.player.song().clone(),
+                            score_data,
+                        })
+                        .ok();
+                }
+            }
         }
     }
 
@@ -412,35 +447,45 @@ impl Scene for PlayingScene {
     }
 
     fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {
-         // In wait mode, trigger sound immediately when user presses a required note
-          // Check per-song wait_mode setting instead of global config
-          if self.player.song().config.wait_mode {
-              match message {
-                  MidiMessage::NoteOn { key, .. } => {
-                      let note_id = key.as_int();
-                      if self.player.play_along_mut().is_required_note(note_id) {
-                          // User pressed a required note - play sound immediately and mark as triggered
-                          ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
-                          self.player.play_along_mut().mark_note_as_triggered(_channel, note_id);
-                      }
-                  }
-                  MidiMessage::NoteOff { key, .. } => {
-                      let note_id = key.as_int();
-                      if self.player.play_along_mut().was_note_triggered(_channel, note_id) {
-                          // User released a note they triggered - send NoteOff immediately
-                          ctx.output_manager.connection().midi_event(u4::new(_channel), *message);
-                      }
-                  }
-                  _ => {}
-              }
-          }
-          
-          // Always update PlayAlong state and keyboard visual feedback
-          self.player
-              .play_along_mut()
-              .midi_event(midi_player::MidiEventSource::User, message);
-          self.keyboard.user_midi_event(message);
-      }
+        // In wait mode, trigger sound immediately when user presses a required note
+        // Check per-song wait_mode setting instead of global config
+        if self.player.song().config.wait_mode {
+            match message {
+                MidiMessage::NoteOn { key, .. } => {
+                    let note_id = key.as_int();
+                    if self.player.play_along_mut().is_required_note(note_id) {
+                        // User pressed a required note - play sound immediately and mark as triggered
+                        ctx.output_manager
+                            .connection()
+                            .midi_event(u4::new(_channel), *message);
+                        self.player
+                            .play_along_mut()
+                            .mark_note_as_triggered(_channel, note_id);
+                    }
+                }
+                MidiMessage::NoteOff { key, .. } => {
+                    let note_id = key.as_int();
+                    if self
+                        .player
+                        .play_along_mut()
+                        .was_note_triggered(_channel, note_id)
+                    {
+                        // User released a note they triggered - send NoteOff immediately
+                        ctx.output_manager
+                            .connection()
+                            .midi_event(u4::new(_channel), *message);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Always update PlayAlong state and keyboard visual feedback
+        self.player
+            .play_along_mut()
+            .midi_event(midi_player::MidiEventSource::User, message);
+        self.keyboard.user_midi_event(message);
+    }
 }
 
 fn handle_settings_input(
@@ -516,7 +561,10 @@ fn handle_settings_input(
 impl Drop for PlayingScene {
     fn drop(&mut self) {
         // Restore menu settings when exiting playing scene
-        log::info!("PlayingScene: Exiting, restoring LUMI menu mode {}", self.saved_color_mode);
+        log::info!(
+            "PlayingScene: Exiting, restoring LUMI menu mode {}",
+            self.saved_color_mode
+        );
         self.lumi.end_api_mode();
         self.lumi.set_color_mode(self.saved_color_mode);
     }

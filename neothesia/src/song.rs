@@ -25,10 +25,19 @@ pub struct TrackConfig {
     pub visible: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PlayMode {
+    #[default]
+    Watch,
+    Learn,
+    Play,
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct SongConfig {
     pub tracks: Box<[TrackConfig]>,
     pub wait_mode: bool,
+    pub play_mode: PlayMode,
 }
 
 impl SongConfig {
@@ -63,6 +72,7 @@ impl SongConfig {
         Self {
             tracks: tracks.into(),
             wait_mode: false,
+            play_mode: PlayMode::default(),
         }
     }
 }

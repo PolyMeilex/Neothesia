@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
-use crate::{NeothesiaEvent, context::Context, output_manager::OutputDescriptor, song::Song};
+use crate::{context::Context, output_manager::OutputDescriptor, song::Song, NeothesiaEvent};
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -136,7 +136,10 @@ impl UiState {
                 ctx.output_manager.connect_lumi_by_port_name(&port_name);
             } else {
                 if let Some(first) = self.inputs.first() {
-                    log::info!("Selecting first available MIDI input: '{}'", first.to_string());
+                    log::info!(
+                        "Selecting first available MIDI input: '{}'",
+                        first.to_string()
+                    );
                     self.selected_input = Some(first.clone());
                     // Immediately connect LUMI SysEx output for first available input
                     let port_name = first.to_string();
@@ -144,8 +147,8 @@ impl UiState {
                     ctx.output_manager.connect_lumi_by_port_name(&port_name);
                 }
             }
-}
-}
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -184,24 +187,36 @@ pub fn play(data: &UiState, ctx: &mut Context) {
     play_with_config(data, ctx, PlayMode::Watch, HandSelection::Both);
 }
 
-pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, hand_selection: HandSelection) {
+pub fn play_with_config(
+    data: &UiState,
+    ctx: &mut Context,
+    play_mode: PlayMode,
+    hand_selection: HandSelection,
+) {
     let Some(song) = data.song.as_ref() else {
         return;
     };
 
     let mut song = song.clone();
-    
+
+    // Store the play mode for later use (e.g., determining if score should be shown)
+    song.config.play_mode = match play_mode {
+        PlayMode::Watch => crate::song::PlayMode::Watch,
+        PlayMode::Learn => crate::song::PlayMode::Learn,
+        PlayMode::Play => crate::song::PlayMode::Play,
+    };
+
     song.config.wait_mode = play_mode == PlayMode::Learn;
-    
+
     for (track_id, track_config) in song.config.tracks.iter_mut().enumerate() {
         if let Some(track) = song.file.tracks.get(track_id) {
             let is_drums = track.has_drums && !track.has_other_than_drums;
-            
+
             if is_drums {
                 track_config.visible = true;
                 continue;
             }
-            
+
             if hand_selection == HandSelection::Both {
                 track_config.visible = true;
                 for channel_config in track_config.channels.iter_mut() {
@@ -209,30 +224,38 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
                 }
                 continue;
             }
-            
-            let mut channel_notes: std::collections::HashMap<u8, Vec<u8>> = std::collections::HashMap::new();
+
+            let mut channel_notes: std::collections::HashMap<u8, Vec<u8>> =
+                std::collections::HashMap::new();
             for note in track.notes.as_ref() {
-                channel_notes.entry(note.channel).or_default().push(note.note);
+                channel_notes
+                    .entry(note.channel)
+                    .or_default()
+                    .push(note.note);
             }
-            
+
             for channel_config in track_config.channels.iter_mut() {
                 let notes = channel_notes.get(&channel_config.channel);
-                
+
                 // Only activate channels that have notes in this track
                 let has_notes = notes.map(|n| !n.is_empty()).unwrap_or(false);
-                
+
                 if !has_notes {
                     // Channel has no notes - deactivate it
                     channel_config.active = false;
                     continue;
                 }
-                
-                let avg_note = notes.and_then(|n| {
-                    if n.is_empty() { None } else {
-                        Some(n.iter().map(|&m| m as f32).sum::<f32>() / n.len() as f32)
-                    }
-                }).unwrap_or(60.0);
-                
+
+                let avg_note = notes
+                    .and_then(|n| {
+                        if n.is_empty() {
+                            None
+                        } else {
+                            Some(n.iter().map(|&m| m as f32).sum::<f32>() / n.len() as f32)
+                        }
+                    })
+                    .unwrap_or(60.0);
+
                 match hand_selection {
                     HandSelection::Left => {
                         channel_config.active = avg_note < 60.0;
@@ -244,7 +267,7 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
                     HandSelection::Both => {}
                 }
             }
-            
+
             // Track is visible only if it has at least one active channel
             track_config.visible = track_config.channels.iter().any(|c| c.active);
             // Note: If filtering results in no active channels, that's the intended behavior
@@ -254,9 +277,7 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
 
     connect_io(data, ctx);
 
-    ctx.proxy
-        .send_event(NeothesiaEvent::Play(song))
-        .ok();
+    ctx.proxy.send_event(NeothesiaEvent::Play(song)).ok();
 }
 
 pub fn freeplay(data: &UiState, ctx: &mut Context) {

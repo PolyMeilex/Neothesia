@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
-use crate::{NeothesiaEvent, context::Context, icons};
+use crate::{context::Context, icons, NeothesiaEvent};
 
 use super::{
-    PlayingScene,
     animation::{Animated, Easing},
+    PlayingScene,
 };
 
 pub struct TopBar {
@@ -180,7 +180,11 @@ impl TopBar {
                 let is_wait_mode = this.player.song().config.wait_mode;
                 if Self::button()
                     .icon(icons::hourglass_icon())
-                    .color(if is_wait_mode { [56, 145, 255] } else { [67, 67, 67] })
+                    .color(if is_wait_mode {
+                        [56, 145, 255]
+                    } else {
+                        [67, 67, 67]
+                    })
                     .build(ui)
                 {
                     // Toggle per-song wait_mode setting

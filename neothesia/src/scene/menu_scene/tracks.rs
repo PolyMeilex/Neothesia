@@ -337,7 +337,7 @@ fn track_card(
                         channel,
                         mode: ChannelMode::Listen,
                         active: true,
-                        interactive: true,
+                        interactive: channel != 9,
                     });
                 
                 // Render 3 mode buttons for this channel

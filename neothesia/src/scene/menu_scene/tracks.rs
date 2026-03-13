@@ -128,6 +128,7 @@ impl super::MenuScene {
                                                     channel,
                                                     mode,
                                                     active: true,
+                                                    interactive: channel != 9,
                                                 });
                                             }
                                         }
@@ -141,6 +142,7 @@ impl super::MenuScene {
                                                     channel,
                                                     mode: crate::song::ChannelMode::Listen,
                                                     active: false,
+                                                    interactive: channel != 9,
                                                 });
                                             }
                                         }
@@ -335,6 +337,7 @@ fn track_card(
                         channel,
                         mode: ChannelMode::Listen,
                         active: true,
+                        interactive: channel != 9,
                     });
                 
                 // Render 3 mode buttons for this channel

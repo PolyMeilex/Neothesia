@@ -1,6 +1,6 @@
 mod state;
 use bytes::Bytes;
-use state::{Page, UiState};
+use state::{Page, UiState, PlayMode, HandSelection};
 
 mod midi_picker;
 use midi_picker::open_midi_file_picker;
@@ -136,6 +136,7 @@ impl MenuScene {
             Page::Main => self.main_page_ui(ctx, &mut nuon),
             Page::Settings => self.settings_page_ui(ctx, &mut nuon),
             Page::TrackSelection => self.tracks_page_ui(ctx, &mut nuon),
+            Page::PlayMode => self.play_mode_page_ui(ctx, &mut nuon),
         }
 
         self.nuon = nuon;
@@ -210,6 +211,14 @@ impl MenuScene {
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
+                        // Only show Play Mode button when a song is loaded
+                        if self.state.song().is_some() {
+                            if neo_btn().size(w, h).label("Play Mode").build(ui) {
+                                self.state.go_to(Page::PlayMode);
+                            }
+                            nuon::translate().y(h + gap).add_to_current(ui);
+                        }
+
                         if neo_btn().size(w, h).label("Settings").build(ui) {
                             self.state.go_to(Page::Settings);
                         }
@@ -252,11 +261,9 @@ impl MenuScene {
                 }
             });
 
-            if self.state.song().is_none() {
-                return;
-            }
-
-            nuon::translate().x(win_w).build(ui, |ui| {
+            // Only show Play and Tracks buttons when song is loaded
+            if self.state.song().is_some() {
+                nuon::translate().x(win_w).build(ui, |ui| {
                 nuon::translate().x(-btn_w - gap).add_to_current(ui);
 
                 if neo_btn()
@@ -279,7 +286,180 @@ impl MenuScene {
                     self.state.go_to(Page::TrackSelection);
                 }
             });
+            }
         });
+    }
+
+    fn play_mode_page_ui(&mut self, ctx: &mut Context, ui: &mut nuon::Ui) {
+        let win_w = ctx.window_state.logical_size.width;
+        let win_h = ctx.window_state.logical_size.height;
+
+        let w = win_w.min(500.0);  // Max width 500, but responsive
+        let _h = 60.0;
+        let _gap = 8.0;
+        let _section_gap = 30.0;
+
+        nuon::translate()
+            .x(nuon::center_x(win_w, w))
+            .y(win_h / 6.0)
+            .build(ui, |ui| {
+                nuon::label()
+                    .text("Select Play Mode")
+                    .size(w, 50.0)
+                    .font_size(28.0)
+                    .build(ui);
+            });
+
+        nuon::translate()
+            .x(nuon::center_x(win_w, w))
+            .y(win_h / 3.5)
+            .build(ui, |ui| {
+                nuon::label()
+                    .text("Mode")
+                    .size(w, 30.0)
+                    .font_size(18.0)
+                    .build(ui);
+            });
+
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(win_h / 3.5 + 40.0)
+            .build(ui, |ui| {
+                let btn_w = (win_w / 4.0).min(160.0).max(100.0);
+                let btn_h = 50.0;
+                let btn_gap = 10.0;
+                
+                let total_width = btn_w * 3.0 + btn_gap * 2.0;
+                nuon::translate().x(-total_width / 2.0).add_to_current(ui);
+                
+                let is_watch = self.state.play_mode == PlayMode::Watch;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Watch")
+                    .color(if is_watch { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.play_mode = PlayMode::Watch;
+                }
+                
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
+                
+                let is_learn = self.state.play_mode == PlayMode::Learn;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Learn")
+                    .color(if is_learn { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.play_mode = PlayMode::Learn;
+                }
+                
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
+                
+                let is_play = self.state.play_mode == PlayMode::Play;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Play")
+                    .color(if is_play { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.play_mode = PlayMode::Play;
+                }
+                
+                nuon::translate().y(btn_h + 15.0).add_to_current(ui);
+                let desc = match self.state.play_mode {
+                    PlayMode::Watch => "Auto-play through entire song",
+                    PlayMode::Learn => "Wait for your input (hourglass mode)",
+                    PlayMode::Play => "Play along freely",
+                };
+                nuon::label()
+                    .x(-w / 2.0)
+                    .text(desc)
+                    .size(w, 25.0)
+                    .font_size(14.0)
+                    .build(ui);
+            });
+
+        nuon::translate()
+            .x(nuon::center_x(win_w, w))
+            .y(win_h / 2.0 + 40.0)
+            .build(ui, |ui| {
+                nuon::label()
+                    .text("Channels")
+                    .size(w, 30.0)
+                    .font_size(18.0)
+                    .build(ui);
+            });
+
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(win_h / 2.0 + 80.0)
+            .build(ui, |ui| {
+                let btn_w = (win_w / 4.0).min(120.0).max(80.0);
+                let btn_h = 45.0;
+                let btn_gap = 10.0;
+                
+                let total_width = btn_w * 3.0 + btn_gap * 2.0;
+                nuon::translate().x(-total_width / 2.0).add_to_current(ui);
+                
+                let is_left = self.state.hand_selection == HandSelection::Left;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Left")
+                    .color(if is_left { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.hand_selection = HandSelection::Left;
+                }
+                
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
+                
+                let is_right = self.state.hand_selection == HandSelection::Right;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Right")
+                    .color(if is_right { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.hand_selection = HandSelection::Right;
+                }
+                
+                nuon::translate().x(btn_w + btn_gap).add_to_current(ui);
+                
+                let is_both = self.state.hand_selection == HandSelection::Both;
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Both")
+                    .color(if is_both { [80, 180, 80] } else { [100; 3] })
+                    .build(ui)
+                {
+                    self.state.hand_selection = HandSelection::Both;
+                }
+            });
+
+        let bottom_y = win_h - 100.0;
+        let btn_w = 150.0;
+        let btn_h = 50.0;
+        
+        nuon::translate()
+            .x(win_w / 2.0)
+            .y(bottom_y)
+            .build(ui, |ui| {
+                nuon::translate().x(-btn_w - 20.0).add_to_current(ui);
+                if neo_btn().size(btn_w, btn_h).label("Back").build(ui) {
+                    self.state.go_back();
+                }
+                
+                nuon::translate().x(btn_w + 20.0).add_to_current(ui);
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label("Start")
+                    .color([80, 180, 80])
+                    .build(ui)
+                {
+                    state::play_with_config(&self.state, ctx, self.state.play_mode, self.state.hand_selection);
+                }
+            });
     }
 }
 
@@ -375,6 +555,10 @@ impl Scene for MenuScene {
                     self.state.go_to(Page::Settings);
                 }
 
+                if event.key_pressed(Key::Character("p")) {
+                    self.state.go_to(Page::PlayMode);
+                }
+
                 if event.key_pressed(Key::Character("t")) {
                     self.state.go_to(Page::TrackSelection);
                 }
@@ -391,6 +575,15 @@ impl Scene for MenuScene {
             Page::TrackSelection => {
                 if event.key_pressed(Key::Named(NamedKey::Enter)) {
                     state::play(&self.state, ctx);
+                }
+
+                if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    self.state.go_back();
+                }
+            }
+            Page::PlayMode => {
+                if event.key_pressed(Key::Named(NamedKey::Enter)) {
+                    state::play_with_config(&self.state, ctx, self.state.play_mode, self.state.hand_selection);
                 }
 
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {

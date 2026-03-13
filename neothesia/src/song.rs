@@ -15,6 +15,7 @@ pub struct ChannelConfig {
     pub channel: u8,
     pub mode: ChannelMode,
     pub active: bool,
+    pub interactive: bool, // If false, channel plays but doesn't participate in Learn/wait mode
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +48,8 @@ impl SongConfig {
                         channel,
                         mode: ChannelMode::Listen, // Default to Listen
                         active: true,
+                        // Channel 9 (0-indexed) is the drum channel - not interactive in Learn mode
+                        interactive: channel != 9,
                     })
                     .collect();
 

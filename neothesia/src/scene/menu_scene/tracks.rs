@@ -128,7 +128,7 @@ impl super::MenuScene {
                                                     channel,
                                                     mode,
                                                     active: true,
-                                                    interactive: true,
+                                                    interactive: channel != 9,
                                                 });
                                             }
                                         }
@@ -142,7 +142,7 @@ impl super::MenuScene {
                                                     channel,
                                                     mode: crate::song::ChannelMode::Listen,
                                                     active: false,
-                                                    interactive: true,
+                                                    interactive: channel != 9,
                                                 });
                                             }
                                         }

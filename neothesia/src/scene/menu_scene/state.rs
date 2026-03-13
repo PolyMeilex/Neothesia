@@ -240,9 +240,8 @@ pub fn play_with_config(data: &UiState, ctx: &mut Context, play_mode: PlayMode, 
                     HandSelection::Right => {
                         channel_config.active = avg_note >= 60.0;
                     }
-                    HandSelection::Both => {
-                        channel_config.active = true;
-                    }
+                    // HandSelection::Both is handled earlier with a continue
+                    HandSelection::Both => {}
                 }
             }
             

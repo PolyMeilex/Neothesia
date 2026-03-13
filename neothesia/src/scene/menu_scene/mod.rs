@@ -311,7 +311,7 @@ impl MenuScene {
             });
 
         nuon::translate()
-            .x(win_w / 2.0)
+            .x(nuon::center_x(win_w, w))
             .y(win_h / 3.5)
             .build(ui, |ui| {
                 nuon::label()
@@ -381,7 +381,7 @@ impl MenuScene {
             });
 
         nuon::translate()
-            .x(win_w / 2.0)
+            .x(nuon::center_x(win_w, w))
             .y(win_h / 2.0 + 40.0)
             .build(ui, |ui| {
                 nuon::label()

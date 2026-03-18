@@ -40,7 +40,7 @@ struct VertexOutput {
 fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     let speed = time_uniform.speed;
 
-    let size = vec2<f32>(note.size.x, note.size.y * abs(speed)) * view_uniform.scale;
+    let size = vec2<f32>(note.size.x * view_uniform.scale, note.size.y * abs(speed));
 
     // In an ideal world this should not be hard-coded
     let keyboard_h = view_uniform.size.y / 5.0;

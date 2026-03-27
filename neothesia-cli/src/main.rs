@@ -336,7 +336,7 @@ fn main() {
         for _ in 0..SAMPLE_TIME {
             let val = recorder.synth.read_next();
             audio_buffer_l.push(val.0);
-            audio_buffer_r.push(val.0);
+            audio_buffer_r.push(val.1);
         }
 
         if audio_buffer_l.len() >= frame_size {
@@ -399,39 +399,96 @@ fn file_midi_events(
     use midi_file::midly::MidiMessage;
 
     for e in events {
-        let (is_on, key, vel) = match e.message {
-            MidiMessage::NoteOn { key, vel, .. } => (true, key.as_int(), vel),
-            MidiMessage::NoteOff { key, .. } => (false, key.as_int(), 0.into()),
-            _ => continue,
-        };
+        let channel = e.channel;
 
-        if is_on {
-            synth
-                .send_event(oxisynth::MidiEvent::NoteOn {
-                    channel: 1,
-                    key,
-                    vel: vel.as_int(),
-                })
-                .ok();
-        } else {
-            synth
-                .send_event(oxisynth::MidiEvent::NoteOff { channel: 1, key })
-                .ok();
-        }
+        match e.message {
+            MidiMessage::NoteOn { key, vel } => {
+                let key_u8 = key.as_int();
+                let vel_u8 = vel.as_int();
 
-        let range_start = keyboard.range().start() as usize;
-        if keyboard.range().contains(key) && e.channel != 9 {
-            let id = key as usize - range_start;
-            let key = &mut keyboard.key_states_mut()[id];
+                // MIDI convention: NoteOn with velocity 0 == NoteOff
+                if vel_u8 == 0 {
+                    let _ = synth.send_event(oxisynth::MidiEvent::NoteOff {
+                        channel,
+                        key: key_u8,
+                    });
 
-            if is_on {
-                let color = &config.color_schema()[e.track_color_id % config.color_schema().len()];
-                key.pressed_by_file_on(color);
-            } else {
-                key.pressed_by_file_off();
+                    let range_start = keyboard.range().start() as usize;
+                    if keyboard.range().contains(key_u8) && channel != 9 {
+                        let id = key_u8 as usize - range_start;
+                        let k = &mut keyboard.key_states_mut()[id];
+                        k.pressed_by_file_off();
+                        keyboard.invalidate_cache();
+                    }
+                } else {
+                    let _ = synth.send_event(oxisynth::MidiEvent::NoteOn {
+                        channel,
+                        key: key_u8,
+                        vel: vel_u8,
+                    });
+
+                    let range_start = keyboard.range().start() as usize;
+                    if keyboard.range().contains(key_u8) && channel != 9 {
+                        let id = key_u8 as usize - range_start;
+                        let k = &mut keyboard.key_states_mut()[id];
+                        let color =
+                        &config.color_schema()[e.track_color_id % config.color_schema().len()];
+                        k.pressed_by_file_on(color);
+                        keyboard.invalidate_cache();
+                    }
+                }
             }
 
-            keyboard.invalidate_cache();
+            MidiMessage::NoteOff { key, .. } => {
+                let key_u8 = key.as_int();
+                let _ = synth.send_event(oxisynth::MidiEvent::NoteOff {
+                    channel,
+                    key: key_u8,
+                });
+
+        let range_start = keyboard.range().start() as usize;
+        if keyboard.range().contains(key_u8) && channel != 9 {
+            let id = key_u8 as usize - range_start;
+            let k = &mut keyboard.key_states_mut()[id];
+                    k.pressed_by_file_off();
+                    keyboard.invalidate_cache();
+                }
+            }
+
+            MidiMessage::ProgramChange { program } => {
+                let _ = synth.send_event(oxisynth::MidiEvent::ProgramChange {
+                    channel,
+                    program_id: program.as_int(),
+                });
+            }
+
+            MidiMessage::Controller { controller, value } => {
+                let _ = synth.send_event(oxisynth::MidiEvent::ControlChange {
+                    channel,
+                    ctrl: controller.as_int(),
+                                         value: value.as_int(),
+                });
+            }
+
+            MidiMessage::PitchBend { bend } => {
+                let signed = bend.as_int() as i32;
+                let value_14 = (signed + 8192).clamp(0, 0x3FFF) as u16;
+
+                let _ = synth.send_event(oxisynth::MidiEvent::PitchBend {
+                    channel,
+                    value: value_14,
+                });
+            }
+
+            MidiMessage::Aftertouch { key, vel } => {
+                let _ = synth.send_event(oxisynth::MidiEvent::PolyphonicKeyPressure {
+                    channel,
+                    key: key.as_int(),
+                                         value: vel.as_int(),
+                });
+            }
+
+            _ => {}
         }
     }
 }

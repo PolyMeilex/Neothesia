@@ -8,7 +8,7 @@ runs:
     - name: Build Windows Release
       shell: bash
       run: cargo build --release
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: windows-artifact
         path: target/release/neothesia.exe

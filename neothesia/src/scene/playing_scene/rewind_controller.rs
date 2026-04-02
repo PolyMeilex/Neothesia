@@ -85,7 +85,7 @@ impl RewindController {
             WindowEvent::KeyboardInput { .. } => {
                 self.handle_keyboard_input(player, event);
             }
-            WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::PointerMoved { position, .. } => {
                 self.handle_cursor_moved(player, &ctx.window_state, position);
             }
             _ => {}

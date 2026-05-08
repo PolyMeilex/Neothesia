@@ -20,6 +20,7 @@ env_logger.workspace = true
 wgpu.workspace = true
 wgpu-jumpstart.workspace = true
 neothesia-core.workspace = true
+neothesia-notation.workspace = true
 neothesia-image.workspace = true
 midi-file.workspace = true
 midi-io.workspace = true

@@ -8,6 +8,7 @@ members = [
   "neothesia-cli",
   "neothesia-core",
   "neothesia-image",
+  "neothesia-notation",
   "midi-file",
   "midi-io",
   "nuon",
@@ -28,6 +29,7 @@ midi-io = { path = "./midi-io" }
 piano-layout = { path = "./piano-layout" }
 ffmpeg-encoder = { path = "./ffmpeg-encoder" }
 nuon = { path = "./nuon" }
+neothesia-notation = { path = "./neothesia-notation" }
 
 anyhow = "1"
 thiserror = "2.0"

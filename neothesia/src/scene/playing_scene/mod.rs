@@ -2,6 +2,7 @@ use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
     GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
 };
+use neothesia_notation::render::{NotationRenderer, RenderTarget};
 use std::time::Duration;
 use winit::{
     event::WindowEvent,
@@ -51,6 +52,13 @@ pub struct PlayingScene {
     mouse_to_midi_state: MouseToMidiEventState,
 
     top_bar: TopBar,
+
+    /// Optional sheet music notation display.
+    notation: Option<NotationRenderer>,
+    /// Whether to show the notation area.
+    show_notation: bool,
+    /// Scale multiplier for notation area (1.0 = default).
+    notation_scale: f32,
 }
 
 impl PlayingScene {
@@ -92,6 +100,15 @@ impl PlayingScene {
             ctx.text_renderer_factory.new_renderer(),
         ));
 
+        // Build sheet music notation (before song is moved into MidiPlayer)
+        let notation_data = neothesia_notation::score_from_midi(
+            &song.file.tracks,
+            &hidden_tracks,
+            &song.file.measures,
+        );
+        let notation =
+            NotationRenderer::new(notation_data, ctx.window_state.logical_size.width);
+
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
             song,
@@ -128,6 +145,10 @@ impl PlayingScene {
             mouse_to_midi_state: MouseToMidiEventState::default(),
 
             top_bar: TopBar::new(),
+
+            notation: Some(notation),
+            show_notation: true,
+            notation_scale: 1.0,
         }
     }
 
@@ -221,6 +242,32 @@ impl Scene for PlayingScene {
 
         self.update_glow(delta);
 
+        // Update notation scroll position. Use the same time the waterfall
+        // uses (lead-in stripped, animation offset applied) so the two views
+        // stay in sync.
+        if self.show_notation
+            && let Some(notation) = self.notation.as_mut()
+        {
+            let viewport_w = ctx.window_state.logical_size.width;
+            notation.set_viewport_width(viewport_w);
+            let notation_time = Duration::from_secs_f32(time.max(0.0));
+            let scroll_x = notation.playhead_x(notation_time) - viewport_w / 2.0;
+
+            let nh = NotationRenderer::height_for_viewport(ctx.window_state.logical_size.height)
+                * self.notation_scale;
+            notation.render(
+                &mut self.quad_renderer_fg,
+                &RenderTarget {
+                    viewport_width: viewport_w,
+                    notation_height: nh,
+                    scroll_x,
+                    top_offset: top_bar::HEIGHT,
+                },
+                notation_time,
+                ctx.config.color_schema(),
+            );
+        }
+
         TopBar::update(self, ctx);
 
         super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
@@ -283,6 +330,18 @@ impl Scene for PlayingScene {
 
         if event.key_released(Key::Named(NamedKey::Space)) {
             self.player.pause_resume();
+        }
+
+        if event.key_released(Key::Character("n")) {
+            self.show_notation = !self.show_notation;
+        }
+
+        // Notation size: [ to shrink, ] to grow
+        if event.key_released(Key::Character("[")) {
+            self.notation_scale = (self.notation_scale - 0.1).max(0.4);
+        }
+        if event.key_released(Key::Character("]")) {
+            self.notation_scale = (self.notation_scale + 0.1).min(2.5);
         }
 
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);

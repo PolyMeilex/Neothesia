@@ -1,0 +1,10 @@
+[package]
+name = "neothesia-notation"
+edition.workspace = true
+
+[dependencies]
+midi-file.workspace = true
+neothesia-core.workspace = true
+wgpu-jumpstart.workspace = true
+
+profiling.workspace = true

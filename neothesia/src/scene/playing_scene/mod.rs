@@ -59,6 +59,8 @@ pub struct PlayingScene {
     show_notation: bool,
     /// Scale multiplier for notation area (1.0 = default).
     notation_scale: f32,
+    /// Horizontal zoom multiplier on notation pixels-per-second (1.0 = default).
+    notation_zoom: f32,
 }
 
 impl PlayingScene {
@@ -149,6 +151,7 @@ impl PlayingScene {
             notation: Some(notation),
             show_notation: true,
             notation_scale: 1.0,
+            notation_zoom: 1.0,
         }
     }
 
@@ -250,6 +253,7 @@ impl Scene for PlayingScene {
         {
             let viewport_w = ctx.window_state.logical_size.width;
             notation.set_viewport_width(viewport_w);
+            notation.set_zoom(self.notation_zoom);
             let notation_time = Duration::from_secs_f32(time.max(0.0));
             let scroll_x = notation.playhead_x(notation_time) - viewport_w / 2.0;
 
@@ -342,6 +346,14 @@ impl Scene for PlayingScene {
         }
         if event.key_released(Key::Character("]")) {
             self.notation_scale = (self.notation_scale + 0.1).min(2.5);
+        }
+
+        // Notation horizontal zoom: - to zoom out, = to zoom in
+        if event.key_released(Key::Character("-")) {
+            self.notation_zoom = (self.notation_zoom - 0.1).max(0.4);
+        }
+        if event.key_released(Key::Character("=")) {
+            self.notation_zoom = (self.notation_zoom + 0.1).min(2.5);
         }
 
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);

@@ -127,25 +127,38 @@ struct RenderCtx<'a> {
 pub struct NotationRenderer {
     score: Score,
     pixels_per_sec: f32,
+    viewport_w: f32,
+    zoom: f32,
 }
 
-/// Pixels-per-second for the given viewport width, clamped to sane bounds.
-fn pixels_per_sec_for(viewport_w: f32) -> f32 {
-    (viewport_w / TARGET_SECONDS_VISIBLE).clamp(MIN_PIXELS_PER_SEC, MAX_PIXELS_PER_SEC)
+/// Pixels-per-second for the given viewport width and user zoom multiplier,
+/// clamped to sane bounds.
+fn pixels_per_sec_for(viewport_w: f32, zoom: f32) -> f32 {
+    (viewport_w / TARGET_SECONDS_VISIBLE * zoom).clamp(MIN_PIXELS_PER_SEC, MAX_PIXELS_PER_SEC)
 }
 
 impl NotationRenderer {
     pub fn new(score: Score, viewport_width: f32) -> Self {
         Self {
             score,
-            pixels_per_sec: pixels_per_sec_for(viewport_width),
+            pixels_per_sec: pixels_per_sec_for(viewport_width, 1.0),
+            viewport_w: viewport_width,
+            zoom: 1.0,
         }
     }
 
     /// Update horizontal scale to match the current viewport. Cheap; safe to
     /// call every frame.
     pub fn set_viewport_width(&mut self, viewport_w: f32) {
-        self.pixels_per_sec = pixels_per_sec_for(viewport_w);
+        self.viewport_w = viewport_w;
+        self.pixels_per_sec = pixels_per_sec_for(viewport_w, self.zoom);
+    }
+
+    /// User zoom multiplier on the horizontal density. 1.0 is the default
+    /// (≈ [`TARGET_SECONDS_VISIBLE`] seconds across the viewport).
+    pub fn set_zoom(&mut self, zoom: f32) {
+        self.zoom = zoom;
+        self.pixels_per_sec = pixels_per_sec_for(self.viewport_w, zoom);
     }
 
     /// Notation-coordinate x position of an absolute time `t`.

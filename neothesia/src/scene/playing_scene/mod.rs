@@ -108,8 +108,7 @@ impl PlayingScene {
             &hidden_tracks,
             &song.file.measures,
         );
-        let notation =
-            NotationRenderer::new(notation_data, ctx.window_state.logical_size.width);
+        let notation = NotationRenderer::new(notation_data, ctx.window_state.logical_size.width);
 
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
@@ -340,20 +339,20 @@ impl Scene for PlayingScene {
             self.show_notation = !self.show_notation;
         }
 
-        // Notation size: [ to shrink, ] to grow
+        // Notation horizontal zoom: "[" to zoom out, "]" to zoom in
         if event.key_released(Key::Character("[")) {
-            self.notation_scale = (self.notation_scale - 0.1).max(0.4);
-        }
-        if event.key_released(Key::Character("]")) {
-            self.notation_scale = (self.notation_scale + 0.1).min(2.5);
-        }
-
-        // Notation horizontal zoom: - to zoom out, = to zoom in
-        if event.key_released(Key::Character("-")) {
             self.notation_zoom = (self.notation_zoom - 0.1).max(0.4);
         }
-        if event.key_released(Key::Character("=")) {
+        if event.key_released(Key::Character("]")) {
             self.notation_zoom = (self.notation_zoom + 0.1).min(2.5);
+        }
+
+        // Notation panel height: "," to shrink, "." to grow
+        if event.key_released(Key::Character(",")) {
+            self.notation_scale = (self.notation_scale - 0.1).max(0.4);
+        }
+        if event.key_released(Key::Character(".")) {
+            self.notation_scale = (self.notation_scale + 0.1).min(2.5);
         }
 
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);

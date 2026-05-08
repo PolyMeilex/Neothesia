@@ -148,7 +148,7 @@ impl PlayingScene {
             top_bar: TopBar::new(),
 
             notation: Some(notation),
-            show_notation: true,
+            show_notation: false,
             notation_scale: 1.0,
             notation_zoom: 1.0,
         }

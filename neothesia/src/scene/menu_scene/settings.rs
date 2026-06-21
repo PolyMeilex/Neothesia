@@ -144,6 +144,28 @@ impl super::MenuScene {
                         {
                             ctx.config.set_note_labels(!ctx.config.note_labels());
                         }
+
+                        spacer(ui);
+
+                        if nuon::settings_row_toggler()
+                            .title("Sheet Music")
+                            .subtitle("Display a scrolling grand staff")
+                            .value(ctx.config.sheet_music())
+                            .build(ui, rows)
+                        {
+                            ctx.config.set_sheet_music(!ctx.config.sheet_music());
+                        }
+
+                        spacer(ui);
+
+                        self::update_sheet_music_height(
+                            ctx,
+                            nuon::settings_row_spin()
+                                .title("Sheet Music Height")
+                                .subtitle(format!("{} px", ctx.config.sheet_music_height().round()))
+                                .id("sheet-music-height")
+                                .build(ui, rows),
+                        );
                     });
             });
     }
@@ -445,6 +467,15 @@ pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
                 ctx.config.set_piano_range_end(v);
             }
         }
+        nuon::SettingsRowSpinResult::Idle => {}
+    }
+}
+
+pub fn update_sheet_music_height(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
+    let height = ctx.config.sheet_music_height();
+    match kind {
+        nuon::SettingsRowSpinResult::Plus => ctx.config.set_sheet_music_height(height + 20.0),
+        nuon::SettingsRowSpinResult::Minus => ctx.config.set_sheet_music_height(height - 20.0),
         nuon::SettingsRowSpinResult::Idle => {}
     }
 }

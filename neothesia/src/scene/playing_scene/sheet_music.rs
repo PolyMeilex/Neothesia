@@ -3,12 +3,15 @@ use std::time::Duration;
 use midi_file::{MidiNote, MidiTrack};
 use neothesia_core::{
     Rect,
-    render::{QuadInstance, QuadRenderer, TextRenderer},
+    render::{QuadInstance, QuadRenderer},
 };
 use wgpu_jumpstart::Color;
 use winit::event::WindowEvent;
 
 use crate::{context::Context, utils::window::WinitEvent};
+
+mod sprite;
+use sprite::{SpriteKind, SpriteRenderer};
 
 const PANEL_TOP: f32 = 82.0;
 const MIN_HEIGHT: f32 = 140.0;
@@ -38,7 +41,8 @@ pub struct SheetMusicRenderer {
     measures: Box<[f32]>,
     quarter_note_duration: f32,
     quads: QuadRenderer,
-    text: TextRenderer,
+    sprites: SpriteRenderer,
+    overlay: QuadRenderer,
     resizing: bool,
 }
 
@@ -77,13 +81,16 @@ impl SheetMusicRenderer {
             measures,
             quarter_note_duration,
             quads: ctx.quad_renderer_facotry.new_renderer(),
-            text: ctx.text_renderer_factory.new_renderer(),
+            sprites: SpriteRenderer::new(ctx),
+            overlay: ctx.quad_renderer_facotry.new_renderer(),
             resizing: false,
         }
     }
 
     pub fn update(&mut self, ctx: &Context, current_time: f32) {
         self.quads.clear();
+        self.sprites.clear();
+        self.overlay.clear();
 
         let width = ctx.window_state.logical_size.width;
         let height = self.height(ctx);
@@ -93,7 +100,8 @@ impl SheetMusicRenderer {
             ((width * scale) as u32, (height * scale) as u32).into(),
         );
         self.quads.set_scissor_rect(panel_rect);
-        self.text.set_scissor_rect(panel_rect);
+        self.sprites.set_scissor_rect(panel_rect);
+        self.overlay.set_scissor_rect(panel_rect);
 
         self.push_quad(0.0, PANEL_TOP, width, height, rgb(8, 8, 11, 0.96), 0.0);
 
@@ -154,11 +162,13 @@ impl SheetMusicRenderer {
             let y = bottom_line - staff_step as f32 * gap / 2.0;
 
             self.draw_ledger_lines(x, bottom_line, staff_step, gap);
-            self.draw_note(ctx, note, x, y, bottom_line - gap * 2.0, gap);
+            self.draw_note(ctx, note, x, y, gap);
         }
 
+        self.draw_clefs(treble_top, bass_top, gap);
+
         // The playback cursor never moves; the score moves around it.
-        self.push_quad(
+        self.push_overlay(
             width / 2.0 - 1.0,
             PANEL_TOP,
             2.0,
@@ -172,7 +182,7 @@ impl SheetMusicRenderer {
         } else {
             rgb(125, 125, 138, 0.9)
         };
-        self.push_quad(
+        self.push_overlay(
             width / 2.0 - 28.0,
             PANEL_TOP + height - 5.0,
             56.0,
@@ -181,17 +191,15 @@ impl SheetMusicRenderer {
             2.0,
         );
 
-        self.queue_clefs(treble_top, bass_top, gap);
         self.quads.prepare();
-        self.text.update(
-            ctx.window_state.physical_size,
-            ctx.window_state.scale_factor as f32,
-        );
+        self.sprites.prepare();
+        self.overlay.prepare();
     }
 
     pub fn render<'pass>(&'pass self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quads.render(rpass);
-        self.text.render(rpass);
+        self.sprites.render(rpass);
+        self.overlay.render(rpass);
     }
 
     pub fn handle_window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
@@ -224,17 +232,7 @@ impl SheetMusicRenderer {
         (ctx.window_state.logical_size.height * 0.8 - PANEL_TOP - 8.0).max(MIN_HEIGHT)
     }
 
-    fn draw_note(
-        &mut self,
-        ctx: &Context,
-        note: ScoreNote,
-        x: f32,
-        y: f32,
-        staff_middle: f32,
-        gap: f32,
-    ) {
-        let note_w = gap * 1.35;
-        let note_h = gap * 0.92;
+    fn draw_note(&mut self, ctx: &Context, note: ScoreNote, x: f32, y: f32, gap: f32) {
         let color = ctx
             .config
             .color_schema()
@@ -245,45 +243,30 @@ impl SheetMusicRenderer {
         let is_half = note.duration >= self.quarter_note_duration * 1.75;
         let is_whole = note.duration >= self.quarter_note_duration * 3.5;
 
-        self.push_quad(
-            x - note_w / 2.0,
-            y - note_h / 2.0,
-            note_w,
-            note_h,
+        let (kind, sprite_height, anchor_y) = if is_whole {
+            (SpriteKind::WholeNote, gap * 5.0, 0.5)
+        } else if is_half {
+            (SpriteKind::HalfNote, gap * 7.0, 0.62)
+        } else {
+            (SpriteKind::QuarterNote, gap * 7.0, 0.70)
+        };
+        let sprite_width = sprite_height * (2.0 / 3.0);
+        self.sprites.push(
+            kind,
+            [x - sprite_width * 0.5, y - sprite_height * anchor_y],
+            [sprite_width, sprite_height],
             color,
-            note_h,
         );
-        if is_half || is_whole {
-            self.push_quad(
-                x - note_w * 0.26,
-                y - note_h * 0.22,
-                note_w * 0.52,
-                note_h * 0.44,
-                rgb(8, 8, 11, 1.0),
-                note_h,
-            );
-        }
-
-        if !is_whole {
-            let stem_h = gap * 3.4;
-            if y <= staff_middle {
-                self.push_quad(x - note_w / 2.0, y, 1.5, stem_h, color, 0.0);
-            } else {
-                self.push_quad(x + note_w / 2.0 - 1.5, y - stem_h, 1.5, stem_h, color, 0.0);
-            }
-        }
-
-        if note.duration < self.quarter_note_duration * 0.75 {
-            let stem_top = if y <= staff_middle {
-                y + gap * 3.0
-            } else {
-                y - gap * 3.0
-            };
-            self.push_quad(x + note_w / 2.0 - 1.5, stem_top, gap, 2.0, color, 1.0);
-        }
 
         if is_accidental(note.key) {
-            self.draw_sharp(x - note_w * 1.15, y, gap, color);
+            let sharp_height = gap * 4.0;
+            let sharp_width = sharp_height * (2.0 / 3.0);
+            self.sprites.push(
+                SpriteKind::Sharp,
+                [x - gap * 1.6 - sharp_width * 0.5, y - sharp_height * 0.5],
+                [sharp_width, sharp_height],
+                color,
+            );
         }
     }
 
@@ -307,29 +290,46 @@ impl SheetMusicRenderer {
         }
     }
 
-    fn draw_sharp(&mut self, x: f32, y: f32, gap: f32, color: [f32; 4]) {
-        let h = gap * 1.45;
-        self.push_quad(x, y - h / 2.0, 1.2, h, color, 0.0);
-        self.push_quad(x + gap * 0.32, y - h / 2.0, 1.2, h, color, 0.0);
-        self.push_quad(x - gap * 0.13, y - gap * 0.24, gap * 0.62, 1.2, color, 0.0);
-        self.push_quad(x - gap * 0.13, y + gap * 0.22, gap * 0.62, 1.2, color, 0.0);
-    }
-
-    fn queue_clefs(&mut self, treble_top: f32, bass_top: f32, gap: f32) {
-        self.text.queue_buffer(
-            8.0,
-            treble_top - gap * 0.35,
-            TextRenderer::gen_buffer(gap * 4.6, "𝄞"),
+    fn draw_clefs(&mut self, treble_top: f32, bass_top: f32, gap: f32) {
+        let color = rgb(245, 245, 250, 1.0);
+        let treble_height = gap * 7.2;
+        let treble_width = treble_height * (2.0 / 3.0);
+        self.sprites.push(
+            SpriteKind::TrebleClef,
+            [gap * 0.2, treble_top + gap * 2.0 - treble_height * 0.48],
+            [treble_width, treble_height],
+            color,
         );
-        self.text.queue_buffer(
-            10.0,
-            bass_top + gap * 0.2,
-            TextRenderer::gen_buffer(gap * 3.2, "𝄢"),
+
+        let bass_height = gap * 6.0;
+        let bass_width = bass_height * (2.0 / 3.0);
+        self.sprites.push(
+            SpriteKind::BassClef,
+            [gap * 0.25, bass_top + gap * 2.0 - bass_height * 0.44],
+            [bass_width, bass_height],
+            color,
         );
     }
 
     fn push_quad(&mut self, x: f32, y: f32, width: f32, height: f32, color: [f32; 4], radius: f32) {
         self.quads.push(QuadInstance {
+            position: [x, y],
+            size: [width.max(0.0), height.max(0.0)],
+            color,
+            border_radius: [radius; 4],
+        });
+    }
+
+    fn push_overlay(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        color: [f32; 4],
+        radius: f32,
+    ) {
+        self.overlay.push(QuadInstance {
             position: [x, y],
             size: [width.max(0.0), height.max(0.0)],
             color,

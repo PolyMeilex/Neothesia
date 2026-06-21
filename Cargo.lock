@@ -1591,6 +1591,7 @@ dependencies = [
 name = "neothesia"
 version = "0.4.0"
 dependencies = [
+ "bytemuck",
  "bytes",
  "cosmic-text",
  "cpal",

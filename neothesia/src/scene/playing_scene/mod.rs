@@ -301,10 +301,8 @@ impl Scene for PlayingScene {
         super::handle_nuon_window_event(&mut self.nuon, event, ctx);
     }
 
-    fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {
-        self.player
-            .play_along_mut()
-            .midi_event(midi_player::MidiEventSource::User, message);
+    fn midi_event(&mut self, _ctx: &mut Context, channel: u8, message: &MidiMessage) {
+        self.player.user_midi_event(channel, message);
         self.keyboard.user_midi_event(message);
     }
 }

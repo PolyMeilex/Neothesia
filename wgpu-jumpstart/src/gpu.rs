@@ -1,3 +1,5 @@
+use wgpu::wgt::WgpuHasDisplayHandle;
+
 use super::{GpuInitError, color::Color};
 
 pub struct Gpu {
@@ -12,7 +14,7 @@ pub struct Gpu {
 impl Gpu {
     async fn try_init(
         window: wgpu::SurfaceTarget<'static>,
-        desc: &wgpu::InstanceDescriptor,
+        desc: wgpu::InstanceDescriptor,
     ) -> Result<(Self, wgpu::Surface<'static>), GpuInitError> {
         log::info!("Trying to initialize GPU with: {:?}", desc.backends);
 
@@ -24,6 +26,7 @@ impl Gpu {
 
     pub async fn for_window(
         window: impl Fn() -> wgpu::SurfaceTarget<'static>,
+        display: impl Fn() -> Box<dyn WgpuHasDisplayHandle>,
         width: u32,
         height: u32,
     ) -> Result<(Self, Surface), GpuInitError> {
@@ -35,10 +38,20 @@ impl Gpu {
         }
 
         let mut state_machine = FallbackStateMachine::DefaultOrEnv;
-        let mut desc = wgpu::InstanceDescriptor::from_env_or_default();
+        let mut desc = wgpu::InstanceDescriptor::new_with_display_handle_from_env(display());
 
         let (gpu, surface) = loop {
-            let res = Self::try_init(window(), &desc).await;
+            let res = Self::try_init(
+                window(),
+                wgpu::InstanceDescriptor {
+                    backends: desc.backends,
+                    flags: desc.flags,
+                    memory_budget_thresholds: desc.memory_budget_thresholds,
+                    backend_options: desc.backend_options.clone(),
+                    display: Some(display()),
+                },
+            )
+            .await;
 
             match res {
                 Ok(res) => break res,
@@ -206,7 +219,7 @@ impl Surface {
     }
 
     #[inline]
-    pub fn get_current_texture(&mut self) -> Result<wgpu::SurfaceTexture, wgpu::SurfaceError> {
+    pub fn get_current_texture(&mut self) -> wgpu::CurrentSurfaceTexture {
         self.surface.get_current_texture()
     }
 

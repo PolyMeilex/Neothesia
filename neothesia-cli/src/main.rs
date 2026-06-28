@@ -53,7 +53,8 @@ fn time_without_lead_in(playback: &midi_file::PlaybackState) -> f32 {
 
 impl Recorder {
     fn new(args: &cli::Args) -> Self {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+        let instance =
+            wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle_from_env());
         let gpu = pollster::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
             eprintln!("Failed to initialize GPU: {err}");
             std::process::exit(1);

@@ -175,8 +175,9 @@ impl Neothesia {
         let frame = loop {
             let swap_chain_output = self.surface.get_current_texture();
             match swap_chain_output {
-                Ok(s) => break s,
-                Err(err) => log::warn!("{err:?}"),
+                wgpu::CurrentSurfaceTexture::Success(s) => break s,
+                wgpu::CurrentSurfaceTexture::Suboptimal(s) => break s,
+                err => log::warn!("get_current_texture err: {err:?}"),
             }
         };
 
@@ -272,6 +273,7 @@ impl ApplicationHandler<NeothesiaEvent> for NeothesiaBootstrap {
         let window = Arc::new(window);
         let (gpu, surface) = pollster::block_on(Gpu::for_window(
             || window.clone().into(),
+            || Box::new(event_loop.owned_display_handle()),
             size.width,
             size.height,
         ))

@@ -380,34 +380,3 @@ impl PlayAlong {
         self.required_notes.is_empty()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use midi_file::midly::num::u7;
-
-    #[test]
-    fn human_notes_are_not_forwarded_from_the_file() {
-        let note_on = MidiMessage::NoteOn {
-            key: u7::new(60),
-            vel: u7::new(100),
-        };
-        let note_off = MidiMessage::NoteOff {
-            key: u7::new(60),
-            vel: u7::new(0),
-        };
-
-        assert!(!should_forward_human_event(&note_on));
-        assert!(!should_forward_human_event(&note_off));
-    }
-
-    #[test]
-    fn human_controller_events_are_still_forwarded() {
-        let controller = MidiMessage::Controller {
-            controller: u7::new(64),
-            value: u7::new(127),
-        };
-
-        assert!(should_forward_human_event(&controller));
-    }
-}

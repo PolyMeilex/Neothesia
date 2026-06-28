@@ -42,8 +42,8 @@ impl WaterfallPipeline {
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
                     bind_group_layouts: &[
-                        &transform_uniform.bind_group_layout,
-                        &time_uniform.bind_group_layout,
+                        Some(&transform_uniform.bind_group_layout),
+                        Some(&time_uniform.bind_group_layout),
                     ],
                     immediate_size: 0,
                 });

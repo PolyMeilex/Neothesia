@@ -30,8 +30,8 @@ impl ImageRenderer {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
-                    &transform_uniform.bind_group_layout,
-                    &texture_bind_group_layout,
+                    Some(&transform_uniform.bind_group_layout),
+                    Some(&texture_bind_group_layout),
                 ],
                 immediate_size: 0,
             });

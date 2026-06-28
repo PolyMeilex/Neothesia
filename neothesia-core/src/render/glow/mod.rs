@@ -30,7 +30,7 @@ impl<'a> GlowPipeline {
             gpu.device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
-                    bind_group_layouts: &[&transform_uniform.bind_group_layout],
+                    bind_group_layouts: &[Some(&transform_uniform.bind_group_layout)],
                     immediate_size: 0,
                 });
 

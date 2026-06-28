@@ -34,7 +34,7 @@ impl BgPipeline {
             &gpu.device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
-                    bind_group_layouts: &[&time_uniform.bind_group_layout],
+                    bind_group_layouts: &[Some(&time_uniform.bind_group_layout)],
                     immediate_size: 0,
                 });
 

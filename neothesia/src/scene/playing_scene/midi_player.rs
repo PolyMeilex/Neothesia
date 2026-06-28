@@ -70,13 +70,15 @@ impl MidiPlayer {
                         .midi_event(u4::new(channel), event.message);
                 }
                 PlayerConfig::Human => {
-                    // Let's play the sound, in case the user does not want it they can just set
-                    // no-output output in settings
-                    // TODO: Perhaps play on midi-in instead
-                    self.output
-                        .midi_event(u4::new(event.channel), event.message);
                     self.play_along
                         .midi_event(MidiEventSource::File, &event.message);
+
+                    // In Human mode note events from the file are targets for the player,
+                    // not notes to be played by the synthesizer. Keep forwarding controller
+                    // and other non-note events so the track still sounds as intended.
+                    if should_forward_human_event(&event.message) {
+                        self.output.midi_event(u4::new(channel), event.message);
+                    }
                 }
                 PlayerConfig::Mute => {}
             }
@@ -197,14 +199,22 @@ impl MidiPlayer {
         &self.play_along
     }
 
-    pub fn play_along_mut(&mut self) -> &mut PlayAlong {
-        &mut self.play_along
+    pub fn user_midi_event(&mut self, channel: u8, message: &MidiMessage) {
+        self.output.midi_event(u4::new(channel), *message);
+        self.play_along.midi_event(MidiEventSource::User, message);
     }
 }
 
 pub enum MidiEventSource {
     File,
     User,
+}
+
+fn should_forward_human_event(message: &MidiMessage) -> bool {
+    !matches!(
+        message,
+        MidiMessage::NoteOn { .. } | MidiMessage::NoteOff { .. }
+    )
 }
 
 type NoteId = u8;

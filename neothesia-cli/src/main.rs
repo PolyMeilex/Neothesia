@@ -8,7 +8,7 @@ use neothesia_core::{
         TextRenderer, TextRendererFactory, WaterfallRenderer,
     },
 };
-use wgpu_jumpstart::{wgpu, Gpu, TransformUniform, Uniform};
+use wgpu_jumpstart::{Gpu, TransformUniform, Uniform, wgpu};
 
 mod cli;
 
@@ -403,43 +403,6 @@ fn file_midi_events(
         let channel = e.channel;
 
         match e.message {
-            MidiMessage::NoteOn { key, vel } => {
-                let key_u8 = key.as_int();
-                let vel_u8 = vel.as_int();
-
-                let _ = synth.send_event(oxisynth::MidiEvent::NoteOn {
-                    channel,
-                    key: key_u8,
-                    vel: vel_u8,
-                });
-
-                let range_start = keyboard.range().start() as usize;
-                if keyboard.range().contains(key_u8) && channel != 9 {
-                    let id = key_u8 as usize - range_start;
-                    let k = &mut keyboard.key_states_mut()[id];
-                    let color =
-                        &config.color_schema()[e.track_color_id % config.color_schema().len()];
-                    k.pressed_by_file_on(color);
-                    keyboard.invalidate_cache();
-                }
-            }
-
-            MidiMessage::NoteOff { key, .. } => {
-                let key_u8 = key.as_int();
-                let _ = synth.send_event(oxisynth::MidiEvent::NoteOff {
-                    channel,
-                    key: key_u8,
-                });
-
-                let range_start = keyboard.range().start() as usize;
-                if keyboard.range().contains(key_u8) && channel != 9 {
-                    let id = key_u8 as usize - range_start;
-                    let k = &mut keyboard.key_states_mut()[id];
-                    k.pressed_by_file_off();
-                    keyboard.invalidate_cache();
-                }
-            }
-
             MidiMessage::ProgramChange { program } => {
                 let _ = synth.send_event(oxisynth::MidiEvent::ProgramChange {
                     channel,
@@ -472,8 +435,48 @@ fn file_midi_events(
                     value: vel.as_int(),
                 });
             }
+            _ => {
+                let (is_on, key) = match e.message {
+                    MidiMessage::NoteOn { key, vel, .. } => {
+                        synth
+                            .send_event(oxisynth::MidiEvent::NoteOn {
+                                channel,
+                                key: key.as_int(),
+                                vel: vel.as_int(),
+                            })
+                            .ok();
 
-            _ => {}
+                        (true, key.as_int())
+                    }
+                    MidiMessage::NoteOff { key, .. } => {
+                        synth
+                            .send_event(oxisynth::MidiEvent::NoteOff {
+                                channel,
+                                key: key.as_int(),
+                            })
+                            .ok();
+
+                        (false, key.as_int())
+                    }
+                    _ => continue,
+                };
+
+                let range_start = keyboard.range().start() as usize;
+                if keyboard.range().contains(key) && e.channel != 9 {
+                    let id = key as usize - range_start;
+                    let key = &mut keyboard.key_states_mut()[id];
+
+                    if is_on {
+                        let color =
+                            &config.color_schema()[e.track_color_id % config.color_schema().len()];
+                        key.pressed_by_file_on(color);
+                    } else {
+                        key.pressed_by_file_off();
+                    }
+
+                    keyboard.invalidate_cache();
+                }
+            }
         }
     }
 }

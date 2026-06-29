@@ -26,11 +26,7 @@ impl Args {
         let mut output = None;
         let mut model = None;
 
-        loop {
-            let Some(arg) = args.next() else {
-                break;
-            };
-
+        while let Some(arg) = args.next() {
             match arg.as_str() {
                 "--input" | "-i" => {
                     input = args.next();

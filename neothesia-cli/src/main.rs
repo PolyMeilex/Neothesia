@@ -1,5 +1,6 @@
 use std::{default::Default, time::Duration};
 
+use midi_file::midly;
 use neothesia_core::{
     config::Config,
     piano_layout,
@@ -337,7 +338,7 @@ fn main() {
         for _ in 0..SAMPLE_TIME {
             let val = recorder.synth.read_next();
             audio_buffer_l.push(val.0);
-            audio_buffer_r.push(val.0);
+            audio_buffer_r.push(val.1);
         }
 
         if audio_buffer_l.len() >= frame_size {
@@ -400,25 +401,16 @@ fn file_midi_events(
     use midi_file::midly::MidiMessage;
 
     for e in events {
-        let (is_on, key, vel) = match e.message {
-            MidiMessage::NoteOn { key, vel, .. } => (true, key.as_int(), vel),
-            MidiMessage::NoteOff { key, .. } => (false, key.as_int(), 0.into()),
+        let channel = e.channel;
+
+        let oxistynth_event = libmidi_to_oxisynth_event(channel, e.message);
+        synth.send_event(oxistynth_event).ok();
+
+        let (is_on, key) = match e.message {
+            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
             _ => continue,
         };
-
-        if is_on {
-            synth
-                .send_event(oxisynth::MidiEvent::NoteOn {
-                    channel: 1,
-                    key,
-                    vel: vel.as_int(),
-                })
-                .ok();
-        } else {
-            synth
-                .send_event(oxisynth::MidiEvent::NoteOff { channel: 1, key })
-                .ok();
-        }
 
         let range_start = keyboard.range().start() as usize;
         if keyboard.range().contains(key) && e.channel != 9 {
@@ -434,5 +426,44 @@ fn file_midi_events(
 
             keyboard.invalidate_cache();
         }
+    }
+}
+
+// TODO: This is copy-pasted from neothesia/output_manager/synth_backend
+fn libmidi_to_oxisynth_event(channel: u8, message: midly::MidiMessage) -> oxisynth::MidiEvent {
+    match message {
+        midly::MidiMessage::NoteOff { key, .. } => oxisynth::MidiEvent::NoteOff {
+            channel,
+            key: key.as_int(),
+        },
+        midly::MidiMessage::NoteOn { key, vel } => oxisynth::MidiEvent::NoteOn {
+            channel,
+            key: key.as_int(),
+            vel: vel.as_int(),
+        },
+        midly::MidiMessage::Aftertouch { key, vel } => oxisynth::MidiEvent::PolyphonicKeyPressure {
+            channel,
+            key: key.as_int(),
+            value: vel.as_int(),
+        },
+        midly::MidiMessage::Controller { controller, value } => {
+            oxisynth::MidiEvent::ControlChange {
+                channel,
+                ctrl: controller.as_int(),
+                value: value.as_int(),
+            }
+        }
+        midly::MidiMessage::ProgramChange { program } => oxisynth::MidiEvent::ProgramChange {
+            channel,
+            program_id: program.as_int(),
+        },
+        midly::MidiMessage::ChannelAftertouch { vel } => oxisynth::MidiEvent::ChannelPressure {
+            channel,
+            value: vel.as_int(),
+        },
+        midly::MidiMessage::PitchBend { bend } => oxisynth::MidiEvent::PitchBend {
+            channel,
+            value: bend.0.as_int(),
+        },
     }
 }

@@ -1,5 +1,6 @@
 use std::{default::Default, time::Duration};
 
+use midi_file::midly;
 use neothesia_core::{
     config::Config,
     piano_layout,
@@ -402,81 +403,67 @@ fn file_midi_events(
     for e in events {
         let channel = e.channel;
 
-        match e.message {
-            MidiMessage::ProgramChange { program } => {
-                let _ = synth.send_event(oxisynth::MidiEvent::ProgramChange {
-                    channel,
-                    program_id: program.as_int(),
-                });
+        let oxistynth_event = libmidi_to_oxisynth_event(channel, e.message);
+        synth.send_event(oxistynth_event).ok();
+
+        let (is_on, key) = match e.message {
+            MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
+            MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
+            _ => continue,
+        };
+
+        let range_start = keyboard.range().start() as usize;
+        if keyboard.range().contains(key) && e.channel != 9 {
+            let id = key as usize - range_start;
+            let key = &mut keyboard.key_states_mut()[id];
+
+            if is_on {
+                let color = &config.color_schema()[e.track_color_id % config.color_schema().len()];
+                key.pressed_by_file_on(color);
+            } else {
+                key.pressed_by_file_off();
             }
 
-            MidiMessage::Controller { controller, value } => {
-                let _ = synth.send_event(oxisynth::MidiEvent::ControlChange {
-                    channel,
-                    ctrl: controller.as_int(),
-                    value: value.as_int(),
-                });
-            }
+            keyboard.invalidate_cache();
+        }
+    }
+}
 
-            MidiMessage::PitchBend { bend } => {
-                let signed = bend.as_int() as i32;
-                let value_14 = (signed + 8192).clamp(0, 0x3FFF) as u16;
-
-                let _ = synth.send_event(oxisynth::MidiEvent::PitchBend {
-                    channel,
-                    value: value_14,
-                });
-            }
-
-            MidiMessage::Aftertouch { key, vel } => {
-                let _ = synth.send_event(oxisynth::MidiEvent::PolyphonicKeyPressure {
-                    channel,
-                    key: key.as_int(),
-                    value: vel.as_int(),
-                });
-            }
-            _ => {
-                let (is_on, key) = match e.message {
-                    MidiMessage::NoteOn { key, vel, .. } => {
-                        synth
-                            .send_event(oxisynth::MidiEvent::NoteOn {
-                                channel,
-                                key: key.as_int(),
-                                vel: vel.as_int(),
-                            })
-                            .ok();
-
-                        (true, key.as_int())
-                    }
-                    MidiMessage::NoteOff { key, .. } => {
-                        synth
-                            .send_event(oxisynth::MidiEvent::NoteOff {
-                                channel,
-                                key: key.as_int(),
-                            })
-                            .ok();
-
-                        (false, key.as_int())
-                    }
-                    _ => continue,
-                };
-
-                let range_start = keyboard.range().start() as usize;
-                if keyboard.range().contains(key) && e.channel != 9 {
-                    let id = key as usize - range_start;
-                    let key = &mut keyboard.key_states_mut()[id];
-
-                    if is_on {
-                        let color =
-                            &config.color_schema()[e.track_color_id % config.color_schema().len()];
-                        key.pressed_by_file_on(color);
-                    } else {
-                        key.pressed_by_file_off();
-                    }
-
-                    keyboard.invalidate_cache();
-                }
+// TODO: This is copy-pasted from neothesia/output_manager/synth_backend
+fn libmidi_to_oxisynth_event(channel: u8, message: midly::MidiMessage) -> oxisynth::MidiEvent {
+    match message {
+        midly::MidiMessage::NoteOff { key, .. } => oxisynth::MidiEvent::NoteOff {
+            channel,
+            key: key.as_int(),
+        },
+        midly::MidiMessage::NoteOn { key, vel } => oxisynth::MidiEvent::NoteOn {
+            channel,
+            key: key.as_int(),
+            vel: vel.as_int(),
+        },
+        midly::MidiMessage::Aftertouch { key, vel } => oxisynth::MidiEvent::PolyphonicKeyPressure {
+            channel,
+            key: key.as_int(),
+            value: vel.as_int(),
+        },
+        midly::MidiMessage::Controller { controller, value } => {
+            oxisynth::MidiEvent::ControlChange {
+                channel,
+                ctrl: controller.as_int(),
+                value: value.as_int(),
             }
         }
+        midly::MidiMessage::ProgramChange { program } => oxisynth::MidiEvent::ProgramChange {
+            channel,
+            program_id: program.as_int(),
+        },
+        midly::MidiMessage::ChannelAftertouch { vel } => oxisynth::MidiEvent::ChannelPressure {
+            channel,
+            value: vel.as_int(),
+        },
+        midly::MidiMessage::PitchBend { bend } => oxisynth::MidiEvent::PitchBend {
+            channel,
+            value: bend.0.as_int(),
+        },
     }
 }

@@ -1,6 +1,12 @@
-use std::time::Duration;
+use std::{
+    collections::HashSet,
+    path::Path,
+    time::{Duration, Instant},
+};
 
-use midi_file::midly::MidiMessage;
+use midi_file::midly::{
+    Format, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEvent, TrackEventKind,
+};
 use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
 use winit::{
     event::WindowEvent,
@@ -32,6 +38,173 @@ pub struct FreeplayScene {
     nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
     deduced_chord_name: String,
+    recorder: FreeplayRecorder,
+    recorder_status: String,
+}
+
+#[derive(Clone, Copy)]
+struct RecordedMidiEvent {
+    timestamp: Duration,
+    channel: u8,
+    message: MidiMessage,
+}
+
+struct FreeplayRecorder {
+    started_at: Option<Instant>,
+    recorded_duration: Duration,
+    events: Vec<RecordedMidiEvent>,
+    active_notes: HashSet<(u8, u8)>,
+}
+
+impl Default for FreeplayRecorder {
+    fn default() -> Self {
+        Self {
+            started_at: None,
+            recorded_duration: Duration::ZERO,
+            events: Vec::new(),
+            active_notes: HashSet::new(),
+        }
+    }
+}
+
+impl FreeplayRecorder {
+    const TICKS_PER_BEAT: u16 = 480;
+    const TEMPO_MICROS_PER_BEAT: u32 = 500_000;
+    const TICKS_PER_SECOND: f64 =
+        Self::TICKS_PER_BEAT as f64 * 1_000_000.0 / Self::TEMPO_MICROS_PER_BEAT as f64;
+
+    fn is_recording(&self) -> bool {
+        self.started_at.is_some()
+    }
+
+    fn has_events(&self) -> bool {
+        !self.events.is_empty()
+    }
+
+    fn start(&mut self) {
+        self.started_at = Some(Instant::now());
+        self.recorded_duration = Duration::ZERO;
+        self.events.clear();
+        self.active_notes.clear();
+    }
+
+    fn stop(&mut self) {
+        let Some(started_at) = self.started_at.take() else {
+            return;
+        };
+
+        let stop_time = started_at.elapsed();
+        self.recorded_duration = stop_time;
+        self.finish_active_notes(stop_time);
+    }
+
+    fn duration(&self) -> Duration {
+        self.started_at
+            .map(|started_at| started_at.elapsed())
+            .unwrap_or(self.recorded_duration)
+    }
+
+    fn push_event(&mut self, channel: u8, message: MidiMessage) {
+        let Some(started_at) = self.started_at else {
+            return;
+        };
+
+        let timestamp = started_at.elapsed();
+        self.recorded_duration = timestamp;
+        self.events.push(RecordedMidiEvent {
+            timestamp,
+            channel,
+            message,
+        });
+
+        match message {
+            MidiMessage::NoteOn { key, vel } if vel.as_int() == 0 => {
+                self.active_notes.remove(&(channel, key.as_int()));
+            }
+            MidiMessage::NoteOn { key, .. } => {
+                self.active_notes.insert((channel, key.as_int()));
+            }
+            MidiMessage::NoteOff { key, .. } => {
+                self.active_notes.remove(&(channel, key.as_int()));
+            }
+            _ => {}
+        }
+    }
+
+    fn save_to_path(&self, path: &Path) -> Result<(), String> {
+        if self.events.is_empty() {
+            return Err("Nothing recorded yet".to_string());
+        }
+
+        let smf = self.to_smf();
+        let mut bytes = Vec::new();
+        smf.write_std(&mut bytes)
+            .map_err(|err| format!("Failed to encode MIDI: {err}"))?;
+        std::fs::write(path, bytes).map_err(|err| format!("Failed to write MIDI file: {err}"))
+    }
+
+    fn finish_active_notes(&mut self, timestamp: Duration) {
+        let mut active_notes: Vec<_> = self.active_notes.drain().collect();
+        active_notes.sort_unstable();
+
+        for (channel, key) in active_notes {
+            self.events.push(RecordedMidiEvent {
+                timestamp,
+                channel,
+                message: MidiMessage::NoteOff {
+                    key: key.into(),
+                    vel: 0.into(),
+                },
+            });
+        }
+    }
+
+    fn to_smf(&self) -> Smf<'static> {
+        let mut track = vec![
+            TrackEvent {
+                delta: 0.into(),
+                kind: TrackEventKind::Meta(MetaMessage::Tempo(
+                    Self::TEMPO_MICROS_PER_BEAT.into(),
+                )),
+            },
+            TrackEvent {
+                delta: 0.into(),
+                kind: TrackEventKind::Meta(MetaMessage::TimeSignature(4, 2, 24, 8)),
+            },
+        ];
+
+        let mut previous_ticks = 0u32;
+        for event in &self.events {
+            let current_ticks = Self::duration_to_ticks(event.timestamp);
+            let delta_ticks = current_ticks.saturating_sub(previous_ticks);
+            previous_ticks = current_ticks;
+
+            track.push(TrackEvent {
+                delta: delta_ticks.into(),
+                kind: TrackEventKind::Midi {
+                    channel: event.channel.into(),
+                    message: event.message,
+                },
+            });
+        }
+
+        track.push(TrackEvent {
+            delta: 1.into(),
+            kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
+        });
+
+        Smf {
+            header: Header {
+                format: Format::SingleTrack,
+                timing: Timing::Metrical(Self::TICKS_PER_BEAT.into()),
+            },
+            tracks: vec![track],
+        }
+    }
+
+    fn duration_to_ticks(duration: Duration) -> u32 {
+        (duration.as_secs_f64() * Self::TICKS_PER_SECOND).round() as u32
+    }
 }
 
 impl FreeplayScene {
@@ -72,6 +245,8 @@ impl FreeplayScene {
             nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
             deduced_chord_name: String::new(),
+            recorder: FreeplayRecorder::default(),
+            recorder_status: "Press REC to start recording".to_string(),
         }
     }
 
@@ -124,6 +299,102 @@ impl FreeplayScene {
                 .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
                 .ok();
         }
+
+        let record_label = if self.recorder.is_recording() {
+            "STOP"
+        } else {
+            "REC"
+        };
+
+        let status_label = if self.recorder.is_recording() {
+            format!(
+                "Recording {:.1}s | {} events",
+                self.recorder.duration().as_secs_f32(),
+                self.recorder.events.len()
+            )
+        } else {
+            self.recorder_status.clone()
+        };
+
+        nuon::translate()
+            .x(ctx.window_state.logical_size.width - 220.0)
+            .build(&mut self.nuon, |ui| {
+                if nuon::button()
+                    .size(80.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color(if self.recorder.is_recording() {
+                        [125, 27, 27]
+                    } else {
+                        [67, 67, 67]
+                    })
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .label(record_label)
+                    .build(ui)
+                {
+                    if self.recorder.is_recording() {
+                        self.recorder.stop();
+                        self.recorder_status = format!(
+                            "Recorded {:.1}s. Press SAVE to export MIDI",
+                            self.recorder.duration().as_secs_f32()
+                        );
+                    } else {
+                        self.recorder.start();
+                        self.recorder_status = "Recording in progress".to_string();
+                    }
+                }
+
+                if nuon::button()
+                    .x(90.0)
+                    .size(80.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .label("SAVE")
+                    .build(ui)
+                {
+                    if self.recorder.is_recording() {
+                        self.recorder.stop();
+                    }
+
+                    if self.recorder.has_events() {
+                        let mut dialog = rfd::FileDialog::new()
+                            .add_filter("midi", &["mid", "midi"])
+                            .set_file_name("freeplay-recording.mid");
+
+                        if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
+                            dialog = dialog.set_directory(path);
+                        }
+
+                        match dialog.save_file() {
+                            Some(path) => match self.recorder.save_to_path(&path) {
+                                Ok(()) => {
+                                    self.recorder_status =
+                                        format!("Saved recording to {}", path.display());
+                                }
+                                Err(err) => {
+                                    self.recorder_status = err;
+                                }
+                            },
+                            None => {
+                                self.recorder_status = "Save canceled".to_string();
+                            }
+                        }
+                    } else {
+                        self.recorder_status = "Nothing recorded yet".to_string();
+                    }
+                }
+            });
+
+        nuon::label()
+            .text(status_label)
+            .width(220.0)
+            .height(30.0)
+            .x(ctx.window_state.logical_size.width - 220.0)
+            .y(35.0)
+            .text_justify(nuon::TextJustify::Left)
+            .build(&mut self.nuon);
     }
 
     fn resize(&mut self, ctx: &mut Context) {
@@ -201,6 +472,7 @@ impl Scene for FreeplayScene {
     }
 
     fn midi_event(&mut self, ctx: &mut Context, _channel: u8, message: &MidiMessage) {
+        self.recorder.push_event(_channel, *message);
         self.keyboard.user_midi_event(message);
         ctx.output_manager
             .connection()

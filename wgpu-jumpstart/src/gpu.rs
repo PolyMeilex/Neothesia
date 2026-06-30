@@ -189,6 +189,7 @@ impl Gpu {
 pub struct Surface {
     surface: wgpu::Surface<'static>,
     surface_configuration: wgpu::SurfaceConfiguration,
+    device: wgpu::Device,
 }
 
 impl Surface {
@@ -215,6 +216,7 @@ impl Surface {
         Self {
             surface,
             surface_configuration,
+            device: device.clone(),
         }
     }
 
@@ -223,10 +225,15 @@ impl Surface {
         self.surface.get_current_texture()
     }
 
-    pub fn resize_swap_chain(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+    pub fn resize_swap_chain(&mut self, width: u32, height: u32) {
         self.surface_configuration.width = width;
         self.surface_configuration.height = height;
 
-        self.surface.configure(device, &self.surface_configuration);
+        self.configure();
+    }
+
+    pub fn configure(&mut self) {
+        self.surface
+            .configure(&self.device, &self.surface_configuration);
     }
 }

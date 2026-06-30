@@ -77,7 +77,6 @@ impl Neothesia {
             // Windows sets size to 0 on minimise
             WindowEvent::Resized(ps) if ps.width > 0 && ps.height > 0 => {
                 self.surface.resize_swap_chain(
-                    &self.context.gpu.device,
                     self.context.window_state.physical_size.width,
                     self.context.window_state.physical_size.height,
                 );
@@ -172,13 +171,24 @@ impl Neothesia {
 
     #[profiling::function]
     fn render(&mut self) {
-        let frame = loop {
-            let swap_chain_output = self.surface.get_current_texture();
-            match swap_chain_output {
-                wgpu::CurrentSurfaceTexture::Success(s) => break s,
-                wgpu::CurrentSurfaceTexture::Suboptimal(s) => break s,
-                err => log::warn!("get_current_texture err: {err:?}"),
+        let frame = match self.surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(texture) => texture,
+            wgpu::CurrentSurfaceTexture::Occluded | wgpu::CurrentSurfaceTexture::Timeout => {
+                return;
             }
+            wgpu::CurrentSurfaceTexture::Suboptimal(texture) => {
+                drop(texture);
+                self.surface.configure();
+                return;
+            }
+            wgpu::CurrentSurfaceTexture::Outdated => {
+                self.surface.configure();
+                return;
+            }
+            wgpu::CurrentSurfaceTexture::Lost => {
+                todo!("Neothesia does not handle surface loss");
+            }
+            wgpu::CurrentSurfaceTexture::Validation => unreachable!(),
         };
 
         let view = &frame

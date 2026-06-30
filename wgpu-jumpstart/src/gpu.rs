@@ -3,6 +3,7 @@ use wgpu::wgt::WgpuHasDisplayHandle;
 use super::{GpuInitError, color::Color};
 
 pub struct Gpu {
+    pub instance: wgpu::Instance,
     pub device: wgpu::Device,
 
     pub adapter: wgpu::Adapter,
@@ -21,7 +22,23 @@ impl Gpu {
         let instance = wgpu::Instance::new(desc);
         let surface = instance.create_surface(window)?;
 
-        Ok((Self::new(&instance, Some(&surface)).await?, surface))
+        Ok((Self::new(instance, Some(&surface)).await?, surface))
+    }
+
+    pub fn recreate_surface(
+        &self,
+        window: wgpu::SurfaceTarget<'static>,
+        width: u32,
+        height: u32,
+    ) -> Result<Surface, GpuInitError> {
+        let surface = self.instance.create_surface(window)?;
+        Ok(Surface::new(
+            &self.device,
+            surface,
+            self.texture_format,
+            width,
+            height,
+        ))
     }
 
     pub async fn for_window(
@@ -91,7 +108,7 @@ impl Gpu {
     }
 
     pub async fn new(
-        instance: &wgpu::Instance,
+        instance: wgpu::Instance,
         compatible_surface: Option<&wgpu::Surface<'static>>,
     ) -> Result<Self, GpuInitError> {
         let power_preference =
@@ -137,6 +154,7 @@ impl Gpu {
         );
 
         Ok(Self {
+            instance,
             device,
             adapter,
             queue,

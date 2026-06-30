@@ -56,7 +56,7 @@ impl Recorder {
     fn new(args: &cli::Args) -> Self {
         let instance =
             wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle_from_env());
-        let gpu = pollster::block_on(Gpu::new(&instance, None)).unwrap_or_else(|err| {
+        let gpu = pollster::block_on(Gpu::new(instance, None)).unwrap_or_else(|err| {
             eprintln!("Failed to initialize GPU: {err}");
             std::process::exit(1);
         });

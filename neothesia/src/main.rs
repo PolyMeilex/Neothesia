@@ -186,7 +186,13 @@ impl Neothesia {
                 return;
             }
             wgpu::CurrentSurfaceTexture::Lost => {
-                todo!("Neothesia does not handle surface loss");
+                let size = self.context.window.inner_size();
+                self.surface = self
+                    .context
+                    .gpu
+                    .recreate_surface(self.context.window.clone().into(), size.width, size.height)
+                    .unwrap();
+                return;
             }
             wgpu::CurrentSurfaceTexture::Validation => unreachable!(),
         };

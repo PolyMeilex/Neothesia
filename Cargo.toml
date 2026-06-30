@@ -53,7 +53,7 @@ fluidlite = { version = "0.2", features = ["builtin"] }
 oxisynth = "0.1.0"
 embed-resource = "3.0"
 midir = "0.10"
-objc = "0.2"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["NSBundle", "NSString"] }
 ron = "0.12"
 serde = "1"
 raw-window-handle = "0.6.0"

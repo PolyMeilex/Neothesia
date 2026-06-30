@@ -7,6 +7,9 @@ use super::{
     animation::{Animated, Easing},
 };
 
+/// Logical height of the top bar in window-coordinate pixels.
+pub const HEIGHT: f32 = 75.0;
+
 pub struct TopBar {
     pub topbar_expand_animation: Animated<bool, Instant>,
     is_expanded: bool,
@@ -59,8 +62,7 @@ impl TopBar {
 
         let window_state = &ctx.window_state;
 
-        let h = 75.0;
-        let is_hovered = window_state.cursor_logical_position.y < h * 1.7;
+        let is_hovered = window_state.cursor_logical_position.y < HEIGHT * 1.7;
 
         top_bar.is_expanded = is_hovered;
         top_bar.is_expanded |= top_bar.settings_active;
@@ -81,7 +83,7 @@ impl TopBar {
 
         nuon::translate()
             .y(this.top_bar.topbar_expand_animation.animate_bool(
-                -75.0 + 5.0,
+                -HEIGHT + 5.0,
                 0.0,
                 ctx.frame_timestamp,
             ))
@@ -185,6 +187,22 @@ impl TopBar {
                     .build(ui)
                 {
                     this.top_bar.settings_active = !this.top_bar.settings_active;
+                }
+
+                nuon::translate().x(-30.0).add_to_current(ui);
+
+                // Notation toggle (left of settings gear)
+                if Self::button()
+                    .icon(icons::music_note_icon())
+                    .color(if this.show_notation {
+                        [97, 97, 97]
+                    } else {
+                        [67, 67, 67]
+                    })
+                    .hover_color([107, 107, 107])
+                    .build(ui)
+                {
+                    this.show_notation = !this.show_notation;
                 }
 
                 nuon::translate().x(-30.0).add_to_current(ui);

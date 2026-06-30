@@ -1651,6 +1651,7 @@ dependencies = [
  "midi-io",
  "neothesia-core",
  "neothesia-image",
+ "neothesia-notation",
  "nuon",
  "oxisynth",
  "piano-layout",
@@ -1720,6 +1721,16 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "png",
+]
+
+[[package]]
+name = "neothesia-notation"
+version = "0.0.0"
+dependencies = [
+ "midi-file",
+ "neothesia-core",
+ "profiling",
+ "wgpu-jumpstart",
 ]
 
 [[package]]

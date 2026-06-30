@@ -34,6 +34,16 @@ pub fn default_sf2() -> Option<PathBuf> {
             return Some(path);
         }
 
+        // Development: workspace-root default.sf2 (debug builds only).
+        #[cfg(debug_assertions)]
+        if let Some(path) = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .map(|p| p.join("default.sf2"))
+            && path.exists()
+        {
+            return Some(path);
+        }
+
         let flatpak = PathBuf::from("/app/share/neothesia/default.sf2");
         if flatpak.exists() {
             Some(flatpak)

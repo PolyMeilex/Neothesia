@@ -47,3 +47,7 @@ pub fn note_list_icon() -> &'static str {
 pub fn caret_down() -> &'static str {
     "\u{f229}"
 }
+
+pub fn music_note_icon() -> &'static str {
+    "\u{f6be}"
+}

@@ -20,5 +20,4 @@ euclid.workspace = true
 dpi.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
-# TODO: Port to `objc2`
-objc.workspace = true
+objc2-foundation.workspace = true

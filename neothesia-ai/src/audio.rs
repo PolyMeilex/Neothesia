@@ -1,16 +1,18 @@
+use std::num::NonZeroU32;
 use std::path::Path;
-
-use symphonium::{ResampleQuality, SymphoniumLoader};
 
 use crate::{SAMPLE_RATE, SEGMENT_SAMPLES};
 
 pub fn load(path: impl AsRef<Path>) -> anyhow::Result<Vec<f32>> {
-    // A struct used to load audio files.
-    let mut loader = SymphoniumLoader::new();
+    let probed = symphonium::probe_from_file(path.as_ref(), None)?;
 
-    let mut audio_data_f32 = loader
-        .load_f32(path, Some(SAMPLE_RATE), ResampleQuality::High, None)
-        .unwrap();
+    let mut audio_data_f32 = symphonium::decode_f32(
+        probed,
+        &Default::default(),
+        NonZeroU32::new(SAMPLE_RATE),
+        None,
+        None,
+    )?;
 
     let left = audio_data_f32.data.remove(0);
     let right = audio_data_f32.data.remove(0);

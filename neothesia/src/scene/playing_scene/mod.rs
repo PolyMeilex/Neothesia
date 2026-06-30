@@ -25,6 +25,9 @@ use midi_player::MidiPlayer;
 mod rewind_controller;
 use rewind_controller::RewindController;
 
+mod sheet_music;
+use sheet_music::SheetMusicRenderer;
+
 mod toast_manager;
 use toast_manager::ToastManager;
 
@@ -39,6 +42,7 @@ pub struct PlayingScene {
     nuon_renderer: NuonRenderer,
 
     note_labels: Option<NoteLabels>,
+    sheet_music: Option<SheetMusicRenderer>,
 
     player: MidiPlayer,
     rewind_controller: RewindController,
@@ -92,6 +96,10 @@ impl PlayingScene {
             ctx.text_renderer_factory.new_renderer(),
         ));
 
+        let sheet_music = ctx.config.sheet_music().then(|| {
+            SheetMusicRenderer::new(ctx, &song.file.tracks, &hidden_tracks, &song.file.measures)
+        });
+
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
             song,
@@ -113,6 +121,7 @@ impl PlayingScene {
             keyboard,
             guidelines,
             note_labels,
+            sheet_music,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
 
@@ -200,6 +209,9 @@ impl Scene for PlayingScene {
 
         let time = self.update_midi_player(ctx, delta);
         self.waterfall.update(time);
+        if let Some(sheet_music) = self.sheet_music.as_mut() {
+            sheet_music.update(ctx, time);
+        }
         self.guidelines.update(
             &mut self.quad_renderer_bg,
             ctx.config.animation_speed(),
@@ -258,6 +270,9 @@ impl Scene for PlayingScene {
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.render(rpass);
         }
+        if let Some(sheet_music) = self.sheet_music.as_ref() {
+            sheet_music.render(rpass);
+        }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
             glow.render(rpass);
@@ -268,6 +283,10 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
+        if let Some(sheet_music) = self.sheet_music.as_mut() {
+            sheet_music.handle_window_event(ctx, event);
+        }
+
         self.rewind_controller
             .handle_window_event(ctx, event, &mut self.player);
 

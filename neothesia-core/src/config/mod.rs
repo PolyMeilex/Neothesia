@@ -235,6 +235,22 @@ impl Config {
         self.waterfall.note_labels
     }
 
+    pub fn sheet_music(&self) -> bool {
+        self.waterfall.sheet_music
+    }
+
+    pub fn set_sheet_music(&mut self, show: bool) {
+        self.waterfall.sheet_music = show;
+    }
+
+    pub fn sheet_music_height(&self) -> f32 {
+        self.waterfall.sheet_music_height
+    }
+
+    pub fn set_sheet_music_height(&mut self, height: f32) {
+        self.waterfall.sheet_music_height = height.clamp(140.0, 600.0);
+    }
+
     pub fn speed_multiplier(&self) -> f32 {
         self.playback.speed_multiplier
     }

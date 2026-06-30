@@ -58,7 +58,7 @@ impl SynthBackend {
         let stream = self
             .device
             .build_output_stream(
-                &self.stream_config,
+                self.stream_config,
                 move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
                     for frame in output.chunks_mut(channels) {
                         let (l, r) = next_value();

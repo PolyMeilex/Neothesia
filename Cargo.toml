@@ -48,19 +48,19 @@ lilt = "0.8"
 winit = "0.30"
 dpi = "0.1"
 rfd = "0.17"
-cpal = "0.17"
+cpal = "0.18"
 fluidlite = { version = "0.2", features = ["builtin"] }
 oxisynth = "0.1.0"
 embed-resource = "3.0"
-midir = "0.10"
+midir = "0.11"
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["NSBundle", "NSString"] }
 ron = "0.12"
 serde = "1"
 raw-window-handle = "0.6.0"
 
 profiling = "1.0"
-puffin = "0.19"
-puffin_http = "0.16"
+puffin = "0.20"
+puffin_http = "0.17"
 
 cosmic-text = "0.18"
 png = "0.18"

@@ -31,6 +31,14 @@ impl MidiFile {
             Err(_) => return Err(String::from("Midi Parsing Error (midly lib)")),
         };
 
+        Self::from_parsed_smf(name, &smf)
+    }
+
+    pub fn from_smf(name: impl Into<String>, smf: Smf<'_>) -> Result<Self, String> {
+        Self::from_parsed_smf(name.into(), &smf)
+    }
+
+    fn from_parsed_smf(name: String, smf: &Smf<'_>) -> Result<Self, String> {
         let u_per_quarter_note: u16 = match smf.header.timing {
             Timing::Metrical(t) => t.as_int(),
             Timing::Timecode(_fps, _u) => {

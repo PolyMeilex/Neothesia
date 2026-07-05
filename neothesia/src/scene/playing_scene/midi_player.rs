@@ -25,11 +25,24 @@ impl MidiPlayer {
         user_keyboard_range: piano_layout::KeyboardRange,
         separate_channels: bool,
     ) -> Self {
+        Self::new_with_lead_in(
+            output,
+            song,
+            user_keyboard_range,
+            separate_channels,
+            Duration::from_secs(3),
+        )
+    }
+
+    pub fn new_with_lead_in(
+        output: OutputConnection,
+        song: Song,
+        user_keyboard_range: piano_layout::KeyboardRange,
+        separate_channels: bool,
+        lead_in: Duration,
+    ) -> Self {
         let mut player = Self {
-            playback: midi_file::PlaybackState::new(
-                Duration::from_secs(3),
-                song.file.tracks.clone(),
-            ),
+            playback: midi_file::PlaybackState::new(lead_in, song.file.tracks.clone()),
             output,
             play_along: PlayAlong::new(user_keyboard_range),
             song,

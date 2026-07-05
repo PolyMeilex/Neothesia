@@ -1,7 +1,5 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{
-    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
-};
+use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
 use std::time::Duration;
 use winit::{
     event::WindowEvent,
@@ -12,15 +10,18 @@ use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
 use crate::{
-    NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
-    song::Song, utils::window::WinitEvent,
+    NeothesiaEvent, context::Context, scene::MouseToMidiEventState, song::Song,
+    utils::window::WinitEvent,
 };
 
 mod keyboard;
 pub use keyboard::Keyboard;
 
-mod midi_player;
+pub(crate) mod midi_player;
 use midi_player::MidiPlayer;
+
+pub(crate) mod playback_visuals;
+use playback_visuals::PlaybackVisuals;
 
 mod rewind_controller;
 use rewind_controller::RewindController;
@@ -33,12 +34,10 @@ mod top_bar;
 
 pub struct PlayingScene {
     keyboard: Keyboard,
-    waterfall: WaterfallRenderer,
+    visuals: PlaybackVisuals,
     guidelines: GuidelineRenderer,
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
-
-    note_labels: Option<NoteLabels>,
 
     player: MidiPlayer,
     rewind_controller: RewindController,
@@ -67,30 +66,8 @@ impl PlayingScene {
             song.file.measures.clone(),
         );
 
-        let hidden_tracks: Vec<usize> = song
-            .config
-            .tracks
-            .iter()
-            .filter(|t| !t.visible)
-            .map(|t| t.track_id)
-            .collect();
-
-        let mut waterfall = WaterfallRenderer::new(
-            &ctx.gpu,
-            &song.file.tracks,
-            &hidden_tracks,
-            &ctx.config,
-            &ctx.transform,
-            keyboard_layout.clone(),
-        );
-
         let text_renderer = ctx.text_renderer_factory.new_renderer();
-
-        let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
-            *keyboard.pos(),
-            waterfall.notes(),
-            ctx.text_renderer_factory.new_renderer(),
-        ));
+        let mut visuals = PlaybackVisuals::new(ctx, &song, &keyboard);
 
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
@@ -98,7 +75,7 @@ impl PlayingScene {
             keyboard_layout.range.clone(),
             ctx.config.separate_channels(),
         );
-        waterfall.update(player.time_without_lead_in());
+        visuals.update_waterfall(player.time_without_lead_in());
 
         let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
         let quad_renderer_fg = ctx.quad_renderer_facotry.new_renderer();
@@ -112,11 +89,10 @@ impl PlayingScene {
         Self {
             keyboard,
             guidelines,
-            note_labels,
+            visuals,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
 
-            waterfall,
             player,
             rewind_controller: RewindController::new(),
             quad_renderer_bg,
@@ -180,12 +156,7 @@ impl PlayingScene {
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
-        if let Some(note_labels) = self.note_labels.as_mut() {
-            note_labels.set_pos(*self.keyboard.pos());
-        }
-
-        self.waterfall
-            .resize(&ctx.config, self.keyboard.layout().clone());
+        self.visuals.resize(ctx, &self.keyboard);
     }
 }
 
@@ -199,7 +170,7 @@ impl Scene for PlayingScene {
         self.toast_manager.update(&mut self.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);
-        self.waterfall.update(time);
+        self.visuals.update_waterfall(time);
         self.guidelines.update(
             &mut self.quad_renderer_bg,
             ctx.config.animation_speed(),
@@ -209,15 +180,7 @@ impl Scene for PlayingScene {
         );
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
-        if let Some(note_labels) = self.note_labels.as_mut() {
-            note_labels.update(
-                ctx.window_state.physical_size,
-                ctx.window_state.scale_factor as f32,
-                self.keyboard.renderer(),
-                ctx.config.animation_speed(),
-                time,
-            );
-        }
+        self.visuals.update_note_labels(ctx, &self.keyboard, time);
 
         self.update_glow(delta);
 
@@ -254,10 +217,7 @@ impl Scene for PlayingScene {
     #[profiling::function]
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
-        self.waterfall.render(rpass);
-        if let Some(note_labels) = self.note_labels.as_mut() {
-            note_labels.render(rpass);
-        }
+        self.visuals.render(rpass);
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
             glow.render(rpass);
@@ -285,7 +245,7 @@ impl Scene for PlayingScene {
             self.player.pause_resume();
         }
 
-        handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
+        handle_settings_input(ctx, &mut self.toast_manager, &mut self.visuals, event);
         super::handle_pc_keyboard_to_midi_event(ctx, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,
@@ -310,7 +270,7 @@ impl Scene for PlayingScene {
 fn handle_settings_input(
     ctx: &mut Context,
     toast_manager: &mut ToastManager,
-    waterfall: &mut WaterfallRenderer,
+    visuals: &mut PlaybackVisuals,
     event: &WindowEvent,
 ) {
     if event.key_released(Key::Named(NamedKey::ArrowUp))
@@ -351,9 +311,7 @@ fn handle_settings_input(
                 .set_animation_speed(ctx.config.animation_speed() - amount);
         }
 
-        waterfall
-            .pipeline()
-            .set_speed(&ctx.gpu.queue, ctx.config.animation_speed());
+        visuals.set_animation_speed(ctx);
         toast_manager.animation_speed_toast(ctx.config.animation_speed());
         return;
     }

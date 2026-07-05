@@ -1,9 +1,11 @@
 use std::{
     collections::HashSet,
     path::Path,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
+use lilt::{Animated, Easing};
 use midi_file::midly::{
     Format, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEvent, TrackEventKind,
 };
@@ -17,7 +19,10 @@ use crate::{
     NeothesiaEvent,
     context::Context,
     icons,
-    scene::{MouseToMidiEventState, NuonRenderer, Scene, playing_scene::Keyboard},
+    scene::{
+        MouseToMidiEventState, NuonRenderer, Scene,
+        playing_scene::{Keyboard, midi_player::MidiPlayer, playback_visuals::PlaybackVisuals},
+    },
     song::Song,
     utils::window::WinitEvent,
 };
@@ -40,6 +45,9 @@ pub struct FreeplayScene {
     deduced_chord_name: String,
     recorder: FreeplayRecorder,
     recorder_status: String,
+    preview_player: Option<MidiPlayer>,
+    preview_visuals: Option<PlaybackVisuals>,
+    preview_bar_expand_animation: Animated<bool, Instant>,
 }
 
 #[derive(Clone, Copy)]
@@ -143,6 +151,15 @@ impl FreeplayRecorder {
         std::fs::write(path, bytes).map_err(|err| format!("Failed to write MIDI file: {err}"))
     }
 
+    fn to_song(&self) -> Result<Song, String> {
+        if self.events.is_empty() {
+            return Err("Nothing recorded yet".to_string());
+        }
+
+        let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", self.to_smf())?;
+        Ok(Song::new(midi))
+    }
+
     fn finish_active_notes(&mut self, timestamp: Duration) {
         let mut active_notes: Vec<_> = self.active_notes.drain().collect();
         active_notes.sort_unstable();
@@ -208,6 +225,10 @@ impl FreeplayRecorder {
 }
 
 impl FreeplayScene {
+    fn preview_bar_button() -> nuon::Button {
+        nuon::button().size(30.0, 30.0).border_radius([5.0; 4])
+    }
+
     pub fn new(ctx: &mut Context, song: Option<Song>) -> Self {
         let mut keyboard = Keyboard::new(ctx, Default::default());
         keyboard.set_pressed_by_user_colors(ctx.config.color_schema()[0].clone());
@@ -247,6 +268,361 @@ impl FreeplayScene {
             deduced_chord_name: String::new(),
             recorder: FreeplayRecorder::default(),
             recorder_status: "Press REC to start recording".to_string(),
+            preview_player: None,
+            preview_visuals: None,
+            preview_bar_expand_animation: Animated::new(false)
+                .duration(1000.)
+                .easing(Easing::EaseOutExpo)
+                .delay(30.0),
+        }
+    }
+
+    fn clear_preview(&mut self) {
+        log::debug!("freeplay: clearing preview state");
+        self.preview_player = None;
+        self.preview_visuals = None;
+        self.keyboard.set_song_config(Default::default());
+        self.keyboard.reset_notes();
+    }
+
+    fn rebuild_preview(&mut self, ctx: &Context) -> Result<(), String> {
+        self.clear_preview();
+
+        let song = self.recorder.to_song()?;
+        log::info!(
+            "freeplay: rebuilding preview song with {} track(s)",
+            song.file.tracks.len()
+        );
+        self.keyboard.set_song_config(song.config.clone());
+        let mut visuals = PlaybackVisuals::new(ctx, &song, &self.keyboard);
+        let mut player = MidiPlayer::new_with_lead_in(
+            ctx.output_manager.connection().clone(),
+            song,
+            self.keyboard.layout().range.clone(),
+            ctx.config.separate_channels(),
+            Duration::ZERO,
+        );
+        player.pause();
+        visuals.update_waterfall(player.time_without_lead_in() + ctx.config.animation_offset());
+
+        self.preview_visuals = Some(visuals);
+        self.preview_player = Some(player);
+        Ok(())
+    }
+
+    fn toggle_preview_playback(&mut self) {
+        let Some(player) = self.preview_player.as_mut() else {
+            log::warn!("freeplay: preview toggle ignored because no preview player exists");
+            return;
+        };
+
+        if player.is_finished() {
+            log::info!("freeplay: restarting preview from the beginning");
+            player.set_time(Duration::ZERO);
+            self.keyboard.reset_notes();
+        }
+
+        log::info!(
+            "freeplay: toggling preview playback, paused_before={}",
+            player.is_paused()
+        );
+        player.pause_resume();
+    }
+
+    fn seek_preview_to_cursor(&mut self, ctx: &Context) {
+        let Some(player) = self.preview_player.as_mut() else {
+            log::warn!("freeplay: preview seek ignored because no preview player exists");
+            return;
+        };
+
+        let width = ctx.window_state.logical_size.width.max(1.0);
+        let percentage = (ctx.window_state.cursor_logical_position.x / width).clamp(0.0, 1.0);
+
+        log::debug!("freeplay: seeking preview to {:.3}", percentage);
+        player.set_percentage_time(percentage);
+        self.keyboard.reset_notes();
+    }
+
+    fn update_preview_ui(&mut self, ctx: &mut Context) {
+        let top_bar_height = 75.0;
+        let is_hovered = ctx.window_state.cursor_logical_position.y < top_bar_height * 1.7;
+        self.preview_bar_expand_animation
+            .transition(is_hovered, ctx.frame_timestamp);
+
+        let width = ctx.window_state.logical_size.width;
+        let preview_available = self.preview_player.is_some();
+        let (is_paused, progress, current_time, length, song_name, measures) =
+            if let Some(player) = self.preview_player.as_ref() {
+                (
+                    player.is_paused(),
+                    player.percentage().clamp(0.0, 1.0),
+                    player.time().as_secs_f32(),
+                    player.length().as_secs_f32(),
+                    player.song().file.name.clone(),
+                    player.song().file.measures.clone(),
+                )
+            } else {
+                let song_name = if self.recorder.is_recording() {
+                    "Preview unavailable while recording".to_string()
+                } else {
+                    "Stop recording to enable preview".to_string()
+                };
+
+                (
+                    true,
+                    0.0,
+                    0.0,
+                    self.recorder.duration().as_secs_f32(),
+                    song_name,
+                    Arc::from([]),
+                )
+            };
+
+        let mut toggle_play = false;
+        let mut seek = false;
+        let mut go_back = false;
+        let mut record_clicked = false;
+        let mut save_clicked = false;
+
+        let record_label = if self.recorder.is_recording() {
+            "STOP"
+        } else {
+            "REC"
+        };
+
+        let status_label = if self.recorder.is_recording() {
+            format!(
+                "Recording {:.1}s | {} events",
+                self.recorder.duration().as_secs_f32(),
+                self.recorder.events.len()
+            )
+        } else {
+            self.recorder_status.clone()
+        };
+
+        nuon::translate()
+            .y(
+                self.preview_bar_expand_animation
+                    .animate_bool(-70.0, 0.0, ctx.frame_timestamp),
+            )
+            .build(&mut self.nuon, |ui| {
+            nuon::quad()
+                .size(width, top_bar_height)
+                .color([37, 35, 42])
+                .build(ui);
+
+            if Self::preview_bar_button()
+                .icon(icons::left_arrow_icon())
+                .build(ui)
+            {
+                go_back = true;
+            }
+
+            nuon::label()
+                .x(40.0)
+                .y(6.0)
+                .size((width - 180.0).max(0.0), 15.0)
+                .text(&song_name)
+                .text_justify(nuon::TextJustify::Left)
+                .build(ui);
+
+            nuon::label()
+                .x(40.0)
+                .y(21.0)
+                .size((width - 180.0).max(0.0), 15.0)
+                .text(format!("{current_time:.1}s / {length:.1}s"))
+                .text_justify(nuon::TextJustify::Left)
+                .build(ui);
+
+            nuon::translate().x(width).build(ui, |ui| {
+                if preview_available {
+                    if Self::preview_bar_button()
+                        .x(-30.0)
+                        .icon(if is_paused {
+                            icons::play_icon()
+                        } else {
+                            icons::pause_icon()
+                        })
+                        .build(ui)
+                    {
+                        toggle_play = true;
+                    }
+                } else {
+                    nuon::quad()
+                        .x(-30.0)
+                        .size(30.0, 30.0)
+                        .color([52, 52, 52])
+                        .border_radius([5.0; 4])
+                        .build(ui);
+                    nuon::label()
+                        .x(-30.0)
+                        .size(30.0, 30.0)
+                        .icon(icons::play_icon())
+                        .color([140, 140, 140])
+                        .build(ui);
+                }
+
+                if nuon::button()
+                    .x(-85.0)
+                    .size(45.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .color([67, 67, 67])
+                    .hover_color([87, 87, 87])
+                    .preseed_color([97, 97, 97])
+                    .label("SAVE")
+                    .build(ui)
+                {
+                    save_clicked = true;
+                }
+
+                if nuon::button()
+                    .x(-147.0)
+                    .size(52.0, 30.0)
+                    .border_radius([5.0; 4])
+                    .label(record_label)
+                    .color(if self.recorder.is_recording() {
+                        [125, 27, 27]
+                    } else {
+                        [67, 67, 67]
+                    })
+                    .hover_color(if self.recorder.is_recording() {
+                        [145, 37, 37]
+                    } else {
+                        [87, 87, 87]
+                    })
+                    .preseed_color(if self.recorder.is_recording() {
+                        [165, 47, 47]
+                    } else {
+                        [97, 97, 97]
+                    })
+                    .build(ui)
+                {
+                    record_clicked = true;
+                }
+            });
+
+            nuon::translate().y(30.0).build(ui, |ui| {
+                if preview_available {
+                    let event = nuon::click_area("FreeplayPreviewProgress")
+                        .size(width, 45.0)
+                        .build(ui);
+
+                    if event.is_pressed() {
+                        seek = true;
+                    }
+                }
+
+                nuon::quad().size(width, 45.0).color([58, 58, 58]).build(ui);
+                nuon::quad()
+                    .size(width * progress, 45.0)
+                    .color([56, 145, 255])
+                    .build(ui);
+
+                if length > 0.0 {
+                    for measure in measures.iter() {
+                        let x = (measure.as_secs_f32() / length) * width;
+                        let color = if x < width * progress {
+                            nuon::Color::new(1.0, 1.0, 1.0, 0.5)
+                        } else {
+                            nuon::Color::new(0.4, 0.4, 0.4, 1.0)
+                        };
+
+                        nuon::quad().x(x).size(1.0, 45.0).color(color).build(ui);
+                    }
+                }
+
+                if !preview_available {
+                    nuon::label()
+                        .y(15.0)
+                        .size(width, 15.0)
+                        .text("Preview becomes active after you stop recording")
+                        .color([170, 170, 170])
+                        .build(ui);
+                } else {
+                    nuon::label()
+                        .x(10.0)
+                        .y(15.0)
+                        .size((width - 20.0).max(0.0), 15.0)
+                        .text(&status_label)
+                        .text_justify(nuon::TextJustify::Left)
+                        .color([210, 210, 210])
+                        .build(ui);
+                }
+            });
+        });
+
+        if go_back {
+            ctx.proxy
+                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
+                .ok();
+        }
+
+        if toggle_play && preview_available {
+            self.toggle_preview_playback();
+        }
+
+        if seek && preview_available {
+            self.seek_preview_to_cursor(ctx);
+        }
+
+        if record_clicked {
+            if self.recorder.is_recording() {
+                log::info!("freeplay: stop recording clicked");
+                self.recorder.stop();
+                match self.rebuild_preview(ctx) {
+                    Ok(()) => {
+                        self.recorder_status = format!(
+                            "Recorded {:.1}s. Press PLAY to listen back or REC to record again. Recording again discards the current take, so SAVE it first if you need it.",
+                            self.recorder.duration().as_secs_f32()
+                        );
+                    }
+                    Err(err) => {
+                        self.recorder_status = err;
+                    }
+                }
+            } else {
+                log::info!("freeplay: start recording clicked");
+                self.clear_preview();
+                self.recorder.start();
+                self.recorder_status = "Recording in progress".to_string();
+            }
+        }
+
+        if save_clicked {
+            log::info!("freeplay: save recording clicked");
+            if self.recorder.is_recording() {
+                self.recorder.stop();
+                if let Err(err) = self.rebuild_preview(ctx) {
+                    self.recorder_status = err;
+                }
+            }
+
+            if self.recorder.has_events() {
+                let mut dialog = rfd::FileDialog::new()
+                    .add_filter("midi", &["mid", "midi"])
+                    .set_file_name("freeplay-recording.mid");
+
+                if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
+                    dialog = dialog.set_directory(path);
+                }
+
+                match dialog.save_file() {
+                    Some(path) => match self.recorder.save_to_path(&path) {
+                        Ok(()) => {
+                            self.recorder_status =
+                                format!("Saved recording to {}", path.display());
+                        }
+                        Err(err) => {
+                            self.recorder_status = err;
+                        }
+                    },
+                    None => {
+                        self.recorder_status = "Save canceled".to_string();
+                    }
+                }
+            } else {
+                self.recorder_status = "Nothing recorded yet".to_string();
+            }
         }
     }
 
@@ -281,6 +657,8 @@ impl FreeplayScene {
     }
 
     fn update_ui(&mut self, ctx: &mut Context) {
+        self.update_preview_ui(ctx);
+
         nuon::label()
             .text(&self.deduced_chord_name)
             .font_size(25.0)
@@ -289,118 +667,15 @@ impl FreeplayScene {
             .width(ctx.window_state.logical_size.width)
             .build(&mut self.nuon);
 
-        if nuon::button()
-            .size(30.0, 30.0)
-            .border_radius([5.0; 4])
-            .icon(icons::left_arrow_icon())
-            .build(&mut self.nuon)
-        {
-            ctx.proxy
-                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
-                .ok();
-        }
-
-        let record_label = if self.recorder.is_recording() {
-            "STOP"
-        } else {
-            "REC"
-        };
-
-        let status_label = if self.recorder.is_recording() {
-            format!(
-                "Recording {:.1}s | {} events",
-                self.recorder.duration().as_secs_f32(),
-                self.recorder.events.len()
-            )
-        } else {
-            self.recorder_status.clone()
-        };
-
-        nuon::translate()
-            .x(ctx.window_state.logical_size.width - 220.0)
-            .build(&mut self.nuon, |ui| {
-                if nuon::button()
-                    .size(80.0, 30.0)
-                    .border_radius([5.0; 4])
-                    .color(if self.recorder.is_recording() {
-                        [125, 27, 27]
-                    } else {
-                        [67, 67, 67]
-                    })
-                    .hover_color([87, 87, 87])
-                    .preseed_color([97, 97, 97])
-                    .label(record_label)
-                    .build(ui)
-                {
-                    if self.recorder.is_recording() {
-                        self.recorder.stop();
-                        self.recorder_status = format!(
-                            "Recorded {:.1}s. Press SAVE to export MIDI",
-                            self.recorder.duration().as_secs_f32()
-                        );
-                    } else {
-                        self.recorder.start();
-                        self.recorder_status = "Recording in progress".to_string();
-                    }
-                }
-
-                if nuon::button()
-                    .x(90.0)
-                    .size(80.0, 30.0)
-                    .border_radius([5.0; 4])
-                    .color([67, 67, 67])
-                    .hover_color([87, 87, 87])
-                    .preseed_color([97, 97, 97])
-                    .label("SAVE")
-                    .build(ui)
-                {
-                    if self.recorder.is_recording() {
-                        self.recorder.stop();
-                    }
-
-                    if self.recorder.has_events() {
-                        let mut dialog = rfd::FileDialog::new()
-                            .add_filter("midi", &["mid", "midi"])
-                            .set_file_name("freeplay-recording.mid");
-
-                        if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
-                            dialog = dialog.set_directory(path);
-                        }
-
-                        match dialog.save_file() {
-                            Some(path) => match self.recorder.save_to_path(&path) {
-                                Ok(()) => {
-                                    self.recorder_status =
-                                        format!("Saved recording to {}", path.display());
-                                }
-                                Err(err) => {
-                                    self.recorder_status = err;
-                                }
-                            },
-                            None => {
-                                self.recorder_status = "Save canceled".to_string();
-                            }
-                        }
-                    } else {
-                        self.recorder_status = "Nothing recorded yet".to_string();
-                    }
-                }
-            });
-
-        nuon::label()
-            .text(status_label)
-            .width(220.0)
-            .height(30.0)
-            .x(ctx.window_state.logical_size.width - 220.0)
-            .y(35.0)
-            .text_justify(nuon::TextJustify::Left)
-            .build(&mut self.nuon);
     }
 
     fn resize(&mut self, ctx: &mut Context) {
         self.keyboard.resize(ctx);
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
+        if let Some(visuals) = self.preview_visuals.as_mut() {
+            visuals.resize(ctx, &self.keyboard);
+        }
     }
 }
 
@@ -408,6 +683,29 @@ impl Scene for FreeplayScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_renderer_bg.clear();
         self.quad_renderer_fg.clear();
+
+        let mut preview_finished = false;
+        let mut preview_time = None;
+
+        if let Some(player) = self.preview_player.as_mut() {
+            let midi_events = player.update(delta);
+            self.keyboard.file_midi_events(&ctx.config, &midi_events);
+            preview_finished = player.is_finished() && !player.is_paused();
+            preview_time = Some(player.time_without_lead_in() + ctx.config.animation_offset());
+        }
+
+        if preview_finished {
+            log::info!("freeplay: preview playback reached end and is being paused");
+            if let Some(player) = self.preview_player.as_mut() {
+                player.pause();
+            }
+        }
+
+        if let Some(time) = preview_time
+            && let Some(visuals) = self.preview_visuals.as_mut()
+        {
+            visuals.update_waterfall(time);
+        }
 
         let time = 0.0;
 
@@ -420,6 +718,11 @@ impl Scene for FreeplayScene {
         );
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
+        if let Some(time) = preview_time
+            && let Some(visuals) = self.preview_visuals.as_mut()
+        {
+            visuals.update_note_labels(ctx, &self.keyboard, time);
+        }
 
         self.update_glow(delta);
 
@@ -442,6 +745,9 @@ impl Scene for FreeplayScene {
 
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
+        if let Some(visuals) = self.preview_visuals.as_mut() {
+            visuals.render(rpass);
+        }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
             glow.render(rpass);
@@ -459,6 +765,11 @@ impl Scene for FreeplayScene {
             ctx.proxy
                 .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
                 .ok();
+        }
+
+        if event.key_released(Key::Named(NamedKey::Space)) && self.preview_player.is_some() {
+            log::debug!("freeplay: space pressed for preview playback toggle");
+            self.toggle_preview_playback();
         }
 
         super::handle_nuon_window_event(&mut self.nuon, event, ctx);

@@ -531,23 +531,18 @@ impl FreeplayScene {
                     }
                 }
 
-                if !preview_available {
-                    nuon::label()
-                        .y(15.0)
-                        .size(width, 15.0)
-                        .text("Preview becomes active after you stop recording")
-                        .color([170, 170, 170])
-                        .build(ui);
-                } else {
-                    nuon::label()
-                        .x(10.0)
-                        .y(15.0)
-                        .size((width - 20.0).max(0.0), 15.0)
-                        .text(&status_label)
-                        .text_justify(nuon::TextJustify::Left)
-                        .color([210, 210, 210])
-                        .build(ui);
-                }
+                nuon::label()
+                    .x(10.0)
+                    .y(15.0)
+                    .size((width - 20.0).max(0.0), 15.0)
+                    .text(&status_label)
+                    .text_justify(nuon::TextJustify::Left)
+                    .color(if preview_available {
+                        [210, 210, 210]
+                    } else {
+                        [170, 170, 170]
+                    })
+                    .build(ui);
             });
         });
 

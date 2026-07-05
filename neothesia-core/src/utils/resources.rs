@@ -1,15 +1,13 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
-#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 fn home() -> Option<PathBuf> {
-    std::env::var_os("HOME")
+    env::var_os("HOME")
         .and_then(|h| if h.is_empty() { None } else { Some(h) })
         .map(PathBuf::from)
 }
 
-#[cfg(all(target_family = "unix", not(target_os = "macos")))]
 fn xdg_config() -> Option<PathBuf> {
-    std::env::var_os("XDG_CONFIG_HOME")
+    env::var_os("XDG_CONFIG_HOME")
         .and_then(|h| if h.is_empty() { None } else { Some(h) })
         .map(PathBuf::from)
         .map(|p| p.join("neothesia"))

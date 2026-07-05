@@ -167,11 +167,21 @@ impl MidiPlayer {
     }
 
     pub fn percentage_to_time(&self, p: f32) -> Duration {
-        Duration::from_secs_f32((p * self.playback.length().as_secs_f32()).max(0.0))
+        let length = self.playback.length();
+        if length.is_zero() {
+            Duration::ZERO
+        } else {
+            Duration::from_secs_f32((p * length.as_secs_f32()).max(0.0))
+        }
     }
 
     pub fn time_to_percentage(&self, time: &Duration) -> f32 {
-        time.as_secs_f32() / self.playback.length().as_secs_f32()
+        let length = self.playback.length();
+        if length.is_zero() {
+            0.0
+        } else {
+            time.as_secs_f32() / length.as_secs_f32()
+        }
     }
 
     pub fn set_percentage_time(&mut self, p: f32) {

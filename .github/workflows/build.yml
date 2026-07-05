@@ -8,6 +8,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  lints:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install alsa
+        shell: bash
+        run: sudo apt update && sudo apt install libasound2-dev libavcodec-dev libavformat-dev libswscale-dev nasm
+      - name: Fmt
+        shell: bash
+        run: cargo fmt --check
+      - name: Fmt
+        shell: bash
+        run: cargo clippy --workspace -- -D warnings 
+
   build_ubuntu:
     runs-on: ubuntu-latest
     steps:

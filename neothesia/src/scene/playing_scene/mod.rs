@@ -1,6 +1,6 @@
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
-    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer, WaterfallRenderer,
+    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
 };
 use std::time::Duration;
 use winit::{
@@ -12,8 +12,8 @@ use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
 use crate::{
-    NeothesiaEvent, context::Context, scene::MouseToMidiEventState, song::Song,
-    utils::window::WinitEvent,
+    NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
+    song::Song, utils::window::WinitEvent,
 };
 
 mod keyboard;
@@ -34,10 +34,11 @@ mod top_bar;
 pub struct PlayingScene {
     keyboard: Keyboard,
     waterfall: WaterfallRenderer,
-    note_labels: Option<NoteLabels>,
     guidelines: GuidelineRenderer,
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
+
+    note_labels: Option<NoteLabels>,
 
     player: MidiPlayer,
     rewind_controller: RewindController,
@@ -66,14 +67,12 @@ impl PlayingScene {
             song.file.measures.clone(),
         );
 
-        let text_renderer = ctx.text_renderer_factory.new_renderer();
-
         let hidden_tracks: Vec<usize> = song
             .config
             .tracks
             .iter()
-            .filter(|track| !track.visible)
-            .map(|track| track.track_id)
+            .filter(|t| !t.visible)
+            .map(|t| t.track_id)
             .collect();
 
         let mut waterfall = WaterfallRenderer::new(
@@ -82,8 +81,10 @@ impl PlayingScene {
             &hidden_tracks,
             &ctx.config,
             &ctx.transform,
-            keyboard.layout().clone(),
+            keyboard_layout.clone(),
         );
+
+        let text_renderer = ctx.text_renderer_factory.new_renderer();
 
         let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
@@ -111,11 +112,11 @@ impl PlayingScene {
         Self {
             keyboard,
             guidelines,
-            waterfall,
             note_labels,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
 
+            waterfall,
             player,
             rewind_controller: RewindController::new(),
             quad_renderer_bg,
@@ -179,12 +180,12 @@ impl PlayingScene {
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
-
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.set_pos(*self.keyboard.pos());
         }
 
-        self.waterfall.resize(&ctx.config, self.keyboard.layout().clone());
+        self.waterfall
+            .resize(&ctx.config, self.keyboard.layout().clone());
     }
 }
 

@@ -102,6 +102,8 @@ impl Recorder {
             midi.measures.clone(),
         );
 
+        let text_renderer_factory = TextRendererFactory::new(&gpu);
+
         let mut waterfall = WaterfallRenderer::new(
             &gpu,
             &midi.tracks,
@@ -115,7 +117,6 @@ impl Recorder {
 
         waterfall.update(time_without_lead_in(&playback));
 
-        let text_renderer_factory = TextRendererFactory::new(&gpu);
         let text = text_renderer_factory.new_renderer();
 
         let mut synth = oxisynth::Synth::new(oxisynth::SynthDescriptor {

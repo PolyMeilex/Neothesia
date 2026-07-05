@@ -9,7 +9,9 @@ use lilt::{Animated, Easing};
 use midi_file::midly::{
     Format, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEvent, TrackEventKind,
 };
-use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
+use neothesia_core::render::{
+    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer, WaterfallRenderer,
+};
 use winit::{
     event::WindowEvent,
     keyboard::{Key, NamedKey},
@@ -21,7 +23,7 @@ use crate::{
     icons,
     scene::{
         MouseToMidiEventState, NuonRenderer, Scene,
-        playing_scene::{Keyboard, midi_player::MidiPlayer, playback_visuals::PlaybackVisuals},
+        playing_scene::{Keyboard, midi_player::MidiPlayer},
     },
     song::Song,
     utils::window::WinitEvent,
@@ -46,7 +48,8 @@ pub struct FreeplayScene {
     recorder: FreeplayRecorder,
     recorder_status: String,
     preview_player: Option<MidiPlayer>,
-    preview_visuals: Option<PlaybackVisuals>,
+    preview_waterfall: Option<WaterfallRenderer>,
+    preview_note_labels: Option<NoteLabels>,
     preview_bar_expand_animation: Animated<bool, Instant>,
 }
 
@@ -269,7 +272,8 @@ impl FreeplayScene {
             recorder: FreeplayRecorder::default(),
             recorder_status: "Press REC to start recording".to_string(),
             preview_player: None,
-            preview_visuals: None,
+            preview_waterfall: None,
+            preview_note_labels: None,
             preview_bar_expand_animation: Animated::new(false)
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
@@ -278,9 +282,9 @@ impl FreeplayScene {
     }
 
     fn clear_preview(&mut self) {
-        log::debug!("freeplay: clearing preview state");
         self.preview_player = None;
-        self.preview_visuals = None;
+        self.preview_waterfall = None;
+        self.preview_note_labels = None;
         self.keyboard.set_song_config(Default::default());
         self.keyboard.reset_notes();
     }
@@ -289,12 +293,31 @@ impl FreeplayScene {
         self.clear_preview();
 
         let song = self.recorder.to_song()?;
-        log::info!(
-            "freeplay: rebuilding preview song with {} track(s)",
-            song.file.tracks.len()
-        );
         self.keyboard.set_song_config(song.config.clone());
-        let mut visuals = PlaybackVisuals::new(ctx, &song, &self.keyboard);
+
+        let hidden_tracks: Vec<usize> = song
+            .config
+            .tracks
+            .iter()
+            .filter(|track| !track.visible)
+            .map(|track| track.track_id)
+            .collect();
+
+        let mut waterfall = WaterfallRenderer::new(
+            &ctx.gpu,
+            &song.file.tracks,
+            &hidden_tracks,
+            &ctx.config,
+            &ctx.transform,
+            self.keyboard.layout().clone(),
+        );
+
+        let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
+            *self.keyboard.pos(),
+            waterfall.notes(),
+            ctx.text_renderer_factory.new_renderer(),
+        ));
+
         let mut player = MidiPlayer::new_with_lead_in(
             ctx.output_manager.connection().clone(),
             song,
@@ -303,42 +326,35 @@ impl FreeplayScene {
             Duration::ZERO,
         );
         player.pause();
-        visuals.update_waterfall(player.time_without_lead_in() + ctx.config.animation_offset());
+        waterfall.update(player.time_without_lead_in() + ctx.config.animation_offset());
 
-        self.preview_visuals = Some(visuals);
+        self.preview_waterfall = Some(waterfall);
+        self.preview_note_labels = note_labels;
         self.preview_player = Some(player);
         Ok(())
     }
 
     fn toggle_preview_playback(&mut self) {
         let Some(player) = self.preview_player.as_mut() else {
-            log::warn!("freeplay: preview toggle ignored because no preview player exists");
             return;
         };
 
         if player.is_finished() {
-            log::info!("freeplay: restarting preview from the beginning");
             player.set_time(Duration::ZERO);
             self.keyboard.reset_notes();
         }
 
-        log::info!(
-            "freeplay: toggling preview playback, paused_before={}",
-            player.is_paused()
-        );
         player.pause_resume();
     }
 
     fn seek_preview_to_cursor(&mut self, ctx: &Context) {
         let Some(player) = self.preview_player.as_mut() else {
-            log::warn!("freeplay: preview seek ignored because no preview player exists");
             return;
         };
 
         let width = ctx.window_state.logical_size.width.max(1.0);
         let percentage = (ctx.window_state.cursor_logical_position.x / width).clamp(0.0, 1.0);
 
-        log::debug!("freeplay: seeking preview to {:.3}", percentage);
         player.set_percentage_time(percentage);
         self.keyboard.reset_notes();
     }
@@ -562,7 +578,6 @@ impl FreeplayScene {
 
         if record_clicked {
             if self.recorder.is_recording() {
-                log::info!("freeplay: stop recording clicked");
                 self.recorder.stop();
                 match self.rebuild_preview(ctx) {
                     Ok(()) => {
@@ -576,7 +591,6 @@ impl FreeplayScene {
                     }
                 }
             } else {
-                log::info!("freeplay: start recording clicked");
                 self.clear_preview();
                 self.recorder.start();
                 self.recorder_status = "Recording in progress".to_string();
@@ -584,7 +598,6 @@ impl FreeplayScene {
         }
 
         if save_clicked {
-            log::info!("freeplay: save recording clicked");
             if self.recorder.is_recording() {
                 self.recorder.stop();
                 if let Err(err) = self.rebuild_preview(ctx) {
@@ -661,15 +674,17 @@ impl FreeplayScene {
             .height(25.0)
             .width(ctx.window_state.logical_size.width)
             .build(&mut self.nuon);
-
     }
 
     fn resize(&mut self, ctx: &mut Context) {
         self.keyboard.resize(ctx);
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
-        if let Some(visuals) = self.preview_visuals.as_mut() {
-            visuals.resize(ctx, &self.keyboard);
+        if let Some(note_labels) = self.preview_note_labels.as_mut() {
+            note_labels.set_pos(*self.keyboard.pos());
+        }
+        if let Some(waterfall) = self.preview_waterfall.as_mut() {
+            waterfall.resize(&ctx.config, self.keyboard.layout().clone());
         }
     }
 }
@@ -689,17 +704,14 @@ impl Scene for FreeplayScene {
             preview_time = Some(player.time_without_lead_in() + ctx.config.animation_offset());
         }
 
-        if preview_finished {
-            log::info!("freeplay: preview playback reached end and is being paused");
-            if let Some(player) = self.preview_player.as_mut() {
+        if preview_finished && let Some(player) = self.preview_player.as_mut() {
                 player.pause();
-            }
         }
 
         if let Some(time) = preview_time
-            && let Some(visuals) = self.preview_visuals.as_mut()
+            && let Some(waterfall) = self.preview_waterfall.as_mut()
         {
-            visuals.update_waterfall(time);
+            waterfall.update(time);
         }
 
         let time = 0.0;
@@ -714,9 +726,15 @@ impl Scene for FreeplayScene {
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
         if let Some(time) = preview_time
-            && let Some(visuals) = self.preview_visuals.as_mut()
+            && let Some(note_labels) = self.preview_note_labels.as_mut()
         {
-            visuals.update_note_labels(ctx, &self.keyboard, time);
+            note_labels.update(
+                ctx.window_state.physical_size,
+                ctx.window_state.scale_factor as f32,
+                self.keyboard.renderer(),
+                ctx.config.animation_speed(),
+                time,
+            );
         }
 
         self.update_glow(delta);
@@ -740,8 +758,11 @@ impl Scene for FreeplayScene {
 
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
-        if let Some(visuals) = self.preview_visuals.as_mut() {
-            visuals.render(rpass);
+        if let Some(waterfall) = self.preview_waterfall.as_mut() {
+            waterfall.render(rpass);
+        }
+        if let Some(note_labels) = self.preview_note_labels.as_mut() {
+            note_labels.render(rpass);
         }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
@@ -763,7 +784,6 @@ impl Scene for FreeplayScene {
         }
 
         if event.key_released(Key::Named(NamedKey::Space)) && self.preview_player.is_some() {
-            log::debug!("freeplay: space pressed for preview playback toggle");
             self.toggle_preview_playback();
         }
 

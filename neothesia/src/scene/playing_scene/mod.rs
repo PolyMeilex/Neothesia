@@ -1,5 +1,7 @@
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
+use neothesia_core::render::{
+    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer, WaterfallRenderer,
+};
 use std::time::Duration;
 use winit::{
     event::WindowEvent,
@@ -20,9 +22,6 @@ pub use keyboard::Keyboard;
 pub(crate) mod midi_player;
 use midi_player::MidiPlayer;
 
-pub(crate) mod playback_visuals;
-use playback_visuals::PlaybackVisuals;
-
 mod rewind_controller;
 use rewind_controller::RewindController;
 
@@ -34,7 +33,8 @@ mod top_bar;
 
 pub struct PlayingScene {
     keyboard: Keyboard,
-    visuals: PlaybackVisuals,
+    waterfall: WaterfallRenderer,
+    note_labels: Option<NoteLabels>,
     guidelines: GuidelineRenderer,
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
@@ -67,7 +67,29 @@ impl PlayingScene {
         );
 
         let text_renderer = ctx.text_renderer_factory.new_renderer();
-        let mut visuals = PlaybackVisuals::new(ctx, &song, &keyboard);
+
+        let hidden_tracks: Vec<usize> = song
+            .config
+            .tracks
+            .iter()
+            .filter(|track| !track.visible)
+            .map(|track| track.track_id)
+            .collect();
+
+        let mut waterfall = WaterfallRenderer::new(
+            &ctx.gpu,
+            &song.file.tracks,
+            &hidden_tracks,
+            &ctx.config,
+            &ctx.transform,
+            keyboard.layout().clone(),
+        );
+
+        let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
+            *keyboard.pos(),
+            waterfall.notes(),
+            ctx.text_renderer_factory.new_renderer(),
+        ));
 
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
@@ -75,7 +97,7 @@ impl PlayingScene {
             keyboard_layout.range.clone(),
             ctx.config.separate_channels(),
         );
-        visuals.update_waterfall(player.time_without_lead_in());
+        waterfall.update(player.time_without_lead_in());
 
         let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
         let quad_renderer_fg = ctx.quad_renderer_facotry.new_renderer();
@@ -89,7 +111,8 @@ impl PlayingScene {
         Self {
             keyboard,
             guidelines,
-            visuals,
+            waterfall,
+            note_labels,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
 
@@ -156,7 +179,12 @@ impl PlayingScene {
 
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
-        self.visuals.resize(ctx, &self.keyboard);
+
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.set_pos(*self.keyboard.pos());
+        }
+
+        self.waterfall.resize(&ctx.config, self.keyboard.layout().clone());
     }
 }
 
@@ -170,7 +198,7 @@ impl Scene for PlayingScene {
         self.toast_manager.update(&mut self.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);
-        self.visuals.update_waterfall(time);
+        self.waterfall.update(time);
         self.guidelines.update(
             &mut self.quad_renderer_bg,
             ctx.config.animation_speed(),
@@ -180,7 +208,15 @@ impl Scene for PlayingScene {
         );
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
-        self.visuals.update_note_labels(ctx, &self.keyboard, time);
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.update(
+                ctx.window_state.physical_size,
+                ctx.window_state.scale_factor as f32,
+                self.keyboard.renderer(),
+                ctx.config.animation_speed(),
+                time,
+            );
+        }
 
         self.update_glow(delta);
 
@@ -217,7 +253,10 @@ impl Scene for PlayingScene {
     #[profiling::function]
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
-        self.visuals.render(rpass);
+        self.waterfall.render(rpass);
+        if let Some(note_labels) = self.note_labels.as_mut() {
+            note_labels.render(rpass);
+        }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
             glow.render(rpass);
@@ -245,7 +284,7 @@ impl Scene for PlayingScene {
             self.player.pause_resume();
         }
 
-        handle_settings_input(ctx, &mut self.toast_manager, &mut self.visuals, event);
+        handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
         super::handle_pc_keyboard_to_midi_event(ctx, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,
@@ -270,7 +309,7 @@ impl Scene for PlayingScene {
 fn handle_settings_input(
     ctx: &mut Context,
     toast_manager: &mut ToastManager,
-    visuals: &mut PlaybackVisuals,
+    waterfall: &mut WaterfallRenderer,
     event: &WindowEvent,
 ) {
     if event.key_released(Key::Named(NamedKey::ArrowUp))
@@ -311,7 +350,9 @@ fn handle_settings_input(
                 .set_animation_speed(ctx.config.animation_speed() - amount);
         }
 
-        visuals.set_animation_speed(ctx);
+        waterfall
+            .pipeline()
+            .set_speed(&ctx.gpu.queue, ctx.config.animation_speed());
         toast_manager.animation_speed_toast(ctx.config.animation_speed());
         return;
     }

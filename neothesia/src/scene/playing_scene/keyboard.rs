@@ -114,6 +114,8 @@ impl Keyboard {
         let range_start = self.range().start() as usize;
 
         let (is_on, key) = match message {
+            // Some MIDI devices encode note release as NoteOn with velocity 0.
+            MidiMessage::NoteOn { key, vel } if vel.as_int() == 0 => (false, key.as_int()),
             MidiMessage::NoteOn { key, .. } => (true, key.as_int()),
             MidiMessage::NoteOff { key, .. } => (false, key.as_int()),
             _ => return,

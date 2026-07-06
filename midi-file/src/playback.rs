@@ -94,12 +94,7 @@ impl PlaybackState {
     }
 
     pub fn percentage(&self) -> f32 {
-        let length = self.length();
-        if length.is_zero() {
-            0.0
-        } else {
-            self.running.as_secs_f32() / length.as_secs_f32()
-        }
+        self.running.as_secs_f32() / self.length().as_secs_f32()
     }
 
     pub fn leed_in(&self) -> &Duration {

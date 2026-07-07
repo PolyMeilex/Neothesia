@@ -200,10 +200,6 @@ impl FreeplayScene {
 
 /// Recorder related methods
 impl FreeplayScene {
-    fn preview_bar_button() -> nuon::Button {
-        nuon::button().size(30.0, 30.0).border_radius([5.0; 4])
-    }
-
     fn clear_preview(&mut self) {
         self.preview_state = None;
         self.keyboard.set_song_config(Default::default());
@@ -324,14 +320,6 @@ impl FreeplayScene {
         self.recorder_status.clone()
     }
 
-    fn record_button_label(&self) -> &'static str {
-        if self.recorder.is_recording() {
-            "STOP"
-        } else {
-            "REC"
-        }
-    }
-
     fn stop_recording(&mut self, ctx: &Context) -> Result<(), String> {
         self.recorder.stop();
         self.rebuild_preview(ctx)
@@ -429,7 +417,6 @@ impl FreeplayScene {
         let width = ctx.window_state.logical_size.width;
         let preview = self.preview_ui_state();
 
-        let record_label = self.record_button_label();
         let status_label = self.preview_status_label();
 
         enum Msg {
@@ -453,7 +440,9 @@ impl FreeplayScene {
                     .color([37, 35, 42])
                     .build(ui);
 
-                if Self::preview_bar_button()
+                if nuon::button()
+                    .size(30.0, 30.0)
+                    .border_radius([5.0; 4])
                     .icon(icons::left_arrow_icon())
                     .build(ui)
                 {
@@ -480,65 +469,68 @@ impl FreeplayScene {
                     .build(ui);
 
                 nuon::translate().x(width).build(ui, |ui| {
-                    if preview.available {
-                        if Self::preview_bar_button()
-                            .x(-30.0)
-                            .icon(if preview.is_paused {
-                                icons::play_icon()
-                            } else {
-                                icons::pause_icon()
-                            })
-                            .build(ui)
-                        {
-                            msg = Msg::TogglePlay;
-                        }
-                    } else {
-                        nuon::quad()
-                            .x(-30.0)
-                            .size(30.0, 30.0)
-                            .color([52, 52, 52])
-                            .border_radius([5.0; 4])
-                            .build(ui);
-                        nuon::label()
-                            .x(-30.0)
-                            .size(30.0, 30.0)
-                            .icon(icons::play_icon())
-                            .color([140, 140, 140])
-                            .build(ui);
-                    }
+                    nuon::translate().x(-30.0).add_to_current(ui);
 
                     if nuon::button()
-                        .x(-85.0)
-                        .size(45.0, 30.0)
+                        .size(30.0, 30.0)
                         .border_radius([5.0; 4])
-                        .color([67, 67, 67])
-                        .hover_color([87, 87, 87])
-                        .preseed_color([97, 97, 97])
-                        .label("SAVE")
+                        .icon(if preview.is_paused {
+                            icons::play_icon()
+                        } else {
+                            icons::pause_icon()
+                        })
+                        .font_color(if preview.available {
+                            [255, 255, 255, 255]
+                        } else {
+                            [255, 255, 255, 100]
+                        })
                         .build(ui)
+                        && preview.available
+                    {
+                        msg = Msg::TogglePlay;
+                    }
+
+                    nuon::translate().x(-30.0).add_to_current(ui);
+
+                    if nuon::button()
+                        .size(30.0, 30.0)
+                        .border_radius([5.0; 4])
+                        .icon(icons::save_icon())
+                        .font_color(if preview.available {
+                            [255, 255, 255, 255]
+                        } else {
+                            [255, 255, 255, 100]
+                        })
+                        .build(ui)
+                        && preview.available
                     {
                         msg = Msg::Save;
                     }
 
+                    nuon::translate().x(-30.0).add_to_current(ui);
+
                     if nuon::button()
-                        .x(-147.0)
-                        .size(52.0, 30.0)
+                        .size(30.0, 30.0)
                         .border_radius([5.0; 4])
-                        .label(record_label)
-                        .color(if self.recorder.is_recording() {
-                            [125, 27, 27]
+                        .icon(if self.recorder.is_recording() {
+                            icons::record_stop_icon()
                         } else {
-                            [67, 67, 67]
+                            icons::record_icon()
+                        })
+                        .color(if self.recorder.is_recording() {
+                            [208, 18, 0, 255]
+                        } else {
+                            [0, 0, 0, 0]
                         })
                         .hover_color(if self.recorder.is_recording() {
-                            [145, 37, 37]
-                        } else {
-                            [87, 87, 87]
-                        })
-                        .preseed_color(if self.recorder.is_recording() {
                             [165, 47, 47]
                         } else {
                             [97, 97, 97]
+                        })
+                        .preseed_color(if self.recorder.is_recording() {
+                            [145, 37, 37]
+                        } else {
+                            [87, 87, 87]
                         })
                         .build(ui)
                     {
@@ -566,13 +558,15 @@ impl FreeplayScene {
                     if preview.length > 0.0 {
                         for measure in preview.measures.iter() {
                             let x = (measure.as_secs_f32() / preview.length) * width;
-                            let color = if x < width * preview.progress {
-                                nuon::Color::new(1.0, 1.0, 1.0, 0.5)
-                            } else {
-                                nuon::Color::new(0.4, 0.4, 0.4, 1.0)
-                            };
-
-                            nuon::quad().x(x).size(1.0, 45.0).color(color).build(ui);
+                            nuon::quad()
+                                .x(x)
+                                .size(1.0, 45.0)
+                                .color(if x < width * preview.progress {
+                                    [255, 255, 255, 127]
+                                } else {
+                                    [102, 102, 102, 255]
+                                })
+                                .build(ui);
                         }
                     }
 
@@ -582,11 +576,7 @@ impl FreeplayScene {
                         .size((width - 20.0).max(0.0), 15.0)
                         .text(&status_label)
                         .text_justify(nuon::TextJustify::Left)
-                        .color(if preview.available {
-                            [210, 210, 210]
-                        } else {
-                            [170, 170, 170]
-                        })
+                        .color([255, 255, 255, 200])
                         .build(ui);
                 });
             });

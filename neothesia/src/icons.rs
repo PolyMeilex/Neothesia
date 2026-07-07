@@ -47,3 +47,15 @@ pub fn note_list_icon() -> &'static str {
 pub fn caret_down() -> &'static str {
     "\u{f229}"
 }
+
+pub fn record_icon() -> &'static str {
+    "\u{f519}"
+}
+
+pub fn record_stop_icon() -> &'static str {
+    "\u{f591}"
+}
+
+pub fn save_icon() -> &'static str {
+    "\u{f7D9}"
+}

@@ -961,6 +961,7 @@ pub struct Button {
     color: Color,
     hover_color: Color,
     preseed_color: Color,
+    font_color: Color,
     border_radius: [f32; 4],
     icon: &'static str,
     label: Cow<'static, str>,
@@ -986,6 +987,7 @@ impl Button {
             color: Color::new_u8(0, 0, 0, 0.0),
             hover_color: Color::new_u8(57, 55, 62, 1.0),
             preseed_color: Color::new_u8(67, 65, 72, 1.0),
+            font_color: Color::WHITE,
             border_radius: [0.0; 4],
             icon: "X",
             label: Cow::Borrowed(""),
@@ -1040,6 +1042,11 @@ impl Button {
 
     pub fn preseed_color(mut self, color: impl Into<Color>) -> Self {
         self.preseed_color = color.into();
+        self
+    }
+
+    pub fn font_color(mut self, color: impl Into<Color>) -> Self {
+        self.font_color = color.into();
         self
     }
 
@@ -1122,7 +1129,7 @@ impl Button {
                 origin: Point::new(x, y),
                 size: icon_size,
                 icon: self.icon.to_string(),
-                color: Color::WHITE,
+                color: self.font_color,
             });
         } else {
             let pad_x = pad_x * 10.0;
@@ -1136,7 +1143,7 @@ impl Button {
                 size: 16.0,
                 bold: false,
                 text: self.label.to_string(),
-                color: Color::new_u8(255, 255, 255, 1.0),
+                color: self.font_color,
                 font_family: Cow::Borrowed("Roboto"),
             });
         }

@@ -141,8 +141,7 @@ impl FreeplayRecorder {
         }
     }
 
-    pub fn save_to_path(&self, path: &Path) -> Result<(), String> {
-        let smf = self.to_smf()?;
+    pub fn save_to_path(smf: Smf<'static>, path: &Path) -> Result<(), String> {
         let mut bytes = Vec::new();
         smf.write_std(&mut bytes)
             .map_err(|err| format!("Failed to encode MIDI: {err}"))?;
@@ -170,7 +169,7 @@ impl FreeplayRecorder {
         }
     }
 
-    fn to_smf(&self) -> Result<Smf<'static>, String> {
+    pub fn to_smf(&self) -> Result<Smf<'static>, String> {
         if !self.has_note_events() {
             return Err("No note events recorded yet".to_string());
         }

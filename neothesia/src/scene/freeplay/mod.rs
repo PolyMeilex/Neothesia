@@ -380,10 +380,18 @@ impl FreeplayScene {
             dialog = dialog.set_directory(path);
         }
 
+        let smf = match self.recorder.to_smf() {
+            Ok(smf) => smf,
+            Err(err) => {
+                self.recorder_status = err;
+                return;
+            }
+        };
+
         self.futures.push(on_async(
             dialog.save_file(),
             |path, state, _ctx| match path {
-                Some(file) => match state.recorder.save_to_path(file.path()) {
+                Some(file) => match FreeplayRecorder::save_to_path(smf, file.path()) {
                     Ok(()) => {
                         state.recorder_status =
                             format!("Saved recording to {}", file.path().display());

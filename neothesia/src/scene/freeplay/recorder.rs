@@ -47,9 +47,7 @@ pub struct PreviewUiState {
     pub available: bool,
     pub is_paused: bool,
     pub progress: f32,
-    pub current_time: f32,
     pub length: f32,
-    pub song_name: String,
     pub measures: Arc<[Duration]>,
 }
 
@@ -77,14 +75,6 @@ impl FreeplayRecorder {
                 .iter()
                 .any(|event| matches!(event.message, MidiMessage::NoteOn { .. })),
             RecorderState::Idle | RecorderState::Recording(_) => false,
-        }
-    }
-
-    pub fn event_count(&self) -> usize {
-        match &self.state {
-            RecorderState::Idle => 0,
-            RecorderState::Recording(state) => state.events.len(),
-            RecorderState::Recorded(recorded_take) => recorded_take.events.len(),
         }
     }
 
@@ -243,13 +233,11 @@ mod freeplay_recorder_tests {
         recorder.stop();
 
         assert!(recorder.has_note_events());
-        assert_eq!(recorder.event_count(), 2);
 
         recorder.start();
 
         assert!(recorder.is_recording());
         assert!(!recorder.has_note_events());
-        assert_eq!(recorder.event_count(), 0);
     }
 
     #[test]

@@ -141,12 +141,7 @@ impl FreeplayRecorder {
         }
     }
 
-    pub fn save_to_path(&self, path: &Path) -> Result<(), String> {
-        if !self.has_note_events() {
-            return Err("No note events recorded yet".to_string());
-        }
-
-        let smf = self.to_smf();
+    pub fn save_to_path(smf: Smf<'static>, path: &Path) -> Result<(), String> {
         let mut bytes = Vec::new();
         smf.write_std(&mut bytes)
             .map_err(|err| format!("Failed to encode MIDI: {err}"))?;
@@ -154,11 +149,7 @@ impl FreeplayRecorder {
     }
 
     pub fn to_song(&self) -> Result<Song, String> {
-        if !self.has_note_events() {
-            return Err("No note events recorded yet".to_string());
-        }
-
-        let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", self.to_smf())?;
+        let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", self.to_smf()?)?;
         Ok(Song::new(midi))
     }
 
@@ -178,7 +169,11 @@ impl FreeplayRecorder {
         }
     }
 
-    fn to_smf(&self) -> Smf<'static> {
+    pub fn to_smf(&self) -> Result<Smf<'static>, String> {
+        if !self.has_note_events() {
+            return Err("No note events recorded yet".to_string());
+        }
+
         let events = match &self.state {
             RecorderState::Recorded(recorded_take) => recorded_take.events.as_slice(),
             RecorderState::Idle | RecorderState::Recording(_) => &[],
@@ -215,13 +210,13 @@ impl FreeplayRecorder {
             kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
         });
 
-        Smf {
+        Ok(Smf {
             header: Header {
                 format: Format::SingleTrack,
                 timing: Timing::Metrical(Self::TICKS_PER_BEAT.into()),
             },
             tracks: vec![track],
-        }
+        })
     }
 
     fn duration_to_ticks(duration: Duration) -> u32 {

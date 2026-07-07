@@ -102,6 +102,71 @@ impl FreeplayScene {
         }
     }
 
+    fn update_glow(&mut self, delta: Duration) {
+        let Some(glow) = &mut self.glow else {
+            return;
+        };
+
+        glow.clear();
+
+        let keys = &self.keyboard.layout().keys;
+        let states = self.keyboard.key_states();
+
+        for (key, state) in keys.iter().zip(states) {
+            let Some(mut color) = state.pressed_by_user().copied() else {
+                continue;
+            };
+
+            color.r *= 0.5;
+            color.g *= 0.5;
+            color.b *= 0.5;
+
+            glow.push(
+                key.id(),
+                color,
+                key.x(),
+                self.keyboard.pos().y,
+                key.width(),
+                delta,
+            );
+        }
+    }
+
+    fn update_ui(&mut self, ctx: &mut Context) {
+        self.update_preview_ui(ctx);
+
+        nuon::label()
+            .text(&self.deduced_chord_name)
+            .font_size(25.0)
+            .y(self.keyboard.pos().y - 25.0 - 10.0)
+            .height(25.0)
+            .width(ctx.window_state.logical_size.width)
+            .build(&mut self.nuon);
+    }
+
+    fn resize(&mut self, ctx: &mut Context) {
+        self.keyboard.resize(ctx);
+        self.guidelines.set_layout(self.keyboard.layout().clone());
+        self.guidelines.set_pos(*self.keyboard.pos());
+        if let Some(note_labels) = self
+            .preview_state
+            .as_mut()
+            .and_then(|state| state.note_labels.as_mut())
+        {
+            note_labels.set_pos(*self.keyboard.pos());
+        }
+        if let Some(waterfall) = self
+            .preview_state
+            .as_mut()
+            .map(|state| &mut state.waterfall)
+        {
+            waterfall.resize(&ctx.config, self.keyboard.layout().clone());
+        }
+    }
+}
+
+/// Recorder related methods
+impl FreeplayScene {
     fn clear_preview(&mut self) {
         self.preview_state = None;
         self.keyboard.set_song_config(Default::default());
@@ -497,68 +562,6 @@ impl FreeplayScene {
 
         if save_clicked {
             self.handle_save_click(ctx);
-        }
-    }
-
-    fn update_glow(&mut self, delta: Duration) {
-        let Some(glow) = &mut self.glow else {
-            return;
-        };
-
-        glow.clear();
-
-        let keys = &self.keyboard.layout().keys;
-        let states = self.keyboard.key_states();
-
-        for (key, state) in keys.iter().zip(states) {
-            let Some(mut color) = state.pressed_by_user().copied() else {
-                continue;
-            };
-
-            color.r *= 0.5;
-            color.g *= 0.5;
-            color.b *= 0.5;
-
-            glow.push(
-                key.id(),
-                color,
-                key.x(),
-                self.keyboard.pos().y,
-                key.width(),
-                delta,
-            );
-        }
-    }
-
-    fn update_ui(&mut self, ctx: &mut Context) {
-        self.update_preview_ui(ctx);
-
-        nuon::label()
-            .text(&self.deduced_chord_name)
-            .font_size(25.0)
-            .y(self.keyboard.pos().y - 25.0 - 10.0)
-            .height(25.0)
-            .width(ctx.window_state.logical_size.width)
-            .build(&mut self.nuon);
-    }
-
-    fn resize(&mut self, ctx: &mut Context) {
-        self.keyboard.resize(ctx);
-        self.guidelines.set_layout(self.keyboard.layout().clone());
-        self.guidelines.set_pos(*self.keyboard.pos());
-        if let Some(note_labels) = self
-            .preview_state
-            .as_mut()
-            .and_then(|state| state.note_labels.as_mut())
-        {
-            note_labels.set_pos(*self.keyboard.pos());
-        }
-        if let Some(waterfall) = self
-            .preview_state
-            .as_mut()
-            .map(|state| &mut state.waterfall)
-        {
-            waterfall.resize(&ctx.config, self.keyboard.layout().clone());
         }
     }
 }

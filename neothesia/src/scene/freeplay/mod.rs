@@ -429,14 +429,19 @@ impl FreeplayScene {
         let width = ctx.window_state.logical_size.width;
         let preview = self.preview_ui_state();
 
-        // TODO: Replace separate bools with singular enum Msg
-        let mut toggle_play = false;
-        let mut seek = false;
-        let mut go_back = false;
-        let mut record_clicked = false;
-        let mut save_clicked = false;
         let record_label = self.record_button_label();
         let status_label = self.preview_status_label();
+
+        enum Msg {
+            TogglePlay,
+            Seek,
+            GoBack,
+            Record,
+            Save,
+            None,
+        }
+
+        let mut msg = Msg::None;
 
         nuon::translate()
             .y(self
@@ -452,7 +457,7 @@ impl FreeplayScene {
                     .icon(icons::left_arrow_icon())
                     .build(ui)
                 {
-                    go_back = true;
+                    msg = Msg::GoBack;
                 }
 
                 nuon::label()
@@ -485,7 +490,7 @@ impl FreeplayScene {
                             })
                             .build(ui)
                         {
-                            toggle_play = true;
+                            msg = Msg::TogglePlay;
                         }
                     } else {
                         nuon::quad()
@@ -512,7 +517,7 @@ impl FreeplayScene {
                         .label("SAVE")
                         .build(ui)
                     {
-                        save_clicked = true;
+                        msg = Msg::Save;
                     }
 
                     if nuon::button()
@@ -537,7 +542,7 @@ impl FreeplayScene {
                         })
                         .build(ui)
                     {
-                        record_clicked = true;
+                        msg = Msg::Record;
                     }
                 });
 
@@ -548,7 +553,7 @@ impl FreeplayScene {
                             .build(ui);
 
                         if event.is_pressed() {
-                            seek = true;
+                            msg = Msg::Seek;
                         }
                     }
 
@@ -586,26 +591,25 @@ impl FreeplayScene {
                 });
             });
 
-        if go_back {
-            ctx.proxy
-                .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
-                .ok();
-        }
-
-        if toggle_play && preview.available {
-            self.toggle_preview_playback();
-        }
-
-        if seek && preview.available {
-            self.seek_preview_to_cursor(ctx);
-        }
-
-        if record_clicked {
-            self.handle_record_click(ctx);
-        }
-
-        if save_clicked {
-            self.handle_save_click(ctx);
+        match msg {
+            Msg::TogglePlay => {
+                self.toggle_preview_playback();
+            }
+            Msg::Seek => {
+                self.seek_preview_to_cursor(ctx);
+            }
+            Msg::GoBack => {
+                ctx.proxy
+                    .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
+                    .ok();
+            }
+            Msg::Record => {
+                self.handle_record_click(ctx);
+            }
+            Msg::Save => {
+                self.handle_save_click(ctx);
+            }
+            Msg::None => {}
         }
     }
 }

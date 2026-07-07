@@ -1,6 +1,7 @@
 use std::{
     collections::HashSet,
-    path::Path,
+    fmt,
+    path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
@@ -10,6 +11,44 @@ use midi_file::midly::{
 use neothesia_core::render::{NoteLabels, WaterfallRenderer};
 
 use crate::{scene::playing_scene::midi_player::MidiPlayer, song::Song};
+
+#[derive(Debug, Eq, PartialEq, thiserror::Error)]
+pub enum RecorderError {
+    #[error("No note events recorded")]
+    NoNotesFound,
+    #[error("Failed to write MIDI file")]
+    Write,
+    #[error("{0}")]
+    MidiFileParse(String),
+}
+
+#[derive(Default, Debug)]
+pub enum RecorderStatus {
+    #[default]
+    Idle,
+    RecordingFinished(Duration),
+    Saved(PathBuf),
+    Error(RecorderError),
+}
+
+impl fmt::Display for RecorderStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Idle => {}
+            Self::RecordingFinished(duration) => {
+                write!(f, "Recorded {:.1}s", duration.as_secs_f32())?;
+            }
+            Self::Error(err) => {
+                write!(f, "{err}")?;
+            }
+            Self::Saved(path) => {
+                write!(f, "Saved recording to {}", path.display())?;
+            }
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct RecordedMidiEvent {
@@ -122,15 +161,24 @@ impl FreeplayRecorder {
         }
     }
 
-    pub fn save_to_path(smf: Smf<'static>, path: &Path) -> Result<(), String> {
+    pub fn save_to_path(smf: Smf<'static>, path: &Path) -> Result<(), RecorderError> {
         let mut bytes = Vec::new();
-        smf.write_std(&mut bytes)
-            .map_err(|err| format!("Failed to encode MIDI: {err}"))?;
-        std::fs::write(path, bytes).map_err(|err| format!("Failed to write MIDI file: {err}"))
+
+        if smf.write_std(&mut bytes).is_err() {
+            return Err(RecorderError::Write);
+        }
+
+        if std::fs::write(path, bytes).is_err() {
+            return Err(RecorderError::Write);
+        }
+
+        Ok(())
     }
 
-    pub fn to_song(&self) -> Result<Song, String> {
-        let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", self.to_smf()?)?;
+    pub fn to_song(&self) -> Result<Song, RecorderError> {
+        let smf = self.to_smf()?;
+        let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", smf)
+            .map_err(RecorderError::MidiFileParse)?;
         Ok(Song::new(midi))
     }
 
@@ -150,9 +198,9 @@ impl FreeplayRecorder {
         }
     }
 
-    pub fn to_smf(&self) -> Result<Smf<'static>, String> {
+    pub fn to_smf(&self) -> Result<Smf<'static>, RecorderError> {
         if !self.has_note_events() {
-            return Err("No note events recorded yet".to_string());
+            return Err(RecorderError::NoNotesFound);
         }
 
         let events = match &self.state {
@@ -256,7 +304,7 @@ mod freeplay_recorder_tests {
         let error = recorder
             .to_song()
             .expect_err("pedal-only recordings should not create preview songs");
-        assert_eq!(error, "No note events recorded yet");
+        assert_eq!(error, RecorderError::NoNotesFound);
     }
 
     #[test]
@@ -277,6 +325,6 @@ mod freeplay_recorder_tests {
         let error = recorder
             .to_song()
             .expect_err("note-off-only recordings should not create preview songs");
-        assert_eq!(error, "No note events recorded yet");
+        assert_eq!(error, RecorderError::NoNotesFound);
     }
 }

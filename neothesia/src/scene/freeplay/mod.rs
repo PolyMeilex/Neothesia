@@ -15,7 +15,7 @@ use crate::{
     icons,
     scene::{
         MouseToMidiEventState, NuonRenderer, Scene,
-        freeplay::recorder::{FreeplayRecorder, PreviewState},
+        freeplay::recorder::{FreeplayRecorder, PreviewState, RecorderError, RecorderStatus},
         playing_scene::{Keyboard, midi_player::MidiPlayer},
     },
     song::Song,
@@ -56,7 +56,7 @@ pub struct FreeplayScene {
     mouse_to_midi_state: MouseToMidiEventState,
     deduced_chord_name: String,
     recorder: FreeplayRecorder,
-    recorder_status: String,
+    recorder_status: RecorderStatus,
     preview_state: Option<PreviewState>,
 
     context: std::task::Context<'static>,
@@ -102,7 +102,7 @@ impl FreeplayScene {
             mouse_to_midi_state: MouseToMidiEventState::default(),
             deduced_chord_name: String::new(),
             recorder: FreeplayRecorder::default(),
-            recorder_status: String::new(),
+            recorder_status: RecorderStatus::default(),
             preview_state: None,
 
             context: std::task::Context::from_waker(noop_waker_ref()),
@@ -197,7 +197,7 @@ impl FreeplayScene {
         self.keyboard.reset_notes();
     }
 
-    fn rebuild_preview(&mut self, ctx: &Context) -> Result<(), String> {
+    fn rebuild_preview(&mut self, ctx: &Context) -> Result<(), RecorderError> {
         self.clear_preview();
 
         let song = self.recorder.to_song()?;
@@ -269,15 +269,7 @@ impl FreeplayScene {
         self.keyboard.reset_notes();
     }
 
-    fn preview_status_label(&self) -> String {
-        if self.recorder.is_recording() {
-            return format!("Recording {:.1}s", self.recorder.duration().as_secs_f32(),);
-        }
-
-        self.recorder_status.clone()
-    }
-
-    fn stop_recording(&mut self, ctx: &Context) -> Result<(), String> {
+    fn stop_recording(&mut self, ctx: &Context) -> Result<(), RecorderError> {
         self.recorder.stop();
         self.rebuild_preview(ctx)
     }
@@ -287,10 +279,10 @@ impl FreeplayScene {
             match self.stop_recording(ctx) {
                 Ok(()) => {
                     self.recorder_status =
-                        format!("Recorded {:.1}s", self.recorder.duration().as_secs_f32());
+                        RecorderStatus::RecordingFinished(self.recorder.duration());
                 }
                 Err(err) => {
-                    self.recorder_status = err;
+                    self.recorder_status = RecorderStatus::Error(err);
                 }
             }
 
@@ -298,22 +290,19 @@ impl FreeplayScene {
         }
 
         self.clear_preview();
+        self.recorder_status = RecorderStatus::default();
         self.recorder.start();
-        self.recorder_status = "Recording in progress".to_string();
     }
 
     fn handle_save_click(&mut self, ctx: &Context) {
         if self.recorder.is_recording()
             && let Err(err) = self.stop_recording(ctx)
         {
-            self.recorder_status = err;
+            self.recorder_status = RecorderStatus::Error(err);
             return;
         }
 
-        if !self.recorder.has_note_events() {
-            self.recorder_status = "Nothing recorded yet".to_string();
-            return;
-        }
+        debug_assert!(self.recorder.has_note_events());
 
         let mut dialog = rfd::AsyncFileDialog::new()
             .add_filter("midi", &["mid", "midi"])
@@ -326,28 +315,26 @@ impl FreeplayScene {
         let smf = match self.recorder.to_smf() {
             Ok(smf) => smf,
             Err(err) => {
-                self.recorder_status = err;
+                self.recorder_status = RecorderStatus::Error(err);
                 return;
             }
         };
 
-        self.futures.push(on_async(
-            dialog.save_file(),
-            |path, state, _ctx| match path {
-                Some(file) => match FreeplayRecorder::save_to_path(smf, file.path()) {
+        self.futures
+            .push(on_async(dialog.save_file(), |file, state, _ctx| {
+                let Some(file) = file else {
+                    return;
+                };
+
+                match FreeplayRecorder::save_to_path(smf, file.path()) {
                     Ok(()) => {
-                        state.recorder_status =
-                            format!("Saved recording to {}", file.path().display());
+                        state.recorder_status = RecorderStatus::Saved(file.path().to_owned());
                     }
                     Err(err) => {
-                        state.recorder_status = err;
+                        state.recorder_status = RecorderStatus::Error(err);
                     }
-                },
-                None => {
-                    state.recorder_status = "Save canceled".to_string();
                 }
-            },
-        ));
+            }));
     }
 
     fn update_preview(&mut self, ctx: &Context, delta: Duration) -> Option<f32> {
@@ -376,7 +363,11 @@ impl FreeplayScene {
             .map(|s| s.player.is_paused())
             .unwrap_or(true);
 
-        let status_label = self.preview_status_label();
+        let status_label = if self.recorder.is_recording() {
+            format!("Recording {:.1}s", self.recorder.duration().as_secs_f32())
+        } else {
+            self.recorder_status.to_string()
+        };
 
         enum Msg {
             TogglePlay,

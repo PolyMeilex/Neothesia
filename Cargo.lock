@@ -1659,6 +1659,7 @@ dependencies = [
  "puffin",
  "puffin_http",
  "rfd",
+ "thiserror 2.0.18",
  "wgpu",
  "wgpu-jumpstart",
  "winit",

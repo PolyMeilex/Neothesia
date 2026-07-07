@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use midi_file::midly::MidiMessage;
 use neothesia_core::render::{
@@ -15,7 +15,7 @@ use crate::{
     icons,
     scene::{
         MouseToMidiEventState, NuonRenderer, Scene,
-        freeplay::recorder::{FreeplayRecorder, PreviewState, PreviewUiState},
+        freeplay::recorder::{FreeplayRecorder, PreviewState},
         playing_scene::{Keyboard, midi_player::MidiPlayer},
     },
     song::Song,
@@ -269,26 +269,6 @@ impl FreeplayScene {
         self.keyboard.reset_notes();
     }
 
-    fn preview_ui_state(&self) -> PreviewUiState {
-        if let Some(player) = self.preview_state.as_ref().map(|state| &state.player) {
-            return PreviewUiState {
-                available: true,
-                is_paused: player.is_paused(),
-                progress: player.percentage().clamp(0.0, 1.0),
-                length: player.length().as_secs_f32(),
-                measures: player.song().file.measures.clone(),
-            };
-        }
-
-        PreviewUiState {
-            available: false,
-            is_paused: true,
-            progress: 0.0,
-            length: self.recorder.duration().as_secs_f32(),
-            measures: Arc::from([]),
-        }
-    }
-
     fn preview_status_label(&self) -> String {
         if self.recorder.is_recording() {
             return format!("Recording {:.1}s", self.recorder.duration().as_secs_f32(),);
@@ -387,7 +367,14 @@ impl FreeplayScene {
         let top_bar_height = 30.0;
 
         let width = ctx.window_state.logical_size.width;
-        let preview = self.preview_ui_state();
+
+        let available = self.preview_state.is_some();
+
+        let is_paused = self
+            .preview_state
+            .as_ref()
+            .map(|s| s.player.is_paused())
+            .unwrap_or(true);
 
         let status_label = self.preview_status_label();
 
@@ -432,18 +419,18 @@ impl FreeplayScene {
                 if nuon::button()
                     .size(30.0, 30.0)
                     .border_radius([5.0; 4])
-                    .icon(if preview.is_paused {
+                    .icon(if is_paused {
                         icons::play_icon()
                     } else {
                         icons::pause_icon()
                     })
-                    .font_color(if preview.available {
+                    .font_color(if available {
                         [255, 255, 255, 255]
                     } else {
                         [255, 255, 255, 100]
                     })
                     .build(ui)
-                    && preview.available
+                    && available
                 {
                     msg = Msg::TogglePlay;
                 }
@@ -454,13 +441,13 @@ impl FreeplayScene {
                     .size(30.0, 30.0)
                     .border_radius([5.0; 4])
                     .icon(icons::save_icon())
-                    .font_color(if preview.available {
+                    .font_color(if available {
                         [255, 255, 255, 255]
                     } else {
                         [255, 255, 255, 100]
                     })
                     .build(ui)
-                    && preview.available
+                    && available
                 {
                     msg = Msg::Save;
                 }
@@ -496,7 +483,11 @@ impl FreeplayScene {
                 }
             });
 
-            if preview.available {
+            if let Some(state) = self.preview_state.as_ref() {
+                let length = state.player.length();
+                let progress = state.player.percentage();
+                let measures = &state.player.song().file.measures;
+
                 nuon::translate().y(30.0).build(ui, |ui| {
                     let event = nuon::click_area("FreeplayPreviewProgress")
                         .size(width, 45.0)
@@ -512,17 +503,17 @@ impl FreeplayScene {
                         .color([37, 35, 42])
                         .build(ui);
                     nuon::quad()
-                        .size(width * preview.progress, 45.0)
+                        .size(width * progress, 45.0)
                         .color([56, 145, 255])
                         .build(ui);
 
-                    if preview.length > 0.0 {
-                        for measure in preview.measures.iter() {
-                            let x = (measure.as_secs_f32() / preview.length) * width;
+                    if !length.is_zero() {
+                        for measure in measures.iter() {
+                            let x = (measure.as_secs_f32() / length.as_secs_f32()) * width;
                             nuon::quad()
                                 .x(x)
                                 .size(1.0, 45.0)
-                                .color(if x < width * preview.progress {
+                                .color(if x < width * progress {
                                     [255, 255, 255, 127]
                                 } else {
                                     [102, 102, 102, 255]

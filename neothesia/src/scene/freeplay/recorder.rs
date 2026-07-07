@@ -1,7 +1,6 @@
 use std::{
     collections::HashSet,
     path::Path,
-    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -41,14 +40,6 @@ enum RecorderState {
 #[derive(Default)]
 pub struct FreeplayRecorder {
     state: RecorderState,
-}
-
-pub struct PreviewUiState {
-    pub available: bool,
-    pub is_paused: bool,
-    pub progress: f32,
-    pub length: f32,
-    pub measures: Arc<[Duration]>,
 }
 
 pub struct PreviewState {

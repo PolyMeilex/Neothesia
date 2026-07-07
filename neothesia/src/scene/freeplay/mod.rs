@@ -177,9 +177,6 @@ impl FreeplayRecorder {
         });
 
         match message {
-            MidiMessage::NoteOn { key, vel } if vel.as_int() == 0 => {
-                in_progress.active_notes.remove(&(channel, key.as_int()));
-            }
             MidiMessage::NoteOn { key, .. } => {
                 in_progress.active_notes.insert((channel, key.as_int()));
             }

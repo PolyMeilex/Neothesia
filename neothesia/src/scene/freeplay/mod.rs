@@ -119,9 +119,12 @@ impl FreeplayRecorder {
         matches!(self.state, RecorderState::Recording(_))
     }
 
-    fn has_events(&self) -> bool {
+    fn has_note_events(&self) -> bool {
         match &self.state {
-            RecorderState::Recorded(recorded_take) => !recorded_take.events.is_empty(),
+            // Preview/export requires at least one played note, not just release/control data.
+            RecorderState::Recorded(recorded_take) => recorded_take.events.iter().any(|event| {
+                matches!(event.message, MidiMessage::NoteOn { .. })
+            }),
             RecorderState::Idle | RecorderState::Recording(_) => false,
         }
     }
@@ -188,8 +191,8 @@ impl FreeplayRecorder {
     }
 
     fn save_to_path(&self, path: &Path) -> Result<(), String> {
-        if !self.has_events() {
-            return Err("Nothing recorded yet".to_string());
+        if !self.has_note_events() {
+            return Err("No note events recorded yet".to_string());
         }
 
         let smf = self.to_smf();
@@ -200,8 +203,8 @@ impl FreeplayRecorder {
     }
 
     fn to_song(&self) -> Result<Song, String> {
-        if !self.has_events() {
-            return Err("Nothing recorded yet".to_string());
+        if !self.has_note_events() {
+            return Err("No note events recorded yet".to_string());
         }
 
         let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", self.to_smf())?;
@@ -293,14 +296,63 @@ mod freeplay_recorder_tests {
         );
         recorder.stop();
 
-        assert!(recorder.has_events());
+        assert!(recorder.has_note_events());
         assert_eq!(recorder.event_count(), 2);
 
         recorder.start();
 
         assert!(recorder.is_recording());
-        assert!(!recorder.has_events());
+        assert!(!recorder.has_note_events());
         assert_eq!(recorder.event_count(), 0);
+    }
+
+    #[test]
+    fn pedal_only_recording_is_rejected_for_preview_song() {
+        let mut recorder = FreeplayRecorder::default();
+
+        recorder.start();
+        recorder.push_event(
+            0,
+            MidiMessage::Controller {
+                controller: 64.into(),
+                value: 127.into(),
+            },
+        );
+        recorder.push_event(
+            0,
+            MidiMessage::Controller {
+                controller: 64.into(),
+                value: 0.into(),
+            },
+        );
+        recorder.stop();
+
+        assert!(!recorder.has_note_events());
+        let error = recorder
+            .to_song()
+            .expect_err("pedal-only recordings should not create preview songs");
+        assert_eq!(error, "No note events recorded yet");
+    }
+
+    #[test]
+    fn note_off_only_recording_is_rejected_for_preview_song() {
+        let mut recorder = FreeplayRecorder::default();
+
+        recorder.start();
+        recorder.push_event(
+            0,
+            MidiMessage::NoteOff {
+                key: 60.into(),
+                vel: 0.into(),
+            },
+        );
+        recorder.stop();
+
+        assert!(!recorder.has_note_events());
+        let error = recorder
+            .to_song()
+            .expect_err("note-off-only recordings should not create preview songs");
+        assert_eq!(error, "No note events recorded yet");
     }
 }
 
@@ -531,7 +583,7 @@ impl FreeplayScene {
             return;
         }
 
-        if !self.recorder.has_events() {
+        if !self.recorder.has_note_events() {
             self.recorder_status = "Nothing recorded yet".to_string();
             return;
         }

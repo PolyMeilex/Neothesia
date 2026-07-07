@@ -30,18 +30,15 @@ pub struct RecordedTake {
     events: Vec<RecordedMidiEvent>,
 }
 
+#[derive(Default)]
 enum RecorderState {
+    #[default]
     Idle,
     Recording(RecordingInProgressState),
     Recorded(RecordedTake),
 }
 
-impl Default for RecorderState {
-    fn default() -> Self {
-        Self::Idle
-    }
-}
-
+#[derive(Default)]
 pub struct FreeplayRecorder {
     state: RecorderState,
 }
@@ -60,14 +57,6 @@ pub struct PreviewState {
     pub player: MidiPlayer,
     pub waterfall: WaterfallRenderer,
     pub note_labels: Option<NoteLabels>,
-}
-
-impl Default for FreeplayRecorder {
-    fn default() -> Self {
-        Self {
-            state: RecorderState::default(),
-        }
-    }
 }
 
 impl FreeplayRecorder {

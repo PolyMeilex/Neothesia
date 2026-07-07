@@ -122,9 +122,10 @@ impl FreeplayRecorder {
     fn has_note_events(&self) -> bool {
         match &self.state {
             // Preview/export requires at least one played note, not just release/control data.
-            RecorderState::Recorded(recorded_take) => recorded_take.events.iter().any(|event| {
-                matches!(event.message, MidiMessage::NoteOn { .. })
-            }),
+            RecorderState::Recorded(recorded_take) => recorded_take
+                .events
+                .iter()
+                .any(|event| matches!(event.message, MidiMessage::NoteOn { .. })),
             RecorderState::Idle | RecorderState::Recording(_) => false,
         }
     }
@@ -857,7 +858,11 @@ impl FreeplayScene {
         {
             note_labels.set_pos(*self.keyboard.pos());
         }
-        if let Some(waterfall) = self.preview_state.as_mut().map(|state| &mut state.waterfall) {
+        if let Some(waterfall) = self
+            .preview_state
+            .as_mut()
+            .map(|state| &mut state.waterfall)
+        {
             waterfall.resize(&ctx.config, self.keyboard.layout().clone());
         }
     }
@@ -871,7 +876,10 @@ impl Scene for FreeplayScene {
         let preview_time = self.update_preview(ctx, delta);
 
         if let Some(time) = preview_time
-            && let Some(waterfall) = self.preview_state.as_mut().map(|state| &mut state.waterfall)
+            && let Some(waterfall) = self
+                .preview_state
+                .as_mut()
+                .map(|state| &mut state.waterfall)
         {
             waterfall.update(time);
         }

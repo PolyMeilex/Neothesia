@@ -23,10 +23,25 @@ use crate::{
         playing_scene::{Keyboard, midi_player::MidiPlayer},
     },
     song::Song,
-    utils::window::WinitEvent,
+    utils::{BoxFuture, noop_waker_ref, window::WinitEvent},
 };
 
 mod recorder;
+
+type MsgFn = Box<dyn FnOnce(&mut FreeplayScene, &mut Context)>;
+
+fn on_async<T, Fut, FN>(future: Fut, f: FN) -> BoxFuture<MsgFn>
+where
+    T: 'static,
+    Fut: Future<Output = T> + Send + 'static,
+    FN: FnOnce(T, &mut FreeplayScene, &mut Context) + Send + 'static,
+{
+    Box::pin(async {
+        let res = future.await;
+        let f: MsgFn = Box::new(move |state, ctx| f(res, state, ctx));
+        f
+    })
+}
 
 pub struct FreeplayScene {
     keyboard: Keyboard,
@@ -48,13 +63,12 @@ pub struct FreeplayScene {
     recorder_status: String,
     preview_state: Option<PreviewState>,
     preview_bar_expand_animation: Animated<bool, Instant>,
+
+    context: std::task::Context<'static>,
+    futures: Vec<BoxFuture<MsgFn>>,
 }
 
 impl FreeplayScene {
-    fn preview_bar_button() -> nuon::Button {
-        nuon::button().size(30.0, 30.0).border_radius([5.0; 4])
-    }
-
     pub fn new(ctx: &mut Context, song: Option<Song>) -> Self {
         let mut keyboard = Keyboard::new(ctx, Default::default());
         keyboard.set_pressed_by_user_colors(ctx.config.color_schema()[0].clone());
@@ -99,6 +113,9 @@ impl FreeplayScene {
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
                 .delay(30.0),
+
+            context: std::task::Context::from_waker(noop_waker_ref()),
+            futures: Vec::new(),
         }
     }
 
@@ -163,10 +180,30 @@ impl FreeplayScene {
             waterfall.resize(&ctx.config, self.keyboard.layout().clone());
         }
     }
+
+    fn dispatch_futures(&mut self, ctx: &mut Context) {
+        let mut cbs = Vec::new();
+        self.futures
+            .retain_mut(|f| match f.as_mut().poll(&mut self.context) {
+                std::task::Poll::Ready(msg) => {
+                    cbs.push(msg);
+                    false
+                }
+                std::task::Poll::Pending => true,
+            });
+
+        for cb in cbs {
+            cb(self, ctx);
+        }
+    }
 }
 
 /// Recorder related methods
 impl FreeplayScene {
+    fn preview_bar_button() -> nuon::Button {
+        nuon::button().size(30.0, 30.0).border_radius([5.0; 4])
+    }
+
     fn clear_preview(&mut self) {
         self.preview_state = None;
         self.keyboard.set_song_config(Default::default());
@@ -322,18 +359,6 @@ impl FreeplayScene {
         self.recorder_status = "Recording in progress".to_string();
     }
 
-    fn save_dialog(&self, ctx: &Context) -> rfd::FileDialog {
-        let mut dialog = rfd::FileDialog::new()
-            .add_filter("midi", &["mid", "midi"])
-            .set_file_name("freeplay-recording.mid");
-
-        if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
-            dialog = dialog.set_directory(path);
-        }
-
-        dialog
-    }
-
     fn handle_save_click(&mut self, ctx: &Context) {
         if self.recorder.is_recording()
             && let Err(err) = self.stop_recording(ctx)
@@ -347,20 +372,31 @@ impl FreeplayScene {
             return;
         }
 
-        // TODO: This block the whole app, causing the app to become unresponsive during file pick. Switch to proper async rfd dialog
-        match self.save_dialog(ctx).save_file() {
-            Some(path) => match self.recorder.save_to_path(&path) {
-                Ok(()) => {
-                    self.recorder_status = format!("Saved recording to {}", path.display());
-                }
-                Err(err) => {
-                    self.recorder_status = err;
+        let mut dialog = rfd::AsyncFileDialog::new()
+            .add_filter("midi", &["mid", "midi"])
+            .set_file_name("freeplay-recording.mid");
+
+        if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
+            dialog = dialog.set_directory(path);
+        }
+
+        self.futures.push(on_async(
+            dialog.save_file(),
+            |path, state, _ctx| match path {
+                Some(file) => match state.recorder.save_to_path(file.path()) {
+                    Ok(()) => {
+                        state.recorder_status =
+                            format!("Saved recording to {}", file.path().display());
+                    }
+                    Err(err) => {
+                        state.recorder_status = err;
+                    }
+                },
+                None => {
+                    state.recorder_status = "Save canceled".to_string();
                 }
             },
-            None => {
-                self.recorder_status = "Save canceled".to_string();
-            }
-        }
+        ));
     }
 
     fn update_preview(&mut self, ctx: &Context, delta: Duration) -> Option<f32> {
@@ -570,6 +606,8 @@ impl Scene for FreeplayScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_renderer_bg.clear();
         self.quad_renderer_fg.clear();
+
+        self.dispatch_futures(ctx);
 
         let preview_time = self.update_preview(ctx, delta);
 

@@ -282,6 +282,7 @@ impl FreeplayScene {
             return;
         }
 
+        // TODO: This block the whole app, causing the app to become unresponsive during file pick. Switch to proper async rfd dialog
         match self.save_dialog(ctx).save_file() {
             Some(path) => match self.recorder.save_to_path(&path) {
                 Ok(()) => {
@@ -319,6 +320,7 @@ impl FreeplayScene {
         let width = ctx.window_state.logical_size.width;
         let preview = self.preview_ui_state();
 
+        // TODO: Replace separate bools with singular enum Msg
         let mut toggle_play = false;
         let mut seek = false;
         let mut go_back = false;

@@ -54,6 +54,10 @@ impl Keyboard {
         }
     }
 
+    pub fn set_song_config(&mut self, song_config: SongConfig) {
+        self.song_config = song_config;
+    }
+
     pub fn set_pressed_by_user_colors(&mut self, colors: ColorSchemaV1) {
         self.pressed_by_user_colors = colors;
     }

@@ -19,7 +19,7 @@ use crate::{
 mod keyboard;
 pub use keyboard::Keyboard;
 
-mod midi_player;
+pub(crate) mod midi_player;
 use midi_player::MidiPlayer;
 
 mod rewind_controller;

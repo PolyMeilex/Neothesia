@@ -34,8 +34,8 @@ impl MidiFile {
         Self::from_parsed_smf(name, &smf)
     }
 
-    pub fn from_smf(name: impl Into<String>, smf: Smf<'_>) -> Result<Self, String> {
-        Self::from_parsed_smf(name.into(), &smf)
+    pub fn from_smf(name: impl Into<String>, smf: &Smf<'_>) -> Result<Self, String> {
+        Self::from_parsed_smf(name.into(), smf)
     }
 
     fn from_parsed_smf(name: String, smf: &Smf<'_>) -> Result<Self, String> {

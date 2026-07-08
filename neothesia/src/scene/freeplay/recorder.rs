@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     fmt,
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::{Duration, Instant},
 };
 
@@ -20,6 +20,10 @@ use crate::{
     },
     song::Song,
 };
+
+const TICKS_PER_BEAT: u16 = 480;
+const TEMPO_MICROS_PER_BEAT: u32 = 500_000;
+const TICKS_PER_SECOND: f64 = TICKS_PER_BEAT as f64 * 1_000_000.0 / TEMPO_MICROS_PER_BEAT as f64;
 
 #[derive(Debug, Eq, PartialEq, thiserror::Error)]
 pub enum RecorderError {
@@ -94,7 +98,7 @@ impl RecordingInProgressState {
 
 pub struct RecordedTake {
     duration: Duration,
-    events: Vec<RecordedMidiEvent>,
+    smf: Smf<'static>,
 }
 
 #[derive(Default)]
@@ -199,11 +203,6 @@ impl Preview {
 }
 
 impl FreeplayRecorder {
-    const TICKS_PER_BEAT: u16 = 480;
-    const TEMPO_MICROS_PER_BEAT: u32 = 500_000;
-    const TICKS_PER_SECOND: f64 =
-        Self::TICKS_PER_BEAT as f64 * 1_000_000.0 / Self::TEMPO_MICROS_PER_BEAT as f64;
-
     fn is_recording(&self) -> bool {
         matches!(self.state, RecorderState::Recording(_))
     }
@@ -216,18 +215,23 @@ impl FreeplayRecorder {
         });
     }
 
-    fn stop(&mut self) {
+    fn stop(&mut self) -> Result<&Smf<'static>, RecorderError> {
         let state = std::mem::take(&mut self.state);
         let RecorderState::Recording(mut in_progress) = state else {
-            return;
+            return Err(RecorderError::NoNotesFound);
         };
 
         let stop_time = in_progress.started_at.elapsed();
         in_progress.finish_active_notes(stop_time);
+
+        let smf = to_smf(&in_progress.events)?;
+
         self.state = RecorderState::Recorded(RecordedTake {
             duration: stop_time,
-            events: in_progress.events,
+            smf,
         });
+
+        self.as_smf()
     }
 
     fn duration(&self) -> Duration {
@@ -261,85 +265,17 @@ impl FreeplayRecorder {
         }
     }
 
-    fn save_to_path(smf: Smf<'static>, path: &Path) -> Result<(), RecorderError> {
-        let mut bytes = Vec::new();
-
-        if smf.write_std(&mut bytes).is_err() {
-            return Err(RecorderError::Write);
-        }
-
-        if std::fs::write(path, bytes).is_err() {
-            return Err(RecorderError::Write);
-        }
-
-        Ok(())
-    }
-
-    fn to_song(&self) -> Result<Song, RecorderError> {
-        let smf = self.to_smf()?;
-        let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", smf)
-            .map_err(RecorderError::MidiFileParse)?;
-        Ok(Song::new(midi))
-    }
-
-    fn to_smf(&self) -> Result<Smf<'static>, RecorderError> {
-        let events = match &self.state {
-            RecorderState::Recorded(recorded_take) => recorded_take.events.as_slice(),
-            RecorderState::Idle | RecorderState::Recording(_) => &[],
+    fn as_smf(&self) -> Result<&Smf<'static>, RecorderError> {
+        let RecorderState::Recorded(recorded_take) = &self.state else {
+            return Err(RecorderError::NoNotesFound);
         };
 
-        // Preview/export requires at least one played note, not just release/control data.
-        let has_note_events = events
-            .iter()
-            .any(|event| matches!(event.message, MidiMessage::NoteOn { .. }));
-
-        if !has_note_events {
-            return Err(RecorderError::NoNotesFound);
-        }
-
-        let mut track = vec![
-            TrackEvent {
-                delta: 0.into(),
-                kind: TrackEventKind::Meta(MetaMessage::Tempo(Self::TEMPO_MICROS_PER_BEAT.into())),
-            },
-            TrackEvent {
-                delta: 0.into(),
-                kind: TrackEventKind::Meta(MetaMessage::TimeSignature(4, 2, 24, 8)),
-            },
-        ];
-
-        let mut previous_ticks = 0u32;
-        for event in events {
-            let current_ticks = Self::duration_to_ticks(event.timestamp);
-            let delta_ticks = current_ticks.saturating_sub(previous_ticks);
-            previous_ticks = current_ticks;
-
-            track.push(TrackEvent {
-                delta: delta_ticks.into(),
-                kind: TrackEventKind::Midi {
-                    channel: event.channel.into(),
-                    message: event.message,
-                },
-            });
-        }
-
-        track.push(TrackEvent {
-            delta: 1.into(),
-            kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
-        });
-
-        Ok(Smf {
-            header: Header {
-                format: Format::SingleTrack,
-                timing: Timing::Metrical(Self::TICKS_PER_BEAT.into()),
-            },
-            tracks: vec![track],
-        })
+        Ok(&recorded_take.smf)
     }
+}
 
-    fn duration_to_ticks(duration: Duration) -> u32 {
-        (duration.as_secs_f64() * Self::TICKS_PER_SECOND).round() as u32
-    }
+fn duration_to_ticks(duration: Duration) -> u32 {
+    (duration.as_secs_f64() * TICKS_PER_SECOND).round() as u32
 }
 
 pub fn update_preview_ui(scene: &mut FreeplayScene, ctx: &mut Context) {
@@ -535,16 +471,10 @@ pub fn update_preview_ui(scene: &mut FreeplayScene, ctx: &mut Context) {
 
 fn handle_record_click(scene: &mut FreeplayScene, ctx: &Context) {
     if scene.recorder.is_recording() {
-        match stop_recording(scene, ctx) {
-            Ok(()) => {
-                scene.recorder_status =
-                    RecorderStatus::RecordingFinished(scene.recorder.duration());
-            }
-            Err(err) => {
-                scene.recorder_status = RecorderStatus::Error(err);
-            }
-        }
-
+        scene.recorder_status = match stop_recording(scene, ctx) {
+            Ok(()) => RecorderStatus::RecordingFinished(scene.recorder.duration()),
+            Err(err) => RecorderStatus::Error(err),
+        };
         return;
     }
 
@@ -557,23 +487,17 @@ fn handle_record_click(scene: &mut FreeplayScene, ctx: &Context) {
 }
 
 fn handle_save_click(scene: &mut FreeplayScene, ctx: &Context) {
-    if scene.recorder.is_recording()
-        && let Err(err) = stop_recording(scene, ctx)
-    {
-        scene.recorder_status = RecorderStatus::Error(err);
-        return;
-    }
-
     let mut dialog = rfd::AsyncFileDialog::new()
         .add_filter("midi", &["mid", "midi"])
         .set_file_name("freeplay-recording.mid");
 
+    // TODO: `last_opened_song` is wrong in this context
     if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
         dialog = dialog.set_directory(path);
     }
 
-    let smf = match scene.recorder.to_smf() {
-        Ok(smf) => smf,
+    let smf = match scene.recorder.as_smf() {
+        Ok(smf) => smf.clone(),
         Err(err) => {
             scene.recorder_status = RecorderStatus::Error(err);
             return;
@@ -582,26 +506,28 @@ fn handle_save_click(scene: &mut FreeplayScene, ctx: &Context) {
 
     scene
         .futures
-        .push(on_async(dialog.save_file(), |file, state, _ctx| {
+        .push(on_async(dialog.save_file(), move |file, state, _ctx| {
             let Some(file) = file else {
                 return;
             };
 
-            match FreeplayRecorder::save_to_path(smf, file.path()) {
+            match smf.save(file.path()) {
                 Ok(()) => {
                     state.recorder_status = RecorderStatus::Saved(file.path().to_owned());
                 }
-                Err(err) => {
-                    state.recorder_status = RecorderStatus::Error(err);
+                Err(_) => {
+                    state.recorder_status = RecorderStatus::Error(RecorderError::Write);
                 }
             }
         }));
 }
 
 fn stop_recording(scene: &mut FreeplayScene, ctx: &Context) -> Result<(), RecorderError> {
-    scene.recorder.stop();
+    let smf = scene.recorder.stop()?;
 
-    let song = scene.recorder.to_song()?;
+    let midi = midi_file::MidiFile::from_smf("freeplay-recording.mid", smf)
+        .map_err(RecorderError::MidiFileParse)?;
+    let song = Song::new(midi);
 
     scene.keyboard.set_song_config(song.config.clone());
     scene.keyboard.reset_notes();
@@ -631,6 +557,56 @@ pub fn toggle_preview_playback(scene: &mut FreeplayScene) {
     preview.player.pause_resume();
 }
 
+fn to_smf(events: &[RecordedMidiEvent]) -> Result<Smf<'static>, RecorderError> {
+    // Preview/export requires at least one played note, not just release/control data.
+    let has_note_events = events
+        .iter()
+        .any(|event| matches!(event.message, MidiMessage::NoteOn { .. }));
+
+    if !has_note_events {
+        return Err(RecorderError::NoNotesFound);
+    }
+
+    let mut track = vec![
+        TrackEvent {
+            delta: 0.into(),
+            kind: TrackEventKind::Meta(MetaMessage::Tempo(TEMPO_MICROS_PER_BEAT.into())),
+        },
+        TrackEvent {
+            delta: 0.into(),
+            kind: TrackEventKind::Meta(MetaMessage::TimeSignature(4, 2, 24, 8)),
+        },
+    ];
+
+    let mut previous_ticks = 0u32;
+    for event in events {
+        let current_ticks = duration_to_ticks(event.timestamp);
+        let delta_ticks = current_ticks.saturating_sub(previous_ticks);
+        previous_ticks = current_ticks;
+
+        track.push(TrackEvent {
+            delta: delta_ticks.into(),
+            kind: TrackEventKind::Midi {
+                channel: event.channel.into(),
+                message: event.message,
+            },
+        });
+    }
+
+    track.push(TrackEvent {
+        delta: 1.into(),
+        kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
+    });
+
+    Ok(Smf {
+        header: Header {
+            format: Format::SingleTrack,
+            timing: Timing::Metrical(TICKS_PER_BEAT.into()),
+        },
+        tracks: vec![track],
+    })
+}
+
 #[cfg(test)]
 mod freeplay_recorder_tests {
     use super::*;
@@ -647,15 +623,14 @@ mod freeplay_recorder_tests {
                 vel: 100.into(),
             },
         );
-        recorder.stop();
 
-        recorder.to_song().expect("One NoteOn");
+        assert!(recorder.stop().is_ok());
 
         recorder.start();
 
         assert!(recorder.is_recording());
 
-        let error = recorder.to_song().expect_err("Empty");
+        let error = recorder.stop().expect_err("Empty");
         assert_eq!(error, RecorderError::NoNotesFound);
     }
 
@@ -678,10 +653,9 @@ mod freeplay_recorder_tests {
                 value: 0.into(),
             },
         );
-        recorder.stop();
 
         let error = recorder
-            .to_song()
+            .stop()
             .expect_err("pedal-only recordings should not create preview songs");
         assert_eq!(error, RecorderError::NoNotesFound);
     }
@@ -698,10 +672,9 @@ mod freeplay_recorder_tests {
                 vel: 0.into(),
             },
         );
-        recorder.stop();
 
         let error = recorder
-            .to_song()
+            .stop()
             .expect_err("note-off-only recordings should not create preview songs");
         assert_eq!(error, RecorderError::NoNotesFound);
     }

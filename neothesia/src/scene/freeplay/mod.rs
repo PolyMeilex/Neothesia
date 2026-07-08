@@ -1,9 +1,7 @@
 use std::time::Duration;
 
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{
-    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer, WaterfallRenderer,
-};
+use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
 use winit::{
     event::WindowEvent,
     keyboard::{Key, NamedKey},
@@ -12,11 +10,10 @@ use winit::{
 use crate::{
     NeothesiaEvent,
     context::Context,
-    icons,
     scene::{
         MouseToMidiEventState, NuonRenderer, Scene,
-        freeplay::recorder::{FreeplayRecorder, PreviewState, RecorderError, RecorderStatus},
-        playing_scene::{Keyboard, midi_player::MidiPlayer},
+        freeplay::recorder::{FreeplayRecorder, Preview, RecorderStatus},
+        playing_scene::Keyboard,
     },
     song::Song,
     utils::{BoxFuture, noop_waker_ref, window::WinitEvent},
@@ -55,9 +52,10 @@ pub struct FreeplayScene {
     nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
     deduced_chord_name: String,
+
     recorder: FreeplayRecorder,
     recorder_status: RecorderStatus,
-    preview_state: Option<PreviewState>,
+    preview: Option<Preview>,
 
     context: std::task::Context<'static>,
     futures: Vec<BoxFuture<MsgFn>>,
@@ -103,7 +101,7 @@ impl FreeplayScene {
             deduced_chord_name: String::new(),
             recorder: FreeplayRecorder::default(),
             recorder_status: RecorderStatus::default(),
-            preview_state: None,
+            preview: None,
 
             context: std::task::Context::from_waker(noop_waker_ref()),
             futures: Vec::new(),
@@ -141,7 +139,7 @@ impl FreeplayScene {
     }
 
     fn update_ui(&mut self, ctx: &mut Context) {
-        self.update_preview_ui(ctx);
+        recorder::update_preview_ui(self, ctx);
 
         nuon::label()
             .text(&self.deduced_chord_name)
@@ -156,19 +154,8 @@ impl FreeplayScene {
         self.keyboard.resize(ctx);
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
-        if let Some(note_labels) = self
-            .preview_state
-            .as_mut()
-            .and_then(|state| state.note_labels.as_mut())
-        {
-            note_labels.set_pos(*self.keyboard.pos());
-        }
-        if let Some(waterfall) = self
-            .preview_state
-            .as_mut()
-            .map(|state| &mut state.waterfall)
-        {
-            waterfall.resize(&ctx.config, self.keyboard.layout().clone());
+        if let Some(preview) = self.preview.as_mut() {
+            preview.resize(&self.keyboard, ctx);
         }
     }
 
@@ -189,363 +176,6 @@ impl FreeplayScene {
     }
 }
 
-/// Recorder related methods
-impl FreeplayScene {
-    fn clear_preview(&mut self) {
-        self.preview_state = None;
-        self.keyboard.set_song_config(Default::default());
-        self.keyboard.reset_notes();
-    }
-
-    fn rebuild_preview(&mut self, ctx: &Context) -> Result<(), RecorderError> {
-        self.clear_preview();
-
-        let song = self.recorder.to_song()?;
-        self.keyboard.set_song_config(song.config.clone());
-
-        let hidden_tracks: Vec<usize> = song
-            .config
-            .tracks
-            .iter()
-            .filter(|track| !track.visible)
-            .map(|track| track.track_id)
-            .collect();
-
-        let mut waterfall = WaterfallRenderer::new(
-            &ctx.gpu,
-            &song.file.tracks,
-            &hidden_tracks,
-            &ctx.config,
-            &ctx.transform,
-            self.keyboard.layout().clone(),
-        );
-
-        let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
-            *self.keyboard.pos(),
-            waterfall.notes(),
-            ctx.text_renderer_factory.new_renderer(),
-        ));
-
-        let mut player = MidiPlayer::new_with_lead_in(
-            ctx.output_manager.connection().clone(),
-            song,
-            self.keyboard.layout().range.clone(),
-            ctx.config.separate_channels(),
-            Duration::ZERO,
-        );
-        player.pause();
-        waterfall.update(player.time_without_lead_in() + ctx.config.animation_offset());
-
-        self.preview_state = Some(PreviewState {
-            player,
-            waterfall,
-            note_labels,
-        });
-        Ok(())
-    }
-
-    fn toggle_preview_playback(&mut self) {
-        let Some(player) = self.preview_state.as_mut().map(|state| &mut state.player) else {
-            return;
-        };
-
-        if player.is_finished() {
-            player.set_time(Duration::ZERO);
-            self.keyboard.reset_notes();
-        }
-
-        player.pause_resume();
-    }
-
-    fn seek_preview_to_cursor(&mut self, ctx: &Context) {
-        let Some(player) = self.preview_state.as_mut().map(|state| &mut state.player) else {
-            return;
-        };
-
-        let width = ctx.window_state.logical_size.width.max(1.0);
-        let percentage = (ctx.window_state.cursor_logical_position.x / width).clamp(0.0, 1.0);
-
-        player.set_percentage_time(percentage);
-        self.keyboard.reset_notes();
-    }
-
-    fn stop_recording(&mut self, ctx: &Context) -> Result<(), RecorderError> {
-        self.recorder.stop();
-        self.rebuild_preview(ctx)
-    }
-
-    fn handle_record_click(&mut self, ctx: &Context) {
-        if self.recorder.is_recording() {
-            match self.stop_recording(ctx) {
-                Ok(()) => {
-                    self.recorder_status =
-                        RecorderStatus::RecordingFinished(self.recorder.duration());
-                }
-                Err(err) => {
-                    self.recorder_status = RecorderStatus::Error(err);
-                }
-            }
-
-            return;
-        }
-
-        self.clear_preview();
-        self.recorder_status = RecorderStatus::default();
-        self.recorder.start();
-    }
-
-    fn handle_save_click(&mut self, ctx: &Context) {
-        if self.recorder.is_recording()
-            && let Err(err) = self.stop_recording(ctx)
-        {
-            self.recorder_status = RecorderStatus::Error(err);
-            return;
-        }
-
-        debug_assert!(self.recorder.has_note_events());
-
-        let mut dialog = rfd::AsyncFileDialog::new()
-            .add_filter("midi", &["mid", "midi"])
-            .set_file_name("freeplay-recording.mid");
-
-        if let Some(path) = ctx.config.last_opened_song().and_then(|path| path.parent()) {
-            dialog = dialog.set_directory(path);
-        }
-
-        let smf = match self.recorder.to_smf() {
-            Ok(smf) => smf,
-            Err(err) => {
-                self.recorder_status = RecorderStatus::Error(err);
-                return;
-            }
-        };
-
-        self.futures
-            .push(on_async(dialog.save_file(), |file, state, _ctx| {
-                let Some(file) = file else {
-                    return;
-                };
-
-                match FreeplayRecorder::save_to_path(smf, file.path()) {
-                    Ok(()) => {
-                        state.recorder_status = RecorderStatus::Saved(file.path().to_owned());
-                    }
-                    Err(err) => {
-                        state.recorder_status = RecorderStatus::Error(err);
-                    }
-                }
-            }));
-    }
-
-    fn update_preview(&mut self, ctx: &Context, delta: Duration) -> Option<f32> {
-        let player = &mut self.preview_state.as_mut()?.player;
-
-        let midi_events = player.update(delta);
-        self.keyboard.file_midi_events(&ctx.config, &midi_events);
-
-        if player.is_finished() && !player.is_paused() {
-            player.pause();
-        }
-
-        Some(player.time_without_lead_in() + ctx.config.animation_offset())
-    }
-
-    fn update_preview_ui(&mut self, ctx: &mut Context) {
-        let top_bar_height = 30.0;
-
-        let width = ctx.window_state.logical_size.width;
-
-        let available = self.preview_state.is_some();
-
-        let is_paused = self
-            .preview_state
-            .as_ref()
-            .map(|s| s.player.is_paused())
-            .unwrap_or(true);
-
-        let status_label = if self.recorder.is_recording() {
-            format!("Recording {:.1}s", self.recorder.duration().as_secs_f32())
-        } else {
-            self.recorder_status.to_string()
-        };
-
-        enum Msg {
-            TogglePlay,
-            Seek,
-            GoBack,
-            Record,
-            Save,
-            None,
-        }
-
-        let mut msg = Msg::None;
-
-        nuon::translate().build(&mut self.nuon, |ui| {
-            nuon::quad()
-                .size(width, top_bar_height)
-                .color([37, 35, 42])
-                .build(ui);
-
-            nuon::translate().build(ui, |ui| {
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .border_radius([5.0; 4])
-                    .icon(icons::left_arrow_icon())
-                    .build(ui)
-                {
-                    msg = Msg::GoBack;
-                }
-                nuon::translate().x(30.0).add_to_current(ui);
-            });
-
-            nuon::label()
-                .size(width, 30.0)
-                .text(&status_label)
-                .text_justify(nuon::TextJustify::Center)
-                .build(ui);
-
-            nuon::translate().x(width).build(ui, |ui| {
-                nuon::translate().x(-30.0).add_to_current(ui);
-
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .border_radius([5.0; 4])
-                    .icon(if is_paused {
-                        icons::play_icon()
-                    } else {
-                        icons::pause_icon()
-                    })
-                    .font_color(if available {
-                        [255, 255, 255, 255]
-                    } else {
-                        [255, 255, 255, 100]
-                    })
-                    .build(ui)
-                    && available
-                {
-                    msg = Msg::TogglePlay;
-                }
-
-                nuon::translate().x(-30.0).add_to_current(ui);
-
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .border_radius([5.0; 4])
-                    .icon(icons::save_icon())
-                    .font_color(if available {
-                        [255, 255, 255, 255]
-                    } else {
-                        [255, 255, 255, 100]
-                    })
-                    .build(ui)
-                    && available
-                {
-                    msg = Msg::Save;
-                }
-
-                nuon::translate().x(-30.0).add_to_current(ui);
-
-                if nuon::button()
-                    .size(30.0, 30.0)
-                    .border_radius([5.0; 4])
-                    .icon(if self.recorder.is_recording() {
-                        icons::record_stop_icon()
-                    } else {
-                        icons::record_icon()
-                    })
-                    .color(if self.recorder.is_recording() {
-                        [208, 18, 0, 255]
-                    } else {
-                        [0, 0, 0, 0]
-                    })
-                    .hover_color(if self.recorder.is_recording() {
-                        [165, 47, 47]
-                    } else {
-                        [97, 97, 97]
-                    })
-                    .preseed_color(if self.recorder.is_recording() {
-                        [145, 37, 37]
-                    } else {
-                        [87, 87, 87]
-                    })
-                    .build(ui)
-                {
-                    msg = Msg::Record;
-                }
-            });
-
-            if let Some(state) = self.preview_state.as_ref() {
-                let length = state.player.length();
-                let progress = state.player.percentage();
-                let measures = &state.player.song().file.measures;
-
-                nuon::translate().y(30.0).build(ui, |ui| {
-                    let event = nuon::click_area("FreeplayPreviewProgress")
-                        .size(width, 45.0)
-                        .build(ui);
-
-                    if event.is_pressed() {
-                        msg = Msg::Seek;
-                    }
-
-                    nuon::quad()
-                        .size(width, 45.0)
-                        .color([58, 58, 58])
-                        .color([37, 35, 42])
-                        .build(ui);
-                    nuon::quad()
-                        .size(width * progress, 45.0)
-                        .color([56, 145, 255])
-                        .build(ui);
-
-                    if !length.is_zero() {
-                        for measure in measures.iter() {
-                            let x = (measure.as_secs_f32() / length.as_secs_f32()) * width;
-                            nuon::quad()
-                                .x(x)
-                                .size(1.0, 45.0)
-                                .color(if x < width * progress {
-                                    [255, 255, 255, 127]
-                                } else {
-                                    [102, 102, 102, 255]
-                                })
-                                .build(ui);
-                        }
-                    }
-                });
-            }
-
-            // H-separator
-            nuon::quad()
-                .y(top_bar_height)
-                .size(width, 1.0)
-                .color([57, 55, 62])
-                .build(ui);
-        });
-
-        match msg {
-            Msg::TogglePlay => {
-                self.toggle_preview_playback();
-            }
-            Msg::Seek => {
-                self.seek_preview_to_cursor(ctx);
-            }
-            Msg::GoBack => {
-                ctx.proxy
-                    .send_event(NeothesiaEvent::MainMenu(self.song.clone()))
-                    .ok();
-            }
-            Msg::Record => {
-                self.handle_record_click(ctx);
-            }
-            Msg::Save => {
-                self.handle_save_click(ctx);
-            }
-            Msg::None => {}
-        }
-    }
-}
-
 impl Scene for FreeplayScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_renderer_bg.clear();
@@ -553,15 +183,8 @@ impl Scene for FreeplayScene {
 
         self.dispatch_futures(ctx);
 
-        let preview_time = self.update_preview(ctx, delta);
-
-        if let Some(time) = preview_time
-            && let Some(waterfall) = self
-                .preview_state
-                .as_mut()
-                .map(|state| &mut state.waterfall)
-        {
-            waterfall.update(time);
+        if let Some(preview) = self.preview.as_mut() {
+            preview.update(&mut self.keyboard, ctx, delta);
         }
 
         let time = 0.0;
@@ -575,20 +198,6 @@ impl Scene for FreeplayScene {
         );
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
-        if let Some(time) = preview_time
-            && let Some(note_labels) = self
-                .preview_state
-                .as_mut()
-                .and_then(|state| state.note_labels.as_mut())
-        {
-            note_labels.update(
-                ctx.window_state.physical_size,
-                ctx.window_state.scale_factor as f32,
-                self.keyboard.renderer(),
-                ctx.config.animation_speed(),
-                time,
-            );
-        }
 
         self.update_glow(delta);
 
@@ -611,11 +220,8 @@ impl Scene for FreeplayScene {
 
     fn render<'pass>(&'pass mut self, rpass: &mut wgpu_jumpstart::RenderPass<'pass>) {
         self.quad_renderer_bg.render(rpass);
-        if let Some(preview_state) = self.preview_state.as_mut() {
-            preview_state.waterfall.render(rpass);
-            if let Some(note_labels) = preview_state.note_labels.as_mut() {
-                note_labels.render(rpass);
-            }
+        if let Some(preview) = self.preview.as_mut() {
+            preview.render(rpass);
         }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
@@ -636,8 +242,8 @@ impl Scene for FreeplayScene {
                 .ok();
         }
 
-        if event.key_released(Key::Named(NamedKey::Space)) && self.preview_state.is_some() {
-            self.toggle_preview_playback();
+        if event.key_released(Key::Named(NamedKey::Space)) && self.preview.is_some() {
+            recorder::toggle_preview_playback(self);
         }
 
         super::handle_nuon_window_event(&mut self.nuon, event, ctx);

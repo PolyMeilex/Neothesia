@@ -197,7 +197,7 @@ impl NuonRenderer {
 
     fn ensure_layers(&mut self, ctx: &mut Context, len: usize) {
         self.layers.resize_with(len, || NuonLayer {
-            quad_renderer: ctx.quad_renderer_facotry.new_renderer(),
+            quad_renderer: ctx.quad_renderer_factory.new_renderer(),
             text_renderer: ctx.text_renderer_factory.new_renderer(),
             images: Vec::new(),
         });

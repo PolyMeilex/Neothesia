@@ -78,8 +78,8 @@ impl FreeplayScene {
 
         let text_renderer = ctx.text_renderer_factory.new_renderer();
 
-        let quad_renderer_bg = ctx.quad_renderer_facotry.new_renderer();
-        let quad_renderer_fg = ctx.quad_renderer_facotry.new_renderer();
+        let quad_renderer_bg = ctx.quad_renderer_factory.new_renderer();
+        let quad_renderer_fg = ctx.quad_renderer_factory.new_renderer();
 
         let glow = ctx.config.glow().then_some(GlowRenderer::new(
             &ctx.gpu,

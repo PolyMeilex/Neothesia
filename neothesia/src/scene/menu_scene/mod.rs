@@ -82,7 +82,7 @@ impl MenuScene {
     pub fn new(ctx: &mut Context, song: Option<Song>) -> Self {
         let iced_state = UiState::new(ctx, song);
 
-        let quad_pipeline = ctx.quad_renderer_facotry.new_renderer();
+        let quad_pipeline = ctx.quad_renderer_factory.new_renderer();
         let text_renderer = ctx.text_renderer_factory.new_renderer();
 
         let mut nuon_renderer = NuonRenderer::new(ctx);

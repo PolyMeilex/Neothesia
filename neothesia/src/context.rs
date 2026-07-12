@@ -18,7 +18,7 @@ pub struct Context {
 
     pub transform: Uniform<TransformUniform>,
     pub text_renderer_factory: TextRendererFactory,
-    pub quad_renderer_facotry: QuadRendererFactory,
+    pub quad_renderer_factory: QuadRendererFactory,
 
     pub output_manager: OutputManager,
     pub input_manager: InputManager,
@@ -55,7 +55,7 @@ impl Context {
         let config = Config::new();
 
         let text_renderer_factory = TextRendererFactory::new(&gpu);
-        let quad_renderer_facotry = QuadRendererFactory::new(&gpu, &transform_uniform);
+        let quad_renderer_factory = QuadRendererFactory::new(&gpu, &transform_uniform);
 
         Self {
             window,
@@ -64,7 +64,7 @@ impl Context {
             gpu,
             transform: transform_uniform,
             text_renderer_factory,
-            quad_renderer_facotry,
+            quad_renderer_factory,
 
             output_manager: Default::default(),
             input_manager: InputManager::new(proxy.clone()),

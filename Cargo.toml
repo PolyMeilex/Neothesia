@@ -40,7 +40,7 @@ bytes = "1"
 
 bytemuck = { version = "1.5", features = ["derive"] }
 env_logger = { version = "0.11", default-features = false, features = ["auto-color"] }
-pollster = "0.4"
+pollster = "1"
 futures-channel = "0.3"
 euclid = "0.22"
 
@@ -82,4 +82,4 @@ rten = "0.24"
 rten-tensor = "0.24"
 serde_json = "1"
 symphonia = { version = "0.6", features = ["mp3"] }
-symphonium = { version = "0.11", features = ["mp3"] }
+symphonium = { version = "0.12", features = ["mp3"] }

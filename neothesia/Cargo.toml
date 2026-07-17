@@ -8,7 +8,7 @@ default-run = "neothesia"
 [features]
 default = ["oxi-synth"]
 
-profiling-on = ["profiling/profile-with-puffin"]
+profiling-on = ["profiling/profile-with-puffin", "puffin", "puffin_http"]
 synth = []
 fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
 oxi-synth = ["synth", "cpal", "oxisynth"]
@@ -38,8 +38,8 @@ fluidlite = { workspace = true, optional = true }
 oxisynth = { workspace = true, optional = true }
 
 profiling.workspace = true
-puffin.workspace = true
-puffin_http.workspace = true
+puffin = { workspace = true, optional = true }
+puffin_http = { workspace = true, optional = true }
 piano-layout.workspace = true
 
 [[bin]]

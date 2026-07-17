@@ -373,7 +373,9 @@ fn main() {
     )
     .init();
 
+    #[cfg(feature = "profiling-on")]
     puffin::set_scopes_on(true); // tell puffin to collect data
+    #[cfg(feature = "profiling-on")]
     let _server = puffin_http::Server::new("127.0.0.1:8585").ok();
 
     let event_loop: EventLoop<NeothesiaEvent> = EventLoop::with_user_event().build().unwrap();

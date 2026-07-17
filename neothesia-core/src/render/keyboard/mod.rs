@@ -149,10 +149,9 @@ impl KeyboardRenderer {
             let oct_number = (key.id() + range_start) / 12;
 
             let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
-            buffer.set_size(font_system, Some(w), Some(h));
-            buffer.set_wrap(font_system, glyphon::Wrap::None);
+            buffer.set_size(Some(w), Some(h));
+            buffer.set_wrap(glyphon::Wrap::None);
             buffer.set_text(
-                font_system,
                 &format!("C{}", oct_number as i8 - 1),
                 &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                 glyphon::Shaping::Basic,

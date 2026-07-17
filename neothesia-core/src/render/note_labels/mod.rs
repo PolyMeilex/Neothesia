@@ -39,10 +39,9 @@ impl LabelsCache {
                     font_system,
                     glyphon::Metrics::new(label_width, label_width),
                 );
-                buffer.set_size(font_system, Some(note_width), None);
-                buffer.set_wrap(font_system, glyphon::Wrap::None);
+                buffer.set_size(Some(note_width), None);
+                buffer.set_wrap(glyphon::Wrap::None);
                 buffer.set_text(
-                    font_system,
                     label,
                     &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                     glyphon::Shaping::Basic,

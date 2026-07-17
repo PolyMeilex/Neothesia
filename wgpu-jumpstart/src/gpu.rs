@@ -119,6 +119,7 @@ impl Gpu {
                 power_preference,
                 compatible_surface,
                 force_fallback_adapter: false,
+                apply_limit_buckets: false,
             })
             .await?;
 
@@ -227,6 +228,7 @@ impl Surface {
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             desired_maximum_frame_latency: 2,
+            color_space: wgpu::SurfaceColorSpace::Auto,
         };
 
         surface.configure(device, &surface_configuration);

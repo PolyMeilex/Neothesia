@@ -59,7 +59,7 @@ impl WaterfallPipeline {
                 fragment: Some(wgpu_jumpstart::default_fragment(&shader, &[Some(target)])),
                 ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                     &shader,
-                    &[Shape::layout(), NoteInstance::layout(&ni_attrs)],
+                    &[Some(Shape::layout()), Some(NoteInstance::layout(&ni_attrs))],
                 ))
             });
 

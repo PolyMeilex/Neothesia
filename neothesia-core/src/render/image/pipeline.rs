@@ -43,7 +43,7 @@ impl ImageRenderer {
             fragment: Some(wgpu_jumpstart::default_fragment(&shader, &[Some(target)])),
             ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                 &shader,
-                &[Vertex2D::layout()],
+                &[Some(Vertex2D::layout())],
             ))
         });
 

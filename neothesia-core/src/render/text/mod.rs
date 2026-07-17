@@ -149,9 +149,8 @@ impl TextRenderer {
         let font_system = &mut font_system.borrow_mut();
 
         let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
+        buffer.set_size(Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
-            font_system,
             text,
             &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
@@ -180,9 +179,8 @@ impl TextRenderer {
 
         let text = format!("FPS: {}", fps.round() as u32);
         let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(15.0, 15.0));
-        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
+        buffer.set_size(Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(
-            font_system,
             &text,
             &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
             glyphon::Shaping::Basic,
@@ -345,8 +343,8 @@ impl TextRenderer {
 
         let mut buffer =
             cosmic_text::Buffer::new(font_system, cosmic_text::Metrics::new(size, size));
-        buffer.set_size(font_system, Some(f32::MAX), Some(f32::MAX));
-        buffer.set_text(font_system, text, &attrs, cosmic_text::Shaping::Basic, None);
+        buffer.set_size(Some(f32::MAX), Some(f32::MAX));
+        buffer.set_text(text, &attrs, cosmic_text::Shaping::Basic, None);
         buffer.shape_until_scroll(font_system, false);
         buffer
     }

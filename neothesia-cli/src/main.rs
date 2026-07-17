@@ -364,7 +364,7 @@ fn main() {
                 })
                 .unwrap();
 
-            let mapping = slice.get_mapped_range();
+            let mapping = slice.get_mapped_range().unwrap();
 
             let data: &[u8] = &mapping;
 

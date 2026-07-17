@@ -41,8 +41,8 @@ impl QuadPipeline {
                 ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                     &shader,
                     &[
-                        Shape::layout(),
-                        QuadInstance::layout(&QuadInstance::attributes()),
+                        Some(Shape::layout()),
+                        Some(QuadInstance::layout(&QuadInstance::attributes())),
                     ],
                 ))
             });

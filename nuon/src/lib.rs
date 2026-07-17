@@ -989,7 +989,7 @@ impl Button {
             preseed_color: Color::new_u8(67, 65, 72, 1.0),
             font_color: Color::WHITE,
             border_radius: [0.0; 4],
-            icon: "X",
+            icon: " ",
             label: Cow::Borrowed(""),
             text_justify: TextJustify::Center,
         }

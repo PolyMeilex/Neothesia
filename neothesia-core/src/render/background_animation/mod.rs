@@ -47,7 +47,7 @@ impl BgPipeline {
                 fragment: Some(wgpu_jumpstart::default_fragment(&shader, &[Some(target)])),
                 ..wgpu_jumpstart::default_render_pipeline(wgpu_jumpstart::default_vertex(
                     &shader,
-                    &[Shape::layout()],
+                    &[Some(Shape::layout())],
                 ))
             });
 

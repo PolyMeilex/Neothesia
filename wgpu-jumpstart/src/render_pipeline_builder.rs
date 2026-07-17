@@ -31,7 +31,7 @@ pub fn default_fragment<'a>(
 
 pub fn default_vertex<'a>(
     module: &'a wgpu::ShaderModule,
-    buffers: &'a [wgpu::VertexBufferLayout<'a>],
+    buffers: &'a [Option<wgpu::VertexBufferLayout<'a>>],
 ) -> wgpu::VertexState<'a> {
     wgpu::VertexState {
         module,

@@ -31,6 +31,12 @@ pub struct WaterfallConfigV1 {
 
     #[serde(default = "default_note_labels")]
     pub note_labels: bool,
+
+    #[serde(default = "default_sheet_music")]
+    pub sheet_music: bool,
+
+    #[serde(default = "default_sheet_music_height")]
+    pub sheet_music_height: f32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,6 +50,8 @@ impl Default for WaterfallConfig {
             animation_speed: default_animation_speed(),
             animation_offset: default_animation_offset(),
             note_labels: default_note_labels(),
+            sheet_music: default_sheet_music(),
+            sheet_music_height: default_sheet_music_height(),
         })
     }
 }
@@ -209,6 +217,14 @@ fn default_animation_offset() -> f32 {
 
 fn default_note_labels() -> bool {
     false
+}
+
+fn default_sheet_music() -> bool {
+    true
+}
+
+fn default_sheet_music_height() -> f32 {
+    260.0
 }
 
 fn default_audio_gain() -> f32 {

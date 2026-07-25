@@ -1,10 +1,11 @@
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 use crate::{
     context::Context,
     scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
+use neothesia_core::render::TextRenderer;
 use nuon::TextJustify;
 
 use super::UiState;
@@ -15,6 +16,79 @@ fn button() -> nuon::Button {
         .preseed_color([74, 68, 88])
         .hover_color([87, 81, 101])
         .border_radius([5.0; 4])
+}
+
+const DEFAULT_SOUNDFONT_DOWNLOAD_URL: &str =
+    "https://github.com/PolyMeilex/Neothesia/raw/refs/heads/master/default.sf2";
+
+fn download_default_soundfont_file(path: PathBuf) -> Result<PathBuf, String> {
+    let temporary_path = path.with_extension(format!("sf2.{}.part", std::process::id()));
+
+    let result = (|| {
+        let response = ureq::get(DEFAULT_SOUNDFONT_DOWNLOAD_URL)
+            .call()
+            .map_err(|error| format!("Could not download the default SoundFont: {error}"))?;
+        let mut reader = response.into_reader();
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary_path)
+            .map_err(|error| format!("Could not create the SoundFont file: {error}"))?;
+
+        std::io::copy(&mut reader, &mut file)
+            .map_err(|error| format!("Could not save the SoundFont file: {error}"))?;
+        file.flush()
+            .map_err(|error| format!("Could not finish saving the SoundFont file: {error}"))?;
+
+        if path.exists() {
+            std::fs::remove_file(&path)
+                .map_err(|error| format!("Could not replace the SoundFont file: {error}"))?;
+        }
+        std::fs::rename(&temporary_path, &path)
+            .map_err(|error| format!("Could not finish the SoundFont download: {error}"))?;
+
+        Ok(path)
+    })();
+
+    if result.is_err() {
+        let _ = std::fs::remove_file(temporary_path);
+    }
+
+    result
+}
+
+async fn download_default_soundfont_fut() -> Result<Option<PathBuf>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .add_filter("SoundFont2", &["sf2"])
+        .set_file_name("default.sf2")
+        .save_file()
+        .await;
+    let Some(file) = file else {
+        return Ok(None);
+    };
+
+    let (sender, receiver) = futures_channel::oneshot::channel();
+    let path = file.path().to_owned();
+    std::thread::spawn(move || {
+        let _ = sender.send(download_default_soundfont_file(path));
+    });
+
+    receiver
+        .await
+        .map_err(|_| "The default SoundFont download task failed".to_owned())?
+        .map(Some)
+}
+
+pub fn download_default_soundfont(data: &mut UiState) -> BoxFuture<MsgFn> {
+    data.is_loading = true;
+    on_async(download_default_soundfont_fut(), |res, data, ctx| {
+        match res {
+            Ok(Some(path)) => ctx.config.set_soundfont_path(Some(path)),
+            Ok(None) => {}
+            Err(error) => log::error!("{error}"),
+        }
+        data.is_loading = false;
+    })
 }
 
 impl super::MenuScene {
@@ -230,16 +304,36 @@ impl super::MenuScene {
         if is_synth {
             spacer(ui);
 
+            let soundfont_name = ctx
+                .config
+                .soundfont_path()
+                .and_then(|path| path.file_name())
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let (soundfont_name_width, _) =
+                TextRenderer::measure(&TextRenderer::gen_buffer(12.2, &soundfont_name));
+
             nuon::settings_row()
                 .title("SoundFont")
-                .subtitle(
-                    ctx.config
-                        .soundfont_path()
-                        .and_then(|path| path.file_name())
-                        .map(|name| name.to_string_lossy().to_string())
-                        .unwrap_or_default(),
-                )
-                .body(|ui, row_w, row_h| {
+                .subtitle(soundfont_name)
+                .body(move |ui, row_w, row_h| {
+                    if button()
+                        .id("download_default_soundfont")
+                        .pos((soundfont_name_width + 2.0).max(0.0), 27.0)
+                        .size(90.0, 18.0)
+                        .color([0, 0, 0, 0])
+                        .preseed_color([0, 0, 0, 0])
+                        .hover_color([74, 68, 88, 70])
+                        .font_color([255, 255, 255, 150])
+                        .font_size(12.2)
+                        .label("Use default")
+                        .text_justify(TextJustify::Left)
+                        .build(ui)
+                    {
+                        self.futures
+                            .push(self::download_default_soundfont(&mut self.state));
+                    }
+
                     let w = 93.0;
                     let h = 31.0;
                     if button()

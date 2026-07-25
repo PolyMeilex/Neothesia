@@ -965,6 +965,7 @@ pub struct Button {
     border_radius: [f32; 4],
     icon: &'static str,
     label: Cow<'static, str>,
+    font_size: f32,
     text_justify: TextJustify,
 }
 
@@ -991,6 +992,7 @@ impl Button {
             border_radius: [0.0; 4],
             icon: " ",
             label: Cow::Borrowed(""),
+            font_size: 16.0,
             text_justify: TextJustify::Center,
         }
     }
@@ -1062,6 +1064,11 @@ impl Button {
 
     pub fn label(mut self, label: impl Into<Cow<'static, str>>) -> Self {
         self.label = label.into();
+        self
+    }
+
+    pub fn font_size(mut self, font_size: f32) -> Self {
+        self.font_size = font_size;
         self
     }
 
@@ -1140,7 +1147,7 @@ impl Button {
                     Size::new(rect.size.width - pad_x * 2.0, rect.size.height),
                 ),
                 text_justify: self.text_justify,
-                size: 16.0,
+                size: self.font_size,
                 bold: false,
                 text: self.label.to_string(),
                 color: self.font_color,

@@ -11,7 +11,7 @@ use neo_btn::{neo_btn, neo_btn_icon};
 mod settings;
 mod tracks;
 
-use std::{future::Future, time::Duration};
+use std::{collections::HashSet, future::Future, time::Duration};
 
 use crate::utils::{BoxFuture, noop_waker_ref, window::WinitEvent};
 use neothesia_core::render::{BgPipeline, ImageIdentifier, QuadRenderer, TextRenderer};
@@ -77,6 +77,8 @@ pub struct MenuScene {
     tracks_scroll: nuon::ScrollState,
     settings_scroll: nuon::ScrollState,
     settings_test_key: Option<u8>,
+    settings_input_keys: HashSet<u8>,
+    settings_input_connected: bool,
     popup: Popup,
 }
 
@@ -112,6 +114,8 @@ impl MenuScene {
             tracks_scroll: nuon::ScrollState::new(),
             settings_scroll: nuon::ScrollState::new(),
             settings_test_key: None,
+            settings_input_keys: HashSet::new(),
+            settings_input_connected: false,
             popup: Popup::None,
         }
     }
@@ -405,6 +409,18 @@ impl Scene for MenuScene {
             }
         }
     }
+
+    fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {
+        match message {
+            MidiMessage::NoteOn { key, .. } => {
+                self.settings_input_keys.insert(key.as_int());
+            }
+            MidiMessage::NoteOff { key, .. } => {
+                self.settings_input_keys.remove(&key.as_int());
+            }
+            _ => {}
+        }
+    }
 }
 
 impl MenuScene {
@@ -436,5 +452,9 @@ impl MenuScene {
                 vel: 0.into(),
             },
         );
+    }
+
+    fn settings_key_is_pressed(&self, key: u8) -> bool {
+        self.settings_test_key == Some(key) || self.settings_input_keys.contains(&key)
     }
 }

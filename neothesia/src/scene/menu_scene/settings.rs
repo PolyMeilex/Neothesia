@@ -22,6 +22,10 @@ impl super::MenuScene {
         // Establish the selected output before the test piano is used, so the first note does
         // not need to create an output connection or load a SoundFont.
         super::state::connect_output(&self.state, ctx);
+        if !self.settings_input_connected {
+            super::state::connect_input(&self.state, ctx);
+            self.settings_input_connected = true;
+        }
 
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
@@ -339,6 +343,8 @@ impl super::MenuScene {
                 {
                     ctx.config.set_input(Some(&input));
                     data.selected_input = Some(input.clone());
+                    super::state::connect_input(data, ctx);
+                    self.settings_input_connected = true;
                     self.popup.close();
                 }
             });
@@ -401,10 +407,9 @@ impl super::MenuScene {
             }
         }
 
-        if let Some(note) = self.settings_test_key {
-            if let Some(key) = layout.keys.iter().find(|key| {
-                key.kind().is_neutral() && layout.range.start() + key.id() as u8 == note
-            }) {
+        for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
+            let note = layout.range.start() + key.id() as u8;
+            if self.settings_key_is_pressed(note) {
                 nuon::quad()
                     .pos(key.x(), 0.0)
                     .size(key.width(), key.height())
@@ -418,7 +423,7 @@ impl super::MenuScene {
             nuon::quad()
                 .pos(key.x(), 0.0)
                 .size(key.width(), key.height())
-                .color(if self.settings_test_key == Some(note) {
+                .color(if self.settings_key_is_pressed(note) {
                     [122, 104, 168]
                 } else {
                     [0; 3]

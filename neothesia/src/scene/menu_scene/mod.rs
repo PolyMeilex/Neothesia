@@ -22,6 +22,7 @@ use winit::{
 };
 
 use crate::{NeothesiaEvent, context::Context, icons, scene::Scene, song::Song};
+use midi_file::midly::MidiMessage;
 
 use super::NuonRenderer;
 
@@ -75,6 +76,7 @@ pub struct MenuScene {
 
     tracks_scroll: nuon::ScrollState,
     settings_scroll: nuon::ScrollState,
+    settings_test_key: Option<u8>,
     popup: Popup,
 }
 
@@ -109,6 +111,7 @@ impl MenuScene {
             nuon: nuon::Ui::new(),
             tracks_scroll: nuon::ScrollState::new(),
             settings_scroll: nuon::ScrollState::new(),
+            settings_test_key: None,
             popup: Popup::None,
         }
     }
@@ -319,6 +322,10 @@ impl Scene for MenuScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
+        if event.left_mouse_released() {
+            self.release_settings_test_key(ctx);
+        }
+
         if let WindowEvent::MouseWheel { delta, .. } = event {
             match delta {
                 winit::event::MouseScrollDelta::LineDelta(_, y) => {
@@ -383,6 +390,7 @@ impl Scene for MenuScene {
             }
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    self.release_settings_test_key(ctx);
                     self.state.go_back();
                 }
             }
@@ -396,5 +404,37 @@ impl Scene for MenuScene {
                 }
             }
         }
+    }
+}
+
+impl MenuScene {
+    fn press_settings_test_key(&mut self, ctx: &mut Context, key: u8) {
+        if self.settings_test_key == Some(key) {
+            return;
+        }
+
+        self.release_settings_test_key(ctx);
+        self.settings_test_key = Some(key);
+        ctx.output_manager.connection().midi_event(
+            0.into(),
+            MidiMessage::NoteOn {
+                key: key.into(),
+                vel: 100.into(),
+            },
+        );
+    }
+
+    fn release_settings_test_key(&mut self, ctx: &Context) {
+        let Some(key) = self.settings_test_key.take() else {
+            return;
+        };
+
+        ctx.output_manager.connection().midi_event(
+            0.into(),
+            MidiMessage::NoteOff {
+                key: key.into(),
+                vel: 0.into(),
+            },
+        );
     }
 }

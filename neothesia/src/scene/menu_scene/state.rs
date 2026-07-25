@@ -107,7 +107,7 @@ pub enum Page {
     TrackSelection,
 }
 
-fn connect_io(data: &UiState, ctx: &mut Context) {
+pub fn connect_output(data: &UiState, ctx: &mut Context) {
     if let Some(out) = data.selected_output.clone() {
         let out = match out {
             #[cfg(feature = "synth")]
@@ -120,6 +120,10 @@ fn connect_io(data: &UiState, ctx: &mut Context) {
             .connection()
             .set_gain(ctx.config.audio_gain());
     }
+}
+
+fn connect_io(data: &UiState, ctx: &mut Context) {
+    connect_output(data, ctx);
 
     if let Some(port) = data.selected_input.clone() {
         ctx.input_manager.connect_input(port);

@@ -959,7 +959,7 @@ impl ClickArea {
             ClickAreaEvent::PressEnd { clicked: mouseover }
         } else {
             ClickAreaEvent::Idle {
-                hovered: mouseover && ui.active.is_none(),
+                hovered: mouseover,
                 pressed,
             }
         }

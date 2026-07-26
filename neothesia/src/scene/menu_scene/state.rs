@@ -112,7 +112,7 @@ fn connect_io(data: &UiState, ctx: &mut Context) {
         let out = match out {
             #[cfg(feature = "synth")]
             OutputDescriptor::Synth(_) => {
-                OutputDescriptor::Synth(ctx.config.soundfont_path().cloned())
+                OutputDescriptor::Synth(ctx.config.effective_soundfont_path())
             }
             o => o,
         };

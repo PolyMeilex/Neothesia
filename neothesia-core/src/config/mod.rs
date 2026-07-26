@@ -162,6 +162,12 @@ impl Config {
         self.synth.soundfont_path.as_ref()
     }
 
+    pub fn effective_soundfont_path(&self) -> Option<PathBuf> {
+        self.soundfont_path()
+            .cloned()
+            .or_else(crate::utils::resources::default_sf2)
+    }
+
     pub fn set_soundfont_path(&mut self, soundfont_path: Option<PathBuf>) {
         self.synth.soundfont_path = soundfont_path;
     }

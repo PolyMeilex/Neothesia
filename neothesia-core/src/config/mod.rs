@@ -150,6 +150,14 @@ impl Config {
         self.appearance.glow = glow;
     }
 
+    pub fn chord_identifier(&self) -> bool {
+        self.appearance.chord_identifier
+    }
+
+    pub fn set_chord_identifier(&mut self, chord_identifier: bool) {
+        self.appearance.chord_identifier = chord_identifier;
+    }
+
     pub fn last_opened_song(&self) -> Option<&PathBuf> {
         self.history.last_opened_song.as_ref()
     }

@@ -280,7 +280,7 @@ impl Scene for FreeplayScene {
     }
 }
 
-mod chords {
+pub(crate) mod chords {
     /// Get chord name based on notes, eg. Cmaj7
     pub fn deduce_name(midi_notes: &[u8]) -> String {
         if midi_notes.is_empty() {

@@ -229,9 +229,13 @@ impl TopBar {
             .x(ctx.window_state.logical_size.width - offset)
             .y(75.0)
             .build(ui, |ui| {
+                // Gap
+                nuon::translate().y(5.0).add_to_current(ui);
+
                 nuon::quad()
                     .size(width, 100.0)
                     .color([37, 35, 42])
+                    .border_radius([10.0, 0.0, 0.0, 10.0])
                     .build(ui);
 
                 nuon::translate().x(15.0).build(ui, |ui| {

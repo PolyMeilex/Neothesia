@@ -275,20 +275,20 @@ impl Scene for FreeplayScene {
                 .map(|(id, _)| id as u8 + start)
                 .collect();
 
-            self.deduced_chord_name = chords::deduce_name(&notes);
+            self.deduced_chord_name = chords::deduce_name(&notes).unwrap_or_default();
         }
     }
 }
 
 pub(crate) mod chords {
     /// Get chord name based on notes, eg. Cmaj7
-    pub fn deduce_name(midi_notes: &[u8]) -> String {
+    pub fn deduce_name(midi_notes: &[u8]) -> Option<String> {
         if midi_notes.is_empty() {
-            return "No notes".to_string();
+            return None;
         }
 
         if midi_notes.len() == 1 {
-            return note_name(midi_notes[0]).to_string();
+            return Some(note_name(midi_notes[0]).to_string());
         }
 
         // Normalize notes to a single octave and sort
@@ -297,7 +297,7 @@ pub(crate) mod chords {
         normalized.dedup();
 
         if normalized.is_empty() {
-            return String::new();
+            return None;
         }
 
         // Try each note as potential root
@@ -306,11 +306,11 @@ pub(crate) mod chords {
             let intervals = get_intervals(&normalized, root);
 
             if let Some(chord_type) = match_chord_type(intervals) {
-                return format!("{}{}", note_name(root), chord_type);
+                return Some(format!("{}{}", note_name(root), chord_type));
             }
         }
 
-        String::new()
+        None
     }
 
     // TODO: This is clunky, we should change names based on the scale in use
@@ -376,37 +376,37 @@ pub(crate) mod chords {
 
         #[test]
         fn test_major_chords() {
-            assert_eq!(deduce_name(&[60, 64, 67]), "CM"); // C major
-            assert_eq!(deduce_name(&[62, 66, 69]), "DM"); // D major
+            assert_eq!(deduce_name(&[60, 64, 67]).unwrap(), "CM"); // C major
+            assert_eq!(deduce_name(&[62, 66, 69]).unwrap(), "DM"); // D major
         }
 
         #[test]
         fn test_minor_chords() {
-            assert_eq!(deduce_name(&[60, 63, 67]), "Cm"); // C minor
-            assert_eq!(deduce_name(&[57, 60, 64]), "Am"); // A minor
+            assert_eq!(deduce_name(&[60, 63, 67]).unwrap(), "Cm"); // C minor
+            assert_eq!(deduce_name(&[57, 60, 64]).unwrap(), "Am"); // A minor
         }
 
         #[test]
         fn test_seventh_chords() {
-            assert_eq!(deduce_name(&[60, 64, 67, 71]), "Cmaj7"); // C major 7
-            assert_eq!(deduce_name(&[60, 64, 67, 70]), "C7"); // C dominant 7
-            assert_eq!(deduce_name(&[60, 63, 67, 70]), "Cm7"); // C minor 7
+            assert_eq!(deduce_name(&[60, 64, 67, 71]).unwrap(), "Cmaj7"); // C major 7
+            assert_eq!(deduce_name(&[60, 64, 67, 70]).unwrap(), "C7"); // C dominant 7
+            assert_eq!(deduce_name(&[60, 63, 67, 70]).unwrap(), "Cm7"); // C minor 7
         }
 
         #[test]
         fn test_other_chords() {
-            assert_eq!(deduce_name(&[60, 63, 66]), "Cdim"); // C diminished
-            assert_eq!(deduce_name(&[60, 64, 68]), "Caug"); // C augmented
-            assert_eq!(deduce_name(&[60, 65, 67]), "Csus4"); // C sus4
-            assert_eq!(deduce_name(&[60, 67]), "C5"); // C power chord
+            assert_eq!(deduce_name(&[60, 63, 66]).unwrap(), "Cdim"); // C diminished
+            assert_eq!(deduce_name(&[60, 64, 68]).unwrap(), "Caug"); // C augmented
+            assert_eq!(deduce_name(&[60, 65, 67]).unwrap(), "Csus4"); // C sus4
+            assert_eq!(deduce_name(&[60, 67]).unwrap(), "C5"); // C power chord
         }
 
         #[test]
         fn test_edge_cases() {
-            assert_eq!(deduce_name(&[]), "No notes");
-            assert_eq!(deduce_name(&[60]), "C");
+            assert_eq!(deduce_name(&[]), None);
+            assert_eq!(deduce_name(&[60]).unwrap(), "C");
             // Multiple octaves should normalize
-            assert_eq!(deduce_name(&[48, 64, 67, 72]), "CM");
+            assert_eq!(deduce_name(&[48, 64, 67, 72]).unwrap(), "CM");
         }
     }
 }

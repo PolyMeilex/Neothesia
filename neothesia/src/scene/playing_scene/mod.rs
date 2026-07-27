@@ -175,7 +175,7 @@ impl PlayingScene {
             .map(|(id, _)| id as u8 + start)
             .collect::<Vec<_>>();
 
-        self.deduced_chord_name = super::freeplay::chords::deduce_name(&notes);
+        self.deduced_chord_name = super::freeplay::chords::deduce_name(&notes).unwrap_or_default();
     }
 
     #[profiling::function]

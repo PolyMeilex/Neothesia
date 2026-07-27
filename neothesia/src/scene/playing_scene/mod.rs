@@ -50,6 +50,8 @@ pub struct PlayingScene {
     nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
 
+    deduced_chord_name: String,
+
     top_bar: TopBar,
 }
 
@@ -126,6 +128,7 @@ impl PlayingScene {
 
             nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
+            deduced_chord_name: String::new(),
 
             top_bar: TopBar::new(),
         }
@@ -155,6 +158,24 @@ impl PlayingScene {
                 delta,
             );
         }
+    }
+
+    fn update_chord_identifier(&mut self, enabled: bool) {
+        if !enabled {
+            return;
+        }
+
+        let start = self.keyboard.layout().range.start();
+        let notes = self
+            .keyboard
+            .key_states()
+            .iter()
+            .enumerate()
+            .filter(|(_, state)| state.pressed_by_user().is_some())
+            .map(|(id, _)| id as u8 + start)
+            .collect::<Vec<_>>();
+
+        self.deduced_chord_name = super::freeplay::chords::deduce_name(&notes).unwrap_or_default();
     }
 
     #[profiling::function]
@@ -209,6 +230,7 @@ impl Scene for PlayingScene {
         );
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
+        self.update_chord_identifier(ctx.config.chord_identifier());
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.update(
                 ctx.window_state.physical_size,
@@ -222,6 +244,16 @@ impl Scene for PlayingScene {
         self.update_glow(delta);
 
         TopBar::update(self, ctx);
+
+        if ctx.config.chord_identifier() {
+            nuon::label()
+                .text(&self.deduced_chord_name)
+                .font_size(25.0)
+                .y(self.keyboard.pos().y - 35.0)
+                .height(25.0)
+                .width(ctx.window_state.logical_size.width)
+                .build(&mut self.nuon);
+        }
 
         super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
 

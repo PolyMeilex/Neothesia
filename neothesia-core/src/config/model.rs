@@ -172,6 +172,9 @@ pub struct AppearanceConfigV1 {
 
     #[serde(default = "default_glow")]
     pub glow: bool,
+
+    #[serde(default)]
+    pub chord_identifier: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -187,6 +190,7 @@ impl Default for AppearanceConfig {
             vertical_guidelines: default_vertical_guidelines(),
             horizontal_guidelines: default_horizontal_guidelines(),
             glow: default_glow(),
+            chord_identifier: false,
         })
     }
 }

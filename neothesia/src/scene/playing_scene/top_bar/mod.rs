@@ -103,6 +103,7 @@ impl TopBar {
         Self::panel_left(this, ctx, ui);
         Self::panel_center(this, ctx, ui);
         Self::panel_right(this, ctx, ui);
+        Self::settings_panel(this, ctx, ui);
 
         // ProggressBar
         nuon::translate().y(30.0).build(ui, |ui| {
@@ -214,6 +215,45 @@ impl TopBar {
                 {
                     this.player.pause_resume();
                 }
+            });
+    }
+
+    fn settings_panel(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
+        let width = 280.0;
+        let offset = this
+            .top_bar
+            .settings_animation
+            .animate_bool(0.0, width, ctx.frame_timestamp);
+
+        nuon::translate()
+            .x(ctx.window_state.logical_size.width - offset)
+            .y(75.0)
+            .build(ui, |ui| {
+                // Gap
+                nuon::translate().y(5.0).add_to_current(ui);
+
+                nuon::quad()
+                    .size(width, 100.0)
+                    .color([37, 35, 42])
+                    .border_radius([10.0, 0.0, 0.0, 10.0])
+                    .build(ui);
+
+                nuon::translate().x(15.0).build(ui, |ui| {
+                    nuon::settings_section("Display").width(width - 30.0).build(
+                        ui,
+                        |ui, rows, _| {
+                            if nuon::settings_row_toggler()
+                                .title("Chord Identifier")
+                                .subtitle("Display chord above keyboard")
+                                .value(ctx.config.chord_identifier())
+                                .build(ui, rows)
+                            {
+                                ctx.config
+                                    .set_chord_identifier(!ctx.config.chord_identifier());
+                            }
+                        },
+                    );
+                });
             });
     }
 

@@ -59,6 +59,25 @@ impl Popup {
     }
 }
 
+#[derive(Default, Debug)]
+struct MidiInputState {
+    input_keys: HashSet<u8>,
+}
+
+impl MidiInputState {
+    fn note_on(&mut self, note: u8) {
+        self.input_keys.insert(note);
+    }
+
+    fn note_off(&mut self, note: u8) {
+        self.input_keys.remove(&note);
+    }
+
+    fn is_pressed(&self, note: u8) -> bool {
+        self.input_keys.contains(&note)
+    }
+}
+
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
     text_renderer: TextRenderer,
@@ -76,9 +95,7 @@ pub struct MenuScene {
 
     tracks_scroll: nuon::ScrollState,
     settings_scroll: nuon::ScrollState,
-    settings_test_key: Option<u8>,
-    settings_input_keys: HashSet<u8>,
-    settings_input_connected: bool,
+    midi_input_state: MidiInputState,
     popup: Popup,
 }
 
@@ -113,9 +130,7 @@ impl MenuScene {
             nuon: nuon::Ui::new(),
             tracks_scroll: nuon::ScrollState::new(),
             settings_scroll: nuon::ScrollState::new(),
-            settings_test_key: None,
-            settings_input_keys: HashSet::new(),
-            settings_input_connected: false,
+            midi_input_state: MidiInputState::default(),
             popup: Popup::None,
         }
     }
@@ -326,10 +341,6 @@ impl Scene for MenuScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
-        if event.left_mouse_released() {
-            self.release_settings_test_key(ctx);
-        }
-
         if let WindowEvent::MouseWheel { delta, .. } = event {
             match delta {
                 winit::event::MouseScrollDelta::LineDelta(_, y) => {
@@ -394,7 +405,6 @@ impl Scene for MenuScene {
             }
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {
-                    self.release_settings_test_key(ctx);
                     self.state.go_back();
                 }
             }
@@ -410,51 +420,21 @@ impl Scene for MenuScene {
         }
     }
 
-    fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, message: &MidiMessage) {
+    fn midi_event(&mut self, ctx: &mut Context, channel: u8, message: &MidiMessage) {
         match message {
             MidiMessage::NoteOn { key, .. } => {
-                self.settings_input_keys.insert(key.as_int());
+                self.midi_input_state.note_on(key.as_int());
+                ctx.output_manager
+                    .connection()
+                    .midi_event(channel.into(), *message);
             }
             MidiMessage::NoteOff { key, .. } => {
-                self.settings_input_keys.remove(&key.as_int());
+                self.midi_input_state.note_off(key.as_int());
+                ctx.output_manager
+                    .connection()
+                    .midi_event(channel.into(), *message);
             }
             _ => {}
         }
-    }
-}
-
-impl MenuScene {
-    fn press_settings_test_key(&mut self, ctx: &mut Context, key: u8) {
-        if self.settings_test_key == Some(key) {
-            return;
-        }
-
-        self.release_settings_test_key(ctx);
-        self.settings_test_key = Some(key);
-        ctx.output_manager.connection().midi_event(
-            0.into(),
-            MidiMessage::NoteOn {
-                key: key.into(),
-                vel: 100.into(),
-            },
-        );
-    }
-
-    fn release_settings_test_key(&mut self, ctx: &Context) {
-        let Some(key) = self.settings_test_key.take() else {
-            return;
-        };
-
-        ctx.output_manager.connection().midi_event(
-            0.into(),
-            MidiMessage::NoteOff {
-                key: key.into(),
-                vel: 0.into(),
-            },
-        );
-    }
-
-    fn settings_key_is_pressed(&self, key: u8) -> bool {
-        self.settings_test_key == Some(key) || self.settings_input_keys.contains(&key)
     }
 }

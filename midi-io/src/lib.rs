@@ -75,35 +75,40 @@ impl MidiInputManager {
             .collect()
     }
 
-    pub fn connect_input<F>(port: MidiInputPort, mut callback: F) -> Option<MidiInputConnection>
+    pub fn connect_input<F>(
+        port: MidiInputPort,
+        mut callback: F,
+    ) -> Option<(MidiInputPort, MidiInputConnection)>
     where
         F: FnMut(&[u8]) + Send + 'static,
     {
         let input = midir::MidiInput::new("MidiIo-in").unwrap();
 
-        let port = input.ports().into_iter().find(|info| {
+        let midir_port = input.ports().into_iter().find(|info| {
             input
                 .port_name(info)
                 .ok()
                 .map(|name| name == port.0)
                 .unwrap_or(false)
-        });
+        })?;
 
-        port.and_then(move |port| {
-            input
-                .connect(
-                    &port,
-                    "MidiIo-in-conn",
-                    move |_, data, _| {
-                        callback(data);
-                        //
-                    },
-                    (),
-                )
-                .inspect_err(|err| log::error!("MIDI-in connection fail: {err}"))
-                .ok()
-        })
-        .map(MidiInputConnection)
+        Some((
+            port.clone(),
+            MidiInputConnection(
+                input
+                    .connect(
+                        &midir_port,
+                        "MidiIo-in-conn",
+                        move |_, data, _| {
+                            callback(data);
+                            //
+                        },
+                        (),
+                    )
+                    .inspect_err(|err| log::error!("MIDI-in connection fail: {err}"))
+                    .ok()?,
+            ),
+        ))
     }
 }
 

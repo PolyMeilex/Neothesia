@@ -6,6 +6,7 @@ use crate::{
     utils::BoxFuture,
 };
 use nuon::TextJustify;
+use piano_layout::Key;
 
 use super::UiState;
 
@@ -19,13 +20,8 @@ fn button() -> nuon::Button {
 
 impl super::MenuScene {
     pub fn settings_page_ui(&mut self, ctx: &mut Context, ui: &mut nuon::Ui) {
-        // Establish the selected output before the test piano is used, so the first note does
-        // not need to create an output connection or load a SoundFont.
-        super::state::connect_output(&self.state, ctx);
-        if !self.settings_input_connected {
-            super::state::connect_input(&self.state, ctx);
-            self.settings_input_connected = true;
-        }
+        // Establish the selected output/input connection
+        super::state::connect_io(&self.state, ctx);
 
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
@@ -210,7 +206,6 @@ impl super::MenuScene {
                     ctx.config
                         .set_output(output.is_not_dummy().then(|| output.to_string()));
                     data.selected_output = Some(output.clone());
-                    super::state::connect_output(data, ctx);
                     self.popup.close();
                 }
             });
@@ -343,8 +338,6 @@ impl super::MenuScene {
                 {
                     ctx.config.set_input(Some(&input));
                     data.selected_input = Some(input.clone());
-                    super::state::connect_input(data, ctx);
-                    self.settings_input_connected = true;
                     self.popup.close();
                 }
             });
@@ -368,7 +361,7 @@ impl super::MenuScene {
 impl super::MenuScene {
     fn keyboard_layout_preview(
         &mut self,
-        ctx: &mut Context,
+        ctx: &Context,
         keyboard_w: f32,
         keyboard_h: f32,
         ui: &mut nuon::Ui,
@@ -390,6 +383,63 @@ impl super::MenuScene {
             range,
         );
 
+        let mut build_key = |ui: &mut nuon::Ui, key: &Key| {
+            let note = layout.range.start() + key.id() as u8;
+            let x = key.x();
+            let y = 0.0;
+            let width = key.width();
+            let height = key.height();
+
+            let event = nuon::click_area(format!("settings-preview-key-{note}"))
+                .pos(key.x(), 0.0)
+                .size(key.width(), key.height())
+                .build(ui);
+
+            if event.is_press_start() {
+                ctx.output_manager.connection().midi_event(
+                    0.into(),
+                    midi_file::midly::MidiMessage::NoteOn {
+                        key: note.into(),
+                        vel: 100.into(),
+                    },
+                );
+                self.midi_input_state.note_on(note);
+            }
+            if event.is_press_end() {
+                ctx.output_manager.connection().midi_event(
+                    0.into(),
+                    midi_file::midly::MidiMessage::NoteOff {
+                        key: note.into(),
+                        vel: 0.into(),
+                    },
+                );
+                self.midi_input_state.note_off(note);
+            }
+
+            nuon::quad()
+                .pos(x, y)
+                .size(width, height)
+                .color(if self.midi_input_state.is_pressed(note) {
+                    [122, 104, 168, 255]
+                } else if key.kind().is_sharp() {
+                    [0, 0, 0, 255]
+                } else {
+                    [0; 4]
+                })
+                .build(ui);
+        };
+
+        nuon::layer().build(ui, |ui| {
+            for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
+                build_key(ui, key);
+            }
+        });
+
+        for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
+            build_key(ui, key);
+        }
+
+        // Key borders
         let mut neutral = layout
             .keys
             .iter()
@@ -404,73 +454,6 @@ impl super::MenuScene {
                     .size(1.0, key.height())
                     .color([150; 3])
                     .build(ui);
-            }
-        }
-
-        for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
-            let note = layout.range.start() + key.id() as u8;
-            if self.settings_key_is_pressed(note) {
-                nuon::quad()
-                    .pos(key.x(), 0.0)
-                    .size(key.width(), key.height())
-                    .color([122, 104, 168])
-                    .build(ui);
-            }
-        }
-
-        for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
-            let note = layout.range.start() + key.id() as u8;
-            nuon::quad()
-                .pos(key.x(), 0.0)
-                .size(key.width(), key.height())
-                .color(if self.settings_key_is_pressed(note) {
-                    [122, 104, 168]
-                } else {
-                    [0; 3]
-                })
-                .build(ui);
-        }
-
-        let mut hovered_key = None;
-        let mut started_press = false;
-
-        for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
-            let note = layout.range.start() + key.id() as u8;
-            let event = nuon::click_area(format!("settings-preview-key-{note}"))
-                .pos(key.x(), 0.0)
-                .size(key.width(), key.height())
-                .build(ui);
-
-            if event.is_press_start() {
-                started_press = true;
-                self.press_settings_test_key(ctx, note);
-            }
-
-            if event.is_hovered() {
-                hovered_key = Some(note);
-            }
-        }
-
-        for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
-            let note = layout.range.start() + key.id() as u8;
-            let event = nuon::click_area(format!("settings-preview-key-{note}"))
-                .pos(key.x(), 0.0)
-                .size(key.width(), key.height())
-                .build(ui);
-
-            if event.is_press_start() {
-                started_press = true;
-                self.press_settings_test_key(ctx, note);
-            }
-
-            if hovered_key.is_none() && event.is_hovered() {
-                hovered_key = Some(note);
-            }
-        }
-
-        if !started_press && ctx.window_state.left_mouse_btn && self.settings_test_key.is_some() {
-            if let Some(note) = hovered_key {
-                self.press_settings_test_key(ctx, note);
             }
         }
     }

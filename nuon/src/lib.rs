@@ -866,6 +866,10 @@ impl ClickAreaEvent {
         matches!(self, ClickAreaEvent::PressStart)
     }
 
+    pub fn is_press_end(&self) -> bool {
+        matches!(self, ClickAreaEvent::PressEnd { .. })
+    }
+
     pub fn is_hovered(&self) -> bool {
         matches!(self, ClickAreaEvent::Idle { hovered: true, .. })
     }
@@ -959,7 +963,7 @@ impl ClickArea {
             ClickAreaEvent::PressEnd { clicked: mouseover }
         } else {
             ClickAreaEvent::Idle {
-                hovered: mouseover,
+                hovered: mouseover && ui.active.is_none(),
                 pressed,
             }
         }

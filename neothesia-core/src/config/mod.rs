@@ -158,12 +158,10 @@ impl Config {
         self.history.last_opened_song = last_opened_song;
     }
 
-    pub fn soundfont_path(&self) -> Option<&PathBuf> {
-        self.synth.soundfont_path.as_ref()
-    }
-
-    pub fn effective_soundfont_path(&self) -> Option<PathBuf> {
-        self.soundfont_path()
+    pub fn soundfont_path(&self) -> Option<PathBuf> {
+        self.synth
+            .soundfont_path
+            .as_ref()
             .cloned()
             .or_else(crate::utils::resources::default_sf2)
     }

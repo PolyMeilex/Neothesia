@@ -234,8 +234,9 @@ impl super::MenuScene {
                 .title("SoundFont")
                 .subtitle(
                     ctx.config
-                        .effective_soundfont_path()
-                        .and_then(|path| path.file_name().map(|name| name.to_owned()))
+                        .soundfont_path()
+                        .as_ref()
+                        .and_then(|path| path.file_name())
                         .map(|name| name.to_string_lossy().to_string())
                         .unwrap_or_default(),
                 )

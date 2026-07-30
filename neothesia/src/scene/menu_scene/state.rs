@@ -107,7 +107,7 @@ pub enum Page {
     TrackSelection,
 }
 
-fn connect_io(data: &UiState, ctx: &mut Context) {
+pub fn connect_io(data: &UiState, ctx: &mut Context) {
     if let Some(out) = data.selected_output.clone() {
         let out = match out {
             #[cfg(feature = "synth")]

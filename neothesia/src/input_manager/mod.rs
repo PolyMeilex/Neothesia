@@ -6,7 +6,7 @@ use crate::NeothesiaEvent;
 pub struct InputManager {
     input: midi_io::MidiInputManager,
     tx: EventLoopProxy<NeothesiaEvent>,
-    current_connection: Option<midi_io::MidiInputConnection>,
+    current_connection: Option<(midi_io::MidiInputPort, midi_io::MidiInputConnection)>,
 }
 
 impl InputManager {
@@ -25,6 +25,12 @@ impl InputManager {
 
     pub fn connect_input(&mut self, port: midi_io::MidiInputPort) {
         let tx = self.tx.clone();
+
+        if let Some((current, _)) = self.current_connection.as_ref()
+            && current == &port
+        {
+            return;
+        }
 
         // Close the connection first, as Windows does not like it when we hold 2 connections
         self.current_connection = None;

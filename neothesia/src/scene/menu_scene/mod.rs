@@ -11,7 +11,7 @@ use neo_btn::{neo_btn, neo_btn_icon};
 mod settings;
 mod tracks;
 
-use std::{future::Future, time::Duration};
+use std::{collections::HashSet, future::Future, time::Duration};
 
 use crate::utils::{BoxFuture, noop_waker_ref, window::WinitEvent};
 use neothesia_core::render::{BgPipeline, ImageIdentifier, QuadRenderer, TextRenderer};
@@ -22,6 +22,7 @@ use winit::{
 };
 
 use crate::{NeothesiaEvent, context::Context, icons, scene::Scene, song::Song};
+use midi_file::midly::MidiMessage;
 
 use super::NuonRenderer;
 
@@ -58,6 +59,25 @@ impl Popup {
     }
 }
 
+#[derive(Default, Debug)]
+struct MidiInputState {
+    input_keys: HashSet<u8>,
+}
+
+impl MidiInputState {
+    fn note_on(&mut self, note: u8) {
+        self.input_keys.insert(note);
+    }
+
+    fn note_off(&mut self, note: u8) {
+        self.input_keys.remove(&note);
+    }
+
+    fn is_pressed(&self, note: u8) -> bool {
+        self.input_keys.contains(&note)
+    }
+}
+
 pub struct MenuScene {
     bg_pipeline: BgPipeline,
     text_renderer: TextRenderer,
@@ -75,6 +95,7 @@ pub struct MenuScene {
 
     tracks_scroll: nuon::ScrollState,
     settings_scroll: nuon::ScrollState,
+    midi_input_state: MidiInputState,
     popup: Popup,
 }
 
@@ -109,6 +130,7 @@ impl MenuScene {
             nuon: nuon::Ui::new(),
             tracks_scroll: nuon::ScrollState::new(),
             settings_scroll: nuon::ScrollState::new(),
+            midi_input_state: MidiInputState::default(),
             popup: Popup::None,
         }
     }
@@ -395,6 +417,24 @@ impl Scene for MenuScene {
                     self.state.go_back();
                 }
             }
+        }
+    }
+
+    fn midi_event(&mut self, ctx: &mut Context, channel: u8, message: &MidiMessage) {
+        match message {
+            MidiMessage::NoteOn { key, .. } => {
+                self.midi_input_state.note_on(key.as_int());
+                ctx.output_manager
+                    .connection()
+                    .midi_event(channel.into(), *message);
+            }
+            MidiMessage::NoteOff { key, .. } => {
+                self.midi_input_state.note_off(key.as_int());
+                ctx.output_manager
+                    .connection()
+                    .midi_event(channel.into(), *message);
+            }
+            _ => {}
         }
     }
 }

@@ -6,6 +6,7 @@ use crate::{
     utils::BoxFuture,
 };
 use nuon::TextJustify;
+use piano_layout::Key;
 
 use super::UiState;
 
@@ -19,6 +20,9 @@ fn button() -> nuon::Button {
 
 impl super::MenuScene {
     pub fn settings_page_ui(&mut self, ctx: &mut Context, ui: &mut nuon::Ui) {
+        // Establish the selected output/input connection
+        super::state::connect_io(&self.state, ctx);
+
         let win_w = ctx.window_state.logical_size.width;
         let win_h = ctx.window_state.logical_size.height;
 
@@ -95,7 +99,7 @@ impl super::MenuScene {
                 nuon::translate().y(10.0).add_to_current(ui);
 
                 let keyboard_h = 100.0;
-                self::keyboard_layout_preview(ctx, body_w, keyboard_h, ui);
+                self.keyboard_layout_preview(ctx, body_w, keyboard_h, ui);
                 nuon::translate().y(keyboard_h).add_to_current(ui);
 
                 nuon::settings_section("Render")
@@ -354,52 +358,104 @@ impl super::MenuScene {
     }
 }
 
-fn keyboard_layout_preview(ctx: &Context, keyboard_w: f32, keyboard_h: f32, ui: &mut nuon::Ui) {
-    nuon::quad()
-        .size(keyboard_w, keyboard_h)
-        .color([255; 3])
-        .border_radius([7.0; 4])
-        .build(ui);
-
-    let range = piano_layout::KeyboardRange::new(ctx.config.piano_range());
-
-    let white_count = range.white_count();
-    let neutral_width = keyboard_w / white_count as f32;
-    let neutral_height = keyboard_h;
-
-    let layout = piano_layout::KeyboardLayout::from_range(
-        piano_layout::Sizing::new(neutral_width, neutral_height),
-        range,
-    );
-
-    let mut neutral = layout
-        .keys
-        .iter()
-        .filter(|key| key.kind().is_neutral())
-        .peekable();
-
-    while let Some(key) = neutral.next() {
-        if neutral.peek().is_some() {
-            nuon::quad()
-                .x(key.x() + key.width())
-                .y(0.0)
-                .size(1.0, key.height())
-                .color([150; 3])
-                .build(ui);
-        }
-    }
-
-    for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
-        let x = key.x();
-        let y = 0.0;
-        let width = key.width();
-        let height = key.height();
-
+impl super::MenuScene {
+    fn keyboard_layout_preview(
+        &mut self,
+        ctx: &Context,
+        keyboard_w: f32,
+        keyboard_h: f32,
+        ui: &mut nuon::Ui,
+    ) {
         nuon::quad()
-            .pos(x, y)
-            .size(width, height)
-            .color([0; 3])
+            .size(keyboard_w, keyboard_h)
+            .color([255; 3])
+            .border_radius([7.0; 4])
             .build(ui);
+
+        let range = piano_layout::KeyboardRange::new(ctx.config.piano_range());
+
+        let white_count = range.white_count();
+        let neutral_width = keyboard_w / white_count as f32;
+        let neutral_height = keyboard_h;
+
+        let layout = piano_layout::KeyboardLayout::from_range(
+            piano_layout::Sizing::new(neutral_width, neutral_height),
+            range,
+        );
+
+        let mut build_key = |ui: &mut nuon::Ui, key: &Key| {
+            let note = layout.range.start() + key.id() as u8;
+            let x = key.x();
+            let y = 0.0;
+            let width = key.width();
+            let height = key.height();
+
+            let event = nuon::click_area(format!("settings-preview-key-{note}"))
+                .pos(key.x(), 0.0)
+                .size(key.width(), key.height())
+                .build(ui);
+
+            if event.is_press_start() {
+                ctx.output_manager.connection().midi_event(
+                    0.into(),
+                    midi_file::midly::MidiMessage::NoteOn {
+                        key: note.into(),
+                        vel: 100.into(),
+                    },
+                );
+                self.midi_input_state.note_on(note);
+            }
+            if event.is_press_end() {
+                ctx.output_manager.connection().midi_event(
+                    0.into(),
+                    midi_file::midly::MidiMessage::NoteOff {
+                        key: note.into(),
+                        vel: 0.into(),
+                    },
+                );
+                self.midi_input_state.note_off(note);
+            }
+
+            nuon::quad()
+                .pos(x, y)
+                .size(width, height)
+                .color(if self.midi_input_state.is_pressed(note) {
+                    [122, 104, 168, 255]
+                } else if key.kind().is_sharp() {
+                    [0, 0, 0, 255]
+                } else {
+                    [0; 4]
+                })
+                .build(ui);
+        };
+
+        nuon::layer().build(ui, |ui| {
+            for key in layout.keys.iter().filter(|key| key.kind().is_sharp()) {
+                build_key(ui, key);
+            }
+        });
+
+        for key in layout.keys.iter().filter(|key| key.kind().is_neutral()) {
+            build_key(ui, key);
+        }
+
+        // Key borders
+        let mut neutral = layout
+            .keys
+            .iter()
+            .filter(|key| key.kind().is_neutral())
+            .peekable();
+
+        while let Some(key) = neutral.next() {
+            if neutral.peek().is_some() {
+                nuon::quad()
+                    .x(key.x() + key.width())
+                    .y(0.0)
+                    .size(1.0, key.height())
+                    .color([150; 3])
+                    .build(ui);
+            }
+        }
     }
 }
 

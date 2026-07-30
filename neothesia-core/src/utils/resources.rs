@@ -36,10 +36,15 @@ pub fn default_sf2() -> Option<PathBuf> {
 
         let flatpak = PathBuf::from("/app/share/neothesia/default.sf2");
         if flatpak.exists() {
-            Some(flatpak)
-        } else {
-            None
+            return Some(flatpak);
         }
+
+        // Support `cargo run` from a checkout, where the SoundFont has not
+        // been installed into the executable's prefix yet.
+        let development = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("default.sf2");
+        development.exists().then_some(development)
     }
 
     #[cfg(target_os = "windows")]

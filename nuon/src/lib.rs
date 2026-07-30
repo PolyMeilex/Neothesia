@@ -274,6 +274,7 @@ pub struct ImageRenderElement {
 pub struct Ui {
     pub hovered: Option<Id>,
     pub active: Option<Id>,
+    pub active_widget_is_still_alive: bool,
 
     pointer_pos: Point,
     pointer_pos_delta: Point,
@@ -296,6 +297,7 @@ impl Ui {
         Self {
             hovered: None,
             active: None,
+            active_widget_is_still_alive: false,
             pointer_pos: Point::new(-1.0, -1.0),
             pointer_pos_delta: Point::new(0.0, 0.0),
             mouse_pressed: false,
@@ -337,6 +339,12 @@ impl Ui {
         self.layers.clear();
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
+        if std::mem::take(&mut self.active_widget_is_still_alive) {
+            // Active widget will overwrite this to true if it is still alive next frame
+        } else {
+            // Active widget died
+            self.active = None;
+        }
     }
 }
 
@@ -936,10 +944,15 @@ impl ClickArea {
 
         if ui.mouse_pressed && mouseover && ui.active.is_none() {
             ui.active = Some(id);
+            ui.active_widget_is_still_alive = true;
             return ClickAreaEvent::PressStart;
         }
 
         let pressed = ui.active == Some(id);
+
+        if pressed {
+            ui.active_widget_is_still_alive = true;
+        }
 
         if !ui.mouse_down && pressed {
             ui.active = None;

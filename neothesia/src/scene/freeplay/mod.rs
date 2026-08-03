@@ -11,7 +11,7 @@ use crate::{
     NeothesiaEvent,
     context::Context,
     scene::{
-        MouseToMidiEventState, NuonRenderer, Scene,
+        MouseToMidiEventState, NuonRenderer, Scene, pc_keyboard::PcKeyboard,
         freeplay::recorder::{FreeplayRecorder, Preview, RecorderStatus},
         playing_scene::Keyboard,
     },
@@ -51,6 +51,7 @@ pub struct FreeplayScene {
     nuon_renderer: NuonRenderer,
     nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
+    pc_keyboard: PcKeyboard,
     deduced_chord_name: String,
 
     recorder: FreeplayRecorder,
@@ -98,6 +99,7 @@ impl FreeplayScene {
             nuon_renderer: NuonRenderer::new(ctx),
             nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
+            pc_keyboard: PcKeyboard::default(),
             deduced_chord_name: String::new(),
             recorder: FreeplayRecorder::default(),
             recorder_status: RecorderStatus::default(),
@@ -247,7 +249,7 @@ impl Scene for FreeplayScene {
         }
 
         super::handle_nuon_window_event(&mut self.nuon, event, ctx);
-        super::handle_pc_keyboard_to_midi_event(ctx, event);
+        super::handle_pc_keyboard_to_midi_event(ctx, &mut self.pc_keyboard, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,
             &mut self.mouse_to_midi_state,

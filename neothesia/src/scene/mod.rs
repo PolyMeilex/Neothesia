@@ -1,5 +1,6 @@
 pub mod freeplay;
 pub mod menu_scene;
+pub mod pc_keyboard;
 pub mod playing_scene;
 
 use crate::{
@@ -21,12 +22,16 @@ pub trait Scene {
     fn midi_event(&mut self, _ctx: &mut Context, _channel: u8, _message: &MidiMessage) {}
 }
 
-pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) {
+pub fn handle_pc_keyboard_to_midi_event(
+    ctx: &mut Context,
+    pc_keyboard: &mut pc_keyboard::PcKeyboard,
+    event: &WindowEvent,
+) {
     let WindowEvent::KeyboardInput {
         event:
             KeyEvent {
                 state,
-                logical_key: Key::Character(ch),
+                logical_key: Key::Character(ch_str),
                 repeat: false,
                 ..
             },
@@ -35,32 +40,29 @@ pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) 
     else {
         return;
     };
-
-    let mut note: u8 = match ch.as_str() {
-        "a" => 0,
-        "w" => 1,
-        "s" => 2,
-        "e" => 3,
-        "d" => 4,
-        "f" => 5,
-        "t" => 6,
-        "g" => 7,
-        "y" => 8,
-        "h" => 9,
-        "u" => 10,
-        "j" => 11,
-        "k" => 12,
-        "o" => 13,
-        "l" => 14,
-        "p" => 15,
-        ";" => 16,
-        "'" => 17,
-        _ => return,
+    let Some(ch) = ch_str.chars().next() else {
+        log::warn!("Key event char is empty");
+        return;
     };
 
-    note += 21; // Start of 88 keyboard
-    note += 3; // Offset to C
-    note += 12 * 3; // Move 3oct up
+    if let Some(delta) = match ch {
+        'z' => Some(-1),
+        'x' => Some(1),
+        _ => None,
+    } {
+        if *state == ElementState::Pressed {
+            pc_keyboard.shift_octave(delta);
+        }
+        return;
+    }
+
+    let Some(index) = pc_keyboard::key_index(ch) else {
+        return;
+    };
+
+    let Some(note) = pc_keyboard.note_for(index, &ctx.config.piano_range()) else {
+        return;
+    };
 
     let message = match state {
         ElementState::Pressed => MidiMessage::NoteOn {

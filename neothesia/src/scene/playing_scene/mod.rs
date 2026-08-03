@@ -10,7 +10,7 @@ use winit::{
 
 use self::top_bar::TopBar;
 
-use super::{NuonRenderer, Scene};
+use super::{NuonRenderer, Scene, pc_keyboard::PcKeyboard};
 use crate::{
     NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
     song::Song, utils::window::WinitEvent,
@@ -49,6 +49,7 @@ pub struct PlayingScene {
 
     nuon: nuon::Ui,
     mouse_to_midi_state: MouseToMidiEventState,
+    pc_keyboard: PcKeyboard,
 
     deduced_chord_name: String,
 
@@ -128,6 +129,7 @@ impl PlayingScene {
 
             nuon: nuon::Ui::new(),
             mouse_to_midi_state: MouseToMidiEventState::default(),
+            pc_keyboard: PcKeyboard::default(),
             deduced_chord_name: String::new(),
 
             top_bar: TopBar::new(),
@@ -318,7 +320,7 @@ impl Scene for PlayingScene {
         }
 
         handle_settings_input(ctx, &mut self.toast_manager, &mut self.waterfall, event);
-        super::handle_pc_keyboard_to_midi_event(ctx, event);
+        super::handle_pc_keyboard_to_midi_event(ctx, &mut self.pc_keyboard, event);
         super::handle_mouse_to_midi_event(
             &mut self.keyboard,
             &mut self.mouse_to_midi_state,

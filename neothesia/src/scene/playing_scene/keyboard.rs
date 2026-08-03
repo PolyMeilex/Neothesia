@@ -122,7 +122,6 @@ impl Keyboard {
         if self.range().contains(key) {
             let id = key as usize - range_start;
             let key = &mut self.renderer.key_states_mut()[id];
-
             key.set_pressed_by_user(is_on, &self.pressed_by_user_colors);
             self.renderer.invalidate_cache();
         }

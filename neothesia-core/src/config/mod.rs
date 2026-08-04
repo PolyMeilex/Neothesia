@@ -5,8 +5,8 @@ mod model;
 pub use model::ColorSchemaV1;
 use model::{
     AppearanceConfig, AppearanceConfigV1, DevicesConfig, DevicesConfigV1, History, HistoryV1,
-    LayoutConfig, LayoutConfigV1, Model, PlaybackConfig, PlaybackConfigV1, SynthConfig,
-    SynthConfigV1, WaterfallConfig, WaterfallConfigV1,
+    LayoutConfig, LayoutConfigV1, Model, PcKeyboardConfig, PcKeyboardConfigV1, PlaybackConfig,
+    PlaybackConfigV1, SynthConfig, SynthConfigV1, WaterfallConfig, WaterfallConfigV1,
 };
 
 fn ron_options() -> ron::Options {
@@ -44,6 +44,7 @@ impl Model {
             synth,
             keyboard_layout,
             appearance,
+            pc_keyboard,
         } = config;
 
         Self {
@@ -54,6 +55,7 @@ impl Model {
             keyboard_layout: LayoutConfig::V1(keyboard_layout),
             devices: DevicesConfig::V1(devices),
             appearance: AppearanceConfig::V1(appearance),
+            pc_keyboard: PcKeyboardConfig::V1(pc_keyboard),
         }
     }
 
@@ -80,6 +82,9 @@ impl Model {
             keyboard_layout: match self.keyboard_layout {
                 LayoutConfig::V1(v) => v,
             },
+            pc_keyboard: match self.pc_keyboard {
+                PcKeyboardConfig::V1(v) => v,
+            },
         }
     }
 }
@@ -93,6 +98,7 @@ pub struct Config {
     synth: SynthConfigV1,
     history: HistoryV1,
     keyboard_layout: LayoutConfigV1,
+    pc_keyboard: PcKeyboardConfigV1,
 }
 
 impl Default for Config {
@@ -253,6 +259,21 @@ impl Config {
 
     pub fn set_speed_multiplier(&mut self, speed_multiplier: f32) {
         self.playback.speed_multiplier = speed_multiplier.max(0.0);
+    }
+
+    pub fn pc_keyboard_octave(&self) -> u8 {
+        self.pc_keyboard.octave_shift.min(10)
+    }
+
+    pub fn pc_keyboard_shift_octave_up(&mut self) {
+        self.pc_keyboard.octave_shift += 1;
+    }
+
+    pub fn pc_keyboard_shift_octave_down(&mut self) {
+        if self.pc_keyboard.octave_shift == 0 {
+            return;
+        }
+        self.pc_keyboard.octave_shift -= 1;
     }
 
     pub fn save(&self) {

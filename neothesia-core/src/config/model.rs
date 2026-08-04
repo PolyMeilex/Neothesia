@@ -19,6 +19,8 @@ pub struct Model {
     pub devices: DevicesConfig,
     #[serde(default)]
     pub appearance: AppearanceConfig,
+    #[serde(default)]
+    pub pc_keyboard: PcKeyboardConfig,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -195,6 +197,25 @@ impl Default for AppearanceConfig {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PcKeyboardConfigV1 {
+    #[serde(default = "default_octave_shift")]
+    pub octave_shift: u8,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum PcKeyboardConfig {
+    V1(PcKeyboardConfigV1),
+}
+
+impl Default for PcKeyboardConfig {
+    fn default() -> Self {
+        Self::V1(PcKeyboardConfigV1 {
+            octave_shift: default_octave_shift(),
+        })
+    }
+}
+
 fn default_piano_range() -> (u8, u8) {
     (21, 108)
 }
@@ -266,4 +287,8 @@ fn default_color_schema() -> Vec<ColorSchemaV1> {
 
 fn default_output() -> Option<String> {
     Some("Buildin Synth".into())
+}
+
+fn default_octave_shift() -> u8 {
+    5
 }

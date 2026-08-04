@@ -11,7 +11,7 @@ use std::{collections::HashMap, time::Duration};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
     event::{ElementState, KeyEvent, WindowEvent},
-    keyboard::Key,
+    keyboard::{KeyCode, PhysicalKey},
 };
 
 pub trait Scene {
@@ -26,7 +26,7 @@ pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) 
         event:
             KeyEvent {
                 state,
-                logical_key: Key::Character(ch),
+                physical_key: PhysicalKey::Code(key_code),
                 repeat: false,
                 ..
             },
@@ -36,31 +36,40 @@ pub fn handle_pc_keyboard_to_midi_event(ctx: &mut Context, event: &WindowEvent) 
         return;
     };
 
-    let mut note: u8 = match ch.as_str() {
-        "a" => 0,
-        "w" => 1,
-        "s" => 2,
-        "e" => 3,
-        "d" => 4,
-        "f" => 5,
-        "t" => 6,
-        "g" => 7,
-        "y" => 8,
-        "h" => 9,
-        "u" => 10,
-        "j" => 11,
-        "k" => 12,
-        "o" => 13,
-        "l" => 14,
-        "p" => 15,
-        ";" => 16,
-        "'" => 17,
+    if *state == ElementState::Pressed {
+        match key_code {
+            KeyCode::KeyZ => ctx.config.pc_keyboard_shift_octave_down(),
+            KeyCode::KeyX => ctx.config.pc_keyboard_shift_octave_up(),
+            _ => {}
+        }
+    }
+
+    let mut note = match key_code {
+        KeyCode::KeyA => 0,
+        KeyCode::KeyW => 1,
+        KeyCode::KeyS => 2,
+        KeyCode::KeyE => 3,
+        KeyCode::KeyD => 4,
+        KeyCode::KeyF => 5,
+        KeyCode::KeyT => 6,
+        KeyCode::KeyG => 7,
+        KeyCode::KeyY => 8,
+        KeyCode::KeyH => 9,
+        KeyCode::KeyU => 10,
+        KeyCode::KeyJ => 11,
+        KeyCode::KeyK => 12,
+        KeyCode::KeyO => 13,
+        KeyCode::KeyL => 14,
+        KeyCode::KeyP => 15,
+        KeyCode::Semicolon => 16,
+        KeyCode::Quote => 17,
         _ => return,
     };
 
-    note += 21; // Start of 88 keyboard
-    note += 3; // Offset to C
-    note += 12 * 3; // Move 3oct up
+    note += 12 * ctx.config.pc_keyboard_octave();
+    if note > 127 {
+        return;
+    }
 
     let message = match state {
         ElementState::Pressed => MidiMessage::NoteOn {

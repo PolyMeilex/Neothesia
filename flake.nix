@@ -79,6 +79,7 @@
           pkgs.pkg-config
           pkgs.ffmpeg_8.dev
         ];
+        buildInputs = [pkgs.ffmpeg_8.lib];
         meta.mainProgram = "neothesia-cli";
         src = workspace;
       };

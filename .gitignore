@@ -4,3 +4,6 @@
 /out
 .DS_Store
 node_modules
+
+# nix build output path
+/result

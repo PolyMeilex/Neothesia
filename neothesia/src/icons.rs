@@ -59,3 +59,49 @@ pub fn record_stop_icon() -> &'static str {
 pub fn save_icon() -> &'static str {
     "\u{f7D9}"
 }
+
+pub mod sheet {
+    pub fn stem() -> &'static str {
+        "\u{1D165}"
+    }
+
+    pub fn f_clef() -> &'static str {
+        "\u{E062}"
+    }
+
+    pub fn g_clef() -> &'static str {
+        "\u{E050}"
+    }
+
+    pub fn accidental_flat() -> &'static str {
+        "\u{E260}"
+    }
+
+    pub fn accidental_sharp() -> &'static str {
+        "\u{E262}"
+    }
+
+    pub fn notehead_whole() -> &'static str {
+        "\u{E0A2}"
+    }
+
+    pub fn notehead_black() -> &'static str {
+        "\u{E0A4}"
+    }
+
+    pub fn flag_8th() -> &'static str {
+        "\u{E240}"
+    }
+
+    pub fn flag_16th() -> &'static str {
+        "\u{E242}"
+    }
+
+    pub fn flag_64th() -> &'static str {
+        "\u{E246}"
+    }
+
+    pub fn flag_128th() -> &'static str {
+        "\u{E248}"
+    }
+}

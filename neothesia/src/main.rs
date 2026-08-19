@@ -48,6 +48,7 @@ struct Neothesia {
     game_scene: Box<dyn Scene>,
     // We are dropping surface last, because of some wgpu internal ref-counting errors that cause libwayland crasch
     surface: Surface,
+    is_occluded: bool,
 }
 
 impl Neothesia {
@@ -62,6 +63,7 @@ impl Neothesia {
             context,
             surface,
             game_scene: Box::new(game_scene),
+            is_occluded: false,
         }
     }
 
@@ -111,6 +113,10 @@ impl Neothesia {
                 }
             }
             WindowEvent::RedrawRequested => {
+                if self.is_occluded {
+                    return;
+                }
+
                 let delta = self.context.frame_timestamp.elapsed();
                 self.context.frame_timestamp = std::time::Instant::now();
 
@@ -120,6 +126,9 @@ impl Neothesia {
             }
             WindowEvent::CloseRequested => {
                 event_loop.exit();
+            }
+            WindowEvent::Occluded(is_occluded) => {
+                self.is_occluded = *is_occluded;
             }
             _ => {}
         }

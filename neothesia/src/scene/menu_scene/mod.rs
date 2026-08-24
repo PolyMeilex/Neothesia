@@ -434,7 +434,13 @@ impl Scene for MenuScene {
                     .connection()
                     .midi_event(channel.into(), *message);
             }
-            _ => {}
+            _ => {
+                if ctx.config.controller_passthrough() {
+                    ctx.output_manager
+                        .connection()
+                        .midi_event(channel.into(), *message);
+                }
+            }
         }
     }
 }

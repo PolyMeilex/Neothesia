@@ -132,6 +132,14 @@ impl Config {
         self.devices.separate_channels
     }
 
+    pub fn set_controller_passthrough(&mut self, controller_passthrough: bool) {
+        self.devices.controller_passthrough = controller_passthrough;
+    }
+
+    pub fn controller_passthrough(&self) -> bool {
+        self.devices.controller_passthrough
+    }
+
     pub fn vertical_guidelines(&self) -> bool {
         self.appearance.vertical_guidelines
     }

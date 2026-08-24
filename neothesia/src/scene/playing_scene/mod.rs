@@ -333,10 +333,26 @@ impl Scene for PlayingScene {
         super::handle_nuon_window_event(&mut self.nuon, event, ctx);
     }
 
-    fn midi_event(&mut self, _ctx: &mut Context, channel: u8, message: &MidiMessage) {
+    fn midi_event(&mut self, ctx: &mut Context, channel: u8, message: &MidiMessage) {
+        if ctx.config.controller_passthrough() && is_controller_message(message) {
+            ctx.output_manager
+                .connection()
+                .midi_event(channel.into(), *message);
+        }
         self.player.user_midi_event(channel, message);
         self.keyboard.user_midi_event(message);
     }
+}
+
+fn is_controller_message(message: &MidiMessage) -> bool {
+    matches!(
+        message,
+        MidiMessage::Controller { .. }
+            | MidiMessage::PitchBend { .. }
+            | MidiMessage::ChannelAftertouch { .. }
+            | MidiMessage::Aftertouch { .. }
+            | MidiMessage::ProgramChange { .. }
+    )
 }
 
 fn handle_settings_input(

@@ -282,18 +282,6 @@ impl super::MenuScene {
                 ctx.config
                     .set_separate_channels(!ctx.config.separate_channels());
             }
-
-            spacer(ui);
-
-            if nuon::settings_row_toggler()
-                .title("Controller Pass-Through")
-                .subtitle("Forward knobs, faders, pitch bend and CC to MIDI output")
-                .value(ctx.config.controller_passthrough())
-                .build(ui, rows)
-            {
-                ctx.config
-                    .set_controller_passthrough(!ctx.config.controller_passthrough());
-            }
         }
     }
 }

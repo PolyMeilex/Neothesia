@@ -135,9 +135,6 @@ pub struct DevicesConfigV1 {
 
     #[serde(default = "default_separate_channels")]
     pub separate_channels: bool,
-
-    #[serde(default = "default_controller_passthrough")]
-    pub controller_passthrough: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -151,7 +148,6 @@ impl Default for DevicesConfig {
             output: default_output(),
             input: None,
             separate_channels: default_separate_channels(),
-            controller_passthrough: default_controller_passthrough(),
         })
     }
 }
@@ -258,10 +254,6 @@ fn default_glow() -> bool {
 
 fn default_separate_channels() -> bool {
     false
-}
-
-fn default_controller_passthrough() -> bool {
-    true
 }
 
 fn default_color_schema() -> Vec<ColorSchemaV1> {

@@ -212,7 +212,8 @@ impl MidiPlayer {
         &self.play_along
     }
 
-    pub fn user_midi_event(&mut self, _channel: u8, message: &MidiMessage) {
+    pub fn user_midi_event(&mut self, channel: u8, message: &MidiMessage) {
+        self.output.midi_event(u4::new(channel), *message);
         self.play_along.midi_event(MidiEventSource::User, message);
     }
 }

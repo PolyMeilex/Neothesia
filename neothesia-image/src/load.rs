@@ -28,7 +28,7 @@ pub fn load_png(
         ColorType::Rgba => filled.to_vec(),
         ColorType::Rgb => {
             let mut v = Vec::with_capacity((filled.len() / 3) * 4);
-            for chunk in filled.chunks_exact(3) {
+            for chunk in filled.as_chunks::<3>().0 {
                 v.extend_from_slice(chunk);
                 v.push(255);
             }

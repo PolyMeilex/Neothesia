@@ -424,17 +424,14 @@ impl Scene for MenuScene {
         match message {
             MidiMessage::NoteOn { key, .. } => {
                 self.midi_input_state.note_on(key.as_int());
-                ctx.output_manager
-                    .connection()
-                    .midi_event(channel.into(), *message);
             }
             MidiMessage::NoteOff { key, .. } => {
                 self.midi_input_state.note_off(key.as_int());
-                ctx.output_manager
-                    .connection()
-                    .midi_event(channel.into(), *message);
             }
             _ => {}
         }
+        ctx.output_manager
+            .connection()
+            .midi_event(channel.into(), *message);
     }
 }

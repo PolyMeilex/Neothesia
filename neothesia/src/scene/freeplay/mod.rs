@@ -261,7 +261,7 @@ impl Scene for FreeplayScene {
         self.keyboard.user_midi_event(message);
         ctx.output_manager
             .connection()
-            .midi_event(0.into(), *message);
+            .midi_event(channel.into(), *message);
 
         if let MidiMessage::NoteOn { .. } = message {
             let start = self.keyboard.layout().range.start();

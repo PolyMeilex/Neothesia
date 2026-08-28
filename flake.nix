@@ -68,6 +68,12 @@
       # `nix run github:PolyMeilex/Neothesia`
       default = inputs.self.outputs.packages.${system}.neothesia;
       neothesia = naersk.buildPackage {
+        nativeBuildInputs = [
+          pkgs.pkg-config
+        ];
+        buildInputs = [
+          pkgs.alsa-lib
+        ];
         meta.mainProgram = "neothesia";
         src = workspace;
       };
@@ -85,11 +91,38 @@
       };
     });
 
-    devShells = forAllSystems (system: pkgs: {
+    devShells = forAllSystems (system: pkgs: let
+      rustToolchain =
+        pkgs.rust-bin.nightly.latest.default.override
+        {extensions = ["rust-src" "rust-analyzer"];};
+
+      runtimeLibs = with pkgs; [
+        wayland
+        libxkbcommon
+        libGL
+        vulkan-loader
+        alsa-lib
+        libx11
+        libxcursor
+        libxrandr
+        libxi
+        ffmpeg_8.lib
+      ];
+    in {
       # `nix develop github:PolyMeilex/Neothesia`
       default = pkgs.mkShell {
-        # grab all build dependencies of all exposed packages
-        inputsFrom = pkgs.lib.attrValues inputs.self.packages.${system};
+        nativeBuildInputs = with pkgs; [
+          rustToolchain
+          pkg-config
+          ffmpeg_8.dev
+        ];
+        buildInputs = with pkgs; [
+          alsa-lib
+        ] ++ runtimeLibs;
+        shellHook = ''
+          export PKG_CONFIG_PATH="${pkgs.alsa-lib.dev}/lib/pkgconfig:${pkgs.ffmpeg_8.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath runtimeLibs}:$LD_LIBRARY_PATH"
+        '';
       };
     });
   };

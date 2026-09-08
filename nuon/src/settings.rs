@@ -241,6 +241,19 @@ impl<'a> SettingsRowSpin<'a> {
                 let h = 30.0;
                 let gap = 10.0;
 
+                // Wheel over the +/- cluster steps the value, one step per frame
+                let cluster_w = 2.0 * w + gap;
+                let delta = nuon::scroll_area()
+                    .pos(row_w - cluster_w, 0.0)
+                    .size(cluster_w, row_h)
+                    .build(ui);
+
+                if delta > 0.0 {
+                    res = SettingsRowSpinResult::Plus;
+                } else if delta < 0.0 {
+                    res = SettingsRowSpinResult::Minus;
+                }
+
                 nuon::translate().x(row_w - w).add_to_current(ui);
 
                 if button()

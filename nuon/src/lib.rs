@@ -278,6 +278,7 @@ pub struct Ui {
 
     pointer_pos: Point,
     pointer_pos_delta: Point,
+    scroll_delta: f32,
     pub mouse_pressed: bool,
     pub mouse_down: bool,
 
@@ -300,6 +301,7 @@ impl Ui {
             active_widget_is_still_alive: false,
             pointer_pos: Point::new(-1.0, -1.0),
             pointer_pos_delta: Point::new(0.0, 0.0),
+            scroll_delta: 0.0,
             mouse_pressed: false,
             mouse_down: false,
             translation_stack: TranslationStack::default(),
@@ -325,6 +327,10 @@ impl Ui {
         self.pointer_pos = pointer_pos;
     }
 
+    pub fn mouse_wheel(&mut self, delta: f32) {
+        self.scroll_delta += delta;
+    }
+
     pub fn mouse_down(&mut self) {
         self.mouse_pressed = true;
         self.mouse_down = true;
@@ -339,6 +345,8 @@ impl Ui {
         self.layers.clear();
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
+        self.scroll_delta = 0.0;
+
         if std::mem::take(&mut self.active_widget_is_still_alive) {
             // Active widget will overwrite this to true if it is still alive next frame
         } else {
@@ -569,6 +577,7 @@ impl Scroll {
 
             let max_scroll = (full_h - visible_h).max(0.0);
             state.set_max(max_scroll);
+            state.update(self::scroll_area().rect(self.rect).build(ui));
 
             if max_scroll == 0.0 {
                 return;
@@ -875,6 +884,16 @@ impl ClickAreaEvent {
     }
 }
 
+fn is_mouseover(ui: &Ui, rect: Rect) -> bool {
+    let in_scissor_rect = ui
+        .layers
+        .current_scissor_rect()
+        .map(|scissor_rect| scissor_rect.contains(ui.pointer_pos))
+        .unwrap_or(true);
+
+    in_scissor_rect && rect.contains(ui.pointer_pos)
+}
+
 pub fn click_area(id: impl Into<Id>) -> ClickArea {
     ClickArea::new(id)
 }
@@ -932,13 +951,7 @@ impl ClickArea {
     }
 
     fn check(ui: &mut Ui, id: Id, rect: Rect) -> ClickAreaEvent {
-        let in_scissor_rect = ui
-            .layers
-            .current_scissor_rect()
-            .map(|scissor_rect| scissor_rect.contains(ui.pointer_pos))
-            .unwrap_or(true);
-
-        let mouseover = in_scissor_rect && rect.contains(ui.pointer_pos);
+        let mouseover = is_mouseover(ui, rect);
 
         if mouseover {
             ui.hovered = Some(id);
@@ -966,6 +979,69 @@ impl ClickArea {
                 hovered: mouseover && ui.active.is_none(),
                 pressed,
             }
+        }
+    }
+}
+
+/// Claims the mouse wheel input of the current frame while the pointer is over it.
+#[derive(Debug, Clone, Default)]
+pub struct ScrollArea {
+    rect: Rect,
+}
+
+pub fn scroll_area() -> ScrollArea {
+    ScrollArea::new()
+}
+
+impl ScrollArea {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn rect(mut self, rect: Rect) -> Self {
+        self.rect = rect;
+        self
+    }
+
+    pub fn pos(self, x: f32, y: f32) -> Self {
+        self.x(x).y(y)
+    }
+
+    pub fn x(mut self, x: f32) -> Self {
+        self.rect.origin.x = x;
+        self
+    }
+
+    pub fn y(mut self, y: f32) -> Self {
+        self.rect.origin.y = y;
+        self
+    }
+
+    pub fn size(self, width: f32, height: f32) -> Self {
+        self.width(width).height(height)
+    }
+
+    pub fn width(mut self, width: f32) -> Self {
+        self.rect.size.width = width;
+        self
+    }
+
+    pub fn height(mut self, height: f32) -> Self {
+        self.rect.size.height = height;
+        self
+    }
+
+    /// Returns the wheel delta, `0.0` when the pointer is out of bounds
+    pub fn build(&self, ui: &mut Ui) -> f32 {
+        let rect = Rect::new(
+            ui.translation_stack.translate(self.rect.origin),
+            self.rect.size,
+        );
+
+        if is_mouseover(ui, rect) {
+            std::mem::take(&mut ui.scroll_delta)
+        } else {
+            0.0
         }
     }
 }

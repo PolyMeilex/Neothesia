@@ -433,12 +433,12 @@ impl super::MenuScene {
     ) {
         let (title, subtitle, btn_label) = match &self.range_detection {
             RangeDetection::Idle => (
-                "Calibrate".to_string(),
+                "Auto-detect".to_string(),
                 "Auto-detect range from connected keyboard",
-                "Calibrate",
+                "Detect",
             ),
             RangeDetection::WaitingForKeys { keys } => (
-                format!("Calibrate (Step {}/2)", keys.len()),
+                format!("Detection in proggress... Step {}/2", keys.len()),
                 "Play the far-left and far-right key on your keyboard...",
                 "Cancel",
             ),

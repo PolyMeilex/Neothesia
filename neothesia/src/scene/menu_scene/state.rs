@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::{NeothesiaEvent, context::Context, output_manager::OutputDescriptor, song::Song};
+use crate::{
+    NeothesiaEvent, context::Context, output_manager::OutputDescriptor,
+    scene::menu_scene::settings::RangeDetection, song::Song,
+};
 
 type InputDescriptor = midi_io::MidiInputPort;
 
@@ -14,6 +17,8 @@ pub struct UiState {
     pub is_loading: bool,
 
     pub song: Option<Song>,
+
+    pub range_detection: RangeDetection,
 
     page_stack: VecDeque<Page>,
 }
@@ -32,6 +37,7 @@ impl UiState {
             song,
 
             page_stack,
+            range_detection: RangeDetection::default(),
         }
     }
 
@@ -52,6 +58,7 @@ impl UiState {
     }
 
     pub fn go_back(&mut self) {
+        self.range_detection.stop_detection();
         match self.page_stack.len() {
             1 => {
                 // Last page in the stack, let's go to exit page

@@ -78,7 +78,7 @@ fn setting_row_button(row_w: f32, row_h: f32) -> nuon::Button {
 
 impl super::MenuScene {
     pub fn handle_range_detection_noteon(&mut self, ctx: &mut Context, note: u8) {
-        if let Some((start, end)) = self.range_detection.process_note(note) {
+        if let Some((start, end)) = self.state.range_detection.process_note(note) {
             ctx.config.set_piano_range_start(start);
             ctx.config.set_piano_range_end(end);
         }
@@ -106,8 +106,6 @@ impl super::MenuScene {
                 nuon::translate().x(padding).add_to_current(ui);
 
                 if neo_btn_icon(ui, w, h, icons::left_arrow_icon()) {
-                    // TODO: This should not be required for every back handler
-                    self.range_detection.stop_detection();
                     self.state.go_back();
                 }
 
@@ -144,7 +142,7 @@ impl super::MenuScene {
                     .build(ui, |ui, rows, spacer| {
                         self::update_range_start(
                             ctx,
-                            &mut self.range_detection,
+                            &mut self.state.range_detection,
                             nuon::settings_row_spin()
                                 .title("Start")
                                 .subtitle(ctx.config.piano_range().start().to_string())
@@ -156,7 +154,7 @@ impl super::MenuScene {
 
                         self::update_range_end(
                             ctx,
-                            &mut self.range_detection,
+                            &mut self.state.range_detection,
                             nuon::settings_row_spin()
                                 .title("End")
                                 .subtitle(ctx.config.piano_range().end().to_string())
@@ -431,7 +429,7 @@ impl super::MenuScene {
         ui: &mut nuon::Ui,
         rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
     ) {
-        let (title, subtitle, btn_label) = match &self.range_detection {
+        let (title, subtitle, btn_label) = match &self.state.range_detection {
             RangeDetection::Idle => (
                 "Auto-detect".to_string(),
                 "Auto-detect range from connected keyboard",
@@ -453,7 +451,7 @@ impl super::MenuScene {
                     .label(btn_label)
                     .build(ui)
                 {
-                    self.range_detection.toggle();
+                    self.state.range_detection.toggle();
                 }
             })
             .build(ui, rows);

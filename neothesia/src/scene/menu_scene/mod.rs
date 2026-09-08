@@ -342,17 +342,12 @@ impl Scene for MenuScene {
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
         if let WindowEvent::MouseWheel { delta, .. } = event {
-            match delta {
-                winit::event::MouseScrollDelta::LineDelta(_, y) => {
-                    let y = y * 60.0;
-                    self.settings_scroll.update(y);
-                    self.tracks_scroll.update(y);
-                }
-                winit::event::MouseScrollDelta::PixelDelta(position) => {
-                    self.settings_scroll.update(position.y as f32);
-                    self.tracks_scroll.update(position.y as f32);
-                }
-            }
+            let y = match delta {
+                winit::event::MouseScrollDelta::LineDelta(_, y) => y * 60.0,
+                winit::event::MouseScrollDelta::PixelDelta(position) => position.y as f32,
+            };
+
+            self.nuon.mouse_wheel(y);
         }
 
         if event.cursor_moved() {

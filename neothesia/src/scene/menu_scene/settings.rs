@@ -10,6 +10,58 @@ use piano_layout::Key;
 
 use super::UiState;
 
+#[derive(Default, Debug, Clone)]
+pub enum RangeDetection {
+    #[default]
+    Idle,
+    WaitingForKeys {
+        keys: Vec<u8>,
+    },
+}
+
+impl RangeDetection {
+    pub fn is_active(&self) -> bool {
+        matches!(self, Self::WaitingForKeys { .. })
+    }
+
+    pub fn toggle(&mut self) {
+        if self.is_active() {
+            self.stop_detection();
+        } else {
+            self.start_detection();
+        }
+    }
+
+    pub fn stop_detection(&mut self) {
+        *self = RangeDetection::Idle;
+    }
+
+    pub fn start_detection(&mut self) {
+        *self = RangeDetection::WaitingForKeys { keys: Vec::new() };
+    }
+
+    pub fn process_note(&mut self, note: u8) -> Option<(u8, u8)> {
+        match self {
+            Self::Idle => {}
+            Self::WaitingForKeys { keys } => {
+                keys.push(note);
+                keys.sort_unstable();
+                keys.dedup();
+
+                if keys.len() == 2 {
+                    let start = keys[0];
+                    let end = keys[1].max(start + MIN_RANGE_LEN);
+
+                    self.stop_detection();
+                    return Some((start, end));
+                }
+            }
+        }
+
+        None
+    }
+}
+
 fn button() -> nuon::Button {
     nuon::button()
         .color([74, 68, 88])
@@ -18,7 +70,20 @@ fn button() -> nuon::Button {
         .border_radius([5.0; 4])
 }
 
+fn setting_row_button(row_w: f32, row_h: f32) -> nuon::Button {
+    let w = 93.0;
+    let h = 31.0;
+    button().x(row_w - w).y(nuon::center_y(row_h, h)).size(w, h)
+}
+
 impl super::MenuScene {
+    pub fn handle_range_detection_noteon(&mut self, ctx: &mut Context, note: u8) {
+        if let Some((start, end)) = self.range_detection.process_note(note) {
+            ctx.config.set_piano_range_start(start);
+            ctx.config.set_piano_range_end(end);
+        }
+    }
+
     pub fn settings_page_ui(&mut self, ctx: &mut Context, ui: &mut nuon::Ui) {
         // Establish the selected output/input connection
         super::state::connect_io(&self.state, ctx);
@@ -41,6 +106,8 @@ impl super::MenuScene {
                 nuon::translate().x(padding).add_to_current(ui);
 
                 if neo_btn_icon(ui, w, h, icons::left_arrow_icon()) {
+                    // TODO: This should not be required for every back handler
+                    self.range_detection.stop_detection();
                     self.state.go_back();
                 }
 
@@ -77,6 +144,7 @@ impl super::MenuScene {
                     .build(ui, |ui, rows, spacer| {
                         self::update_range_start(
                             ctx,
+                            &mut self.range_detection,
                             nuon::settings_row_spin()
                                 .title("Start")
                                 .subtitle(ctx.config.piano_range().start().to_string())
@@ -88,12 +156,17 @@ impl super::MenuScene {
 
                         self::update_range_end(
                             ctx,
+                            &mut self.range_detection,
                             nuon::settings_row_spin()
                                 .title("End")
                                 .subtitle(ctx.config.piano_range().end().to_string())
                                 .id("range-end")
                                 .build(ui, rows),
                         );
+
+                        spacer(ui);
+
+                        self.settings_calibrate_row(ctx, ui, rows);
                     });
 
                 nuon::translate().y(10.0).add_to_current(ui);
@@ -245,12 +318,7 @@ impl super::MenuScene {
                         .unwrap_or_default(),
                 )
                 .body(|ui, row_w, row_h| {
-                    let w = 93.0;
-                    let h = 31.0;
-                    if button()
-                        .x(row_w - w)
-                        .y(nuon::center_y(row_h, h))
-                        .size(w, h)
+                    if setting_row_button(row_w, row_h)
                         .label("Select File")
                         .build(ui)
                     {
@@ -354,6 +422,40 @@ impl super::MenuScene {
         nuon::settings_row()
             .title("Input")
             .body(|ui, row_w, row_h| self.settings_input_picker(ui, ctx, row_w, row_h))
+            .build(ui, rows);
+    }
+
+    fn settings_calibrate_row(
+        &mut self,
+        _ctx: &mut Context,
+        ui: &mut nuon::Ui,
+        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+    ) {
+        let (title, subtitle, btn_label) = match &self.range_detection {
+            RangeDetection::Idle => (
+                "Calibrate".to_string(),
+                "Auto-detect range from connected keyboard",
+                "Calibrate",
+            ),
+            RangeDetection::WaitingForKeys { keys } => (
+                format!("Calibrate (Step {}/2)", keys.len()),
+                "Play the far-left and far-right key on your keyboard...",
+                "Cancel",
+            ),
+        };
+
+        nuon::settings_row()
+            .title(title)
+            .subtitle(subtitle)
+            .body(|ui, row_w, row_h| {
+                if setting_row_button(row_w, row_h)
+                    .id("calibrate_btn")
+                    .label(btn_label)
+                    .build(ui)
+                {
+                    self.range_detection.toggle();
+                }
+            })
             .build(ui, rows);
     }
 }
@@ -474,11 +576,21 @@ pub fn update_audio_gain(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
         .set_audio_gain((ctx.config.audio_gain() * 10.0).round() / 10.0);
 }
 
-pub fn update_range_start(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
+const MIN_RANGE_LEN: u8 = 24;
+
+pub fn update_range_start(
+    ctx: &mut Context,
+    range_detection: &mut RangeDetection,
+    kind: nuon::SettingsRowSpinResult,
+) {
+    if kind != nuon::SettingsRowSpinResult::Idle {
+        range_detection.stop_detection();
+    }
+
     match kind {
         nuon::SettingsRowSpinResult::Plus => {
             let v = (ctx.config.piano_range().start() + 1).min(127);
-            if v + 24 < *ctx.config.piano_range().end() {
+            if v + MIN_RANGE_LEN < *ctx.config.piano_range().end() {
                 ctx.config.set_piano_range_start(v);
             }
         }
@@ -490,7 +602,15 @@ pub fn update_range_start(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) 
     }
 }
 
-pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
+pub fn update_range_end(
+    ctx: &mut Context,
+    range_detection: &mut RangeDetection,
+    kind: nuon::SettingsRowSpinResult,
+) {
+    if kind != nuon::SettingsRowSpinResult::Idle {
+        range_detection.stop_detection();
+    }
+
     match kind {
         nuon::SettingsRowSpinResult::Plus => {
             ctx.config
@@ -498,7 +618,7 @@ pub fn update_range_end(ctx: &mut Context, kind: nuon::SettingsRowSpinResult) {
         }
         nuon::SettingsRowSpinResult::Minus => {
             let v = ctx.config.piano_range().end().saturating_sub(1);
-            if *ctx.config.piano_range().start() + 24 < v {
+            if *ctx.config.piano_range().start() + MIN_RANGE_LEN < v {
                 ctx.config.set_piano_range_end(v);
             }
         }

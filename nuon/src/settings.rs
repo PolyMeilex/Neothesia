@@ -162,6 +162,7 @@ pub fn settings_row<'a>() -> SettingsRow<'a> {
     SettingsRow::new()
 }
 
+#[derive(Eq, PartialEq)]
 pub enum SettingsRowSpinResult {
     Plus,
     Minus,

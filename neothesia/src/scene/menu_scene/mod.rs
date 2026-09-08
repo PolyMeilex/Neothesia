@@ -15,6 +15,7 @@ use std::{collections::HashSet, future::Future, time::Duration};
 
 use crate::utils::{BoxFuture, noop_waker_ref, window::WinitEvent};
 use neothesia_core::render::{BgPipeline, ImageIdentifier, QuadRenderer, TextRenderer};
+use settings::RangeDetection;
 
 use winit::{
     event::WindowEvent,
@@ -97,6 +98,7 @@ pub struct MenuScene {
     settings_scroll: nuon::ScrollState,
     midi_input_state: MidiInputState,
     popup: Popup,
+    range_detection: RangeDetection,
 }
 
 impl MenuScene {
@@ -132,6 +134,7 @@ impl MenuScene {
             settings_scroll: nuon::ScrollState::new(),
             midi_input_state: MidiInputState::default(),
             popup: Popup::None,
+            range_detection: RangeDetection::default(),
         }
     }
 
@@ -365,6 +368,8 @@ impl Scene for MenuScene {
         } else if event.left_mouse_released() {
             self.nuon.mouse_up();
         } else if event.back_mouse_pressed() {
+            // TODO: This should not be required for every back handler
+            self.range_detection.stop_detection();
             self.state.go_back();
         }
 
@@ -405,6 +410,8 @@ impl Scene for MenuScene {
             }
             Page::Settings => {
                 if event.key_pressed(Key::Named(NamedKey::Escape)) {
+                    // TODO: This should not be required for every back handler
+                    self.range_detection.stop_detection();
                     self.state.go_back();
                 }
             }
@@ -424,6 +431,7 @@ impl Scene for MenuScene {
         match message {
             MidiMessage::NoteOn { key, .. } => {
                 self.midi_input_state.note_on(key.as_int());
+                self.handle_range_detection_noteon(ctx, key.as_int());
             }
             MidiMessage::NoteOff { key, .. } => {
                 self.midi_input_state.note_off(key.as_int());

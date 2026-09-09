@@ -17,7 +17,7 @@ runs:
     - name: zip binary
       shell: bash
       run: zip -rj app.zip target/release/neothesia-cli
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       with:
         name: ubuntu-recorder-artifact
         path: app.zip

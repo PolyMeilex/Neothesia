@@ -242,7 +242,7 @@ impl Scene for FreeplayScene {
                 .ok();
         }
 
-        if event.key_released(Key::Named(NamedKey::Space)) && self.preview.is_some() {
+        if event.key_released(Key::Character(" ")) && self.preview.is_some() {
             recorder::toggle_preview_playback(self);
         }
 

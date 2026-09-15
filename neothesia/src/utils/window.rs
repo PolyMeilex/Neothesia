@@ -1,7 +1,7 @@
 use winit::{
     dpi::{LogicalPosition, PhysicalPosition},
-    event::{ElementState, KeyEvent, MouseButton},
-    keyboard::{Key, ModifiersState},
+    event::{ButtonSource, ElementState, KeyEvent, MouseButton},
+    keyboard::{Key, KeyCode, ModifiersState, PhysicalKey},
 };
 
 use winit::{
@@ -26,11 +26,11 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    pub fn new(window: &winit::window::Window) -> Self {
+    pub fn new(window: &dyn winit::window::Window) -> Self {
         let scale_factor = window.scale_factor();
 
         let (physical_size, logical_size) = {
-            let physical_size = window.inner_size();
+            let physical_size = window.surface_size();
             let logical_size = physical_size.to_logical::<f32>(scale_factor);
             (physical_size, logical_size)
         };
@@ -58,7 +58,7 @@ impl WindowState {
     pub fn window_event(&mut self, event: &WindowEvent) {
         match event {
             // Windows sets size to 0 on minimise
-            WindowEvent::Resized(ps) if ps.width > 0 && ps.height > 0 => {
+            WindowEvent::SurfaceResized(ps) if ps.width > 0 && ps.height > 0 => {
                 self.physical_size.width = ps.width;
                 self.physical_size.height = ps.height;
                 self.logical_size = ps.to_logical(self.scale_factor);
@@ -67,7 +67,7 @@ impl WindowState {
                 self.logical_size = self.physical_size.to_logical(self.scale_factor);
                 self.scale_factor = *scale_factor;
             }
-            WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::PointerMoved { position, .. } => {
                 self.cursor_physical_position = *position;
                 self.cursor_logical_position = position.to_logical(self.scale_factor);
             }
@@ -77,16 +77,16 @@ impl WindowState {
             WindowEvent::ModifiersChanged(state) => {
                 self.modifiers_state = state.state();
             }
-            WindowEvent::MouseInput {
+            WindowEvent::PointerButton {
                 state,
-                button: MouseButton::Left,
+                button: ButtonSource::Mouse(MouseButton::Left),
                 ..
             } => {
                 self.left_mouse_btn = *state == ElementState::Pressed;
             }
-            WindowEvent::MouseInput {
+            WindowEvent::PointerButton {
                 state,
-                button: MouseButton::Right,
+                button: ButtonSource::Mouse(MouseButton::Right),
                 ..
             } => {
                 self.right_mouse_btn = *state == ElementState::Pressed;
@@ -132,6 +132,7 @@ pub trait WinitEvent {
 
     fn key_pressed(&self, key: Key<&str>) -> bool;
     fn key_released(&self, key: Key<&str>) -> bool;
+    fn key_released_physical_key(&self, key: KeyCode) -> bool;
 
     fn character_released(&self) -> Option<&str>;
 }
@@ -142,11 +143,11 @@ impl WinitEvent for WindowEvent {
     }
 
     fn window_resized(&self) -> bool {
-        matches!(self, Self::Resized { .. })
+        matches!(self, Self::SurfaceResized { .. })
     }
 
     fn cursor_moved(&self) -> bool {
-        matches!(self, Self::CursorMoved { .. })
+        matches!(self, Self::PointerMoved { .. })
     }
 
     fn redraw_requested(&self) -> bool {
@@ -155,9 +156,9 @@ impl WinitEvent for WindowEvent {
 
     fn mouse_pressed(&self, btn: MouseButton) -> bool {
         match self {
-            Self::MouseInput {
+            Self::PointerButton {
                 state: ElementState::Pressed,
-                button,
+                button: ButtonSource::Mouse(button),
                 ..
             } => button == &btn,
             _ => false,
@@ -166,9 +167,9 @@ impl WinitEvent for WindowEvent {
 
     fn mouse_released(&self, btn: MouseButton) -> bool {
         match self {
-            Self::MouseInput {
+            Self::PointerButton {
                 state: ElementState::Released,
-                button,
+                button: ButtonSource::Mouse(button),
                 ..
             } => button == &btn,
             _ => false,
@@ -203,6 +204,22 @@ impl WinitEvent for WindowEvent {
                     },
                 ..
             } => logical_key.as_ref() == key,
+            _ => false,
+        }
+    }
+
+    fn key_released_physical_key(&self, key: KeyCode) -> bool {
+        match self {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Released,
+                        physical_key: PhysicalKey::Code(code),
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } => code == &key,
             _ => false,
         }
     }

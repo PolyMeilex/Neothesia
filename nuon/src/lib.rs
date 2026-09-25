@@ -49,23 +49,30 @@ impl From<[u8; 4]> for Color {
 }
 
 impl Color {
-    pub const WHITE: Self = Self {
-        r: 1.0,
-        g: 1.0,
-        b: 1.0,
-        a: 1.0,
-    };
+    pub const WHITE: Self = Self::new(1.0, 1.0, 1.0, 1.0);
+    pub const BLACK: Self = Self::new(0.0, 0.0, 0.0, 1.0);
 
-    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
+    pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
 
-    pub fn new_u8(r: u8, g: u8, b: u8, a: f32) -> Self {
+    pub const fn new_u8(r: u8, g: u8, b: u8, a: f32) -> Self {
         Self {
             r: r as f32 / 255.0,
             g: g as f32 / 255.0,
             b: b as f32 / 255.0,
             a,
+        }
+    }
+
+    pub fn mix(self, other: impl Into<Self>, t: f32) -> Self {
+        let other = other.into();
+        let lerp = |from: f32, to: f32| from + (to - from) * t;
+        Self {
+            r: lerp(self.r, other.r),
+            g: lerp(self.g, other.g),
+            b: lerp(self.b, other.b),
+            a: lerp(self.a, other.a),
         }
     }
 

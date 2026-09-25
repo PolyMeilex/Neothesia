@@ -337,17 +337,24 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
                 )
             };
 
-            match text.text_justify {
-                nuon::TextJustify::Left => {
-                    out.text_renderer.queue_buffer_left(text.rect, buffer);
-                }
-                nuon::TextJustify::Right => {
-                    out.text_renderer.queue_buffer_right(text.rect, buffer);
-                }
-                nuon::TextJustify::Center => {
-                    out.text_renderer.queue_buffer_centered(text.rect, buffer);
-                }
-            }
+            let vertical_align = match text.text_align {
+                nuon::TextAlign::Start => neothesia_core::render::TextAlign::Start,
+                nuon::TextAlign::Center => neothesia_core::render::TextAlign::Center,
+                nuon::TextAlign::End => neothesia_core::render::TextAlign::End,
+            };
+
+            let horizontal_align = match text.text_justify {
+                nuon::TextAlign::Start => neothesia_core::render::TextAlign::Start,
+                nuon::TextAlign::Center => neothesia_core::render::TextAlign::Center,
+                nuon::TextAlign::End => neothesia_core::render::TextAlign::End,
+            };
+
+            out.text_renderer.queue_buffer_auto_layout(
+                text.rect,
+                horizontal_align,
+                vertical_align,
+                buffer,
+            );
         }
 
         out.quad_renderer.prepare();

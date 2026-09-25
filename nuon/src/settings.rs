@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::{self as nuon, Id, TextJustify, Ui};
+use crate::{self as nuon, Id, TextAlign, Ui};
 
 pub struct SettingsSection {
     label: String,
@@ -40,7 +40,7 @@ impl SettingsSection {
             .text(self.label)
             .size(self.width, spacer_label_h)
             .font_size(14.6)
-            .text_justify(TextJustify::Left)
+            .text_justify(TextAlign::Start)
             .bold(true)
             .build(ui);
 
@@ -122,7 +122,7 @@ impl<'a> SettingsRow<'a> {
             if self.subtitle.is_empty() {
                 nuon::label()
                     .text(self.title)
-                    .text_justify(nuon::TextJustify::Left)
+                    .text_justify(nuon::TextAlign::Start)
                     .font_size(title_h)
                     .size(row_inner_w, row_h)
                     .build(ui);
@@ -134,7 +134,7 @@ impl<'a> SettingsRow<'a> {
                 nuon::label()
                     .y(y)
                     .text(self.title)
-                    .text_justify(nuon::TextJustify::Left)
+                    .text_justify(nuon::TextAlign::Start)
                     .font_size(title_h)
                     .size(row_inner_w, title_h)
                     .build(ui);
@@ -142,7 +142,7 @@ impl<'a> SettingsRow<'a> {
                     .y(y + gap + title_h)
                     .text(self.subtitle)
                     .color([1.0, 1.0, 1.0, 0.5])
-                    .text_justify(nuon::TextJustify::Left)
+                    .text_justify(nuon::TextAlign::Start)
                     .font_size(subtitle_h)
                     .size(row_inner_w, subtitle_h)
                     .build(ui);

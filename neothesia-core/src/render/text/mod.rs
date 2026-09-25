@@ -7,6 +7,31 @@ pub use glyphon;
 
 use crate::utils::Rect;
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum TextAlign {
+    Start,
+    Center,
+    End,
+}
+
+impl TextAlign {
+    fn calc_x(&self, x: f32, width: f32, text_w: f32) -> f32 {
+        match self {
+            TextAlign::Start => x,
+            TextAlign::Center => x + width / 2.0 - text_w / 2.0,
+            TextAlign::End => x + width - text_w,
+        }
+    }
+
+    fn calc_y(&self, y: f32, height: f32, text_h: f32) -> f32 {
+        match self {
+            TextAlign::Start => y,
+            TextAlign::Center => y + height / 2.0 - text_h / 2.0,
+            TextAlign::End => y + height - text_h,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct TextArea {
     pub buffer: glyphon::Buffer,
@@ -82,53 +107,31 @@ impl TextRenderer {
         });
     }
 
-    pub fn queue_buffer_left(&mut self, rect: Rect, buffer: glyphon::Buffer) {
-        let (_text_w, text_h) = Self::measure(&buffer);
+    pub fn queue_buffer_auto_layout(
+        &mut self,
+        rect: Rect,
+        horizontal: TextAlign,
+        vertical: TextAlign,
+        buffer: glyphon::Buffer,
+    ) {
+        let (text_w, text_h) = Self::measure(&buffer);
 
         let origin = rect.origin;
         let size = rect.size;
 
-        let x = origin.x;
-        let y = origin.y + size.height / 2.0 - text_h / 2.0;
+        let x = horizontal.calc_x(origin.x, size.width, text_w);
+        let y = vertical.calc_y(origin.y, size.height, text_h);
 
         self.queue_buffer_with_bounds(
             x,
             y,
             buffer,
             glyphon::TextBounds {
-                left: i32::MIN,
-                top: i32::MIN,
-                right: (x + rect.width()) as i32,
-                bottom: (y + rect.height()) as i32,
+                left: origin.x as i32,
+                top: origin.y as i32,
+                right: (origin.x + rect.width()) as i32,
+                bottom: (origin.y + rect.height()) as i32,
             },
-        );
-    }
-
-    pub fn queue_buffer_right(&mut self, rect: Rect, buffer: glyphon::Buffer) {
-        let (text_w, text_h) = Self::measure(&buffer);
-
-        let origin = rect.origin;
-        let size = rect.size;
-
-        // TODO: Bounds
-        self.queue_buffer(
-            origin.x + size.width - text_w,
-            origin.y + size.height / 2.0 - text_h / 2.0,
-            buffer,
-        );
-    }
-
-    pub fn queue_buffer_centered(&mut self, rect: Rect, buffer: glyphon::Buffer) {
-        let (text_w, text_h) = Self::measure(&buffer);
-
-        let origin = rect.origin;
-        let size = rect.size;
-
-        // TODO: Bounds
-        self.queue_buffer(
-            origin.x + size.width / 2.0 - text_w / 2.0,
-            origin.y + size.height / 2.0 - text_h / 2.0,
-            buffer,
         );
     }
 

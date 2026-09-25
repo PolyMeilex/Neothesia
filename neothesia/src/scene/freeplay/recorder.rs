@@ -329,7 +329,7 @@ pub fn update_preview_ui(scene: &mut FreeplayScene, ctx: &mut Context) {
         nuon::label()
             .size(width, 30.0)
             .text(&status_label)
-            .text_justify(nuon::TextJustify::Center)
+            .text_justify(nuon::TextAlign::Center)
             .build(ui);
 
         nuon::translate().x(width).build(ui, |ui| {

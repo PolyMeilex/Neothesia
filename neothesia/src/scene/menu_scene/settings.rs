@@ -5,7 +5,7 @@ use crate::{
     scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
-use nuon::TextJustify;
+use nuon::TextAlign;
 use piano_layout::Key;
 
 use super::UiState;
@@ -249,7 +249,7 @@ impl super::MenuScene {
                     .map(|o| o.to_string())
                     .unwrap_or_default(),
             )
-            .text_justify(TextJustify::Left)
+            .text_justify(TextAlign::Start)
             .build(ui)
         {
             self.popup.toggle(Popup::OutputSelector);
@@ -259,7 +259,7 @@ impl super::MenuScene {
             .icon(icons::caret_down())
             .pos(btn_x, btn_y)
             .size(btn_w, btn_h)
-            .text_justify(TextJustify::Right)
+            .text_justify(TextAlign::End)
             .build(ui);
 
         if self.popup == Popup::OutputSelector {
@@ -377,7 +377,7 @@ impl super::MenuScene {
                     .map(|o| o.to_string())
                     .unwrap_or_default(),
             )
-            .text_justify(TextJustify::Left)
+            .text_justify(TextAlign::Start)
             .build(ui)
         {
             self.popup.toggle(Popup::InputSelector);
@@ -387,7 +387,7 @@ impl super::MenuScene {
             .icon(icons::caret_down())
             .pos(btn_x, btn_y)
             .size(btn_w, btn_h)
-            .text_justify(TextJustify::Right)
+            .text_justify(TextAlign::End)
             .build(ui);
 
         if self.popup == Popup::InputSelector {

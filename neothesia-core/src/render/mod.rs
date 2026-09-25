@@ -15,5 +15,5 @@ pub use image::{Image, ImageIdentifier, ImageRenderer};
 pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};
 pub use note_labels::NoteLabels;
 pub use quad::{QuadInstance, QuadRenderer, QuadRendererFactory};
-pub use text::{TextRenderer, TextRendererFactory};
+pub use text::{TextAlign, TextRenderer, TextRendererFactory};
 pub use waterfall::WaterfallRenderer;

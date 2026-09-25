@@ -1,5 +1,5 @@
 use midi_file::MidiTrack;
-use nuon::TextJustify;
+use nuon::TextAlign;
 use std::hash::Hash;
 
 use crate::{
@@ -240,7 +240,7 @@ fn track_card(
             nuon::label()
                 .size(label_w, label_h)
                 .text(title)
-                .text_justify(TextJustify::Left)
+                .text_justify(TextAlign::Start)
                 .font_size(16.0)
                 .build(ui);
 
@@ -248,7 +248,7 @@ fn track_card(
                 .y(label_h)
                 .size(label_w, label_h)
                 .text(subtitle)
-                .text_justify(TextJustify::Left)
+                .text_justify(TextAlign::Start)
                 .font_size(14.0)
                 .build(ui);
         });

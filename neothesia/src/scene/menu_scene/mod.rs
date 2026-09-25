@@ -144,7 +144,7 @@ impl MenuScene {
                 .size(width, height)
                 .font_size(30.0)
                 .text("Loading...")
-                .text_justify(nuon::TextJustify::Center)
+                .text_justify(nuon::TextAlign::Center)
                 .build(&mut self.nuon);
             return;
         }

@@ -717,6 +717,13 @@ pub fn quad() -> Quad {
     Quad::new()
 }
 
+pub fn circle(cx: f32, cy: f32, r: f32) -> Quad {
+    quad()
+        .pos(cx - r, cy - r)
+        .size(r * 2.0, r * 2.0)
+        .border_radius([r; 4])
+}
+
 impl Default for Quad {
     fn default() -> Self {
         Self::new()

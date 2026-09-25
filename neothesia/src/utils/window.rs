@@ -130,6 +130,14 @@ pub trait WinitEvent {
         self.mouse_released(MouseButton::Back)
     }
 
+    fn forward_mouse_pressed(&self) -> bool {
+        self.mouse_pressed(MouseButton::Forward)
+    }
+
+    fn forward_mouse_released(&self) -> bool {
+        self.mouse_released(MouseButton::Forward)
+    }
+
     fn key_pressed(&self, key: Key<&str>) -> bool;
     fn key_released(&self, key: Key<&str>) -> bool;
 

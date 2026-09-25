@@ -330,7 +330,7 @@ impl TopBar {
         let progress_w = w * this.player.percentage();
 
         match nuon::click_area("ProggressBar").size(w, h).build(ui) {
-            nuon::ClickAreaEvent::PressStart => {
+            nuon::ClickAreaEvent::PressStart { .. } => {
                 if !this.rewind_controller.is_rewinding() {
                     this.rewind_controller.start_mouse_rewind(&mut this.player);
 

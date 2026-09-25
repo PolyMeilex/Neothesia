@@ -870,11 +870,20 @@ pub struct ClickArea {
     rect: Rect,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ClickAreaEvent {
-    Idle { hovered: bool, pressed: bool },
-    PressStart,
-    PressEnd { clicked: bool },
+    Idle {
+        hovered: bool,
+        pressed: bool,
+        local_pos: Point,
+    },
+    PressStart {
+        local_pos: Point,
+    },
+    PressEnd {
+        clicked: bool,
+        local_pos: Point,
+    },
 }
 
 impl ClickAreaEvent {
@@ -882,22 +891,32 @@ impl ClickAreaEvent {
         Self::Idle {
             hovered: false,
             pressed: false,
+            local_pos: Point::zero(),
+        }
+    }
+
+    /// Cursor position relative to the click area origin
+    pub fn local_pos(&self) -> Point {
+        match *self {
+            ClickAreaEvent::Idle { local_pos, .. }
+            | ClickAreaEvent::PressStart { local_pos }
+            | ClickAreaEvent::PressEnd { local_pos, .. } => local_pos,
         }
     }
 
     pub fn is_clicked(&self) -> bool {
-        *self == ClickAreaEvent::PressEnd { clicked: true }
+        matches!(self, ClickAreaEvent::PressEnd { clicked: true, .. })
     }
 
     pub fn is_pressed(&self) -> bool {
         matches!(
             self,
-            ClickAreaEvent::PressStart | ClickAreaEvent::Idle { pressed: true, .. }
+            ClickAreaEvent::PressStart { .. } | ClickAreaEvent::Idle { pressed: true, .. }
         )
     }
 
     pub fn is_press_start(&self) -> bool {
-        matches!(self, ClickAreaEvent::PressStart)
+        matches!(self, ClickAreaEvent::PressStart { .. })
     }
 
     pub fn is_press_end(&self) -> bool {
@@ -977,6 +996,7 @@ impl ClickArea {
 
     fn check(ui: &mut Ui, id: Id, rect: Rect) -> ClickAreaEvent {
         let mouseover = is_mouseover(ui, rect);
+        let local_pos = (ui.pointer_pos - rect.origin).to_point();
 
         if mouseover {
             ui.hovered = Some(id);
@@ -987,7 +1007,7 @@ impl ClickArea {
         if ui.mouse_pressed && mouseover && ui.active.is_none() {
             ui.active = Some(id);
             ui.active_widget_is_still_alive = true;
-            return ClickAreaEvent::PressStart;
+            return ClickAreaEvent::PressStart { local_pos };
         }
 
         let pressed = ui.active == Some(id);
@@ -998,11 +1018,15 @@ impl ClickArea {
 
         if !ui.mouse_down && pressed {
             ui.active = None;
-            ClickAreaEvent::PressEnd { clicked: mouseover }
+            ClickAreaEvent::PressEnd {
+                clicked: mouseover,
+                local_pos,
+            }
         } else {
             ClickAreaEvent::Idle {
                 hovered: mouseover && ui.active.is_none(),
                 pressed,
+                local_pos,
             }
         }
     }

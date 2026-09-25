@@ -36,11 +36,16 @@ fn vs_main(vertex: Vertex, quad: QuadInstance) -> VertexOutput {
     var quad_position = quad.q_position * view_uniform.scale;
     var quad_size = quad.size * view_uniform.scale;
 
+    // Make some space for border anti-aliasing
+    let aa_margin = 1.0;
+    let anti_aliased_position = quad_position - vec2(aa_margin);
+    let anti_aliased_size = quad_size + vec2(aa_margin * 2.0);
+
     var i_transform: mat4x4<f32> = mat4x4<f32>(
-        vec4<f32>(quad_size.x, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, quad_size.y, 0.0, 0.0),
+        vec4<f32>(anti_aliased_size.x, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, anti_aliased_size.y, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(quad_position, 0.0, 1.0)
+        vec4<f32>(anti_aliased_position, 0.0, 1.0)
     );
 
     var out: VertexOutput;

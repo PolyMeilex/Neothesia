@@ -73,6 +73,7 @@ impl GuidelineRenderer {
                 size: [w, h],
                 color,
                 border_radius: [0.0, 0.0, 0.0, 0.0],
+                ..Default::default()
             });
         }
     }
@@ -105,6 +106,7 @@ impl GuidelineRenderer {
                 size: [w, h],
                 color: [0.05, 0.05, 0.05, 1.0],
                 border_radius: [0.0, 0.0, 0.0, 0.0],
+                ..Default::default()
             });
         }
     }

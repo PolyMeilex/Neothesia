@@ -242,6 +242,8 @@ impl LayerStack {
 pub struct QuadRenderElement {
     pub rect: Rect,
     pub border_radius: [f32; 4],
+    pub border_color: Color,
+    pub border_width: f32,
     pub color: Color,
 }
 
@@ -700,6 +702,8 @@ pub struct Quad {
     rect: Rect,
     color: Color,
     border_radius: [f32; 4],
+    border_color: Color,
+    border_width: f32,
 }
 
 pub fn quad() -> Quad {
@@ -718,6 +722,8 @@ impl Quad {
             rect: Rect::zero(),
             color: Color::new_u8(0, 0, 0, 0.0),
             border_radius: [0.0; 4],
+            border_color: Color::new_u8(0, 0, 0, 0.0),
+            border_width: 0.0,
         }
     }
 
@@ -759,6 +765,16 @@ impl Quad {
         self
     }
 
+    pub fn border_color(mut self, color: impl Into<Color>) -> Self {
+        self.border_color = color.into();
+        self
+    }
+
+    pub fn border_width(mut self, width: f32) -> Self {
+        self.border_width = width;
+        self
+    }
+
     pub fn build(&self, ui: &mut Ui) {
         let rect = Rect::new(
             ui.translation_stack.translate(self.rect.origin),
@@ -768,6 +784,8 @@ impl Quad {
         ui.layers.current_mut().quads.push(QuadRenderElement {
             rect,
             border_radius: self.border_radius,
+            border_color: self.border_color,
+            border_width: self.border_width,
             color: self.color,
         });
     }
@@ -1195,6 +1213,8 @@ impl Button {
         layer.quads.push(QuadRenderElement {
             rect,
             border_radius: self.border_radius,
+            border_color: Color::new_u8(0, 0, 0, 0.0),
+            border_width: 0.0,
             color,
         });
 

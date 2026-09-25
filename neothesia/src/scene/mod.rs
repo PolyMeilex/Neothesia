@@ -289,6 +289,14 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
                     )
                     .into_linear_rgba(),
                     border_radius: quad.border_radius,
+                    border_color: wgpu_jumpstart::Color::new(
+                        quad.border_color.r,
+                        quad.border_color.g,
+                        quad.border_color.b,
+                        quad.border_color.a,
+                    )
+                    .into_linear_rgba(),
+                    border_width: quad.border_width,
                 });
         }
 

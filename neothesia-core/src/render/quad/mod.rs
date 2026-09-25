@@ -31,7 +31,11 @@ impl QuadPipeline {
                     immediate_size: 0,
                 });
 
-        let target = wgpu_jumpstart::default_color_target_state(gpu.texture_format);
+        let target = wgpu::ColorTargetState {
+            // Shader outputs premultiplied colors
+            blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+            ..wgpu_jumpstart::default_color_target_state(gpu.texture_format)
+        };
 
         let render_pipeline = gpu
             .device

@@ -16,6 +16,8 @@ struct QuadInstance {
     @location(2) size: vec2<f32>,
     @location(3) color: vec4<f32>,
     @location(4) border_radius: vec4<f32>,
+    @location(5) border_color: vec4<f32>,
+    @location(6) border_width: f32,
 }
 
 struct VertexOutput {
@@ -25,6 +27,8 @@ struct VertexOutput {
     @location(1) quad_color: vec4<f32>,
     @location(2) quad_border_radius: vec4<f32>,
     @location(3) quad_position: vec2<f32>,
+    @location(4) quad_border_color: vec4<f32>,
+    @location(5) quad_border_width: f32,
 }
 
 @vertex
@@ -42,9 +46,11 @@ fn vs_main(vertex: Vertex, quad: QuadInstance) -> VertexOutput {
     var out: VertexOutput;
     out.position = view_uniform.transform * i_transform * vec4<f32>(vertex.position, 0.0, 1.0);
 
-    out.quad_color = quad.color;
+    out.quad_color = premultiply(quad.color);
     out.quad_position = quad_position;
     out.quad_size = quad_size;
+    out.quad_border_color = premultiply(quad.border_color);
+    out.quad_border_width = quad.border_width * view_uniform.scale;
 
     var max_border_radius = min(quad.size.x, quad.size.y) * 0.5;
     out.quad_border_radius = vec4(
@@ -55,6 +61,10 @@ fn vs_main(vertex: Vertex, quad: QuadInstance) -> VertexOutput {
     ) * view_uniform.scale;
 
     return out;
+}
+
+fn premultiply(color: vec4<f32>) -> vec4<f32> {
+    return vec4(color.rgb * color.a, color.a);
 }
 
 // Point's distance from the nearest edge of the rounded rectangle
@@ -92,5 +102,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let dist = rounded_box_sdf(local_center, in.quad_size, border_radius);
     let alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
 
-    return vec4(in.quad_color.xyz, in.quad_color.w * alpha);
+    var color = in.quad_color;
+
+    // Border is drawn inside of the quad bounds, so everything closer to the edge than border width is border
+    if in.quad_border_width > 0.0 {
+        let border_mix = smoothstep(-0.5, 0.5, dist + in.quad_border_width);
+        color = mix(in.quad_color, in.quad_border_color, border_mix);
+    }
+
+    return color * alpha;
 }

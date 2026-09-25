@@ -96,5 +96,6 @@ pub fn to_quad(key: &piano_layout::Key, color: Color, origin: Point<f32>) -> Qua
         size: size.into(),
         color: color.into_linear_rgba(),
         border_radius: [0.0, 0.0, r, r],
+        ..Default::default()
     }
 }

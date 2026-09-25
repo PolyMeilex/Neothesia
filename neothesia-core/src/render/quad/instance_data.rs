@@ -10,6 +10,8 @@ pub struct QuadInstance {
     pub size: [f32; 2],
     pub color: [f32; 4],
     pub border_radius: [f32; 4],
+    pub border_color: [f32; 4],
+    pub border_width: f32,
 }
 
 impl Default for QuadInstance {
@@ -19,13 +21,22 @@ impl Default for QuadInstance {
             size: [0.0, 0.0],
             color: [0.0, 0.0, 0.0, 1.0],
             border_radius: [0.0; 4],
+            border_color: [0.0; 4],
+            border_width: 0.0,
         }
     }
 }
 
 impl QuadInstance {
-    pub fn attributes() -> [wgpu::VertexAttribute; 4] {
-        vertex_attr_array!(1 => Float32x2, 2 => Float32x2, 3 => Float32x4, 4 => Float32x4)
+    pub fn attributes() -> [wgpu::VertexAttribute; 6] {
+        vertex_attr_array!(
+            1 => Float32x2,
+            2 => Float32x2,
+            3 => Float32x4,
+            4 => Float32x4,
+            5 => Float32x4,
+            6 => Float32
+        )
     }
 
     pub fn layout(attributes: &[wgpu::VertexAttribute]) -> wgpu::VertexBufferLayout<'_> {

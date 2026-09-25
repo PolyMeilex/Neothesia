@@ -86,9 +86,9 @@ impl Color {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum TextJustify {
-    Left,
-    Right,
+pub enum TextAlign {
+    Start,
+    End,
     Center,
 }
 
@@ -265,7 +265,8 @@ pub struct IconRenderElement {
 #[derive(Debug, Clone)]
 pub struct TextRenderElement {
     pub rect: Rect,
-    pub text_justify: TextJustify,
+    pub text_justify: TextAlign,
+    pub text_align: TextAlign,
     pub size: f32,
     pub bold: bool,
     pub text: String,
@@ -717,11 +718,8 @@ pub fn quad() -> Quad {
     Quad::new()
 }
 
-pub fn circle(cx: f32, cy: f32, r: f32) -> Quad {
-    quad()
-        .pos(cx - r, cy - r)
-        .size(r * 2.0, r * 2.0)
-        .border_radius([r; 4])
+pub fn circle(r: f32) -> Quad {
+    quad().size(r * 2.0, r * 2.0).border_radius([r; 4])
 }
 
 impl Default for Quad {
@@ -1114,7 +1112,8 @@ pub struct Button {
     border_radius: [f32; 4],
     icon: &'static str,
     label: Cow<'static, str>,
-    text_justify: TextJustify,
+    text_justify: TextAlign,
+    text_align: TextAlign,
 }
 
 pub fn button() -> Button {
@@ -1140,7 +1139,8 @@ impl Button {
             border_radius: [0.0; 4],
             icon: " ",
             label: Cow::Borrowed(""),
-            text_justify: TextJustify::Center,
+            text_justify: TextAlign::Center,
+            text_align: TextAlign::Center,
         }
     }
 
@@ -1214,8 +1214,13 @@ impl Button {
         self
     }
 
-    pub fn text_justify(mut self, text_justify: TextJustify) -> Self {
+    pub fn text_justify(mut self, text_justify: TextAlign) -> Self {
         self.text_justify = text_justify;
+        self
+    }
+
+    pub fn text_align(mut self, text_align: TextAlign) -> Self {
+        self.text_align = text_align;
         self
     }
 
@@ -1257,9 +1262,9 @@ impl Button {
         });
 
         let pad_x = match self.text_justify {
-            TextJustify::Left => 1.0,
-            TextJustify::Right => -1.0,
-            TextJustify::Center => 0.0,
+            TextAlign::Start => 1.0,
+            TextAlign::End => -1.0,
+            TextAlign::Center => 0.0,
         };
 
         if self.label.is_empty() {
@@ -1268,12 +1273,12 @@ impl Button {
 
             let y = rect.origin.y + self::center_y(rect.size.height, icon_size);
             let x = match self.text_justify {
-                TextJustify::Left => rect.origin.x + pad_x,
-                TextJustify::Right => {
+                TextAlign::Start => rect.origin.x + pad_x,
+                TextAlign::End => {
                     let x = rect.origin.x + rect.size.width - icon_size;
                     x + pad_x
                 }
-                TextJustify::Center => rect.origin.x + center_x(rect.size.width, icon_size),
+                TextAlign::Center => rect.origin.x + center_x(rect.size.width, icon_size),
             };
 
             layer.icons.push(IconRenderElement {
@@ -1291,6 +1296,7 @@ impl Button {
                     Size::new(rect.size.width - pad_x * 2.0, rect.size.height),
                 ),
                 text_justify: self.text_justify,
+                text_align: self.text_align,
                 size: 16.0,
                 bold: false,
                 text: self.label.to_string(),
@@ -1308,7 +1314,8 @@ pub struct Label {
     pos: Point,
     size: Size,
     font_size: f32,
-    text_justify: TextJustify,
+    text_justify: TextAlign,
+    text_align: TextAlign,
     color: Color,
     text: String,
     icon: String,
@@ -1336,7 +1343,8 @@ impl Label {
             pos: Point::zero(),
             size: Size::new(50.0, 50.0),
             font_size: 13.0,
-            text_justify: TextJustify::Center,
+            text_justify: TextAlign::Center,
+            text_align: TextAlign::Center,
             color: Color::new(1.0, 1.0, 1.0, 1.0),
             text: String::new(),
             icon: String::new(),
@@ -1374,7 +1382,7 @@ impl Label {
     }
 
     pub fn font_size(mut self, font_size: f32) -> Self {
-        self.font_size = font_size;
+        self.font_size = font_size.max(0.5);
         self
     }
 
@@ -1383,8 +1391,13 @@ impl Label {
         self
     }
 
-    pub fn text_justify(mut self, text_justify: TextJustify) -> Self {
+    pub fn text_justify(mut self, text_justify: TextAlign) -> Self {
         self.text_justify = text_justify;
+        self
+    }
+
+    pub fn text_align(mut self, text_align: TextAlign) -> Self {
+        self.text_align = text_align;
         self
     }
 
@@ -1416,6 +1429,7 @@ impl Label {
             layer.text.push(TextRenderElement {
                 rect,
                 text_justify: self.text_justify,
+                text_align: self.text_align,
                 size: self.font_size,
                 bold: self.bold,
                 text: self.text.to_string(),
@@ -1426,9 +1440,9 @@ impl Label {
 
         if !self.icon.is_empty() {
             let pad_x = match self.text_justify {
-                TextJustify::Left => 1.0,
-                TextJustify::Right => -1.0,
-                TextJustify::Center => 0.0,
+                TextAlign::Start => 1.0,
+                TextAlign::End => -1.0,
+                TextAlign::Center => 0.0,
             };
 
             let icon_size = self.font_size;
@@ -1436,12 +1450,12 @@ impl Label {
 
             let y = rect.origin.y + self::center_y(rect.size.height, icon_size);
             let x = match self.text_justify {
-                TextJustify::Left => rect.origin.x + pad_x,
-                TextJustify::Right => {
+                TextAlign::Start => rect.origin.x + pad_x,
+                TextAlign::End => {
                     let x = rect.origin.x + rect.size.width - icon_size;
                     x + pad_x
                 }
-                TextJustify::Center => rect.origin.x + center_x(rect.size.width, icon_size),
+                TextAlign::Center => rect.origin.x + center_x(rect.size.width, icon_size),
             };
 
             layer.icons.push(IconRenderElement {
@@ -1480,7 +1494,7 @@ pub fn combo_list<'a, ITEM: ToString>(
             .y(item_h * nth as f32)
             .size(item_w, item_h)
             .label(item.to_string())
-            .text_justify(TextJustify::Left)
+            .text_justify(TextAlign::Start)
             .border_radius([5.0; 4])
             .hover_color([160, 81, 255])
             .preseed_color([180, 90, 255])

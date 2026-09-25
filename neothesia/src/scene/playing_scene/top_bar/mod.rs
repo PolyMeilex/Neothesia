@@ -190,7 +190,7 @@ impl TopBar {
                     .preseed_color([97, 97, 97])
                     .border_radius([10.0, 0.0, 0.0, 10.0])
                     .icon(icons::minus_icon())
-                    .text_justify(nuon::TextJustify::Left)
+                    .text_justify(nuon::TextAlign::Start)
                     .build(ui)
                 {
                     ctx.config
@@ -214,7 +214,7 @@ impl TopBar {
                     .preseed_color([97, 97, 97])
                     .border_radius([0.0, 10.0, 10.0, 0.0])
                     .icon(icons::plus_icon())
-                    .text_justify(nuon::TextJustify::Right)
+                    .text_justify(nuon::TextAlign::End)
                     .build(ui)
                 {
                     ctx.config

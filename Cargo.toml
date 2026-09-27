@@ -11,6 +11,7 @@ members = [
   "midi-file",
   "midi-io",
   "nuon",
+  "dumb-http",
 ]
 
 default-members = ["neothesia"]
@@ -28,6 +29,7 @@ midi-io = { path = "./midi-io" }
 piano-layout = { path = "./piano-layout" }
 ffmpeg-encoder = { path = "./ffmpeg-encoder" }
 nuon = { path = "./nuon" }
+dumb-http = { path = "./dumb-http" }
 
 anyhow = "1"
 thiserror = "2.0"

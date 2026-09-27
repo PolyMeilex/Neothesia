@@ -1,32 +1,31 @@
 use std::num::NonZeroU32;
 use std::path::Path;
 
-use crate::{SAMPLE_RATE, SEGMENT_SAMPLES};
-
-pub fn load(path: impl AsRef<Path>) -> anyhow::Result<Vec<f32>> {
+/// Decode audio file and resample it to `sample_rate`, returns samples of each channel
+pub fn load(path: impl AsRef<Path>, sample_rate: u32) -> anyhow::Result<Vec<Vec<f32>>> {
     let probed = symphonium::probe_from_file(path.as_ref(), None)?;
 
-    let mut audio_data_f32 = symphonium::decode_f32(
+    let audio_data_f32 = symphonium::decode_f32(
         probed,
         &Default::default(),
-        NonZeroU32::new(SAMPLE_RATE),
+        NonZeroU32::new(sample_rate),
         None,
         None,
     )?;
 
-    let left = audio_data_f32.data.remove(0);
-    let right = audio_data_f32.data.remove(0);
+    anyhow::ensure!(
+        !audio_data_f32.data.is_empty(),
+        "audio file has no channels"
+    );
 
-    let mut mono: Vec<f32> = left
-        .into_iter()
-        .zip(right)
-        .map(|(l, r)| (l + r) / 2.0)
-        .collect();
+    Ok(audio_data_f32.data)
+}
 
-    let pad_len =
-        (mono.len() as f32 / SEGMENT_SAMPLES as f32).ceil() as usize * SEGMENT_SAMPLES - mono.len();
+pub fn to_mono(channels: &[Vec<f32>]) -> Vec<f32> {
+    let len = channels.iter().map(Vec::len).min().unwrap_or(0);
+    let count = channels.len() as f32;
 
-    mono.resize(mono.len() + pad_len, 0.0);
-
-    Ok(mono)
+    (0..len)
+        .map(|i| channels.iter().map(|c| c[i]).sum::<f32>() / count)
+        .collect()
 }

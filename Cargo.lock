@@ -2731,6 +2731,7 @@ dependencies = [
  "rten-tensor",
  "rten-vecmath",
  "rustc-hash 2.1.3",
+ "rustfft",
  "smallvec",
  "typeid",
  "wasm-bindgen",

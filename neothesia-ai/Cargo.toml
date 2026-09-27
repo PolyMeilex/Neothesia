@@ -8,7 +8,7 @@ edition.workspace = true
 anyhow.workspace = true
 midly.workspace = true
 ndarray.workspace = true
-rten.workspace = true
+rten = { workspace = true, features = ["fft"] }
 rten-tensor.workspace = true
 serde.workspace = true
 serde_json.workspace = true

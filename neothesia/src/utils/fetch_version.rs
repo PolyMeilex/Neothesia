@@ -1,19 +1,12 @@
+#![allow(unused)]
+
 fn get_latest() -> Option<String> {
-    let req = concat!(
-        "GET /repos/PolyMeilex/Neothesia/releases/latest HTTP/1.1\r\n",
-        "Host: api.github.com\r\n",
-        "Connection: close\r\n",
-        "Accept-Encoding: identity\r\n",
-        "User-Agent: PostmanRuntime\r\n",
-        "\r\n"
-    );
-
-    let addr = "api.github.com:443";
-    let host = "api.github.com";
-
-    let res = crate::req(addr, host, req);
-
-    let body = res.body().unwrap_or_default();
+    let body = ureq::get("https://api.github.com/repos/PolyMeilex/Neothesia/releases/latest")
+        .call()
+        .ok()?
+        .body_mut()
+        .read_to_string()
+        .ok()?;
 
     let tag = "\"tag_name\":";
 
@@ -31,10 +24,10 @@ pub struct VersionCheck {
 }
 
 impl VersionCheck {
-    pub fn fetch(current: &'static str) -> Self {
+    pub fn fetch() -> Self {
         Self {
             latest: get_latest(),
-            current,
+            current: env!("CARGO_PKG_VERSION"),
         }
     }
 

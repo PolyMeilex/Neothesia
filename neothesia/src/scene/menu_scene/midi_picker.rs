@@ -21,7 +21,7 @@ pub fn open_midi_file_picker(data: &mut UiState) -> BoxFuture<MsgFn> {
 
 async fn open_midi_file_picker_fut() -> Option<(midi_file::MidiFile, PathBuf)> {
     let file = rfd::AsyncFileDialog::new()
-        .add_filter("midi", &["mid", "midi"])
+        .add_filter("midi", &["mid", "midi", "MID", "MIDI"])
         .pick_file()
         .await;
 

@@ -1,4 +1,7 @@
-use crate::{MidiTrack, program_track::ProgramTrack, tempo_track::TempoTrack};
+use crate::{
+    LyricLine, MidiTrack, lyrics::build_lyrics, program_track::ProgramTrack,
+    tempo_track::TempoTrack,
+};
 use midly::{Format, Smf, Timing};
 use std::{fs, path::Path, sync::Arc};
 
@@ -10,6 +13,7 @@ pub struct MidiFile {
     pub program_track: ProgramTrack,
     pub tempo_track: TempoTrack,
     pub measures: Arc<[std::time::Duration]>,
+    pub lyrics: Arc<[LyricLine]>,
 }
 
 impl MidiFile {
@@ -92,6 +96,7 @@ impl MidiFile {
         };
 
         let program_track = ProgramTrack::new(&tracks);
+        let lyrics = build_lyrics(&smf.tracks, &tempo_track);
 
         Ok(Self {
             name,
@@ -100,6 +105,7 @@ impl MidiFile {
             program_track,
             tempo_track,
             measures: measures.into(),
+            lyrics: lyrics.into(),
         })
     }
 }

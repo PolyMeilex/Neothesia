@@ -48,7 +48,7 @@ impl super::MenuScene {
         });
 
         if let Some(song) = self.state.song.as_mut() {
-            self.tracks_scroll = nuon::scroll()
+            self.tracks_scroll = nuon::scroll("tracks_scroll")
                 .scissor_size(win_w, (win_h - bottom_bar_h).max(0.0))
                 .scroll(self.tracks_scroll)
                 .build(ui, |ui| {

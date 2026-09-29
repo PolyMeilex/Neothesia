@@ -540,15 +540,20 @@ impl ScrollState {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Scroll {
+    id: Id,
     rect: Rect,
     scroll: ScrollState,
 }
 
 impl Scroll {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(id: impl Into<Id>) -> Self {
+        Self {
+            id: id.into(),
+            rect: Rect::default(),
+            scroll: ScrollState::default(),
+        }
     }
 
     pub fn scissor_rect(mut self, rect: Rect) -> Self {
@@ -609,8 +614,7 @@ impl Scroll {
             let y = scroll * mult;
             let x = self.rect.size.width - w;
 
-            // TODO: Don't assume single scroll per view
-            let res = self::click_area("scroll").size(w, h).pos(x, y).build(ui);
+            let res = self::click_area(self.id).size(w, h).pos(x, y).build(ui);
 
             let color = if res.is_hovered() || res.is_pressed() {
                 [87, 81, 101]
@@ -637,8 +641,8 @@ impl Scroll {
     }
 }
 
-pub fn scroll() -> Scroll {
-    Scroll::new()
+pub fn scroll(id: impl Into<Id>) -> Scroll {
+    Scroll::new(id)
 }
 
 pub struct Card {}

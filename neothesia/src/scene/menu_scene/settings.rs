@@ -116,7 +116,7 @@ impl super::MenuScene {
         let margin_top = 40.0;
         let body_w = 650.0;
 
-        self.settings_scroll = nuon::scroll()
+        self.settings_scroll = nuon::scroll("settings_scroll")
             .scissor_size(win_w, (win_h - bottom_bar_h).max(0.0))
             .scroll(self.settings_scroll)
             .build(ui, |ui| {

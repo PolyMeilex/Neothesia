@@ -318,24 +318,24 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
         }
 
         for text in layer.text.iter() {
-            let buffer = if text.bold {
-                TextRenderer::gen_buffer_with_attr(
-                    text.size,
-                    &text.text,
-                    cosmic_text::Attrs::new()
-                        .family(cosmic_text::Family::Name(&text.font_family))
-                        .weight(cosmic_text::Weight::BOLD)
-                        .color(cosmic_text::Color(text.color.packet_u32())),
-                )
-            } else {
-                TextRenderer::gen_buffer_with_attr(
-                    text.size,
-                    &text.text,
-                    cosmic_text::Attrs::new()
-                        .family(cosmic_text::Family::Name(&text.font_family))
-                        .color(cosmic_text::Color(text.color.packet_u32())),
-                )
-            };
+            let mut attrs = cosmic_text::Attrs::new()
+                .family(cosmic_text::Family::Name(&text.font_family))
+                .color(cosmic_text::Color(text.color.packet_u32()));
+            if text.bold {
+                attrs = attrs.weight(cosmic_text::Weight::BOLD);
+            }
+
+            let buffer = TextRenderer::gen_rich_buffer(
+                text.size,
+                &text.text,
+                attrs,
+                text.styles.iter().map(|style| {
+                    (
+                        style.range.clone(),
+                        cosmic_text::Color(style.color.packet_u32()),
+                    )
+                }),
+            );
 
             let vertical_align = match text.text_align {
                 nuon::TextAlign::Start => neothesia_core::render::TextAlign::Start,

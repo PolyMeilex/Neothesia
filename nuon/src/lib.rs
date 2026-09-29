@@ -2,6 +2,7 @@ use std::{
     any::Any,
     borrow::Cow,
     hash::{Hash, Hasher},
+    ops::Range,
 };
 
 pub use euclid;
@@ -266,6 +267,12 @@ pub struct IconRenderElement {
 }
 
 #[derive(Debug, Clone)]
+pub struct TextStyle {
+    pub range: Range<usize>,
+    pub color: Color,
+}
+
+#[derive(Debug, Clone)]
 pub struct TextRenderElement {
     pub rect: Rect,
     pub text_justify: TextAlign,
@@ -274,6 +281,7 @@ pub struct TextRenderElement {
     pub bold: bool,
     pub text: String,
     pub color: Color,
+    pub styles: Vec<TextStyle>,
     pub font_family: Cow<'static, str>,
 }
 
@@ -1305,6 +1313,7 @@ impl Button {
                 bold: false,
                 text: self.label.to_string(),
                 color: self.font_color,
+                styles: Vec::new(),
                 font_family: Cow::Borrowed("Roboto"),
             });
         }
@@ -1322,6 +1331,7 @@ pub struct Label {
     text_align: TextAlign,
     color: Color,
     text: String,
+    styles: Vec<TextStyle>,
     icon: String,
     bold: bool,
     font_family: Cow<'static, str>,
@@ -1351,6 +1361,7 @@ impl Label {
             text_align: TextAlign::Center,
             color: Color::new(1.0, 1.0, 1.0, 1.0),
             text: String::new(),
+            styles: Vec::new(),
             icon: String::new(),
             bold: false,
             font_family: Cow::Borrowed("Roboto"),
@@ -1415,6 +1426,20 @@ impl Label {
         self
     }
 
+    pub fn rich<C: Into<Color>>(
+        mut self,
+        styles: impl IntoIterator<Item = (Range<usize>, C)>,
+    ) -> Self {
+        self.styles = styles
+            .into_iter()
+            .map(|(range, color)| TextStyle {
+                range,
+                color: color.into(),
+            })
+            .collect();
+        self
+    }
+
     pub fn icon(mut self, icon: impl Into<String>) -> Self {
         self.icon = icon.into();
         self
@@ -1438,6 +1463,7 @@ impl Label {
                 bold: self.bold,
                 text: self.text.to_string(),
                 color: self.color,
+                styles: self.styles.clone(),
                 font_family: self.font_family.clone(),
             });
         }

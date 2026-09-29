@@ -1,4 +1,5 @@
 use std::{
+    any::Any,
     borrow::Cow,
     hash::{Hash, Hasher},
 };
@@ -10,7 +11,9 @@ pub type Size = euclid::default::Size2D<f32>;
 pub type Box2D = euclid::default::Box2D<f32>;
 pub type Rect = euclid::default::Rect<f32>;
 
+mod data_store;
 mod settings;
+use data_store::DataStore;
 use neothesia_image::ImageIdentifier;
 pub use settings::*;
 
@@ -295,6 +298,8 @@ pub struct Ui {
     pub translation_stack: TranslationStack,
 
     pub layers: LayerStack,
+
+    data: DataStore,
 }
 
 impl Default for Ui {
@@ -316,7 +321,12 @@ impl Ui {
             mouse_down: false,
             translation_stack: TranslationStack::default(),
             layers: LayerStack::new(),
+            data: DataStore::default(),
         }
+    }
+
+    pub fn data<T: Any + Default>(&mut self, id: impl Into<Id>) -> &mut T {
+        self.data.get_or_insert_with(id.into(), T::default)
     }
 
     pub fn set_scissor_rect(&mut self, x: f32, y: f32, w: f32, h: f32) {
@@ -353,6 +363,7 @@ impl Ui {
 
     pub fn done(&mut self) {
         self.layers.clear();
+        self.data.frame_done();
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
         self.scroll_delta = 0.0;

@@ -93,8 +93,6 @@ pub struct MenuScene {
     quad_pipeline: QuadRenderer,
     nuon: nuon::Ui,
 
-    tracks_scroll: nuon::ScrollState,
-    settings_scroll: nuon::ScrollState,
     midi_input_state: MidiInputState,
     popup: Popup,
 }
@@ -128,8 +126,6 @@ impl MenuScene {
 
             quad_pipeline,
             nuon: nuon::Ui::new(),
-            tracks_scroll: nuon::ScrollState::new(),
-            settings_scroll: nuon::ScrollState::new(),
             midi_input_state: MidiInputState::default(),
             popup: Popup::None,
         }

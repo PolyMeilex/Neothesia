@@ -473,7 +473,7 @@ pub fn layer() -> Layer {
 }
 
 #[derive(Default, Debug, Clone, Copy)]
-pub enum ScrollState {
+enum ScrollState {
     #[default]
     Uninitialized,
     Ready {
@@ -484,11 +484,7 @@ pub enum ScrollState {
 }
 
 impl ScrollState {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn update(&mut self, line_delta: f32) {
+    fn update(&mut self, line_delta: f32) {
         let delta = -line_delta;
 
         match self {
@@ -555,7 +551,6 @@ impl ScrollState {
 pub struct Scroll {
     id: Id,
     rect: Rect,
-    scroll: ScrollState,
 }
 
 impl Scroll {
@@ -563,17 +558,11 @@ impl Scroll {
         Self {
             id: id.into(),
             rect: Rect::default(),
-            scroll: ScrollState::default(),
         }
     }
 
     pub fn scissor_rect(mut self, rect: Rect) -> Self {
         self.rect = rect;
-        self
-    }
-
-    pub fn scroll(mut self, scroll: ScrollState) -> Self {
-        self.scroll = scroll;
         self
     }
 
@@ -583,7 +572,7 @@ impl Scroll {
         self
     }
 
-    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) -> ScrollState {
+    pub fn build(&self, ui: &mut Ui, build: impl FnOnce(&mut Ui)) {
         //      ┌► ┌─────┐ ◄┐
         //      │  │~~~~~│  │ visible_h
         //      │  │~~~  │  │
@@ -592,7 +581,7 @@ impl Scroll {
         //      │  │~~~~~│
         //      └► └─────┘
 
-        let mut state = self.scroll;
+        let mut state = *ui.data::<ScrollState>(self.id);
         let scroll = state.value();
 
         self::layer().scissor_rect(self.rect).build(ui, |ui| {
@@ -648,7 +637,7 @@ impl Scroll {
                 .build(ui);
         });
 
-        state
+        *ui.data(self.id) = state;
     }
 }
 

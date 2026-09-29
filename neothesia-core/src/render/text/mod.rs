@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, ops::Range, rc::Rc};
 
 use glyphon::cosmic_text;
 use wgpu_jumpstart::Gpu;
@@ -348,6 +348,38 @@ impl TextRenderer {
             cosmic_text::Buffer::new(font_system, cosmic_text::Metrics::new(size, size));
         buffer.set_size(Some(f32::MAX), Some(f32::MAX));
         buffer.set_text(text, &attrs, cosmic_text::Shaping::Basic, None);
+        buffer.shape_until_scroll(font_system, false);
+        buffer
+    }
+
+    /// `styles` ranges are byte-based
+    pub fn gen_rich_buffer(
+        size: f32,
+        text: &str,
+        attrs: cosmic_text::Attrs,
+        styles: impl IntoIterator<Item = (Range<usize>, cosmic_text::Color)>,
+    ) -> cosmic_text::Buffer {
+        let mut spans = Vec::new();
+        let mut pos = 0;
+        for (range, color) in styles {
+            let start = range.start.max(pos);
+            let (Some(gap), Some(styled)) = (text.get(pos..start), text.get(start..range.end))
+            else {
+                continue;
+            };
+            spans.push((gap, attrs.clone()));
+            spans.push((styled, attrs.clone().color(color)));
+            pos = range.end;
+        }
+        spans.push((&text[pos..], attrs.clone()));
+
+        let font_system = crate::font_system::font_system();
+        let font_system = &mut font_system.borrow_mut();
+
+        let mut buffer =
+            cosmic_text::Buffer::new(font_system, cosmic_text::Metrics::new(size, size));
+        buffer.set_size(Some(f32::MAX), Some(f32::MAX));
+        buffer.set_rich_text(spans, &attrs, cosmic_text::Shaping::Basic, None);
         buffer.shape_until_scroll(font_system, false);
         buffer
     }

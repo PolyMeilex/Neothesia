@@ -5,6 +5,8 @@ use crate::output_manager::OutputDescriptor;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use midi_file::midly::{self, num::u4};
 
+const OUTPUT_BUFFER_FRAMES: u32 = 1024;
+
 #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
 const SAMPLES_SIZE: usize = 1410;
 
@@ -28,7 +30,14 @@ impl SynthBackend {
         let config = device.default_output_config()?;
         let sample_format = config.sample_format();
 
-        let stream_config: cpal::StreamConfig = config.into();
+        let buffer_size = match config.buffer_size() {
+            cpal::SupportedBufferSize::Range { min, max } => {
+                cpal::BufferSize::Fixed(OUTPUT_BUFFER_FRAMES.clamp(*min, *max))
+            }
+            cpal::SupportedBufferSize::Unknown => cpal::BufferSize::Default,
+        };
+        let mut stream_config: cpal::StreamConfig = config.into();
+        stream_config.buffer_size = buffer_size;
 
         Ok(Self {
             _host: host,

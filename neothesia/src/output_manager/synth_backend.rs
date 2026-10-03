@@ -217,10 +217,17 @@ fn oxisynth_adapter<'a>(
         mode: Default::default(),
     });
 
-    {
-        let mut file = std::fs::File::open(path).unwrap();
-        let font = oxisynth::SoundFont::load(&mut file).unwrap();
-        synth.add_font(font, true);
+    fn load_font(path: &Path) -> anyhow::Result<oxisynth::SoundFont> {
+        let mut file = std::fs::File::open(path)?;
+        let font = oxisynth::SoundFont::load(&mut file)?;
+        Ok(font)
+    }
+
+    match load_font(path) {
+        Ok(font) => {
+            synth.add_font(font, true);
+        }
+        Err(err) => log::error!("Failed to load a soundfont: {err}"),
     }
 
     move || {

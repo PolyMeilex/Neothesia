@@ -165,6 +165,19 @@ impl OutputFormat {
 pub struct Codec(*const AVCodec);
 
 impl Codec {
+    pub fn find_encoder_by_name(name: &CStr) -> Option<Self> {
+        let codec = unsafe { ffmpeg::avcodec_find_encoder_by_name(name.as_ptr()) };
+        (!codec.is_null()).then_some(Self(codec))
+    }
+
+    pub fn id(&self) -> AVCodecID {
+        unsafe { (*self.0).id }
+    }
+
+    pub fn name(&self) -> &CStr {
+        unsafe { CStr::from_ptr((*self.0).name) }
+    }
+
     pub fn as_ptr(&self) -> *const AVCodec {
         self.0
     }
@@ -192,13 +205,13 @@ impl CodecContext {
         self.0.as_ptr()
     }
 
-    pub fn open_video(&self) {
+    pub fn open_video(&self, options: &[(&CStr, &CStr)]) {
         unsafe {
             let mut opt: *mut AVDictionary = ptr::null_mut();
 
-            // The range of the CRF scale is 0–51, where 0 is lossless
-            ffmpeg::av_dict_set(&mut opt, c"crf".as_ptr(), c"0".as_ptr(), 0);
-            ffmpeg::av_dict_set(&mut opt, c"preset".as_ptr(), c"medium".as_ptr(), 0);
+            for (key, value) in options {
+                ffmpeg::av_dict_set(&mut opt, key.as_ptr(), value.as_ptr(), 0);
+            }
 
             if ffmpeg::avcodec_open2(self.0.as_ptr(), ptr::null_mut(), &mut opt) < 0 {
                 panic!("Could not open video codec.");

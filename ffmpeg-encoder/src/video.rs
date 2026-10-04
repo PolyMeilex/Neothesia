@@ -1,8 +1,23 @@
-use std::cell::OnceCell;
+use std::{cell::OnceCell, ffi::CStr};
 
 use ffmpeg::{AVCodecID, AVRational};
 
 use crate::{FRAME_RATE, SRC_STREAM_PIX_FMT, STREAM_PIX_FMT, ff};
+
+/// Order indicated priority
+const AV1_ENCODERS: &[(&CStr, &[(&CStr, &CStr)])] = &[
+    (c"libsvtav1", &[(c"preset", c"7")]),
+    (c"libaom-av1", &[(c"cpu-used", c"6"), (c"row-mt", c"1")]),
+    (c"librav1e", &[(c"speed", c"6")]),
+];
+
+const AV1_BITS_PER_PIXEL: f64 = 0.05;
+/// Fallback is typically MPEG-4 Part 2
+const FALLBACK_BITS_PER_PIXEL: f64 = 0.1;
+
+fn target_bit_rate(width: i32, height: i32, bits_per_pixel: f64) -> i64 {
+    (width as f64 * height as f64 * FRAME_RATE as f64 * bits_per_pixel) as i64
+}
 
 pub struct VideoOutputStream {
     pub stream: ff::Stream,
@@ -24,14 +39,29 @@ impl VideoOutputStream {
         width: i32,
         height: i32,
     ) -> Self {
-        let codec_id = output_format.video_codec_id();
-        assert_ne!(
-            codec_id,
-            AVCodecID::AV_CODEC_ID_NONE,
-            "The selected output container does not support video encoding"
-        );
+        let av1 = AV1_ENCODERS.iter().find_map(|(name, options)| {
+            ff::Codec::find_encoder_by_name(name).map(|codec| (codec, *options))
+        });
 
-        let codec = output_format.video_codec();
+        let (codec, options, bits_per_pixel) = match av1 {
+            Some((codec, options)) => (codec, options, AV1_BITS_PER_PIXEL),
+            None => {
+                assert_ne!(
+                    output_format.video_codec_id(),
+                    AVCodecID::AV_CODEC_ID_NONE,
+                    "The selected output container does not support video encoding"
+                );
+                log::warn!("No AV1 encoder available, falling back to the container default");
+                (
+                    output_format.video_codec(),
+                    &[][..],
+                    FALLBACK_BITS_PER_PIXEL,
+                )
+            }
+        };
+        log::info!("Using video encoder: {:?}", codec.name());
+
+        let codec_id = codec.id();
 
         let output_format = output_format.as_ptr();
 
@@ -47,7 +77,7 @@ impl VideoOutputStream {
             let codec_ctx = codec_ctx.as_ptr();
 
             (*codec_ctx).codec_id = codec_id;
-            (*codec_ctx).bit_rate = 400000;
+            (*codec_ctx).bit_rate = target_bit_rate(width, height, bits_per_pixel);
 
             // Resolution must be a multiple of two.
             (*codec_ctx).width = width;
@@ -64,7 +94,11 @@ impl VideoOutputStream {
             (*stream.as_ptr()).time_base = time_base;
             (*codec_ctx).time_base = time_base;
 
-            (*codec_ctx).gop_size = 12; // emit one intra frame every twelve frames at most
+            // AV1 encoders pick a sensible keyframe interval on their own,
+            // a short one would waste most of the bitrate on intra frames
+            if codec_id != AVCodecID::AV_CODEC_ID_AV1 {
+                (*codec_ctx).gop_size = 12; // emit one intra frame every twelve frames at most
+            }
             (*codec_ctx).pix_fmt = STREAM_PIX_FMT;
 
             if (*codec_ctx).codec_id == AVCodecID::AV_CODEC_ID_MPEG2VIDEO {
@@ -85,7 +119,7 @@ impl VideoOutputStream {
             }
         }
 
-        codec_ctx.open_video();
+        codec_ctx.open_video(options);
 
         let video_frame =
             ff::Frame::new_video(codec_ctx.pix_fmt(), codec_ctx.width(), codec_ctx.height());

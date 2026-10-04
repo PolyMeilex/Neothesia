@@ -93,7 +93,7 @@ pub fn new_audio_streams(
                 *sample_fmts
             };
 
-            (*codec_ctx_ptr).bit_rate = 64000;
+            (*codec_ctx_ptr).bit_rate = 192_000;
             (*codec_ctx_ptr).sample_rate = 44100;
 
             let supported_samplerates = supported_samplerates(codec_ptr);

@@ -94,13 +94,16 @@ impl Recorder {
         let mut keyboard = KeyboardRenderer::new(keyboard_layout.clone());
         keyboard.position_on_bottom_of_parent(height as f32);
 
-        let guidelines = GuidelineRenderer::new(
+        let mut guidelines = GuidelineRenderer::new(
             keyboard.layout().clone(),
             *keyboard.pos(),
             config.vertical_guidelines(),
             config.horizontal_guidelines(),
             midi.measures.clone(),
         );
+        // A 1px line flickers once a player scales the video down, as it lands
+        // on a different sub-pixel offset every frame; 3px at 1080p holds up
+        guidelines.set_measure_line_height((height as f32 / 1080.0 * 3.0).round().max(1.0));
 
         let mut waterfall = WaterfallRenderer::new(
             &gpu,

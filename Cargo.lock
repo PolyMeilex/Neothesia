@@ -866,6 +866,7 @@ version = "0.0.0"
 dependencies = [
  "ffmpeg-sys-next",
  "libc",
+ "log",
 ]
 
 [[package]]

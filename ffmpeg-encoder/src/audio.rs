@@ -18,6 +18,45 @@ pub struct AudioOutputStream {
     samples_count: i64,
 }
 
+#[cfg(ffmpeg_7_1)]
+unsafe fn supported_config<T>(
+    codec: *const ffmpeg::AVCodec,
+    config: ffmpeg::AVCodecConfig,
+) -> *const T {
+    let mut out: *const libc::c_void = ptr::null();
+    let ret = unsafe {
+        ffmpeg::avcodec_get_supported_config(
+            ptr::null(),
+            codec,
+            config,
+            0,
+            &mut out,
+            ptr::null_mut(),
+        )
+    };
+    if ret < 0 { ptr::null() } else { out.cast() }
+}
+
+/// Returns `AV_SAMPLE_FMT_NONE` terminated list, or null if unknown
+unsafe fn supported_sample_fmts(codec: *const ffmpeg::AVCodec) -> *const AVSampleFormat {
+    unsafe {
+        #[cfg(ffmpeg_7_1)]
+        return supported_config(codec, ffmpeg::AVCodecConfig::AV_CODEC_CONFIG_SAMPLE_FORMAT);
+        #[cfg(not(ffmpeg_7_1))]
+        return (*codec).sample_fmts;
+    }
+}
+
+/// Returns zero terminated list, or null if unknown
+unsafe fn supported_samplerates(codec: *const ffmpeg::AVCodec) -> *const libc::c_int {
+    unsafe {
+        #[cfg(ffmpeg_7_1)]
+        return supported_config(codec, ffmpeg::AVCodecConfig::AV_CODEC_CONFIG_SAMPLE_RATE);
+        #[cfg(not(ffmpeg_7_1))]
+        return (*codec).supported_samplerates;
+    }
+}
+
 pub fn new_audio_streams(
     format_context: &ff::FormatContext,
     output_format: &ff::OutputFormat,
@@ -45,19 +84,19 @@ pub fn new_audio_streams(
     let codec_ctx_ptr = codec_ctx.as_ptr();
 
     {
-        let sample_fmts = unsafe { (*codec_ptr).sample_fmts };
+        let sample_fmts = unsafe { supported_sample_fmts(codec_ptr) };
 
         unsafe {
             (*codec_ctx_ptr).sample_fmt = if sample_fmts.is_null() {
                 AVSampleFormat::AV_SAMPLE_FMT_FLTP
             } else {
-                *(*codec_ptr).sample_fmts
+                *sample_fmts
             };
 
             (*codec_ctx_ptr).bit_rate = 64000;
             (*codec_ctx_ptr).sample_rate = 44100;
 
-            let supported_samplerates = (*codec_ptr).supported_samplerates;
+            let supported_samplerates = supported_samplerates(codec_ptr);
 
             if !supported_samplerates.is_null() {
                 (*codec_ctx_ptr).sample_rate = *supported_samplerates.offset(0);

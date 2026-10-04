@@ -1,0 +1,5 @@
+[files]
+extend-exclude = [
+    # Contains a bunch of non-English text
+    "neothesia/src/locals.rs",
+]

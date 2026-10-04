@@ -1696,6 +1696,7 @@ dependencies = [
  "puffin",
  "puffin_http",
  "rfd",
+ "sys-locale",
  "thiserror 2.0.21",
  "wgpu",
  "wgpu-jumpstart",

@@ -63,6 +63,7 @@ puffin = "0.20"
 puffin_http = "0.17"
 
 cosmic-text = "0.19"
+sys-locale = "0.3.2"
 png = "0.18"
 midly = "0.5"
 

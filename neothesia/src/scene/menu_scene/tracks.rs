@@ -292,7 +292,7 @@ fn track_card(
                 .hover_color(hover_color(PlayerConfig::Auto))
                 .preseed_color(color(PlayerConfig::Auto))
                 .border_radius([0.0; 4])
-                .label("Auto")
+                .label("Auto Play")
                 .build(ui)
             {
                 res = TrackCardEvent::PlayerConfig(PlayerConfig::Auto);
@@ -309,7 +309,7 @@ fn track_card(
                 .hover_color(hover_color(PlayerConfig::Human))
                 .preseed_color(color(PlayerConfig::Human))
                 .border_radius([0.0, 255.0, 255.0, 0.0])
-                .label("Human")
+                .label("Play Along")
                 .build(ui)
             {
                 res = TrackCardEvent::PlayerConfig(PlayerConfig::Human);

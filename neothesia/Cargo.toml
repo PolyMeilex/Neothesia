@@ -27,6 +27,7 @@ midi-io.workspace = true
 nuon.workspace = true
 futures-channel.workspace = true
 cosmic-text.workspace = true
+sys-locale.workspace = true
 anyhow.workspace = true
 
 bytes.workspace = true

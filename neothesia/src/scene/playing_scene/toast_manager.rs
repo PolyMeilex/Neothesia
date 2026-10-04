@@ -1,5 +1,7 @@
 use neothesia_core::render::TextRenderer;
 
+use crate::locals;
+
 #[derive(Default)]
 pub struct ToastManager {
     toast: Option<Toast>,
@@ -22,15 +24,15 @@ impl ToastManager {
     }
 
     pub fn speed_toast(&mut self, speed: f32) {
-        self.toast(format!("Speed: {}", (speed * 100.0).round() / 100.0));
+        self.toast(locals::playing::speed((speed * 100.0).round() / 100.0));
     }
 
     pub fn animation_speed_toast(&mut self, speed: f32) {
-        self.toast(format!("Animation Speed: {speed}"));
+        self.toast(locals::playing::animation_speed(speed));
     }
 
     pub fn offset_toast(&mut self, offset: f32) {
-        self.toast(format!("Offset: {}", (offset * 100.0).round() / 100.0));
+        self.toast(locals::playing::offset((offset * 100.0).round() / 100.0));
     }
 }
 

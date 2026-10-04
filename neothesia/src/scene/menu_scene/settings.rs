@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     context::Context,
+    locals,
     scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
@@ -124,26 +125,26 @@ impl super::MenuScene {
                     .add_to_current(ui);
                 nuon::translate().y(margin_top).add_to_current(ui);
 
-                nuon::settings_section("Output")
+                nuon::settings_section(locals::settings::output())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
                         self.settings_output_section(ctx, ui, rows, spacer);
                     });
 
-                nuon::settings_section("Input")
+                nuon::settings_section(locals::settings::input())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
                         self.settings_input_section(ctx, ui, rows, spacer);
                     });
 
-                nuon::settings_section("Note Range")
+                nuon::settings_section(locals::settings::note_range())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
                         self::update_range_start(
                             ctx,
                             &mut self.state.range_detection,
                             nuon::settings_row_spin()
-                                .title("Start")
+                                .title(locals::settings::range_start())
                                 .subtitle(ctx.config.piano_range().start().to_string())
                                 .id("range-start")
                                 .build(ui, rows),
@@ -155,7 +156,7 @@ impl super::MenuScene {
                             ctx,
                             &mut self.state.range_detection,
                             nuon::settings_row_spin()
-                                .title("End")
+                                .title(locals::settings::range_end())
                                 .subtitle(ctx.config.piano_range().end().to_string())
                                 .id("range-end")
                                 .build(ui, rows),
@@ -172,12 +173,12 @@ impl super::MenuScene {
                 self.keyboard_layout_preview(ctx, body_w, keyboard_h, ui);
                 nuon::translate().y(keyboard_h).add_to_current(ui);
 
-                nuon::settings_section("Render")
+                nuon::settings_section(locals::settings::render())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
                         if nuon::settings_row_toggler()
-                            .title("Vertical Guidelines")
-                            .subtitle("Display octave indicators")
+                            .title(locals::settings::vertical_guidelines())
+                            .subtitle(locals::settings::vertical_guidelines_subtitle())
                             .value(ctx.config.vertical_guidelines())
                             .build(ui, rows)
                         {
@@ -188,8 +189,8 @@ impl super::MenuScene {
                         spacer(ui);
 
                         if nuon::settings_row_toggler()
-                            .title("Horizontal Guidelines")
-                            .subtitle("Display measure/bar indicators")
+                            .title(locals::settings::horizontal_guidelines())
+                            .subtitle(locals::settings::horizontal_guidelines_subtitle())
                             .value(ctx.config.horizontal_guidelines())
                             .build(ui, rows)
                         {
@@ -200,8 +201,8 @@ impl super::MenuScene {
                         spacer(ui);
 
                         if nuon::settings_row_toggler()
-                            .title("Glow")
-                            .subtitle("Key glow effect")
+                            .title(locals::settings::glow())
+                            .subtitle(locals::settings::glow_subtitle())
                             .value(ctx.config.glow())
                             .build(ui, rows)
                         {
@@ -211,8 +212,8 @@ impl super::MenuScene {
                         spacer(ui);
 
                         if nuon::settings_row_toggler()
-                            .title("Note Labels")
-                            .subtitle("Display waterfall note labels")
+                            .title(locals::settings::note_labels())
+                            .subtitle(locals::settings::note_labels_subtitle())
                             .value(ctx.config.note_labels())
                             .build(ui, rows)
                         {
@@ -290,7 +291,7 @@ impl super::MenuScene {
         spacer: &dyn Fn(&mut nuon::Ui),
     ) {
         nuon::settings_row()
-            .title("Output")
+            .title(locals::settings::output())
             .body(|ui, row_w, row_h| self.settings_output_picker(ui, ctx, row_w, row_h))
             .build(ui, rows);
 
@@ -305,7 +306,7 @@ impl super::MenuScene {
             spacer(ui);
 
             nuon::settings_row()
-                .title("SoundFont")
+                .title(locals::settings::soundfont())
                 .subtitle(
                     ctx.config
                         .soundfont_path()
@@ -316,7 +317,7 @@ impl super::MenuScene {
                 )
                 .body(|ui, row_w, row_h| {
                     if setting_row_button(row_w, row_h)
-                        .label("Select File")
+                        .label(locals::settings::select_file())
                         .build(ui)
                     {
                         self.futures
@@ -330,7 +331,7 @@ impl super::MenuScene {
             self::update_audio_gain(
                 ctx,
                 nuon::settings_row_spin()
-                    .title("Audio Gain")
+                    .title(locals::settings::audio_gain())
                     .subtitle(ctx.config.audio_gain().to_string())
                     .id("gain")
                     .build(ui, rows),
@@ -339,8 +340,8 @@ impl super::MenuScene {
             spacer(ui);
 
             if nuon::settings_row_toggler()
-                .title("Separate Channels")
-                .subtitle("Assign different MIDI channel to each track")
+                .title(locals::settings::separate_channels())
+                .subtitle(locals::settings::separate_channels_subtitle())
                 .value(ctx.config.separate_channels())
                 .build(ui, rows)
             {
@@ -417,7 +418,7 @@ impl super::MenuScene {
         _spacer: &dyn Fn(&mut nuon::Ui),
     ) {
         nuon::settings_row()
-            .title("Input")
+            .title(locals::settings::input())
             .body(|ui, row_w, row_h| self.settings_input_picker(ui, ctx, row_w, row_h))
             .build(ui, rows);
     }
@@ -430,14 +431,14 @@ impl super::MenuScene {
     ) {
         let (title, subtitle, btn_label) = match &self.state.range_detection {
             RangeDetection::Idle => (
-                "Auto-detect".to_string(),
-                "Auto-detect range from connected keyboard",
-                "Detect",
+                locals::settings::auto_detect(),
+                locals::settings::auto_detect_subtitle(),
+                locals::settings::detect(),
             ),
             RangeDetection::WaitingForKeys { keys } => (
-                format!("Detection in proggress... Step {}/2", keys.len()),
-                "Play the far-left and far-right key on your keyboard...",
-                "Cancel",
+                locals::settings::detection_in_progress(keys.len(), 2),
+                locals::settings::detection_subtitle(),
+                locals::settings::cancel(),
             ),
         };
 

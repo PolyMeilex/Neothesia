@@ -21,7 +21,7 @@ use winit::{
     keyboard::{Key, NamedKey},
 };
 
-use crate::{NeothesiaEvent, context::Context, icons, scene::Scene, song::Song};
+use crate::{NeothesiaEvent, context::Context, icons, locals, scene::Scene, song::Song};
 use midi_file::midly::MidiMessage;
 
 use super::NuonRenderer;
@@ -139,7 +139,7 @@ impl MenuScene {
             nuon::label()
                 .size(width, height)
                 .font_size(30.0)
-                .text("Loading...")
+                .text(locals::menu::loading())
                 .text_justify(nuon::TextAlign::Center)
                 .build(&mut self.nuon);
             return;
@@ -175,21 +175,29 @@ impl MenuScene {
             .y(nuon::center_y(win_h, full_h))
             .build(ui, |ui| {
                 nuon::label()
-                    .text("Do you want to exit?")
+                    .text(locals::menu::exit_question())
                     .font_size(30.0)
                     .size(full_w, text_h)
                     .build(ui);
 
                 nuon::translate().y(text_h).add_to_current(ui);
 
-                if neo_btn().size(btn_w, btn_h).label("No").build(ui) {
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label(locals::menu::no())
+                    .build(ui)
+                {
                     self.state.go_back();
                 }
 
                 nuon::translate().x(btn_w).add_to_current(ui);
                 nuon::translate().x(btn_gap).add_to_current(ui);
 
-                if neo_btn().size(btn_w, btn_h).label("Yes").build(ui) {
+                if neo_btn()
+                    .size(btn_w, btn_h)
+                    .label(locals::menu::yes())
+                    .build(ui)
+                {
                     ctx.proxy.send_event(NeothesiaEvent::Exit).ok();
                 }
             });
@@ -220,19 +228,27 @@ impl MenuScene {
                     .x(-w / 2.0)
                     .y(logo_h + post_logo_gap)
                     .build(ui, |ui| {
-                        if neo_btn().size(w, h).label("Select File").build(ui) {
+                        if neo_btn()
+                            .size(w, h)
+                            .label(locals::menu::select_file())
+                            .build(ui)
+                        {
                             self.futures.push(open_midi_file_picker(&mut self.state));
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn().size(w, h).label("Settings").build(ui) {
+                        if neo_btn()
+                            .size(w, h)
+                            .label(locals::menu::settings())
+                            .build(ui)
+                        {
                             self.state.go_to(Page::Settings);
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
 
-                        if neo_btn().size(w, h).label("Exit").build(ui) {
+                        if neo_btn().size(w, h).label(locals::menu::exit()).build(ui) {
                             self.state.go_back();
                         }
                     });
@@ -261,7 +277,7 @@ impl MenuScene {
                     .size(btn_w, btn_h)
                     .icon(icons::balloon_icon())
                     .color([100; 3])
-                    .tooltip("FreePlay")
+                    .tooltip(locals::menu::freeplay())
                     .build(ui)
                 {
                     state::freeplay(&self.state, ctx);
@@ -278,7 +294,7 @@ impl MenuScene {
                 if neo_btn()
                     .size(btn_w, btn_h)
                     .icon(icons::play_icon())
-                    .tooltip("Play")
+                    .tooltip(locals::menu::play())
                     .build(ui)
                 {
                     state::play(&self.state, ctx);
@@ -289,7 +305,7 @@ impl MenuScene {
                 if neo_btn()
                     .size(btn_w, btn_h)
                     .icon(icons::note_list_icon())
-                    .tooltip("Tracks")
+                    .tooltip(locals::menu::tracks())
                     .build(ui)
                 {
                     self.state.go_to(Page::TrackSelection);

@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::{NeothesiaEvent, context::Context, icons};
+use crate::{NeothesiaEvent, context::Context, icons, locals};
 
 use super::{
     PlayingScene,
@@ -291,20 +291,19 @@ impl TopBar {
                     .build(ui);
 
                 nuon::translate().x(15.0).build(ui, |ui| {
-                    nuon::settings_section("Display").width(width - 30.0).build(
-                        ui,
-                        |ui, rows, _| {
+                    nuon::settings_section(locals::playing::display())
+                        .width(width - 30.0)
+                        .build(ui, |ui, rows, _| {
                             if nuon::settings_row_toggler()
-                                .title("Chord Identifier")
-                                .subtitle("Display chord above keyboard")
+                                .title(locals::playing::chord_identifier())
+                                .subtitle(locals::playing::chord_identifier_subtitle())
                                 .value(ctx.config.chord_identifier())
                                 .build(ui, rows)
                             {
                                 ctx.config
                                     .set_chord_identifier(!ctx.config.chord_identifier());
                             }
-                        },
-                    );
+                        });
                 });
             });
     }

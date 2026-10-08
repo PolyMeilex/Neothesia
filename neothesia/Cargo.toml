@@ -44,6 +44,8 @@ puffin = { workspace = true, optional = true }
 puffin_http = { workspace = true, optional = true }
 piano-layout.workspace = true
 
+ureq.workspace = true
+
 [[bin]]
 name = "neothesia"
 

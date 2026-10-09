@@ -1,4 +1,4 @@
-use midly::{MidiMessage, TrackEvent, TrackEventKind, num::u4};
+use midly::{MetaMessage, MidiMessage, TrackEvent, TrackEventKind, num::u4};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::tempo_track::TempoTrack;
@@ -32,9 +32,16 @@ pub struct MidiNote {
 }
 
 #[derive(Debug, Clone)]
+pub struct Lyric {
+    pub timestamp: Duration,
+    pub text: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct MidiTrack {
     // Translated notes with calculated timings
     pub notes: Arc<[MidiNote]>,
+    pub lyrics: Arc<[Lyric]>,
 
     pub events: Arc<[MidiEvent]>,
 
@@ -58,6 +65,7 @@ impl MidiTrack {
             EventsBuilder {
                 programs,
                 notes,
+                lyrics,
                 has_drums,
                 has_other_than_drums,
                 ..
@@ -68,6 +76,7 @@ impl MidiTrack {
             track_id,
             track_color_id,
             notes: notes.into(),
+            lyrics: lyrics.into(),
             events: events.into(),
             programs: programs.into(),
             has_drums,
@@ -85,6 +94,7 @@ struct NoteInfo {
 #[derive(Default)]
 struct EventsBuilder {
     programs: Vec<ProgramEvent>,
+    lyrics: Vec<Lyric>,
     has_drums: bool,
     has_other_than_drums: bool,
 
@@ -185,6 +195,20 @@ impl EventsBuilder {
             track_color_id,
         }
     }
+
+    fn on_meta(&mut self, message: MetaMessage, timestamp: Duration) {
+        match message {
+            MetaMessage::Lyric(items) => {
+                if let Ok(text) = std::str::from_utf8(items) {
+                    self.lyrics.push(Lyric {
+                        timestamp,
+                        text: text.to_string(),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 fn build(
@@ -204,6 +228,11 @@ fn build(
                 TrackEventKind::Midi { channel, message } => {
                     let timestamp = tempo_track.pulses_to_duration(pulses);
                     Some(builder.on_event(channel, message, timestamp, track_id, track_color_id))
+                }
+                TrackEventKind::Meta(message) => {
+                    let timestamp = tempo_track.pulses_to_duration(pulses);
+                    builder.on_meta(message, timestamp);
+                    None
                 }
                 _ => None,
             }

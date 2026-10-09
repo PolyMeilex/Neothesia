@@ -1,3 +1,5 @@
+#![allow(clippy::single_match)]
+
 mod file;
 pub mod playback;
 pub mod program_track;

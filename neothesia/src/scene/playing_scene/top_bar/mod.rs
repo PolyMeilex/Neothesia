@@ -12,6 +12,8 @@ pub struct TopBar {
     is_expanded: bool,
 
     settings_animation: Animated<bool, Instant>,
+    /// Number of lyrics lines currently shown, animated so the bar smoothly grows/shrinks
+    lyrics_lines_animation: Animated<f32, Instant>,
 
     settings_active: bool,
 
@@ -31,6 +33,9 @@ impl TopBar {
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
                 .delay(30.0),
+            lyrics_lines_animation: Animated::new(1.0)
+                .duration(500.)
+                .easing(Easing::EaseOutExpo),
 
             is_expanded: false,
             settings_active: false,
@@ -131,9 +136,40 @@ impl TopBar {
             });
         }
 
+        let bar_w = ctx.window_state.logical_size.width;
+        let marker_x = bar_w / 3.0;
+
+        // Variable-speed strip: syllables are packed with a uniform gap, and the scroll
+        // speed changes so each syllable crosses the marker exactly at its timestamp
+        let offset = this.lyrics.strip_offset(
+            this.player.time_without_lead_in(),
+            ctx.config.animation_speed(),
+        );
+        let is_visible = |sylable: &super::lyrics::Lyric| {
+            let x = marker_x + sylable.x - offset;
+            x + sylable.width >= 0.0 && x <= bar_w
+        };
+
+        // Only make room for as many lines as the on-screen syllables need
+        let visible_lines = this
+            .lyrics
+            .lyrics
+            .iter()
+            .filter(|s| is_visible(s))
+            .map(|s| s.line + 1)
+            .max()
+            .unwrap_or(1);
+        this.top_bar
+            .lyrics_lines_animation
+            .transition(visible_lines as f32, ctx.frame_timestamp);
+
         nuon::translate().y(100.0).build(&mut ui, |ui| {
-            let bar_w = ctx.window_state.logical_size.width;
-            let bar_h = this.lyrics.font_size + 40.0;
+            let line_h = this.lyrics.font_size * 1.25;
+            let lines = this
+                .top_bar
+                .lyrics_lines_animation
+                .animate(|v| v, ctx.frame_timestamp);
+            let bar_h = this.lyrics.font_size + 40.0 + (lines - 1.0) * line_h;
 
             nuon::quad()
                 .size(bar_w, bar_h)
@@ -148,8 +184,6 @@ impl TopBar {
                 .y(bar_h)
                 .color([255, 255, 255, 10])
                 .build(ui);
-
-            let marker_x = bar_w / 3.0;
 
             // #1 Time based placement
             for sylable in this.lyrics.lyrics.iter() {
@@ -170,13 +204,6 @@ impl TopBar {
                     .color([255, 255, 255, 10])
                     .build(ui);
             }
-
-            // Variable-speed strip: syllables are packed with a uniform gap, and the scroll
-            // speed changes so each syllable crosses the marker exactly at its timestamp
-            let offset = this.lyrics.strip_offset(
-                this.player.time_without_lead_in(),
-                ctx.config.animation_speed(),
-            );
 
             nuon::quad()
                 .x(marker_x)
@@ -207,7 +234,8 @@ impl TopBar {
                     .text_justify(nuon::TextAlign::Start)
                     .text_align(nuon::TextAlign::Center)
                     .x(x)
-                    .size(f32::MAX, bar_h)
+                    .y(20.0 + sylable.line as f32 * line_h)
+                    .size(f32::MAX, this.lyrics.font_size)
                     .build(ui);
             }
         });

@@ -137,7 +137,7 @@ impl TopBar {
 
             nuon::quad()
                 .size(bar_w, bar_h)
-                .color([0, 0, 0, 100])
+                .color([0, 0, 0, 250])
                 .build(ui);
             nuon::quad()
                 .size(bar_w, 1.0)
@@ -149,35 +149,66 @@ impl TopBar {
                 .color([255, 255, 255, 10])
                 .build(ui);
 
+            let marker_x = bar_w / 3.0;
+
             // #1 Time based placement
             for sylable in this.lyrics.lyrics.iter() {
-                // if sylable.timestamp < this.player.time() {
-                //     continue;
-                // }
+                let r = 10.0;
+                let x = marker_x
+                    + ((sylable.timestamp.as_secs_f32() + this.player.leed_in().as_secs_f32())
+                        - this.player.time().as_secs_f32())
+                        * ctx.config.animation_speed();
 
-                let x = (sylable.timestamp.as_secs_f32() - this.player.time().as_secs_f32())
-                    * ctx.config.animation_speed();
-
-                nuon::circle(10.0).x(x).color([255, 0, 0]).build(ui);
-            }
-
-            // #2 Word size based placement
-            for sylable in this.lyrics.lyrics.iter() {
-                if sylable.timestamp < this.player.time() {
+                // Already hit the marker
+                if x < marker_x {
                     continue;
                 }
+
+                // Centered on `x`, so the circle's center crosses the marker on time
+                nuon::circle(r)
+                    .x(x - r)
+                    .color([255, 255, 255, 10])
+                    .build(ui);
+            }
+
+            // Variable-speed strip: syllables are packed with a uniform gap, and the scroll
+            // speed changes so each syllable crosses the marker exactly at its timestamp
+            let offset = this.lyrics.strip_offset(
+                this.player.time_without_lead_in(),
+                ctx.config.animation_speed(),
+            );
+
+            nuon::quad()
+                .x(marker_x)
+                .size(2.0, bar_h)
+                .color([255, 255, 255, 60])
+                .build(ui);
+
+            for sylable in this.lyrics.lyrics.iter() {
+                let x = marker_x + sylable.x - offset;
+
+                if x + sylable.width < 0.0 {
+                    continue;
+                }
+                if x > bar_w {
+                    break;
+                }
+
+                let color = if sylable.x <= offset {
+                    [255, 255, 255, 120]
+                } else {
+                    [255, 255, 255, 255]
+                };
 
                 nuon::label()
                     .text(&sylable.text)
                     .font_size(this.lyrics.font_size)
+                    .color(color)
                     .text_justify(nuon::TextAlign::Start)
                     .text_align(nuon::TextAlign::Center)
+                    .x(x)
                     .size(f32::MAX, bar_h)
                     .build(ui);
-
-                nuon::translate()
-                    .x(sylable.width + this.lyrics.gap_width)
-                    .add_to_current(ui);
             }
         });
 

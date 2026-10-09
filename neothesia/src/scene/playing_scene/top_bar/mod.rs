@@ -131,6 +131,56 @@ impl TopBar {
             });
         }
 
+        nuon::translate().y(100.0).build(&mut ui, |ui| {
+            let bar_w = ctx.window_state.logical_size.width;
+            let bar_h = this.lyrics.font_size + 40.0;
+
+            nuon::quad()
+                .size(bar_w, bar_h)
+                .color([0, 0, 0, 100])
+                .build(ui);
+            nuon::quad()
+                .size(bar_w, 1.0)
+                .color([255, 255, 255, 10])
+                .build(ui);
+            nuon::quad()
+                .size(bar_w, 1.0)
+                .y(bar_h)
+                .color([255, 255, 255, 10])
+                .build(ui);
+
+            // #1 Time based placement
+            for sylable in this.lyrics.lyrics.iter() {
+                // if sylable.timestamp < this.player.time() {
+                //     continue;
+                // }
+
+                let x = (sylable.timestamp.as_secs_f32() - this.player.time().as_secs_f32())
+                    * ctx.config.animation_speed();
+
+                nuon::circle(10.0).x(x).color([255, 0, 0]).build(ui);
+            }
+
+            // #2 Word size based placement
+            for sylable in this.lyrics.lyrics.iter() {
+                if sylable.timestamp < this.player.time() {
+                    continue;
+                }
+
+                nuon::label()
+                    .text(&sylable.text)
+                    .font_size(this.lyrics.font_size)
+                    .text_justify(nuon::TextAlign::Start)
+                    .text_align(nuon::TextAlign::Center)
+                    .size(f32::MAX, bar_h)
+                    .build(ui);
+
+                nuon::translate()
+                    .x(sylable.width + this.lyrics.gap_width)
+                    .add_to_current(ui);
+            }
+        });
+
         nuon::translate()
             .y(this.top_bar.topbar_expand_animation.animate_bool(
                 -75.0 + 5.0,

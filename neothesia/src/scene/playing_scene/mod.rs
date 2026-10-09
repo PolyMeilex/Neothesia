@@ -12,8 +12,12 @@ use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
 use crate::{
-    NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
-    song::Song, utils::window::WinitEvent,
+    NeothesiaEvent,
+    context::Context,
+    render::WaterfallRenderer,
+    scene::{MouseToMidiEventState, playing_scene::lyrics::LyricsTrack},
+    song::Song,
+    utils::window::WinitEvent,
 };
 
 mod keyboard;
@@ -29,6 +33,7 @@ mod toast_manager;
 use toast_manager::ToastManager;
 
 mod animation;
+mod lyrics;
 mod top_bar;
 
 pub struct PlayingScene {
@@ -37,6 +42,7 @@ pub struct PlayingScene {
     guidelines: GuidelineRenderer,
     text_renderer: TextRenderer,
     nuon_renderer: NuonRenderer,
+    lyrics: LyricsTrack,
 
     note_labels: Option<NoteLabels>,
 
@@ -111,12 +117,15 @@ impl PlayingScene {
             keyboard.layout(),
         ));
 
+        let lyrics = LyricsTrack::build(&player.song().file);
+
         Self {
             keyboard,
             guidelines,
             note_labels,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
+            lyrics,
 
             waterfall,
             player,

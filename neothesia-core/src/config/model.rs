@@ -276,7 +276,7 @@ fn default_color_schema() -> Vec<ColorSchemaV1> {
         },
         ColorSchemaV1 {
             base: (255, 51, 129),
-            dark: (48, 124, 255),
+            dark: (192, 0, 77),
         },
         ColorSchemaV1 {
             base: (210, 89, 222),

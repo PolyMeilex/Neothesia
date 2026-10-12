@@ -53,6 +53,14 @@ impl TopBar {
         self.loop_end
     }
 
+    /// Height of the part of the bar that is currently visible on screen
+    pub fn visible_height(&self, frame_timestamp: Instant) -> f32 {
+        // Same offset as the translate in `TopBar::ui`, plus the bar height
+        75.0 + self
+            .topbar_expand_animation
+            .animate_bool(-75.0 + 5.0, 0.0, frame_timestamp)
+    }
+
     #[profiling::function]
     pub fn update(scene: &mut PlayingScene, ctx: &mut Context) {
         let PlayingScene { top_bar, .. } = scene;

@@ -4,8 +4,13 @@ version = "0.1.0"
 authors = ["Poly <bartek.marynczak@op.pl>"]
 edition.workspace = true
 
+[features]
+default = ["musicxml"]
+musicxml = ["dep:neoclef"]
+
 [dependencies]
 midly.workspace = true
+neoclef = { workspace = true, optional = true }
 
 [dev-dependencies]
 midi-io.workspace = true

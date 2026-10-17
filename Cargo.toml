@@ -28,6 +28,8 @@ midi-io = { path = "./midi-io" }
 piano-layout = { path = "./piano-layout" }
 ffmpeg-encoder = { path = "./ffmpeg-encoder" }
 nuon = { path = "./nuon" }
+# neoclef = { package = "NeoClef", git = "https://github.com/PolyMeilex/NeoClef", rev = "0a51962", default-features = false }
+neoclef = { package = "NeoClef", path = "../NeoClef", default-features = false }
 
 anyhow = "1"
 thiserror = "2.0"

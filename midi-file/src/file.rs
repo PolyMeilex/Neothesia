@@ -21,10 +21,19 @@ impl MidiFile {
             .to_string_lossy()
             .to_string();
 
-        let data = match fs::read(path) {
+        let data = match fs::read(&path) {
             Ok(buff) => buff,
             Err(_) => return Err(String::from("Could Not Open File")),
         };
+
+        #[cfg(feature = "musicxml")]
+        if is_musicxml(path.as_ref()) {
+            let src = std::str::from_utf8(&data)
+                .map_err(|_| String::from("MusicXML file is not valid UTF-8"))?;
+            let smf = neoclef::musicxml_to_smf(src)
+                .map_err(|err| format!("MusicXML Parsing Error: {err}"))?;
+            return Self::from_parsed_smf(name, &smf);
+        }
 
         let smf = match Smf::parse(&data) {
             Ok(smf) => smf,
@@ -102,4 +111,15 @@ impl MidiFile {
             measures: measures.into(),
         })
     }
+}
+
+#[cfg(feature = "musicxml")]
+fn is_musicxml(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| {
+            ["musicxml", "xml"]
+                .iter()
+                .any(|known| ext.eq_ignore_ascii_case(known))
+        })
 }

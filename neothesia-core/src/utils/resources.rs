@@ -48,7 +48,7 @@ pub fn default_sf2() -> Option<PathBuf> {
     }
 
     #[cfg(target_os = "windows")]
-    return Some(PathBuf::from("./default.sf2"));
+    return exe_dir_file("default.sf2").filter(|path| path.exists());
 
     #[cfg(target_os = "macos")]
     return bundled_resource_path("default", "sf2").map(PathBuf::from);
@@ -59,10 +59,16 @@ pub fn settings_ron() -> Option<PathBuf> {
     return xdg_config().map(|p| p.join("settings.ron"));
 
     #[cfg(target_os = "windows")]
-    return Some(PathBuf::from("./settings.ron"));
+    return exe_dir_file("settings.ron");
 
     #[cfg(target_os = "macos")]
     return bundled_resource_path("settings", "ron").map(PathBuf::from);
+}
+
+/// File next to the executable
+#[cfg(target_os = "windows")]
+fn exe_dir_file(name: &str) -> Option<PathBuf> {
+    Some(env::current_exe().ok()?.parent()?.join(name))
 }
 
 #[cfg(target_os = "macos")]

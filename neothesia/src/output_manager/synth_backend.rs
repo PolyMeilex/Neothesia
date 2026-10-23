@@ -49,7 +49,11 @@ impl SynthBackend {
         let mut next_value = fluidsynth_adapter(self, rx, path);
 
         #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
-        let mut next_value = oxisynth_adapter(self, rx, path, self.gain);
+        let mut next_value = {
+            // We load the path in background for oxisynth
+            let _ = path;
+            oxisynth_adapter(self, rx, self.gain)
+        };
 
         let err_fn = |err| eprintln!("an error occurred on stream: {err}");
 
@@ -84,6 +88,19 @@ impl SynthBackend {
 
     pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<SynthEvent>();
+
+        #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+        std::thread::spawn({
+            let tx = tx.clone();
+            let path = path.to_path_buf();
+            move || match load_font(&path) {
+                Ok(font) => {
+                    tx.send(SynthEvent::LoadFont(font)).ok();
+                }
+                Err(err) => log::error!("Failed to load a soundfont: {err}"),
+            }
+        });
+
         let stream = match self.sample_format {
             cpal::SampleFormat::I8 => self.run::<i8>(rx, path),
             cpal::SampleFormat::I16 => self.run::<i16>(rx, path),
@@ -114,6 +131,7 @@ impl SynthBackend {
 enum SynthEvent {
     SetGain(f32),
     Midi(oxisynth::MidiEvent),
+    LoadFont(oxisynth::SoundFont),
 }
 
 #[derive(Clone)]
@@ -188,10 +206,16 @@ fn libmidi_to_oxisynth_event(channel: u4, message: midly::MidiMessage) -> oxisyn
 }
 
 #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+fn load_font(path: &Path) -> anyhow::Result<oxisynth::SoundFont> {
+    let mut file = std::fs::File::open(path)?;
+    let font = oxisynth::SoundFont::load(&mut file)?;
+    Ok(font)
+}
+
+#[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
 fn oxisynth_adapter<'a>(
     this: &SynthBackend,
     rx: Receiver<SynthEvent>,
-    path: &Path,
     gain: f32,
 ) -> impl FnMut() -> (f32, f32) + 'a {
     let sample_rate = this.stream_config.sample_rate as f32;
@@ -217,19 +241,6 @@ fn oxisynth_adapter<'a>(
         mode: Default::default(),
     });
 
-    fn load_font(path: &Path) -> anyhow::Result<oxisynth::SoundFont> {
-        let mut file = std::fs::File::open(path)?;
-        let font = oxisynth::SoundFont::load(&mut file)?;
-        Ok(font)
-    }
-
-    match load_font(path) {
-        Ok(font) => {
-            synth.add_font(font, true);
-        }
-        Err(err) => log::error!("Failed to load a soundfont: {err}"),
-    }
-
     move || {
         let (l, r) = synth.read_next();
 
@@ -240,6 +251,9 @@ fn oxisynth_adapter<'a>(
                 }
                 SynthEvent::Midi(event) => {
                     synth.send_event(event).ok();
+                }
+                SynthEvent::LoadFont(font) => {
+                    synth.add_font(font, true);
                 }
             }
         }
@@ -290,6 +304,7 @@ fn fluidsynth_adapter<'a>(
                 SynthEvent::SetGain(_g) => {
                     // TODO
                 }
+                SynthEvent::LoadFont(_) => {}
                 SynthEvent::Midi(e) => match e {
                     oxisynth::MidiEvent::NoteOn { channel, key, vel } => {
                         synth.note_on(channel as u32, key as u32, vel as u32).ok();

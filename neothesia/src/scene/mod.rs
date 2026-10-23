@@ -6,7 +6,9 @@ use crate::{
     NeothesiaEvent, context::Context, scene::playing_scene::Keyboard, utils::window::WinitEvent,
 };
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{Image, ImageIdentifier, ImageRenderer, QuadRenderer, TextRenderer};
+use neothesia_core::render::{
+    Image, ImageIdentifier, ImageRenderer, QuadRenderer, TextRenderer, glyphon,
+};
 use std::{collections::HashMap, time::Duration};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
@@ -317,50 +319,35 @@ fn render_nuon(ui: &mut nuon::Ui, nuon_renderer: &mut NuonRenderer, ctx: &mut Co
             );
         }
 
-        for text in layer.text.iter() {
-            let mut attrs = cosmic_text::Attrs::new()
-                .family(cosmic_text::Family::Name(&text.font_family))
-                .color(cosmic_text::Color(text.color.packet_u32()));
-            if text.bold {
-                attrs = attrs.weight(cosmic_text::Weight::BOLD);
-            }
-
-            let buffer = TextRenderer::gen_rich_buffer(
-                text.size,
-                &text.text,
-                attrs,
-                text.styles.iter().map(|style| {
-                    (
-                        style.range.clone(),
-                        cosmic_text::Color(style.color.packet_u32()),
-                    )
-                }),
-            );
-
-            let vertical_align = match text.text_align {
-                nuon::TextAlign::Start => neothesia_core::render::TextAlign::Start,
-                nuon::TextAlign::Center => neothesia_core::render::TextAlign::Center,
-                nuon::TextAlign::End => neothesia_core::render::TextAlign::End,
+        // Text buffers are shaped and cached by nuon, so we borrow them directly
+        let text_areas = layer.text.iter().filter_map(|text| {
+            let Some((buffer, rect)) = ui.cached_text(&text.layout) else {
+                log::warn!("Text not found in nuon cache: {:?}", text.layout.text);
+                return None;
             };
 
-            let horizontal_align = match text.text_justify {
-                nuon::TextAlign::Start => neothesia_core::render::TextAlign::Start,
-                nuon::TextAlign::Center => neothesia_core::render::TextAlign::Center,
-                nuon::TextAlign::End => neothesia_core::render::TextAlign::End,
-            };
-
-            out.text_renderer.queue_buffer_auto_layout(
-                text.rect,
-                horizontal_align,
-                vertical_align,
+            let bounds = text.layout.bounds;
+            Some(glyphon::TextArea {
                 buffer,
-            );
-        }
+                left: rect.origin.x,
+                top: rect.origin.y,
+                scale: 1.0,
+                bounds: glyphon::TextBounds {
+                    left: bounds.min_x() as i32,
+                    top: bounds.min_y() as i32,
+                    right: bounds.max_x() as i32,
+                    bottom: bounds.max_y() as i32,
+                },
+                default_color: glyphon::Color(text.color.packet_u32()),
+                custom_glyphs: &[],
+            })
+        });
 
         out.quad_renderer.prepare();
-        out.text_renderer.update(
+        out.text_renderer.update_with(
             ctx.window_state.physical_size,
             ctx.window_state.scale_factor as f32,
+            text_areas,
         );
     }
 

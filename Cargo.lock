@@ -1744,6 +1744,7 @@ dependencies = [
  "log",
  "midi-file",
  "neothesia-image",
+ "nuon",
  "objc2-foundation 0.3.2",
  "piano-layout",
  "profiling",
@@ -1846,6 +1847,7 @@ dependencies = [
 name = "nuon"
 version = "0.1.0"
 dependencies = [
+ "cosmic-text",
  "euclid",
  "neothesia-image",
 ]

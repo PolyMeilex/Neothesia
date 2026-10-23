@@ -17,6 +17,7 @@ piano-layout.workspace = true
 midi-file.workspace = true
 profiling.workspace = true
 euclid.workspace = true
+nuon.workspace = true
 dpi.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]

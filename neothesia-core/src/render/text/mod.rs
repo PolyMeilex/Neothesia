@@ -211,6 +211,17 @@ impl TextRenderer {
 
     #[profiling::function]
     pub fn update(&mut self, physical_size: dpi::PhysicalSize<u32>, scale: f32) {
+        self.update_with(physical_size, scale, std::iter::empty());
+    }
+
+    /// Like [`Self::update`], but also prepares `borrowed` areas alongside the queued ones
+    #[profiling::function]
+    pub fn update_with<'a>(
+        &mut self,
+        physical_size: dpi::PhysicalSize<u32>,
+        scale: f32,
+        borrowed: impl Iterator<Item = glyphon::TextArea<'a>>,
+    ) {
         let text_areas = self.text_areas.iter().map(|area| glyphon::TextArea {
             buffer: &area.buffer,
             left: area.left,
@@ -228,7 +239,15 @@ impl TextRenderer {
             &self.queue,
             physical_size,
             scale,
-            text_areas,
+            text_areas.chain(borrowed.map(|area| glyphon::TextArea {
+                buffer: area.buffer,
+                left: area.left,
+                top: area.top,
+                scale: area.scale,
+                bounds: area.bounds,
+                default_color: area.default_color,
+                custom_glyphs: area.custom_glyphs,
+            })),
         );
 
         self.text_areas.clear();

@@ -71,9 +71,27 @@ fn button() -> nuon::Button {
         .border_radius([5.0; 4])
 }
 
-fn setting_row_button(row_w: f32, row_h: f32, w: f32) -> nuon::Button {
+fn setting_row_button(
+    ui: &mut nuon::Ui,
+    row_w: f32,
+    row_h: f32,
+    label: impl Into<std::borrow::Cow<'static, str>>,
+) -> nuon::Button {
     let h = 31.0;
-    button().x(row_w - w).y(nuon::center_y(row_h, h)).size(w, h)
+    let padding = 12.0;
+    let min_w = 93.0;
+
+    let layout = nuon::TextLayout::new(label)
+        .text_justify(TextAlign::Center)
+        .text_align(TextAlign::Center);
+    let label_w = ui.measure_text(&layout).width;
+    let w = (label_w + padding * 2.0).max(min_w);
+
+    button()
+        .x(row_w - w)
+        .y(nuon::center_y(row_h, h))
+        .size(w, h)
+        .label_layout(layout)
 }
 
 impl super::MenuScene {
@@ -315,8 +333,7 @@ impl super::MenuScene {
                         .unwrap_or_default(),
                 )
                 .body(|ui, row_w, row_h| {
-                    if setting_row_button(row_w, row_h, 130.0)
-                        .label(locals::settings::select_file())
+                    if setting_row_button(ui, row_w, row_h, locals::settings::select_file())
                         .build(ui)
                     {
                         self.futures
@@ -445,9 +462,8 @@ impl super::MenuScene {
             .title(title)
             .subtitle(subtitle)
             .body(|ui, row_w, row_h| {
-                if setting_row_button(row_w, row_h, 93.0)
+                if setting_row_button(ui, row_w, row_h, btn_label)
                     .id("calibrate_btn")
-                    .label(btn_label)
                     .build(ui)
                 {
                     self.state.range_detection.toggle();

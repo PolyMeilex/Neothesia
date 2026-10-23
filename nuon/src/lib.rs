@@ -13,8 +13,12 @@ pub type Box2D = euclid::default::Box2D<f32>;
 pub type Rect = euclid::default::Rect<f32>;
 
 mod data_store;
+pub mod font_system;
+mod measure;
 mod settings;
 use data_store::DataStore;
+use measure::TextCache;
+pub use measure::TextLayout;
 use neothesia_image::ImageIdentifier;
 pub use settings::*;
 
@@ -32,6 +36,12 @@ pub struct Color {
     pub g: f32,
     pub b: f32,
     pub a: f32,
+}
+
+impl Hash for Color {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.packet_u32().hash(state);
+    }
 }
 
 impl From<[f32; 4]> for Color {
@@ -266,7 +276,7 @@ pub struct IconRenderElement {
     pub color: Color,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct TextStyle {
     pub range: Range<usize>,
     pub color: Color,
@@ -274,15 +284,8 @@ pub struct TextStyle {
 
 #[derive(Debug, Clone)]
 pub struct TextRenderElement {
-    pub rect: Rect,
-    pub text_justify: TextAlign,
-    pub text_align: TextAlign,
-    pub size: f32,
-    pub bold: bool,
-    pub text: String,
+    pub layout: TextLayout,
     pub color: Color,
-    pub styles: Vec<TextStyle>,
-    pub font_family: Cow<'static, str>,
 }
 
 #[derive(Debug, Clone)]
@@ -308,6 +311,7 @@ pub struct Ui {
     pub layers: LayerStack,
 
     data: DataStore,
+    text_cache: TextCache,
 }
 
 impl Default for Ui {
@@ -330,11 +334,32 @@ impl Ui {
             translation_stack: TranslationStack::default(),
             layers: LayerStack::new(),
             data: DataStore::default(),
+            text_cache: TextCache::default(),
         }
     }
 
     pub fn data<T: Any + Default>(&mut self, id: impl Into<Id>) -> &mut T {
         self.data.get_or_insert_with(id.into(), T::default)
+    }
+
+    pub fn measure_text(&mut self, layout: &TextLayout) -> Size {
+        self.text_cache.measure(layout)
+    }
+
+    /// Shapes `layout` into the text cache and queues it for rendering in the current layer
+    pub fn push_text(&mut self, layout: TextLayout, color: Color) {
+        self.text_cache.buffer(&layout);
+        self.layers
+            .current_mut()
+            .text
+            .push(TextRenderElement { layout, color });
+    }
+
+    /// Cached buffer of text pushed with [`Ui::push_text`] this frame, with the rect it occupies
+    pub fn cached_text(&self, layout: &TextLayout) -> Option<(&cosmic_text::Buffer, Rect)> {
+        self.text_cache
+            .get(layout)
+            .map(|(buffer, size)| (buffer, layout.place(size)))
     }
 
     pub fn set_scissor_rect(&mut self, x: f32, y: f32, w: f32, h: f32) {
@@ -372,6 +397,7 @@ impl Ui {
     pub fn done(&mut self) {
         self.layers.clear();
         self.data.frame_done();
+        self.text_cache.frame_done();
         self.mouse_pressed = false;
         self.pointer_pos_delta = Point::zero();
         self.scroll_delta = 0.0;
@@ -1123,9 +1149,7 @@ pub struct Button {
     font_color: Color,
     border_radius: [f32; 4],
     icon: &'static str,
-    label: Cow<'static, str>,
-    text_justify: TextAlign,
-    text_align: TextAlign,
+    label: TextLayout,
 }
 
 pub fn button() -> Button {
@@ -1150,9 +1174,9 @@ impl Button {
             font_color: Color::WHITE,
             border_radius: [0.0; 4],
             icon: " ",
-            label: Cow::Borrowed(""),
-            text_justify: TextAlign::Center,
-            text_align: TextAlign::Center,
+            label: TextLayout::new("")
+                .text_justify(TextAlign::Center)
+                .text_align(TextAlign::Center),
         }
     }
 
@@ -1222,25 +1246,30 @@ impl Button {
     }
 
     pub fn label(mut self, label: impl Into<Cow<'static, str>>) -> Self {
-        self.label = label.into();
+        self.label.text = label.into();
         self
     }
 
     pub fn text_justify(mut self, text_justify: TextAlign) -> Self {
-        self.text_justify = text_justify;
+        self.label.text_justify = text_justify;
         self
     }
 
     pub fn text_align(mut self, text_align: TextAlign) -> Self {
-        self.text_align = text_align;
+        self.label.text_align = text_align;
+        self
+    }
+
+    pub fn label_layout(mut self, layout: TextLayout) -> Self {
+        self.label = layout;
         self
     }
 
     fn gen_id(&self) -> Id {
         if let Some(id) = self.id {
             id
-        } else if !self.label.is_empty() {
-            Id::hash(&self.label)
+        } else if !self.label.text.is_empty() {
+            Id::hash(&self.label.text)
         } else {
             Id::hash(self.icon)
         }
@@ -1273,18 +1302,18 @@ impl Button {
             color,
         });
 
-        let pad_x = match self.text_justify {
+        let pad_x = match self.label.text_justify {
             TextAlign::Start => 1.0,
             TextAlign::End => -1.0,
             TextAlign::Center => 0.0,
         };
 
-        if self.label.is_empty() {
+        if self.label.text.is_empty() {
             let icon_size = 20.0;
             let pad_x = pad_x * 2.0;
 
             let y = rect.origin.y + self::center_y(rect.size.height, icon_size);
-            let x = match self.text_justify {
+            let x = match self.label.text_justify {
                 TextAlign::Start => rect.origin.x + pad_x,
                 TextAlign::End => {
                     let x = rect.origin.x + rect.size.width - icon_size;
@@ -1302,20 +1331,13 @@ impl Button {
         } else {
             let pad_x = pad_x * 10.0;
 
-            layer.text.push(TextRenderElement {
-                rect: Rect::new(
+            ui.push_text(
+                self.label.clone().bounds(Rect::new(
                     Point::new(rect.origin.x + pad_x, rect.origin.y),
                     Size::new(rect.size.width - pad_x * 2.0, rect.size.height),
-                ),
-                text_justify: self.text_justify,
-                text_align: self.text_align,
-                size: 16.0,
-                bold: false,
-                text: self.label.to_string(),
-                color: self.font_color,
-                styles: Vec::new(),
-                font_family: Cow::Borrowed("Roboto"),
-            });
+                )),
+                self.font_color,
+            );
         }
 
         clicked
@@ -1451,22 +1473,23 @@ impl Label {
     }
 
     pub fn build(&self, ui: &mut Ui) {
-        let layer = ui.layers.current_mut();
         let rect = Rect::new(ui.translation_stack.translate(self.pos), self.size);
 
         if !self.text.is_empty() {
-            layer.text.push(TextRenderElement {
-                rect,
-                text_justify: self.text_justify,
-                text_align: self.text_align,
-                size: self.font_size,
-                bold: self.bold,
-                text: self.text.to_string(),
-                color: self.color,
-                styles: self.styles.clone(),
-                font_family: self.font_family.clone(),
-            });
+            ui.push_text(
+                TextLayout::new(self.text.clone())
+                    .size(self.font_size)
+                    .font_family(self.font_family.clone())
+                    .bold(self.bold)
+                    .bounds(rect)
+                    .text_justify(self.text_justify)
+                    .text_align(self.text_align)
+                    .styles(self.styles.clone()),
+                self.color,
+            );
         }
+
+        let layer = ui.layers.current_mut();
 
         if !self.icon.is_empty() {
             let pad_x = match self.text_justify {

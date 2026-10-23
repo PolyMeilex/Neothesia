@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-pub use glyphon::FontSystem;
+pub use cosmic_text::FontSystem;
 
 thread_local! {
      static FONT_SYSTEM: OnceCell<Rc<RefCell<FontSystem>>> = const { OnceCell::new() };
@@ -16,16 +16,16 @@ pub fn font_system() -> Rc<RefCell<FontSystem>> {
         system
             .get_or_init(|| {
                 Rc::new(RefCell::new(FontSystem::new_with_fonts([
-                    glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                    cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!(
                         "../../assets/fonts/Iced-Icons.ttf"
                     ))),
-                    glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                    cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!(
                         "../../assets/fonts/Roboto-Regular.ttf"
                     ))),
-                    glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                    cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!(
                         "../../assets/fonts/bootstrap-icons.ttf"
                     ))),
-                    glyphon::fontdb::Source::Binary(Arc::new(include_bytes!(
+                    cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!(
                         "../../assets/fonts/Leland.otf"
                     ))),
                 ])))

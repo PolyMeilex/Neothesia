@@ -79,8 +79,8 @@ clap = { version = "4.5.41", default-features = false, features = [
 
 # neothesia-ai deps
 ndarray = "0.17"
-rten = "0.26"
-rten-tensor = "0.26"
+rten = "0.27"
+rten-tensor = "0.27"
 serde_json = "1"
 symphonia = { version = "0.6", features = ["mp3"] }
 symphonium = { version = "0.13", features = ["mp3"] }

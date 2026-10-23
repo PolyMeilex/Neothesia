@@ -236,6 +236,18 @@ impl super::MenuScene {
                         {
                             ctx.config.set_note_labels(!ctx.config.note_labels());
                         }
+
+                        spacer(ui);
+
+                        if nuon::settings_row_toggler()
+                            .title(locals::settings::chord_identifier())
+                            .subtitle(locals::settings::chord_identifier_subtitle())
+                            .value(ctx.config.chord_identifier())
+                            .build(ui, rows)
+                        {
+                            ctx.config
+                                .set_chord_identifier(!ctx.config.chord_identifier());
+                        }
                     });
             });
     }

@@ -250,6 +250,22 @@ pub mod settings {
         }
     }
 
+    pub fn chord_identifier() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Rozpoznawanie akordów".into(),
+            "de" => "Akkorde".into(),
+            _ => "Chord Identifier".into(),
+        }
+    }
+
+    pub fn chord_identifier_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wyświetlaj akord nad klawiaturą".into(),
+            "de" => "Akkorde über dem Keyboard anzeigen".into(),
+            _ => "Display chord above keyboard".into(),
+        }
+    }
+
     pub fn soundfont() -> String {
         match LOCAL.as_str() {
             "pl" => "SoundFont".into(),
@@ -366,30 +382,6 @@ pub mod playing {
             "pl" => format!("Przesunięcie: {offset}"),
             "de" => format!("Offset: {offset}"),
             _ => format!("Offset: {offset}"),
-        }
-    }
-
-    pub fn display() -> String {
-        match LOCAL.as_str() {
-            "pl" => "Wyświetlanie".into(),
-            "de" => "Anzeige".into(),
-            _ => "Display".into(),
-        }
-    }
-
-    pub fn chord_identifier() -> String {
-        match LOCAL.as_str() {
-            "pl" => "Rozpoznawanie akordów".into(),
-            "de" => "Akkorde".into(),
-            _ => "Chord Identifier".into(),
-        }
-    }
-
-    pub fn chord_identifier_subtitle() -> String {
-        match LOCAL.as_str() {
-            "pl" => "Wyświetlaj akord nad klawiaturą".into(),
-            "de" => "Akkorde über dem Keyboard anzeigen".into(),
-            _ => "Display chord above keyboard".into(),
         }
     }
 }

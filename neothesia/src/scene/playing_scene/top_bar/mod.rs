@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::{NeothesiaEvent, context::Context, icons, locals};
+use crate::{NeothesiaEvent, context::Context, icons};
 
 use super::{
     PlayingScene,
@@ -10,10 +10,6 @@ use super::{
 pub struct TopBar {
     pub topbar_expand_animation: Animated<bool, Instant>,
     is_expanded: bool,
-
-    settings_animation: Animated<bool, Instant>,
-
-    settings_active: bool,
 
     looper_active: bool,
     loop_start: Duration,
@@ -27,13 +23,8 @@ impl TopBar {
                 .duration(1000.)
                 .easing(Easing::EaseOutExpo)
                 .delay(30.0),
-            settings_animation: Animated::new(false)
-                .duration(1000.)
-                .easing(Easing::EaseOutExpo)
-                .delay(30.0),
 
             is_expanded: false,
-            settings_active: false,
 
             looper_active: false,
             loop_start: Duration::ZERO,
@@ -63,14 +54,10 @@ impl TopBar {
         let is_hovered = window_state.cursor_logical_position.y < h * 1.7;
 
         top_bar.is_expanded = is_hovered;
-        top_bar.is_expanded |= top_bar.settings_active;
 
         top_bar
             .topbar_expand_animation
             .transition(top_bar.is_expanded, ctx.frame_timestamp);
-        top_bar
-            .settings_animation
-            .transition(top_bar.settings_active, ctx.frame_timestamp);
 
         Self::ui(scene, ctx);
     }
@@ -155,7 +142,6 @@ impl TopBar {
         Self::panel_left(this, ctx, ui);
         Self::panel_center(this, ctx, ui);
         Self::panel_right(this, ctx, ui);
-        Self::settings_panel(this, ctx, ui);
 
         // ProggressBar
         nuon::translate().y(30.0).build(ui, |ui| {
@@ -229,19 +215,6 @@ impl TopBar {
             .build(ui, |ui| {
                 nuon::translate().x(-30.0).add_to_current(ui);
 
-                if Self::button()
-                    .icon(if this.top_bar.settings_active {
-                        icons::gear_fill_icon()
-                    } else {
-                        icons::gear_icon()
-                    })
-                    .build(ui)
-                {
-                    this.top_bar.settings_active = !this.top_bar.settings_active;
-                }
-
-                nuon::translate().x(-30.0).add_to_current(ui);
-
                 if Self::button().icon(icons::repeat_icon()).build(ui) {
                     this.top_bar.looper_active = !this.top_bar.looper_active;
 
@@ -267,44 +240,6 @@ impl TopBar {
                 {
                     this.player.pause_resume();
                 }
-            });
-    }
-
-    fn settings_panel(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
-        let width = 330.0;
-        let offset = this
-            .top_bar
-            .settings_animation
-            .animate_bool(0.0, width, ctx.frame_timestamp);
-
-        nuon::translate()
-            .x(ctx.window_state.logical_size.width - offset)
-            .y(75.0)
-            .build(ui, |ui| {
-                // Gap
-                nuon::translate().y(5.0).add_to_current(ui);
-
-                nuon::quad()
-                    .size(width, 100.0)
-                    .color([37, 35, 42])
-                    .border_radius([10.0, 0.0, 0.0, 10.0])
-                    .build(ui);
-
-                nuon::translate().x(15.0).build(ui, |ui| {
-                    nuon::settings_section(locals::playing::display())
-                        .width(width - 30.0)
-                        .build(ui, |ui, rows, _| {
-                            if nuon::settings_row_toggler()
-                                .title(locals::playing::chord_identifier())
-                                .subtitle(locals::playing::chord_identifier_subtitle())
-                                .value(ctx.config.chord_identifier())
-                                .build(ui, rows)
-                            {
-                                ctx.config
-                                    .set_chord_identifier(!ctx.config.chord_identifier());
-                            }
-                        });
-                });
             });
     }
 

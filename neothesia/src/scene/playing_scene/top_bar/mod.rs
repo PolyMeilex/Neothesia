@@ -271,7 +271,7 @@ impl TopBar {
     }
 
     fn settings_panel(this: &mut PlayingScene, ctx: &mut Context, ui: &mut nuon::Ui) {
-        let width = 280.0;
+        let width = 330.0;
         let offset = this
             .top_bar
             .settings_animation

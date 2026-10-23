@@ -71,8 +71,7 @@ fn button() -> nuon::Button {
         .border_radius([5.0; 4])
 }
 
-fn setting_row_button(row_w: f32, row_h: f32) -> nuon::Button {
-    let w = 93.0;
+fn setting_row_button(row_w: f32, row_h: f32, w: f32) -> nuon::Button {
     let h = 31.0;
     button().x(row_w - w).y(nuon::center_y(row_h, h)).size(w, h)
 }
@@ -316,7 +315,7 @@ impl super::MenuScene {
                         .unwrap_or_default(),
                 )
                 .body(|ui, row_w, row_h| {
-                    if setting_row_button(row_w, row_h)
+                    if setting_row_button(row_w, row_h, 130.0)
                         .label(locals::settings::select_file())
                         .build(ui)
                     {
@@ -446,7 +445,7 @@ impl super::MenuScene {
             .title(title)
             .subtitle(subtitle)
             .body(|ui, row_w, row_h| {
-                if setting_row_button(row_w, row_h)
+                if setting_row_button(row_w, row_h, 93.0)
                     .id("calibrate_btn")
                     .label(btn_label)
                     .build(ui)

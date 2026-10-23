@@ -29,7 +29,10 @@ mod toast_manager;
 use toast_manager::ToastManager;
 
 mod animation;
+mod lyrics;
 mod top_bar;
+
+use lyrics::LyricsView;
 
 pub struct PlayingScene {
     keyboard: Keyboard,
@@ -254,6 +257,15 @@ impl Scene for PlayingScene {
                 .width(ctx.window_state.logical_size.width)
                 .build(&mut self.nuon);
         }
+
+        LyricsView::update(
+            &self.player.song().file.lyrics,
+            self.player.time_without_lead_in(),
+            ctx.window_state.logical_size.width,
+            self.top_bar.visible_height(ctx.frame_timestamp),
+            &mut self.quad_renderer_fg,
+            &mut self.text_renderer,
+        );
 
         super::render_nuon(&mut self.nuon, &mut self.nuon_renderer, ctx);
 

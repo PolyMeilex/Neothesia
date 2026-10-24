@@ -179,90 +179,99 @@ pub mod settings {
         }
     }
 
-    pub fn render() -> String {
+    pub fn waterfall() -> String {
         match LOCAL.as_str() {
-            "pl" => "Renderowanie".into(),
-            "de" => "Aussehen".into(),
-            _ => "Render".into(),
+            "pl" => "Wodospad".into(),
+            "de" => "Wasserfall".into(),
+            _ => "Waterfall".into(),
         }
     }
 
-    pub fn vertical_guidelines() -> String {
+    pub fn keyboard() -> String {
         match LOCAL.as_str() {
-            "pl" => "Pionowe linie pomocnicze".into(),
-            "de" => "Vertikale Hilfslinien".into(),
-            _ => "Vertical Guidelines".into(),
+            "pl" => "Klawiatura".into(),
+            "de" => "Tastatur".into(),
+            _ => "Keyboard".into(),
         }
     }
 
-    pub fn vertical_guidelines_subtitle() -> String {
+    pub fn octave_lines() -> String {
         match LOCAL.as_str() {
-            "pl" => "Wyświetlaj znaczniki oktaw".into(),
-            "de" => "Oktavindikatoren anzeigen".into(),
-            _ => "Display octave indicators".into(),
+            "pl" => "Linie oktaw".into(),
+            "de" => "Oktavlinien".into(),
+            _ => "Octave Lines".into(),
         }
     }
 
-    pub fn horizontal_guidelines() -> String {
+    pub fn octave_lines_subtitle() -> String {
         match LOCAL.as_str() {
-            "pl" => "Poziome linie pomocnicze".into(),
-            "de" => "Horizontale Hilfslinien".into(),
-            _ => "Horizontal Guidelines".into(),
+            "pl" => "Pionowe linie przy każdym C i F, ułatwiające odnalezienie klawiszy".into(),
+            "de" => "Vertikale Linien bei jedem C und F zur Orientierung".into(),
+            _ => "Vertical lines at every C and F to help you find keys".into(),
         }
     }
 
-    pub fn horizontal_guidelines_subtitle() -> String {
+    pub fn bar_lines() -> String {
         match LOCAL.as_str() {
-            "pl" => "Wyświetlaj znaczniki taktów".into(),
-            _ => "Display measure/bar indicators".into(),
+            "pl" => "Linie taktów".into(),
+            "de" => "Taktstriche".into(),
+            _ => "Bar Lines".into(),
         }
     }
 
-    pub fn glow() -> String {
+    pub fn bar_lines_subtitle() -> String {
         match LOCAL.as_str() {
-            "pl" => "Poświata".into(),
-            "de" => "Leuchteffekt".into(),
-            _ => "Glow".into(),
+            "pl" => "Pozioma linia na początku każdego taktu".into(),
+            "de" => "Horizontale Linie am Anfang jedes Takts".into(),
+            _ => "Horizontal line at the start of each measure".into(),
         }
     }
 
-    pub fn glow_subtitle() -> String {
-        match LOCAL.as_str() {
-            "pl" => "Efekt poświaty klawiszy".into(),
-            "de" => "Tasten-Leuchteffekt".into(),
-            _ => "Key glow effect".into(),
-        }
-    }
-
-    pub fn note_labels() -> String {
+    pub fn note_names() -> String {
         match LOCAL.as_str() {
             "pl" => "Nazwy nut".into(),
-            "de" => "Notenbeschriftungen".into(),
-            _ => "Note Labels".into(),
+            "de" => "Notennamen".into(),
+            _ => "Note Names".into(),
         }
     }
 
-    pub fn note_labels_subtitle() -> String {
+    pub fn note_names_subtitle() -> String {
         match LOCAL.as_str() {
-            "pl" => "Wyświetlaj nazwy nut na opadających nutach".into(),
-            "de" => "Notenbeschriftungen im Wasserfall anzeigen".into(),
-            _ => "Display waterfall note labels".into(),
+            "pl" => "Wyświetlaj nazwę nuty (C4, E4…) na każdej opadającej nucie".into(),
+            "de" => "Notennamen (C4, E4…) auf jeder fallenden Note anzeigen".into(),
+            _ => "Show the note name (C4, E4…) on each falling note".into(),
         }
     }
 
-    pub fn chord_identifier() -> String {
+    pub fn key_glow() -> String {
         match LOCAL.as_str() {
-            "pl" => "Rozpoznawanie akordów".into(),
-            "de" => "Akkorde".into(),
-            _ => "Chord Identifier".into(),
+            "pl" => "Poświata klawiszy".into(),
+            "de" => "Tastenleuchten".into(),
+            _ => "Key Glow".into(),
         }
     }
 
-    pub fn chord_identifier_subtitle() -> String {
+    pub fn key_glow_subtitle() -> String {
         match LOCAL.as_str() {
-            "pl" => "Wyświetlaj akord nad klawiaturą".into(),
-            "de" => "Akkorde über dem Keyboard anzeigen".into(),
-            _ => "Display chord above keyboard".into(),
+            "pl" => "Podświetlaj klawisze podczas gry".into(),
+            "de" => "Tasten beim Spielen aufleuchten lassen".into(),
+            _ => "Light up keys as they are played".into(),
+        }
+    }
+
+    pub fn chord_name() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Nazwa akordu".into(),
+            "de" => "Akkordname".into(),
+            _ => "Chord Name".into(),
+        }
+    }
+
+    pub fn chord_name_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wyświetlaj nazwę granego akordu nad klawiszami".into(),
+            "de" => "Gespielten Akkord über den Tasten anzeigen".into(),
+            _ => "Name the chord you are playing above the keys".into(),
         }
     }
 

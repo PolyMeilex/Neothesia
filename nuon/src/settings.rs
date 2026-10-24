@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::{self as nuon, Id, TextAlign, Ui};
+use crate::{self as nuon, Color, Id, TextAlign, Ui};
 
 pub struct SettingsSection {
     label: String,
@@ -69,6 +69,9 @@ pub fn settings_section(label: impl Into<String>) -> SettingsSection {
 pub struct SettingsRow<'a> {
     title: String,
     subtitle: String,
+    icon: String,
+    icon_font_family: &'static str,
+    icon_color: Color,
     width: f32,
     #[allow(clippy::type_complexity)]
     body: Box<dyn FnOnce(&mut Ui, f32, f32) + 'a>,
@@ -85,6 +88,9 @@ impl<'a> SettingsRow<'a> {
         Self {
             title: String::new(),
             subtitle: String::new(),
+            icon: String::new(),
+            icon_font_family: "bootstrap-icons",
+            icon_color: Color::WHITE,
             width: 0.0,
             body: Box::new(|_, _, _| {}),
         }
@@ -105,6 +111,21 @@ impl<'a> SettingsRow<'a> {
         self
     }
 
+    pub fn icon(mut self, icon: impl Into<String>) -> Self {
+        self.icon = icon.into();
+        self
+    }
+
+    pub fn icon_font_family(mut self, font_family: &'static str) -> Self {
+        self.icon_font_family = font_family;
+        self
+    }
+
+    pub fn icon_color(mut self, color: impl Into<Color>) -> Self {
+        self.icon_color = color.into();
+        self
+    }
+
     pub fn body(mut self, build: impl FnOnce(&mut Ui, f32, f32) + 'a) -> Self {
         self.body = Box::new(build);
         self
@@ -119,12 +140,39 @@ impl<'a> SettingsRow<'a> {
             let title_h = 14.6;
             let subtitle_h = 12.2;
 
+            let mut text_x = 0.0;
+
+            if !self.icon.is_empty() {
+                let tile_size = 32.0;
+                let tile_gap = 14.0;
+                let tile_y = super::center_y(row_h, tile_size);
+
+                nuon::quad()
+                    .y(tile_y)
+                    .size(tile_size, tile_size)
+                    .color([12, 12, 14])
+                    .border_radius([6.0; 4])
+                    .build(ui);
+
+                nuon::label()
+                    .y(tile_y)
+                    .size(tile_size, tile_size)
+                    .text(self.icon)
+                    .font_family(self.icon_font_family)
+                    .font_size(20.0)
+                    .color(self.icon_color)
+                    .build(ui);
+
+                text_x = tile_size + tile_gap;
+            }
+
             if self.subtitle.is_empty() {
                 nuon::label()
+                    .x(text_x)
                     .text(self.title)
                     .text_justify(nuon::TextAlign::Start)
                     .font_size(title_h)
-                    .size(row_inner_w, row_h)
+                    .size(row_inner_w - text_x, row_h)
                     .build(ui);
             } else {
                 let gap = 5.0;
@@ -132,19 +180,21 @@ impl<'a> SettingsRow<'a> {
                 let y = super::center_y(row_h, sum_h);
 
                 nuon::label()
+                    .x(text_x)
                     .y(y)
                     .text(self.title)
                     .text_justify(nuon::TextAlign::Start)
                     .font_size(title_h)
-                    .size(row_inner_w, title_h)
+                    .size(row_inner_w - text_x, title_h)
                     .build(ui);
                 nuon::label()
+                    .x(text_x)
                     .y(y + gap + title_h)
                     .text(self.subtitle)
                     .color([1.0, 1.0, 1.0, 0.5])
                     .text_justify(nuon::TextAlign::Start)
                     .font_size(subtitle_h)
-                    .size(row_inner_w, subtitle_h)
+                    .size(row_inner_w - text_x, subtitle_h)
                     .build(ui);
             }
 
@@ -330,6 +380,16 @@ impl<'a> SettingsRowToggler<'a> {
         self
     }
 
+    pub fn icon(mut self, icon: impl Into<String>) -> Self {
+        self.row = self.row.icon(icon);
+        self
+    }
+
+    pub fn icon_font_family(mut self, font_family: &'static str) -> Self {
+        self.row = self.row.icon_font_family(font_family);
+        self
+    }
+
     pub fn build(self, ui: &mut Ui, add: &dyn Fn(&mut Ui, SettingsRow<'_>)) -> bool {
         let mut clicked = false;
 
@@ -342,12 +402,19 @@ impl<'a> SettingsRowToggler<'a> {
             self.id
         };
 
+        let icon_color = if self.value {
+            Color::new_u8(160, 81, 255, 1.0)
+        } else {
+            Color::new(1.0, 1.0, 1.0, 0.5)
+        };
+
         self.row
+            .icon_color(icon_color)
             .body(|ui, row_w, row_h| {
-                let w = 30.0;
-                let h = 15.0;
+                let w = 36.0;
+                let h = 20.0;
                 if nuon::button()
-                    .border_radius([8.0; 4])
+                    .border_radius([10.0; 4])
                     .color(if self.value {
                         [160, 81, 255]
                     } else {
@@ -372,12 +439,12 @@ impl<'a> SettingsRowToggler<'a> {
                     clicked = true;
                 }
 
-                let head_w = 12.0;
-                let head_h = 12.0;
+                let head_w = 16.0;
+                let head_h = 16.0;
                 let gap = 2.0;
 
                 nuon::quad()
-                    .border_radius([5.0; 4])
+                    .border_radius([8.0; 4])
                     .x(if self.value {
                         row_w - head_w - gap
                     } else {

@@ -60,6 +60,26 @@ pub fn save_icon() -> &'static str {
     "\u{f7D9}"
 }
 
+pub fn octave_lines_icon() -> &'static str {
+    "\u{E800}"
+}
+
+pub fn bar_lines_icon() -> &'static str {
+    "\u{E801}"
+}
+
+pub fn note_names_icon() -> &'static str {
+    "\u{E802}"
+}
+
+pub fn key_glow_icon() -> &'static str {
+    "\u{E803}"
+}
+
+pub fn chord_name_icon() -> &'static str {
+    "\u{E804}"
+}
+
 pub mod sheet {
     pub fn stem() -> &'static str {
         "\u{1D165}"

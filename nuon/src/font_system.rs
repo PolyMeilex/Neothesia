@@ -28,6 +28,9 @@ pub fn font_system() -> Rc<RefCell<FontSystem>> {
                     cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!(
                         "../../assets/fonts/Leland.otf"
                     ))),
+                    cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!(
+                        "../../assets/fonts/neothesia-icons.ttf"
+                    ))),
                 ])))
             })
             .clone()

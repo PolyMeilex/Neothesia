@@ -71,6 +71,10 @@ fn button() -> nuon::Button {
         .border_radius([5.0; 4])
 }
 
+fn render_toggler<'a>() -> nuon::SettingsRowToggler<'a> {
+    nuon::settings_row_toggler().icon_font_family("Neothesia Icons")
+}
+
 fn setting_row_button(
     ui: &mut nuon::Ui,
     row_w: f32,
@@ -190,12 +194,13 @@ impl super::MenuScene {
                 self.keyboard_layout_preview(ctx, body_w, keyboard_h, ui);
                 nuon::translate().y(keyboard_h).add_to_current(ui);
 
-                nuon::settings_section(locals::settings::render())
+                nuon::settings_section(locals::settings::waterfall())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
-                        if nuon::settings_row_toggler()
-                            .title(locals::settings::vertical_guidelines())
-                            .subtitle(locals::settings::vertical_guidelines_subtitle())
+                        if render_toggler()
+                            .icon(icons::octave_lines_icon())
+                            .title(locals::settings::octave_lines())
+                            .subtitle(locals::settings::octave_lines_subtitle())
                             .value(ctx.config.vertical_guidelines())
                             .build(ui, rows)
                         {
@@ -205,9 +210,10 @@ impl super::MenuScene {
 
                         spacer(ui);
 
-                        if nuon::settings_row_toggler()
-                            .title(locals::settings::horizontal_guidelines())
-                            .subtitle(locals::settings::horizontal_guidelines_subtitle())
+                        if render_toggler()
+                            .icon(icons::bar_lines_icon())
+                            .title(locals::settings::bar_lines())
+                            .subtitle(locals::settings::bar_lines_subtitle())
                             .value(ctx.config.horizontal_guidelines())
                             .build(ui, rows)
                         {
@@ -217,9 +223,24 @@ impl super::MenuScene {
 
                         spacer(ui);
 
-                        if nuon::settings_row_toggler()
-                            .title(locals::settings::glow())
-                            .subtitle(locals::settings::glow_subtitle())
+                        if render_toggler()
+                            .icon(icons::note_names_icon())
+                            .title(locals::settings::note_names())
+                            .subtitle(locals::settings::note_names_subtitle())
+                            .value(ctx.config.note_labels())
+                            .build(ui, rows)
+                        {
+                            ctx.config.set_note_labels(!ctx.config.note_labels());
+                        }
+                    });
+
+                nuon::settings_section(locals::settings::keyboard())
+                    .width(body_w)
+                    .build(ui, |ui, rows, spacer| {
+                        if render_toggler()
+                            .icon(icons::key_glow_icon())
+                            .title(locals::settings::key_glow())
+                            .subtitle(locals::settings::key_glow_subtitle())
                             .value(ctx.config.glow())
                             .build(ui, rows)
                         {
@@ -228,20 +249,10 @@ impl super::MenuScene {
 
                         spacer(ui);
 
-                        if nuon::settings_row_toggler()
-                            .title(locals::settings::note_labels())
-                            .subtitle(locals::settings::note_labels_subtitle())
-                            .value(ctx.config.note_labels())
-                            .build(ui, rows)
-                        {
-                            ctx.config.set_note_labels(!ctx.config.note_labels());
-                        }
-
-                        spacer(ui);
-
-                        if nuon::settings_row_toggler()
-                            .title(locals::settings::chord_identifier())
-                            .subtitle(locals::settings::chord_identifier_subtitle())
+                        if render_toggler()
+                            .icon(icons::chord_name_icon())
+                            .title(locals::settings::chord_name())
+                            .subtitle(locals::settings::chord_name_subtitle())
                             .value(ctx.config.chord_identifier())
                             .build(ui, rows)
                         {

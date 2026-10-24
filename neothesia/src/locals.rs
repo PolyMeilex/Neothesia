@@ -163,6 +163,30 @@ pub mod settings {
         }
     }
 
+    pub fn keyboard_size() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Rozmiar klawiatury".into(),
+            "de" => "Tastaturgröße".into(),
+            _ => "Keyboard Size".into(),
+        }
+    }
+
+    pub fn keys(count: u8) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("{count} klawiszy"),
+            "de" => format!("{count} Tasten"),
+            _ => format!("{count} Keys"),
+        }
+    }
+
+    pub fn custom() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Własny".into(),
+            "de" => "Eigene".into(),
+            _ => "Custom".into(),
+        }
+    }
+
     pub fn range_start() -> String {
         match LOCAL.as_str() {
             "pl" => "Początek".into(),

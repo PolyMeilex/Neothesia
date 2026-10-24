@@ -1,8 +1,11 @@
 use std::collections::VecDeque;
 
 use crate::{
-    NeothesiaEvent, context::Context, output_manager::OutputDescriptor,
-    scene::menu_scene::settings::RangeDetection, song::Song,
+    NeothesiaEvent,
+    context::Context,
+    output_manager::OutputDescriptor,
+    scene::menu_scene::settings::{KeyboardSize, RangeDetection},
+    song::Song,
 };
 
 type InputDescriptor = midi_io::MidiInputPort;
@@ -19,12 +22,13 @@ pub struct UiState {
     pub song: Option<Song>,
 
     pub range_detection: RangeDetection,
+    pub keyboard_size: KeyboardSize,
 
     page_stack: VecDeque<Page>,
 }
 
 impl UiState {
-    pub fn new(_ctx: &Context, song: Option<Song>) -> Self {
+    pub fn new(ctx: &Context, song: Option<Song>) -> Self {
         let mut page_stack = VecDeque::new();
         page_stack.push_front(Page::Main);
 
@@ -38,6 +42,7 @@ impl UiState {
 
             page_stack,
             range_detection: RangeDetection::default(),
+            keyboard_size: KeyboardSize::from_range(ctx.config.piano_range()),
         }
     }
 

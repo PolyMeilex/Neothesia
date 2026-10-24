@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{ops::RangeInclusive, path::PathBuf};
 
 use crate::{
     context::Context,
@@ -61,6 +61,122 @@ impl RangeDetection {
 
         None
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyboardSize {
+    Keys88,
+    Keys76,
+    Keys61,
+    Custom,
+}
+
+impl KeyboardSize {
+    const ALL: [Self; 4] = [Self::Keys88, Self::Keys76, Self::Keys61, Self::Custom];
+
+    fn range(self) -> Option<RangeInclusive<u8>> {
+        match self {
+            // A0 - C8
+            Self::Keys88 => Some(21..=108),
+            // E1 - G7
+            Self::Keys76 => Some(28..=103),
+            // C2 - C7
+            Self::Keys61 => Some(36..=96),
+            Self::Custom => None,
+        }
+    }
+
+    pub fn from_range(range: RangeInclusive<u8>) -> Self {
+        Self::ALL
+            .into_iter()
+            .find(|size| size.range().as_ref() == Some(&range))
+            .unwrap_or(Self::Custom)
+    }
+
+    fn label(self) -> String {
+        match self {
+            Self::Keys88 => locals::settings::keys(88),
+            Self::Keys76 => locals::settings::keys(76),
+            Self::Keys61 => locals::settings::keys(61),
+            Self::Custom => locals::settings::custom(),
+        }
+    }
+}
+
+fn segmented_control(
+    ui: &mut nuon::Ui,
+    id: &str,
+    row_w: f32,
+    row_h: f32,
+    labels: &[String],
+    selected: usize,
+) -> Option<usize> {
+    let h = 33.0;
+    let padding = 3.0;
+    let segment_padding = 15.0;
+    let font_size = 14.6;
+
+    let layouts: Vec<_> = labels
+        .iter()
+        .map(|label| {
+            nuon::TextLayout::new(label.clone())
+                .size(font_size)
+                .text_justify(TextAlign::Center)
+                .text_align(TextAlign::Center)
+        })
+        .collect();
+    let widths: Vec<f32> = layouts
+        .iter()
+        .map(|layout| ui.measure_text(layout).width + segment_padding * 2.0)
+        .collect();
+
+    let w = widths.iter().sum::<f32>() + padding * 2.0;
+    let x = row_w - w;
+    let y = nuon::center_y(row_h, h);
+
+    nuon::quad()
+        .pos(x, y)
+        .size(w, h)
+        .color([12, 12, 14])
+        .border_radius([8.0; 4])
+        .build(ui);
+
+    let mut clicked = None;
+    let mut segment_x = x + padding;
+
+    for (i, (layout, segment_w)) in layouts.into_iter().zip(widths).enumerate() {
+        let color = if i == selected {
+            [74, 68, 88, 255]
+        } else {
+            [0; 4]
+        };
+
+        if nuon::button()
+            .id(format!("{id}-{i}"))
+            .pos(segment_x, y + padding)
+            .size(segment_w, h - padding * 2.0)
+            .color(color)
+            .hover_color(if i == selected {
+                color
+            } else {
+                [37, 35, 42, 255]
+            })
+            .preseed_color(if i == selected {
+                color
+            } else {
+                [47, 45, 54, 255]
+            })
+            .border_radius([6.0; 4])
+            .label_layout(layout)
+            .build(ui)
+        {
+            clicked = Some(i);
+        }
+
+        segment_x += segment_w;
+    }
+
+    clicked
 }
 
 fn button() -> nuon::Button {
@@ -161,29 +277,13 @@ impl super::MenuScene {
                 nuon::settings_section(locals::settings::note_range())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
-                        self::update_range_start(
-                            ctx,
-                            &mut self.state.range_detection,
-                            nuon::settings_row_spin()
-                                .title(locals::settings::range_start())
-                                .subtitle(ctx.config.piano_range().start().to_string())
-                                .id("range-start")
-                                .build(ui, rows),
-                        );
+                        self.settings_keyboard_size_row(ctx, ui, rows);
 
                         spacer(ui);
 
-                        self::update_range_end(
-                            ctx,
-                            &mut self.state.range_detection,
-                            nuon::settings_row_spin()
-                                .title(locals::settings::range_end())
-                                .subtitle(ctx.config.piano_range().end().to_string())
-                                .id("range-end")
-                                .build(ui, rows),
-                        );
-
-                        spacer(ui);
+                        if self.state.keyboard_size == KeyboardSize::Custom {
+                            self.settings_custom_range_rows(ctx, ui, rows, spacer);
+                        }
 
                         self.settings_calibrate_row(ctx, ui, rows);
                     });
@@ -460,6 +560,69 @@ impl super::MenuScene {
             .title(locals::settings::input())
             .body(|ui, row_w, row_h| self.settings_input_picker(ui, ctx, row_w, row_h))
             .build(ui, rows);
+    }
+
+    fn settings_keyboard_size_row(
+        &mut self,
+        ctx: &mut Context,
+        ui: &mut nuon::Ui,
+        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+    ) {
+        nuon::settings_row()
+            .title(locals::settings::keyboard_size())
+            .body(|ui, row_w, row_h| {
+                let labels: Vec<_> = KeyboardSize::ALL.iter().map(|size| size.label()).collect();
+                let selected_idx = KeyboardSize::ALL
+                    .iter()
+                    .position(|size| *size == self.state.keyboard_size)
+                    .unwrap_or_default();
+
+                if let Some(i) =
+                    segmented_control(ui, "keyboard-size", row_w, row_h, &labels, selected_idx)
+                {
+                    self.state.keyboard_size = KeyboardSize::ALL[i];
+
+                    if let Some(range) = self.state.keyboard_size.range() {
+                        ctx.config.set_piano_range_start(*range.start());
+                        ctx.config.set_piano_range_end(*range.end());
+                    }
+                } else if self.state.keyboard_size != KeyboardSize::Custom {
+                    self.state.keyboard_size = KeyboardSize::from_range(ctx.config.piano_range());
+                }
+            })
+            .build(ui, rows);
+    }
+
+    fn settings_custom_range_rows(
+        &mut self,
+        ctx: &mut Context,
+        ui: &mut nuon::Ui,
+        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+        spacer: &dyn Fn(&mut nuon::Ui),
+    ) {
+        self::update_range_start(
+            ctx,
+            &mut self.state.range_detection,
+            nuon::settings_row_spin()
+                .title(locals::settings::range_start())
+                .subtitle(ctx.config.piano_range().start().to_string())
+                .id("range-start")
+                .build(ui, rows),
+        );
+
+        spacer(ui);
+
+        self::update_range_end(
+            ctx,
+            &mut self.state.range_detection,
+            nuon::settings_row_spin()
+                .title(locals::settings::range_end())
+                .subtitle(ctx.config.piano_range().end().to_string())
+                .id("range-end")
+                .build(ui, rows),
+        );
+
+        spacer(ui);
     }
 
     fn settings_calibrate_row(

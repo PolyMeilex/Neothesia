@@ -2,6 +2,7 @@ use std::{
     any::Any,
     borrow::Cow,
     hash::{Hash, Hasher},
+    marker::PhantomData,
     ops::Range,
 };
 
@@ -293,6 +294,25 @@ pub struct ImageRenderElement {
     pub rect: Rect,
     pub image: ImageIdentifier,
     pub border_radius: [f32; 4],
+}
+
+#[derive(Debug)]
+pub struct DataScope<T> {
+    ph: PhantomData<T>,
+    id: Id,
+}
+
+impl<T: Default + Any> DataScope<T> {
+    pub fn new(id: impl Into<Id>) -> Self {
+        Self {
+            ph: PhantomData,
+            id: id.into(),
+        }
+    }
+
+    pub fn data<'a>(&self, ui: &'a mut Ui) -> &'a mut T {
+        ui.data::<T>(self.id)
+    }
 }
 
 pub struct Ui {

@@ -74,7 +74,7 @@ impl KeyboardRenderer {
 
     pub fn set_pos(&mut self, pos: Point<f32>) {
         self.pos = pos;
-        self.invalidate_cache();
+        self.invalidate_layout_cache();
     }
 
     pub fn layout(&self) -> &piano_layout::KeyboardLayout {
@@ -83,10 +83,14 @@ impl KeyboardRenderer {
 
     pub fn set_layout(&mut self, layout: piano_layout::KeyboardLayout) {
         self.layout = layout;
-        self.invalidate_cache();
+        self.invalidate_layout_cache();
     }
 
     pub fn invalidate_cache(&mut self) {
+        self.cache.clear();
+    }
+
+    fn invalidate_layout_cache(&mut self) {
         self.cache.clear();
         self.text_cache.clear();
     }
@@ -194,5 +198,22 @@ impl KeyboardRenderer {
             profiling::scope!("push text from cache");
             text.queue_mut().extend_from_slice(&self.text_cache);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn note_events_keep_the_labels() {
+        let range = KeyboardRange::standard_88_keys();
+        let sizing = piano_layout::Sizing::new(1080.0 / range.white_count() as f32, 144.0);
+        let mut keyboard =
+            KeyboardRenderer::new(piano_layout::KeyboardLayout::from_range(sizing, range));
+        keyboard.rebuild_text_cache();
+        keyboard.invalidate_cache();
+
+        assert_eq!(keyboard.text_cache.len(), 8);
     }
 }

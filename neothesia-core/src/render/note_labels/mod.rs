@@ -46,7 +46,8 @@ impl LabelsCache {
                     (sharp_width, neutral_width)
                 };
 
-                let buffer = TextRenderer::shape_label(font_system, naming.note_name(note), size);
+                let buffer =
+                    TextRenderer::shape_label(font_system, naming.note_name(note), size, None);
                 let (text_width, _) = TextRenderer::measure(&buffer);
 
                 Label {

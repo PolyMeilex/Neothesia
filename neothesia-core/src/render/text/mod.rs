@@ -1,11 +1,27 @@
 use std::{cell::RefCell, ops::Range, rc::Rc};
 
 use glyphon::cosmic_text;
-use wgpu_jumpstart::Gpu;
+use wgpu_jumpstart::{Color, Gpu};
 
 pub use glyphon;
 
 use crate::utils::Rect;
+
+pub fn dark_text_on(background: Color) -> bool {
+    let [r, g, b, _] = background.into_linear_rgba();
+    let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    // Contrast with black is (L + 0.05) / 0.05 and with white 1.05 / (L + 0.05)
+    (luminance + 0.05) * (luminance + 0.05) >= 0.05 * 1.05
+}
+
+pub fn text_color_on(background: Color) -> glyphon::Color {
+    if dark_text_on(background) {
+        glyphon::Color::rgb(0, 0, 0)
+    } else {
+        glyphon::Color::rgb(255, 255, 255)
+    }
+}
 
 // Advanced shaping takes a glyph the font lacks (like ♭) from a fallback font
 pub fn label_shaping(text: &str) -> cosmic_text::Shaping {
@@ -368,15 +384,17 @@ impl TextRenderer {
         font_system: &mut cosmic_text::FontSystem,
         text: &str,
         size: f32,
+        width: Option<f32>,
     ) -> cosmic_text::Buffer {
         let mut buffer =
             cosmic_text::Buffer::new(font_system, cosmic_text::Metrics::new(size, size));
+        buffer.set_size(width, None);
         buffer.set_wrap(cosmic_text::Wrap::None);
         buffer.set_text(
             text,
             &cosmic_text::Attrs::new().family(cosmic_text::Family::SansSerif),
             label_shaping(text),
-            None,
+            width.map(|_| cosmic_text::Align::Center),
         );
         buffer.shape_until_scroll(font_system, false);
         buffer
@@ -391,7 +409,7 @@ impl TextRenderer {
         labels
             .into_iter()
             .map(|label| {
-                let buffer = Self::shape_label(font_system, label, PROBE_SIZE);
+                let buffer = Self::shape_label(font_system, label, PROBE_SIZE, None);
                 Self::measure(&buffer).0 / PROBE_SIZE
             })
             .fold(0.0, f32::max)

@@ -342,6 +342,18 @@ impl super::MenuScene {
                 nuon::settings_section(locals::settings::keyboard())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
+                        if render_toggler()
+                            .icon(icons::note_names_icon())
+                            .title(locals::settings::key_names())
+                            .subtitle(locals::settings::key_names_subtitle())
+                            .value(ctx.config.key_labels())
+                            .build(ui, rows)
+                        {
+                            ctx.config.set_key_labels(!ctx.config.key_labels());
+                        }
+
+                        spacer(ui);
+
                         self.settings_note_naming_row(ctx, ui, rows);
 
                         spacer(ui);

@@ -267,6 +267,22 @@ pub mod settings {
         }
     }
 
+    pub fn key_names() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Nazwy klawiszy".into(),
+            "de" => "Tastennamen".into(),
+            _ => "Key Names".into(),
+        }
+    }
+
+    pub fn key_names_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wyświetlaj nazwę nuty na każdym klawiszu".into(),
+            "de" => "Notennamen auf jeder Taste anzeigen".into(),
+            _ => "Show the note name on every key".into(),
+        }
+    }
+
     pub fn note_naming() -> String {
         match LOCAL.as_str() {
             "pl" => "Nazewnictwo nut".into(),

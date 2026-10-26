@@ -41,6 +41,7 @@ impl Keyboard {
         let mut renderer = KeyboardRenderer::new(layout);
         renderer.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
         renderer.set_note_naming(ctx.config.note_naming());
+        renderer.set_key_labels(ctx.config.key_labels());
 
         let v = (255.0 * 0.3) as u8;
         let dark = (v, v, v);

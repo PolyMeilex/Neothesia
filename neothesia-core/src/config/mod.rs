@@ -191,6 +191,14 @@ impl Config {
         self.appearance.note_naming = note_naming;
     }
 
+    pub fn key_labels(&self) -> bool {
+        self.appearance.key_labels
+    }
+
+    pub fn set_key_labels(&mut self, key_labels: bool) {
+        self.appearance.key_labels = key_labels;
+    }
+
     pub fn last_opened_song(&self) -> Option<&PathBuf> {
         self.history.last_opened_song.as_ref()
     }
@@ -377,6 +385,7 @@ mod tests {
     fn saved_settings_keep_note_naming() {
         let mut config = parse(SETTINGS_V0_5_1);
         config.set_note_naming(NoteNaming::SolfegePt);
+        config.set_key_labels(true);
 
         let saved = ron_options()
             .to_string_pretty(
@@ -387,6 +396,7 @@ mod tests {
         let config = parse(&saved);
 
         assert_eq!(config.note_naming(), NoteNaming::SolfegePt);
+        assert!(config.key_labels());
         assert_eq!(config.input(), Some("USB MIDI"));
     }
 

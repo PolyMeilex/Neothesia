@@ -189,6 +189,9 @@ pub struct AppearanceConfigV1 {
 
     #[serde(default)]
     pub note_naming: NoteNaming,
+
+    #[serde(default)]
+    pub key_labels: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -206,6 +209,7 @@ impl Default for AppearanceConfig {
             glow: default_glow(),
             chord_identifier: false,
             note_naming: NoteNaming::default(),
+            key_labels: false,
         })
     }
 }

@@ -158,6 +158,15 @@ pub struct ColorSchemaV1 {
     pub dark: (u8, u8, u8),
 }
 
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteNaming {
+    SolfegePt,
+    // Must stay the last variant: serde(other) reads unknown names as Letters
+    #[default]
+    #[serde(other)]
+    Letters,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AppearanceConfigV1 {
     #[serde(default = "default_color_schema")]
@@ -177,6 +186,9 @@ pub struct AppearanceConfigV1 {
 
     #[serde(default)]
     pub chord_identifier: bool,
+
+    #[serde(default)]
+    pub note_naming: NoteNaming,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -193,6 +205,7 @@ impl Default for AppearanceConfig {
             horizontal_guidelines: default_horizontal_guidelines(),
             glow: default_glow(),
             chord_identifier: false,
+            note_naming: NoteNaming::default(),
         })
     }
 }

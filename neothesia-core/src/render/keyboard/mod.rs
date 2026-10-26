@@ -1,4 +1,5 @@
 use crate::{
+    config::NoteNaming,
     render::{QuadInstance, QuadRenderer},
     utils::Point,
 };
@@ -8,7 +9,16 @@ use piano_layout::range::KeyboardRange;
 mod key_state;
 pub use key_state::KeyState;
 
-use super::TextRenderer;
+use super::{TextRenderer, text::label_shaping};
+
+const MIDDLE_C: u8 = 60;
+
+#[derive(Clone, Copy)]
+struct MiddleCDot {
+    x: f32,
+    y: f32,
+    size: f32,
+}
 
 pub struct KeyboardRenderer {
     pos: Point<f32>,
@@ -16,9 +26,11 @@ pub struct KeyboardRenderer {
     key_states: Vec<KeyState>,
 
     layout: piano_layout::KeyboardLayout,
+    note_naming: NoteNaming,
 
     cache: Vec<QuadInstance>,
     text_cache: Vec<super::text::TextArea>,
+    middle_c_dot: Option<MiddleCDot>,
 }
 
 impl KeyboardRenderer {
@@ -29,7 +41,7 @@ impl KeyboardRenderer {
             .map(|id| KeyState::new(id.is_black()))
             .collect();
 
-        let cache = Vec::with_capacity(key_states.len() + 1);
+        let cache = Vec::with_capacity(key_states.len() + 3);
 
         Self {
             pos: Default::default(),
@@ -37,8 +49,10 @@ impl KeyboardRenderer {
             key_states,
 
             layout,
+            note_naming: NoteNaming::default(),
             cache,
             text_cache: Vec::new(),
+            middle_c_dot: None,
         }
     }
 
@@ -86,6 +100,13 @@ impl KeyboardRenderer {
         self.invalidate_layout_cache();
     }
 
+    pub fn set_note_naming(&mut self, note_naming: NoteNaming) {
+        if self.note_naming != note_naming {
+            self.note_naming = note_naming;
+            self.invalidate_layout_cache();
+        }
+    }
+
     pub fn invalidate_cache(&mut self) {
         self.cache.clear();
     }
@@ -93,6 +114,7 @@ impl KeyboardRenderer {
     fn invalidate_layout_cache(&mut self) {
         self.cache.clear();
         self.text_cache.clear();
+        self.middle_c_dot = None;
     }
 
     /// Reupload instances to GPU
@@ -133,6 +155,16 @@ impl KeyboardRenderer {
 
             instances.push(key_state::to_quad(key, color, self.pos));
         }
+
+        if let Some(dot) = self.middle_c_dot {
+            instances.push(QuadInstance {
+                position: [dot.x, dot.y],
+                size: [dot.size, dot.size],
+                color: [0.0, 0.0, 0.0, 150.0 / 255.0],
+                border_radius: [dot.size / 2.0; 4],
+                ..Default::default()
+            });
+        }
     }
 
     #[profiling::function]
@@ -140,7 +172,7 @@ impl KeyboardRenderer {
         let font_system = crate::font_system::font_system();
         let font_system = &mut font_system.borrow_mut();
 
-        let range_start = self.layout.range.start() as usize;
+        let range_start = self.layout.range.start();
         for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
             let x = self.pos.x + key.x();
             let y = self.pos.y;
@@ -148,25 +180,42 @@ impl KeyboardRenderer {
             let w = key.width();
             let h = key.height();
 
-            let size = w * 0.7;
+            let size = if self.note_naming == NoteNaming::Letters {
+                w * 0.7
+            } else {
+                // The name and the middle C dot above it stay below the black keys
+                (w * 0.7).min((h - self.layout.sizing.sharp_height) / 2.0)
+            };
+            let top = y + h - size * 1.2;
 
-            let oct_number = (key.id() + range_start) / 12;
+            let note = range_start + key.id() as u8;
+            let text = octave_label(self.note_naming, note);
 
             let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
             buffer.set_size(Some(w), Some(h));
             buffer.set_wrap(glyphon::Wrap::None);
             buffer.set_text(
-                &format!("C{}", oct_number as i8 - 1),
+                &text,
                 &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
-                glyphon::Shaping::Basic,
+                label_shaping(&text),
                 Some(glyphon::cosmic_text::Align::Center),
             );
             buffer.shape_until_scroll(font_system, false);
 
+            if note == MIDDLE_C && self.note_naming != NoteNaming::Letters {
+                let dot = size * 0.6;
+
+                self.middle_c_dot = Some(MiddleCDot {
+                    x: x + (w - 1.0 - dot) / 2.0,
+                    y: top - dot,
+                    size: dot,
+                });
+            }
+
             self.text_cache.push(super::text::TextArea {
                 buffer,
                 left: x,
-                top: y + h - size * 1.2,
+                top,
                 scale: 1.0,
                 bounds: glyphon::TextBounds {
                     left: x.round() as i32,
@@ -181,12 +230,13 @@ impl KeyboardRenderer {
 
     #[profiling::function]
     pub fn update(&mut self, quads: &mut QuadRenderer, text: &mut TextRenderer) {
-        if self.cache.is_empty() {
-            self.rebuild_quad_cache();
-        }
-
+        // Labels first, the middle C dot needs their position
         if self.text_cache.is_empty() {
             self.rebuild_text_cache();
+        }
+
+        if self.cache.is_empty() {
+            self.rebuild_quad_cache();
         }
 
         {
@@ -198,6 +248,14 @@ impl KeyboardRenderer {
             profiling::scope!("push text from cache");
             text.queue_mut().extend_from_slice(&self.text_cache);
         }
+    }
+}
+
+fn octave_label(naming: NoteNaming, note: u8) -> String {
+    match naming {
+        NoteNaming::Letters => format!("C{}", (note / 12) as i8 - 1),
+        // Octave numbers of solfège names differ between countries, so none is shown
+        NoteNaming::SolfegePt => naming.note_name(note).to_string(),
     }
 }
 
@@ -215,5 +273,18 @@ mod tests {
         keyboard.invalidate_cache();
 
         assert_eq!(keyboard.text_cache.len(), 8);
+    }
+
+    #[test]
+    fn middle_c_dot_stays_below_the_black_keys() {
+        let range = KeyboardRange::standard_88_keys();
+        let sizing = piano_layout::Sizing::new(3440.0 / range.white_count() as f32, 124.0);
+        let mut keyboard =
+            KeyboardRenderer::new(piano_layout::KeyboardLayout::from_range(sizing, range));
+        keyboard.set_note_naming(NoteNaming::SolfegePt);
+        keyboard.rebuild_text_cache();
+
+        let dot = keyboard.middle_c_dot.unwrap();
+        assert!(dot.y >= keyboard.layout.sizing.sharp_height);
     }
 }

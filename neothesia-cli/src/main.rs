@@ -93,6 +93,7 @@ impl Recorder {
 
         let mut keyboard = KeyboardRenderer::new(keyboard_layout.clone());
         keyboard.position_on_bottom_of_parent(height as f32);
+        keyboard.set_note_naming(config.note_naming());
 
         let mut guidelines = GuidelineRenderer::new(
             keyboard.layout().clone(),
@@ -137,6 +138,7 @@ impl Recorder {
         let note_labels = config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
             waterfall.notes(),
+            &config,
             text_renderer_factory.new_renderer(),
         ));
 

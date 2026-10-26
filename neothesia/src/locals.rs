@@ -261,9 +261,25 @@ pub mod settings {
 
     pub fn note_names_subtitle() -> String {
         match LOCAL.as_str() {
-            "pl" => "Wyświetlaj nazwę nuty (C4, E4…) na każdej opadającej nucie".into(),
-            "de" => "Notennamen (C4, E4…) auf jeder fallenden Note anzeigen".into(),
-            _ => "Show the note name (C4, E4…) on each falling note".into(),
+            "pl" => "Wyświetlaj nazwę nuty na każdej opadającej nucie".into(),
+            "de" => "Notennamen auf jeder fallenden Note anzeigen".into(),
+            _ => "Show the note name on each falling note".into(),
+        }
+    }
+
+    pub fn note_naming() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Nazewnictwo nut".into(),
+            "de" => "Notenbenennung".into(),
+            _ => "Note Naming".into(),
+        }
+    }
+
+    pub fn note_naming_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Na klawiszach i opadających nutach".into(),
+            "de" => "Auf den Tasten und den fallenden Noten".into(),
+            _ => "On the keys and the falling notes".into(),
         }
     }
 

@@ -7,6 +7,15 @@ pub use glyphon;
 
 use crate::utils::Rect;
 
+// Advanced shaping takes a glyph the font lacks (like ♭) from a fallback font
+pub fn label_shaping(text: &str) -> cosmic_text::Shaping {
+    if text.is_ascii() {
+        cosmic_text::Shaping::Basic
+    } else {
+        cosmic_text::Shaping::Advanced
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextAlign {
     Start,
@@ -353,6 +362,39 @@ impl TextRenderer {
             .fold((0.0, 0.0), |(width, height), run| {
                 (run.line_w.max(width), height + run.line_height)
             })
+    }
+
+    pub fn shape_label(
+        font_system: &mut cosmic_text::FontSystem,
+        text: &str,
+        size: f32,
+    ) -> cosmic_text::Buffer {
+        let mut buffer =
+            cosmic_text::Buffer::new(font_system, cosmic_text::Metrics::new(size, size));
+        buffer.set_wrap(cosmic_text::Wrap::None);
+        buffer.set_text(
+            text,
+            &cosmic_text::Attrs::new().family(cosmic_text::Family::SansSerif),
+            label_shaping(text),
+            None,
+        );
+        buffer.shape_until_scroll(font_system, false);
+        buffer
+    }
+
+    pub fn widest_label_em<'a>(
+        font_system: &mut cosmic_text::FontSystem,
+        labels: impl IntoIterator<Item = &'a str>,
+    ) -> f32 {
+        const PROBE_SIZE: f32 = 100.0;
+
+        labels
+            .into_iter()
+            .map(|label| {
+                let buffer = Self::shape_label(font_system, label, PROBE_SIZE);
+                Self::measure(&buffer).0 / PROBE_SIZE
+            })
+            .fold(0.0, f32::max)
     }
 
     pub fn gen_buffer_with_attr(

@@ -142,6 +142,7 @@ impl Preview {
         let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
             waterfall.notes(),
+            &ctx.config,
             ctx.text_renderer_factory.new_renderer(),
         ));
 

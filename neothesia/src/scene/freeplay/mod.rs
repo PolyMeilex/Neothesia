@@ -20,6 +20,9 @@ use crate::{
 };
 
 mod recorder;
+mod rising_bars;
+
+use rising_bars::RisingBars;
 
 type MsgFn = Box<dyn FnOnce(&mut FreeplayScene, &mut Context)>;
 
@@ -43,7 +46,10 @@ pub struct FreeplayScene {
     text_renderer: TextRenderer,
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
+    quad_renderer_bars: QuadRenderer,
     glow: Option<GlowRenderer>,
+
+    rising_bars: RisingBars,
 
     // TODO: This does not make sens, but get's us going without refactoring
     song: Option<Song>,
@@ -80,6 +86,7 @@ impl FreeplayScene {
 
         let quad_renderer_bg = ctx.quad_renderer_factory.new_renderer();
         let quad_renderer_fg = ctx.quad_renderer_factory.new_renderer();
+        let quad_renderer_bars = ctx.quad_renderer_factory.new_renderer();
 
         let glow = ctx.config.glow().then_some(GlowRenderer::new(
             &ctx.gpu,
@@ -93,7 +100,9 @@ impl FreeplayScene {
             text_renderer,
             quad_renderer_bg,
             quad_renderer_fg,
+            quad_renderer_bars,
             glow,
+            rising_bars: RisingBars::new(),
             song,
             nuon_renderer: NuonRenderer::new(ctx),
             nuon: nuon::Ui::new(),
@@ -154,6 +163,7 @@ impl FreeplayScene {
         self.keyboard.resize(ctx);
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
+        self.rising_bars.clear();
         if let Some(preview) = self.preview.as_mut() {
             preview.resize(&self.keyboard, ctx);
         }
@@ -180,6 +190,7 @@ impl Scene for FreeplayScene {
     fn update(&mut self, ctx: &mut Context, delta: Duration) {
         self.quad_renderer_bg.clear();
         self.quad_renderer_fg.clear();
+        self.quad_renderer_bars.clear();
 
         self.dispatch_futures(ctx);
 
@@ -199,10 +210,19 @@ impl Scene for FreeplayScene {
         self.keyboard
             .update(&mut self.quad_renderer_fg, &mut self.text_renderer);
 
+        // Update rising bars for pressed keys
+        self.rising_bars.update(
+            &self.keyboard,
+            &mut self.quad_renderer_bars,
+            delta,
+            ctx.config.animation_speed(),
+        );
+
         self.update_glow(delta);
 
         self.quad_renderer_bg.prepare();
         self.quad_renderer_fg.prepare();
+        self.quad_renderer_bars.prepare();
 
         if let Some(glow) = &mut self.glow {
             glow.prepare();
@@ -227,6 +247,7 @@ impl Scene for FreeplayScene {
         if let Some(glow) = &self.glow {
             glow.render(rpass);
         }
+        self.quad_renderer_bars.render(rpass);
         self.text_renderer.render(rpass);
         self.nuon_renderer.render(rpass);
     }

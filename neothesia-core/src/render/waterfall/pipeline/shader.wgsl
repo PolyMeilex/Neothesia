@@ -57,11 +57,16 @@ fn vs_main(vertex: Vertex, note: NoteInstance) -> VertexOutput {
     // Offset position by playback time
     pos.y -= (note.n_position.y - time_uniform.time) * speed;
 
+    // 1px of padding to give us some space for anti-aliasing
+    let pad = 1.0;
+    let quad_pos = pos - vec2<f32>(pad, pad);
+    let quad_size = size + vec2<f32>(pad, pad) * 2.0;
+
     let transform = mat4x4<f32>(
-        vec4<f32>(size.x, 0.0,    0.0, 0.0),
-        vec4<f32>(0.0,    size.y, 0.0, 0.0),
-        vec4<f32>(0.0,    0.0,    1.0, 0.0),
-        vec4<f32>(pos.x,  pos.y,  0.0, 1.0)
+        vec4<f32>(quad_size.x, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, quad_size.y, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(quad_pos.x, quad_pos.y, 0.0, 1.0)
     );
 
     var out: VertexOutput;

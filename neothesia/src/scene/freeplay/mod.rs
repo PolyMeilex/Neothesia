@@ -1,7 +1,9 @@
 use std::time::Duration;
 
 use midi_file::midly::MidiMessage;
-use neothesia_core::render::{GlowRenderer, GuidelineRenderer, QuadRenderer, TextRenderer};
+use neothesia_core::render::{
+    GlowRenderer, GuidelineRenderer, LiveWaterfallRenderer, QuadRenderer, TextRenderer,
+};
 use winit::{
     event::WindowEvent,
     keyboard::{Key, NamedKey},
@@ -44,6 +46,7 @@ pub struct FreeplayScene {
     quad_renderer_bg: QuadRenderer,
     quad_renderer_fg: QuadRenderer,
     glow: Option<GlowRenderer>,
+    live_waterfall: LiveWaterfallRenderer,
 
     // TODO: This does not make sens, but get's us going without refactoring
     song: Option<Song>,
@@ -87,6 +90,13 @@ impl FreeplayScene {
             keyboard.layout(),
         ));
 
+        let live_waterfall = LiveWaterfallRenderer::new(
+            &ctx.gpu,
+            &ctx.config,
+            &ctx.transform,
+            keyboard.layout().clone(),
+        );
+
         Self {
             keyboard,
             guidelines,
@@ -94,6 +104,7 @@ impl FreeplayScene {
             quad_renderer_bg,
             quad_renderer_fg,
             glow,
+            live_waterfall,
             song,
             nuon_renderer: NuonRenderer::new(ctx),
             nuon: nuon::Ui::new(),
@@ -154,6 +165,8 @@ impl FreeplayScene {
         self.keyboard.resize(ctx);
         self.guidelines.set_layout(self.keyboard.layout().clone());
         self.guidelines.set_pos(*self.keyboard.pos());
+        self.live_waterfall
+            .resize(&ctx.config, self.keyboard.layout().clone());
         if let Some(preview) = self.preview.as_mut() {
             preview.resize(&self.keyboard, ctx);
         }
@@ -201,6 +214,12 @@ impl Scene for FreeplayScene {
 
         self.update_glow(delta);
 
+        self.live_waterfall.update(
+            &ctx.config,
+            delta,
+            ctx.window_state.physical_size.height as f32,
+        );
+
         self.quad_renderer_bg.prepare();
         self.quad_renderer_fg.prepare();
 
@@ -222,6 +241,8 @@ impl Scene for FreeplayScene {
         self.quad_renderer_bg.render(rpass);
         if let Some(preview) = self.preview.as_mut() {
             preview.render(rpass);
+        } else {
+            self.live_waterfall.render(rpass);
         }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
@@ -259,6 +280,16 @@ impl Scene for FreeplayScene {
     fn midi_event(&mut self, ctx: &mut Context, channel: u8, message: &MidiMessage) {
         self.recorder.push_event(channel, *message);
         self.keyboard.user_midi_event(message);
+        match message {
+            MidiMessage::NoteOn { key, vel } if vel.as_int() > 0 => {
+                self.live_waterfall
+                    .note_on(channel, key.as_int(), vel.as_int());
+            }
+            MidiMessage::NoteOn { key, .. } | MidiMessage::NoteOff { key, .. } => {
+                self.live_waterfall.note_off(key.as_int());
+            }
+            _ => {}
+        }
         ctx.output_manager
             .connection()
             .midi_event(channel.into(), *message);

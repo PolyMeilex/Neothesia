@@ -4,7 +4,9 @@ use crate::{TransformUniform, Uniform, config::Config};
 use midi_file::{MidiNote, MidiTrack};
 use wgpu_jumpstart::{Color, Gpu};
 
+mod live;
 mod pipeline;
+pub use live::LiveWaterfallRenderer;
 use pipeline::{NoteInstance, WaterfallPipeline};
 
 #[derive(Clone)]
@@ -70,6 +72,18 @@ impl WaterfallRenderer {
 
     pub fn notes(&self) -> &NoteList {
         &self.notes
+    }
+
+    pub fn set_notes(
+        &mut self,
+        notes: impl Into<Rc<[MidiNote]>>,
+        config: &Config,
+        layout: piano_layout::KeyboardLayout,
+    ) {
+        self.notes = NoteList {
+            inner: notes.into(),
+        };
+        self.resize(config, layout);
     }
 
     pub fn resize(&mut self, config: &Config, layout: piano_layout::KeyboardLayout) {

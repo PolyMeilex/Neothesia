@@ -56,6 +56,10 @@ pub fn record_stop_icon() -> &'static str {
     "\u{f591}"
 }
 
+pub fn trash_icon() -> &'static str {
+    "\u{F5DD}"
+}
+
 pub fn save_icon() -> &'static str {
     "\u{f7D9}"
 }

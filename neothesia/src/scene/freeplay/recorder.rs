@@ -234,6 +234,10 @@ impl FreeplayRecorder {
         self.as_smf()
     }
 
+    fn discard(&mut self) {
+        self.state = RecorderState::Idle;
+    }
+
     fn duration(&self) -> Duration {
         match &self.state {
             RecorderState::Idle => Duration::ZERO,
@@ -303,6 +307,7 @@ pub fn update_preview_ui(scene: &mut FreeplayScene, ctx: &mut Context) {
         GoBack,
         Record,
         Save,
+        Discard,
         None,
     }
 
@@ -369,6 +374,23 @@ pub fn update_preview_ui(scene: &mut FreeplayScene, ctx: &mut Context) {
                 && available
             {
                 msg = Msg::Save;
+            }
+
+            nuon::translate().x(-30.0).add_to_current(ui);
+
+            if nuon::button()
+                .size(30.0, 30.0)
+                .border_radius([5.0; 4])
+                .icon(icons::trash_icon())
+                .font_color(if available {
+                    [255, 255, 255, 255]
+                } else {
+                    [255, 255, 255, 100]
+                })
+                .build(ui)
+                && available
+            {
+                msg = Msg::Discard;
             }
 
             nuon::translate().x(-30.0).add_to_current(ui);
@@ -465,6 +487,9 @@ pub fn update_preview_ui(scene: &mut FreeplayScene, ctx: &mut Context) {
         Msg::Save => {
             handle_save_click(scene, ctx);
         }
+        Msg::Discard => {
+            handle_discard_click(scene);
+        }
         Msg::None => {}
     }
 }
@@ -484,6 +509,14 @@ fn handle_record_click(scene: &mut FreeplayScene, ctx: &Context) {
     scene.preview = None;
     scene.recorder_status = RecorderStatus::default();
     scene.recorder.start();
+}
+
+fn handle_discard_click(scene: &mut FreeplayScene) {
+    scene.keyboard.reset_notes();
+
+    scene.preview = None;
+    scene.recorder_status = RecorderStatus::default();
+    scene.recorder.discard();
 }
 
 fn handle_save_click(scene: &mut FreeplayScene, ctx: &Context) {

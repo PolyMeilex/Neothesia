@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
+    context::Context,
     scene::menu_scene::{MsgFn, on_async},
     song::Song,
     utils::BoxFuture,
@@ -8,9 +9,16 @@ use crate::{
 
 use super::UiState;
 
-pub fn open_midi_file_picker(data: &mut UiState) -> BoxFuture<MsgFn> {
+pub fn open_midi_file_picker(data: &mut UiState, ctx: &Context) -> BoxFuture<MsgFn> {
     data.is_loading = true;
-    on_async(open_midi_file_picker_fut(), |res, data, ctx| {
+
+    let dir = ctx
+        .config
+        .last_opened_song()
+        .and_then(|song| song.parent())
+        .map(Path::to_path_buf);
+
+    on_async(open_midi_file_picker_fut(dir), |res, data, ctx| {
         if let Some((midi, path)) = res {
             ctx.config.set_last_opened_song(Some(path));
             data.song = Some(Song::new(midi));
@@ -19,11 +27,15 @@ pub fn open_midi_file_picker(data: &mut UiState) -> BoxFuture<MsgFn> {
     })
 }
 
-async fn open_midi_file_picker_fut() -> Option<(midi_file::MidiFile, PathBuf)> {
-    let file = rfd::AsyncFileDialog::new()
-        .add_filter("midi", &["mid", "midi", "MID", "MIDI"])
-        .pick_file()
-        .await;
+async fn open_midi_file_picker_fut(dir: Option<PathBuf>) -> Option<(midi_file::MidiFile, PathBuf)> {
+    let mut dialog =
+        rfd::AsyncFileDialog::new().add_filter("midi", &["mid", "midi", "MID", "MIDI"]);
+
+    if let Some(dir) = dir {
+        dialog = dialog.set_directory(dir);
+    }
+
+    let file = dialog.pick_file().await;
 
     if let Some(file) = file {
         log::info!("File path = {:?}", file.path());

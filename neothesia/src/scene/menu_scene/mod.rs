@@ -233,7 +233,8 @@ impl MenuScene {
                             .label(locals::menu::select_file())
                             .build(ui)
                         {
-                            self.futures.push(open_midi_file_picker(&mut self.state));
+                            self.futures
+                                .push(open_midi_file_picker(&mut self.state, ctx));
                         }
 
                         nuon::translate().y(h + gap).add_to_current(ui);
@@ -387,7 +388,8 @@ impl Scene for MenuScene {
             }
             Page::Main => {
                 if event.key_pressed(Key::Named(NamedKey::Tab)) {
-                    self.futures.push(open_midi_file_picker(&mut self.state));
+                    self.futures
+                        .push(open_midi_file_picker(&mut self.state, ctx));
                 }
 
                 if event.key_pressed(Key::Named(NamedKey::Enter)) {

@@ -6,6 +6,7 @@ use crate::{
     scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
+use neothesia_core::config::NoteNaming;
 use nuon::TextAlign;
 use piano_layout::Key;
 
@@ -101,6 +102,10 @@ impl KeyboardSize {
             Self::Custom => locals::settings::custom(),
         }
     }
+}
+
+fn note_naming_label(naming: NoteNaming) -> String {
+    [0, 2, 4].map(|note| naming.note_name(note)).join(" ")
 }
 
 fn segmented_control(
@@ -337,6 +342,22 @@ impl super::MenuScene {
                 nuon::settings_section(locals::settings::keyboard())
                     .width(body_w)
                     .build(ui, |ui, rows, spacer| {
+                        if render_toggler()
+                            .icon(icons::note_names_icon())
+                            .title(locals::settings::key_names())
+                            .subtitle(locals::settings::key_names_subtitle())
+                            .value(ctx.config.key_labels())
+                            .build(ui, rows)
+                        {
+                            ctx.config.set_key_labels(!ctx.config.key_labels());
+                        }
+
+                        spacer(ui);
+
+                        self.settings_note_naming_row(ctx, ui, rows);
+
+                        spacer(ui);
+
                         if render_toggler()
                             .icon(icons::key_glow_icon())
                             .title(locals::settings::key_glow())
@@ -588,6 +609,37 @@ impl super::MenuScene {
                     }
                 } else if self.state.keyboard_size != KeyboardSize::Custom {
                     self.state.keyboard_size = KeyboardSize::from_range(ctx.config.piano_range());
+                }
+            })
+            .build(ui, rows);
+    }
+
+    fn settings_note_naming_row(
+        &mut self,
+        ctx: &mut Context,
+        ui: &mut nuon::Ui,
+        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+    ) {
+        nuon::settings_row()
+            .icon(icons::note_names_icon())
+            .icon_font_family("Neothesia Icons")
+            .icon_color([255, 255, 255, 128])
+            .title(locals::settings::note_naming())
+            .subtitle(locals::settings::note_naming_subtitle())
+            .body(|ui, row_w, row_h| {
+                let labels: Vec<_> = NoteNaming::ALL
+                    .iter()
+                    .map(|naming| note_naming_label(*naming))
+                    .collect();
+                let selected_idx = NoteNaming::ALL
+                    .iter()
+                    .position(|naming| *naming == ctx.config.note_naming())
+                    .unwrap_or_default();
+
+                if let Some(i) =
+                    segmented_control(ui, "note-naming", row_w, row_h, &labels, selected_idx)
+                {
+                    ctx.config.set_note_naming(NoteNaming::ALL[i]);
                 }
             })
             .build(ui, rows);

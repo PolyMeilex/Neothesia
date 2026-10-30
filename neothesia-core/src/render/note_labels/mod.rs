@@ -1,16 +1,27 @@
-use crate::utils::Point;
+use crate::{
+    config::{Config, NoteNaming},
+    utils::Point,
+};
 
 use super::{KeyboardRenderer, TextRenderer, waterfall::NoteList};
 
+pub(super) const SHARP_NOTES: [u8; 5] = [1, 3, 6, 8, 10];
+
+struct Label {
+    buffer: glyphon::Buffer,
+    offset_x: f32,
+    size: f32,
+}
+
 #[derive(Default)]
 struct LabelsCache {
-    labels: Option<[glyphon::Buffer; 12]>,
+    labels: Option<[Label; 12]>,
     neutral_width: f32,
 }
 
 impl LabelsCache {
     #[profiling::function]
-    fn get(&mut self, keyboard: &KeyboardRenderer) -> &[glyphon::Buffer; 12] {
+    fn get(&mut self, keyboard: &KeyboardRenderer, naming: NoteNaming) -> &[Label; 12] {
         let font_system = crate::font_system::font_system();
         let font_system = &mut font_system.borrow_mut();
 
@@ -18,37 +29,32 @@ impl LabelsCache {
         let neutral_width = keyboard.layout().sizing.neutral_width;
 
         if self.labels.is_none() || self.neutral_width != neutral_width {
-            let label_width = sharp_width;
-
-            let labels = [
-                ("C", neutral_width),
-                ("C#", sharp_width),
-                ("D", neutral_width),
-                ("D#", sharp_width),
-                ("E", neutral_width),
-                ("F", neutral_width),
-                ("F#", sharp_width),
-                ("G", neutral_width),
-                ("G#", sharp_width),
-                ("A", neutral_width),
-                ("A#", sharp_width),
-                ("B", neutral_width),
-            ]
-            .map(|(label, note_width)| {
-                let mut buffer = glyphon::Buffer::new(
+            let sharp_size = if naming == NoteNaming::Letters {
+                sharp_width
+            } else {
+                let widest = TextRenderer::widest_label_em(
                     font_system,
-                    glyphon::Metrics::new(label_width, label_width),
+                    SHARP_NOTES.map(|note| naming.note_name(note)),
                 );
-                buffer.set_size(Some(note_width), None);
-                buffer.set_wrap(glyphon::Wrap::None);
-                buffer.set_text(
-                    label,
-                    &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
-                    glyphon::Shaping::Basic,
-                    Some(glyphon::cosmic_text::Align::Center),
-                );
-                buffer.shape_until_scroll(font_system, false);
-                buffer
+                sharp_width * (1.35 / widest).min(1.0)
+            };
+
+            let labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(|note| {
+                let (size, note_width) = if SHARP_NOTES.contains(&note) {
+                    (sharp_size, sharp_width)
+                } else {
+                    (sharp_width, neutral_width)
+                };
+
+                let buffer =
+                    TextRenderer::shape_label(font_system, naming.note_name(note), size, None);
+                let (text_width, _) = TextRenderer::measure(&buffer);
+
+                Label {
+                    buffer,
+                    offset_x: (note_width - text_width) / 2.0,
+                    size,
+                }
             });
 
             self.labels = Some(labels);
@@ -62,15 +68,22 @@ impl LabelsCache {
 pub struct NoteLabels {
     pos: Point<f32>,
     notes: NoteList,
+    naming: NoteNaming,
     labels_cache: LabelsCache,
     text_renderer: TextRenderer,
 }
 
 impl NoteLabels {
-    pub fn new(pos: Point<f32>, notes: &NoteList, text_renderer: TextRenderer) -> Self {
+    pub fn new(
+        pos: Point<f32>,
+        notes: &NoteList,
+        config: &Config,
+        text_renderer: TextRenderer,
+    ) -> Self {
         Self {
             pos,
             notes: notes.clone(),
+            naming: config.note_naming(),
             labels_cache: LabelsCache::default(),
             text_renderer,
         }
@@ -91,9 +104,8 @@ impl NoteLabels {
     ) {
         let layout = keyboard.layout();
         let range_start = layout.range.start() as usize;
-        let label_width = layout.sizing.sharp_width;
 
-        let labels = self.labels_cache.get(keyboard);
+        let labels = self.labels_cache.get(keyboard, self.naming);
         let animation_speed = animation_speed / scale;
 
         let iter = self
@@ -102,13 +114,13 @@ impl NoteLabels {
             .iter()
             .filter(|note| layout.range.contains(note.note) && note.channel != 9)
             .map(|note| {
-                let buffer = &labels[(note.note % 12) as usize];
+                let label = &labels[(note.note % 12) as usize];
 
-                let x = layout.keys[note.note as usize - range_start].x();
+                let x = layout.keys[note.note as usize - range_start].x() + label.offset_x;
                 let y =
-                    self.pos.y - (note.start.as_secs_f32() - time) * animation_speed - label_width;
+                    self.pos.y - (note.start.as_secs_f32() - time) * animation_speed - label.size;
 
-                (buffer, x, y)
+                (&label.buffer, x, y)
             })
             // Stop iteration once we reach top of the screen
             .take_while(|(_buffer, _x, y)| *y > 0.0)

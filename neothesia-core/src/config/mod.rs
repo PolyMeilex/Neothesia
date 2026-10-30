@@ -2,12 +2,31 @@ use std::path::PathBuf;
 
 mod model;
 
-pub use model::ColorSchemaV1;
 use model::{
     AppearanceConfig, AppearanceConfigV1, DevicesConfig, DevicesConfigV1, History, HistoryV1,
     LayoutConfig, LayoutConfigV1, Model, PcKeyboardConfig, PcKeyboardConfigV1, PlaybackConfig,
     PlaybackConfigV1, SynthConfig, SynthConfigV1, WaterfallConfig, WaterfallConfigV1,
 };
+pub use model::{ColorSchemaV1, NoteNaming};
+
+impl NoteNaming {
+    pub const ALL: [Self; 2] = [Self::Letters, Self::SolfegePt];
+
+    pub fn note_name(self, note: u8) -> &'static str {
+        const LETTERS: [&str; 12] = [
+            "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+        ];
+        const SOLFEGE_PT: [&str; 12] = [
+            "Dó", "Ré♭", "Ré", "Mi♭", "Mi", "Fá", "Sol♭", "Sol", "Lá♭", "Lá", "Si♭", "Si",
+        ];
+
+        let names = match self {
+            Self::Letters => &LETTERS,
+            Self::SolfegePt => &SOLFEGE_PT,
+        };
+        names[(note % 12) as usize]
+    }
+}
 
 fn ron_options() -> ron::Options {
     ron::Options::default()
@@ -164,6 +183,22 @@ impl Config {
         self.appearance.chord_identifier = chord_identifier;
     }
 
+    pub fn note_naming(&self) -> NoteNaming {
+        self.appearance.note_naming
+    }
+
+    pub fn set_note_naming(&mut self, note_naming: NoteNaming) {
+        self.appearance.note_naming = note_naming;
+    }
+
+    pub fn key_labels(&self) -> bool {
+        self.appearance.key_labels
+    }
+
+    pub fn set_key_labels(&mut self, key_labels: bool) {
+        self.appearance.key_labels = key_labels;
+    }
+
     pub fn last_opened_song(&self) -> Option<&PathBuf> {
         self.history.last_opened_song.as_ref()
     }
@@ -288,5 +323,101 @@ impl Config {
             std::fs::create_dir_all(path.parent().unwrap()).ok();
             std::fs::write(path, s).ok();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SETTINGS_V0_5_1: &str = r#"(
+    waterfall: V1(
+        animation_speed: 400.0,
+        animation_offset: 0.0,
+        note_labels: true,
+    ),
+    history: V1(
+        last_opened_song: Some("/Users/me/Music/song.mid"),
+    ),
+    keyboard_layout: V1(
+        range: (21, 108),
+    ),
+    devices: V1(
+        output: Some("Buildin Synth"),
+        input: Some("USB MIDI"),
+        separate_channels: false,
+    ),
+    appearance: V1(
+        background_color: (0, 0, 0),
+        vertical_guidelines: true,
+        horizontal_guidelines: true,
+        glow: true,
+        chord_identifier: false,
+    ),
+)"#;
+
+    fn parse(ron: &str) -> Config {
+        ron_options().from_str::<Model>(ron).unwrap().build()
+    }
+
+    #[test]
+    fn settings_from_v0_5_1_still_load() {
+        let config = parse(SETTINGS_V0_5_1);
+
+        assert!(config.note_labels());
+        assert_eq!(config.input(), Some("USB MIDI"));
+        assert_eq!(config.note_naming(), NoteNaming::Letters);
+    }
+
+    #[test]
+    fn unknown_note_naming_keeps_the_other_settings() {
+        let ron = SETTINGS_V0_5_1.replace(
+            "chord_identifier: false,",
+            "chord_identifier: false, note_naming: Solfeggio,",
+        );
+        let config = parse(&ron);
+
+        assert_eq!(config.note_naming(), NoteNaming::Letters);
+        assert_eq!(config.input(), Some("USB MIDI"));
+    }
+
+    #[test]
+    fn saved_settings_keep_note_naming() {
+        let mut config = parse(SETTINGS_V0_5_1);
+        config.set_note_naming(NoteNaming::SolfegePt);
+        config.set_key_labels(true);
+
+        let saved = ron_options()
+            .to_string_pretty(
+                &Model::from_config(config),
+                ron::ser::PrettyConfig::default(),
+            )
+            .unwrap();
+        let config = parse(&saved);
+
+        assert_eq!(config.note_naming(), NoteNaming::SolfegePt);
+        assert!(config.key_labels());
+        assert_eq!(config.input(), Some("USB MIDI"));
+    }
+
+    #[test]
+    fn letters_keep_the_existing_names() {
+        let letters: Vec<_> = (60..72).map(|n| NoteNaming::Letters.note_name(n)).collect();
+        let solfege: Vec<_> = (60..72)
+            .map(|n| NoteNaming::SolfegePt.note_name(n))
+            .collect();
+
+        assert_eq!(
+            letters,
+            [
+                "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
+            ]
+        );
+        assert_eq!(
+            solfege,
+            [
+                "Dó", "Ré♭", "Ré", "Mi♭", "Mi", "Fá", "Sol♭", "Sol", "Lá♭", "Lá", "Si♭", "Si"
+            ]
+        );
     }
 }

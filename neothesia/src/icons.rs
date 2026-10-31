@@ -84,6 +84,10 @@ pub fn chord_name_icon() -> &'static str {
     "\u{E804}"
 }
 
+pub fn key_names_icon() -> &'static str {
+    "\u{E805}"
+}
+
 pub mod sheet {
     pub fn stem() -> &'static str {
         "\u{1D165}"

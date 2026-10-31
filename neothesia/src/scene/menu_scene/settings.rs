@@ -6,6 +6,7 @@ use crate::{
     scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
+use neothesia_core::config::NoteNaming;
 use nuon::TextAlign;
 use piano_layout::Key;
 
@@ -331,6 +332,28 @@ impl super::MenuScene {
                             .build(ui, rows)
                         {
                             ctx.config.set_note_labels(!ctx.config.note_labels());
+
+                            if self.popup == Popup::WaterfallNoteNamingSelector {
+                                self.popup.close();
+                            }
+                        }
+
+                        if ctx.config.note_labels() {
+                            spacer(ui);
+
+                            if let Some(naming) = self.settings_note_naming_row(
+                                ui,
+                                rows,
+                                nuon::settings_row()
+                                    .icon(icons::key_names_icon())
+                                    .title(locals::settings::naming_style())
+                                    .subtitle(locals::settings::naming_style_waterfall_subtitle()),
+                                Popup::WaterfallNoteNamingSelector,
+                                &[NoteNaming::Letters, NoteNaming::Solfege, NoteNaming::Latin],
+                                ctx.config.waterfall_note_naming(),
+                            ) {
+                                ctx.config.set_waterfall_note_naming(naming);
+                            }
                         }
                     });
 
@@ -359,7 +382,32 @@ impl super::MenuScene {
                             ctx.config
                                 .set_chord_identifier(!ctx.config.chord_identifier());
                         }
+
+                        spacer(ui);
+
+                        if let Some(naming) = self.settings_note_naming_row(
+                            ui,
+                            rows,
+                            nuon::settings_row()
+                                .icon(icons::key_names_icon())
+                                .title(locals::settings::naming_style())
+                                .subtitle(locals::settings::naming_style_keyboard_subtitle()),
+                            Popup::KeyboardNoteNamingSelector,
+                            &[
+                                NoteNaming::Octaves,
+                                NoteNaming::Letters,
+                                NoteNaming::Solfege,
+                                NoteNaming::Latin,
+                            ],
+                            ctx.config.keyboard_note_naming(),
+                        ) {
+                            ctx.config.set_keyboard_note_naming(naming);
+                        }
                     });
+
+                // Overlays don't count towards the scroll height, so without this room the
+                // last row's dropdown would be clipped with no way to scroll to it
+                nuon::translate().y(124.0).add_to_current(ui);
             });
     }
 }
@@ -560,6 +608,75 @@ impl super::MenuScene {
             .title(locals::settings::input())
             .body(|ui, row_w, row_h| self.settings_input_picker(ui, ctx, row_w, row_h))
             .build(ui, rows);
+    }
+
+    fn settings_note_naming_row(
+        &mut self,
+        ui: &mut nuon::Ui,
+        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+        row: nuon::SettingsRow<'_>,
+        popup: Popup,
+        namings: &[NoteNaming],
+        current: NoteNaming,
+    ) -> Option<NoteNaming> {
+        let mut selected = None;
+
+        row.icon_font_family("Neothesia Icons")
+            .icon_color([255, 255, 255, 128])
+            .body(|ui, row_w, row_h| {
+                let btn_w = 280.0;
+                let btn_h = 31.0;
+
+                let btn_x = row_w - btn_w;
+                let btn_y = nuon::center_y(row_h, btn_h);
+
+                let labels: Vec<String> = namings
+                    .iter()
+                    .map(|naming| match naming {
+                        NoteNaming::Octaves => locals::settings::note_naming_octaves(),
+                        NoteNaming::Letters => locals::settings::note_naming_letters(),
+                        NoteNaming::Solfege => locals::settings::note_naming_solfege(),
+                        NoteNaming::Latin => locals::settings::note_naming_latin(),
+                    })
+                    .collect();
+                let current = namings.iter().position(|n| *n == current).unwrap_or(0);
+
+                if button()
+                    .pos(btn_x, btn_y)
+                    .size(btn_w, btn_h)
+                    .id(popup)
+                    .label(labels[current].clone())
+                    .text_justify(TextAlign::Start)
+                    .build(ui)
+                {
+                    self.popup.toggle(popup);
+                }
+
+                nuon::label()
+                    .icon(icons::caret_down())
+                    .pos(btn_x, btn_y)
+                    .size(btn_w, btn_h)
+                    .text_justify(TextAlign::End)
+                    .build(ui);
+
+                if self.popup == popup {
+                    nuon::layer().overlay(true).build(ui, |ui| {
+                        nuon::translate()
+                            .x(btn_x)
+                            .y(btn_y + btn_h)
+                            .add_to_current(ui);
+
+                        if let Some(label) = nuon::combo_list(ui, popup, (btn_w, btn_h), &labels) {
+                            let i = labels.iter().position(|l| l == label).unwrap_or_default();
+                            selected = Some(namings[i]);
+                            self.popup.close();
+                        }
+                    });
+                }
+            })
+            .build(ui, rows);
+
+        selected
     }
 
     fn settings_keyboard_size_row(

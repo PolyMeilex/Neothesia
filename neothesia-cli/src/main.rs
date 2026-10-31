@@ -93,6 +93,7 @@ impl Recorder {
 
         let mut keyboard = KeyboardRenderer::new(keyboard_layout.clone());
         keyboard.position_on_bottom_of_parent(height as f32);
+        keyboard.set_note_naming(config.keyboard_note_naming());
 
         let mut guidelines = GuidelineRenderer::new(
             keyboard.layout().clone(),
@@ -137,6 +138,7 @@ impl Recorder {
         let note_labels = config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
             waterfall.notes(),
+            config.waterfall_note_naming(),
             text_renderer_factory.new_renderer(),
         ));
 
@@ -427,7 +429,7 @@ fn file_midi_events(
                 key.pressed_by_file_off();
             }
 
-            keyboard.invalidate_cache();
+            keyboard.invalidate_quad_cache();
         }
     }
 }

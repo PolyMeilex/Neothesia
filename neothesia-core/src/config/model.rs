@@ -33,6 +33,9 @@ pub struct WaterfallConfigV1 {
 
     #[serde(default = "default_note_labels")]
     pub note_labels: bool,
+
+    #[serde(default)]
+    pub note_naming: NoteNaming,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -46,6 +49,7 @@ impl Default for WaterfallConfig {
             animation_speed: default_animation_speed(),
             animation_offset: default_animation_offset(),
             note_labels: default_note_labels(),
+            note_naming: NoteNaming::default(),
         })
     }
 }
@@ -158,6 +162,32 @@ pub struct ColorSchemaV1 {
     pub dark: (u8, u8, u8),
 }
 
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteNaming {
+    #[default]
+    Octaves,
+    Letters,
+    Solfege,
+    Latin,
+}
+
+impl NoteNaming {
+    pub fn note_name(self, note_id: u8) -> &'static str {
+        let names = match self {
+            Self::Octaves | Self::Letters => [
+                "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+            ],
+            Self::Solfege => [
+                "Do", "Di", "Re", "Ri", "Mi", "Fa", "Fi", "Sol", "Si", "La", "Li", "Ti",
+            ],
+            Self::Latin => [
+                "Do", "", "Re", "", "Mi", "Fa", "", "Sol", "", "La", "", "Si",
+            ],
+        };
+        names[note_id as usize]
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AppearanceConfigV1 {
     #[serde(default = "default_color_schema")]
@@ -177,6 +207,9 @@ pub struct AppearanceConfigV1 {
 
     #[serde(default)]
     pub chord_identifier: bool,
+
+    #[serde(default)]
+    pub note_naming: NoteNaming,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -193,6 +226,7 @@ impl Default for AppearanceConfig {
             horizontal_guidelines: default_horizontal_guidelines(),
             glow: default_glow(),
             chord_identifier: false,
+            note_naming: NoteNaming::default(),
         })
     }
 }

@@ -4,13 +4,13 @@ use super::{KeyboardRenderer, TextRenderer, waterfall::NoteList};
 
 #[derive(Default)]
 struct LabelsCache {
-    labels: Option<[glyphon::Buffer; 12]>,
+    labels: Option<[(glyphon::Buffer, f32); 12]>,
     neutral_width: f32,
 }
 
 impl LabelsCache {
     #[profiling::function]
-    fn get(&mut self, keyboard: &KeyboardRenderer) -> &[glyphon::Buffer; 12] {
+    fn get(&mut self, keyboard: &KeyboardRenderer) -> &[(glyphon::Buffer, f32); 12] {
         let font_system = crate::font_system::font_system();
         let font_system = &mut font_system.borrow_mut();
 
@@ -21,34 +21,24 @@ impl LabelsCache {
             let label_width = sharp_width;
 
             let labels = [
-                ("C", neutral_width),
-                ("C#", sharp_width),
-                ("D", neutral_width),
-                ("D#", sharp_width),
-                ("E", neutral_width),
-                ("F", neutral_width),
-                ("F#", sharp_width),
-                ("G", neutral_width),
-                ("G#", sharp_width),
-                ("A", neutral_width),
-                ("A#", sharp_width),
-                ("B", neutral_width),
+                "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
             ]
-            .map(|(label, note_width)| {
+            .map(|label| {
                 let mut buffer = glyphon::Buffer::new(
                     font_system,
                     glyphon::Metrics::new(label_width, label_width),
                 );
-                buffer.set_size(Some(note_width), None);
                 buffer.set_wrap(glyphon::Wrap::None);
                 buffer.set_text(
                     label,
                     &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                     glyphon::Shaping::Basic,
-                    Some(glyphon::cosmic_text::Align::Center),
+                    None,
                 );
                 buffer.shape_until_scroll(font_system, false);
-                buffer
+
+                let (text_width, _) = TextRenderer::measure(&buffer);
+                (buffer, text_width)
             });
 
             self.labels = Some(labels);
@@ -102,9 +92,10 @@ impl NoteLabels {
             .iter()
             .filter(|note| layout.range.contains(note.note) && note.channel != 9)
             .map(|note| {
-                let buffer = &labels[(note.note % 12) as usize];
+                let (buffer, text_width) = &labels[(note.note % 12) as usize];
 
-                let x = layout.keys[note.note as usize - range_start].x();
+                let key = &layout.keys[note.note as usize - range_start];
+                let x = key.x() + (key.width() - text_width) / 2.0;
                 let y =
                     self.pos.y - (note.start.as_secs_f32() - time) * animation_speed - label_width;
 

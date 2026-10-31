@@ -2,12 +2,12 @@ use std::path::PathBuf;
 
 mod model;
 
-pub use model::ColorSchemaV1;
 use model::{
     AppearanceConfig, AppearanceConfigV1, DevicesConfig, DevicesConfigV1, History, HistoryV1,
     LayoutConfig, LayoutConfigV1, Model, PcKeyboardConfig, PcKeyboardConfigV1, PlaybackConfig,
     PlaybackConfigV1, SynthConfig, SynthConfigV1, WaterfallConfig, WaterfallConfigV1,
 };
+pub use model::{ColorSchemaV1, NoteNaming};
 
 fn ron_options() -> ron::Options {
     ron::Options::default()
@@ -164,6 +164,14 @@ impl Config {
         self.appearance.chord_identifier = chord_identifier;
     }
 
+    pub fn keyboard_note_naming(&self) -> NoteNaming {
+        self.appearance.note_naming
+    }
+
+    pub fn set_keyboard_note_naming(&mut self, note_naming: NoteNaming) {
+        self.appearance.note_naming = note_naming;
+    }
+
     pub fn last_opened_song(&self) -> Option<&PathBuf> {
         self.history.last_opened_song.as_ref()
     }
@@ -251,6 +259,14 @@ impl Config {
 
     pub fn note_labels(&self) -> bool {
         self.waterfall.note_labels
+    }
+
+    pub fn waterfall_note_naming(&self) -> NoteNaming {
+        self.waterfall.note_naming
+    }
+
+    pub fn set_waterfall_note_naming(&mut self, note_naming: NoteNaming) {
+        self.waterfall.note_naming = note_naming;
     }
 
     pub fn speed_multiplier(&self) -> f32 {

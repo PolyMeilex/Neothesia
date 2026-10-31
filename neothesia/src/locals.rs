@@ -261,9 +261,65 @@ pub mod settings {
 
     pub fn note_names_subtitle() -> String {
         match LOCAL.as_str() {
-            "pl" => "Wyświetlaj nazwę nuty (C4, E4…) na każdej opadającej nucie".into(),
-            "de" => "Notennamen (C4, E4…) auf jeder fallenden Note anzeigen".into(),
-            _ => "Show the note name (C4, E4…) on each falling note".into(),
+            "pl" => "Wyświetlaj nazwę nuty na każdej opadającej nucie".into(),
+            "de" => "Notennamen auf jeder fallenden Note anzeigen".into(),
+            _ => "Show the note name on each falling note".into(),
+        }
+    }
+
+    pub fn naming_style() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Styl nazw".into(),
+            "de" => "Benennungsstil".into(),
+            _ => "Naming Style".into(),
+        }
+    }
+
+    pub fn naming_style_keyboard_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wybierz sposób nazywania klawiszy".into(),
+            "de" => "Wähle, wie die Tasten beschriftet werden".into(),
+            _ => "Choose how the keys are labeled".into(),
+        }
+    }
+
+    pub fn naming_style_waterfall_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Wybierz sposób nazywania opadających nut".into(),
+            "de" => "Wähle, wie fallende Noten beschriftet werden".into(),
+            _ => "Choose how falling notes are labeled".into(),
+        }
+    }
+
+    pub fn note_naming_octaves() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Oktawy".into(),
+            "de" => "Oktaven".into(),
+            _ => "Octaves".into(),
+        }
+    }
+
+    pub fn note_naming_letters() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Angielskie nazwy nut (C, C#, D)".into(),
+            "de" => "Englische Notennamen (C, C#, D)".into(),
+            _ => "English Note Names (C, C#, D)".into(),
+        }
+    }
+
+    pub fn note_naming_solfege() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Solfeż (Do, Di, Mi)".into(),
+            "de" => "Solfège (Do, Di, Mi)".into(),
+            _ => "Solfege (Do, Di, Mi)".into(),
+        }
+    }
+
+    pub fn note_naming_latin() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Łacińskie (Do, Re, Mi)".into(),
+            "de" => "Lateinisch (Do, Re, Mi)".into(),
+            _ => "Latin (Do, Re, Mi)".into(),
         }
     }
 

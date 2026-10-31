@@ -40,6 +40,7 @@ impl Keyboard {
 
         let mut renderer = KeyboardRenderer::new(layout);
         renderer.position_on_bottom_of_parent(ctx.window_state.logical_size.height);
+        renderer.set_note_naming(ctx.config.keyboard_note_naming());
 
         let v = (255.0 * 0.3) as u8;
         let dark = (v, v, v);
@@ -124,7 +125,7 @@ impl Keyboard {
             let key = &mut self.renderer.key_states_mut()[id];
 
             key.set_pressed_by_user(is_on, &self.pressed_by_user_colors);
-            self.renderer.invalidate_cache();
+            self.renderer.invalidate_quad_cache();
         }
     }
 
@@ -155,7 +156,7 @@ impl Keyboard {
                     key.pressed_by_file_off();
                 }
 
-                self.renderer.invalidate_cache();
+                self.renderer.invalidate_quad_cache();
             }
         }
     }

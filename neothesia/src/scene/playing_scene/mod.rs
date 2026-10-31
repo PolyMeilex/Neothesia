@@ -91,6 +91,7 @@ impl PlayingScene {
         let note_labels = ctx.config.note_labels().then_some(NoteLabels::new(
             *keyboard.pos(),
             waterfall.notes(),
+            ctx.config.waterfall_note_naming(),
             ctx.text_renderer_factory.new_renderer(),
         ));
 

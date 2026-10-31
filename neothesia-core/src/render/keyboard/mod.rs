@@ -1,4 +1,5 @@
 use crate::{
+    config::NoteNaming,
     render::{QuadInstance, QuadRenderer},
     utils::Point,
 };
@@ -16,6 +17,7 @@ pub struct KeyboardRenderer {
     key_states: Vec<KeyState>,
 
     layout: piano_layout::KeyboardLayout,
+    note_naming: NoteNaming,
 
     cache: Vec<QuadInstance>,
     text_cache: Vec<super::text::TextArea>,
@@ -37,6 +39,7 @@ impl KeyboardRenderer {
             key_states,
 
             layout,
+            note_naming: NoteNaming::default(),
             cache,
             text_cache: Vec::new(),
         }
@@ -46,7 +49,7 @@ impl KeyboardRenderer {
         for key in self.key_states.iter_mut() {
             key.pressed_by_file_off();
         }
-        self.invalidate_cache();
+        self.invalidate_quad_cache();
     }
 
     pub fn range(&self) -> &KeyboardRange {
@@ -86,9 +89,18 @@ impl KeyboardRenderer {
         self.invalidate_cache();
     }
 
+    pub fn set_note_naming(&mut self, note_naming: NoteNaming) {
+        self.note_naming = note_naming;
+        self.invalidate_cache();
+    }
+
     pub fn invalidate_cache(&mut self) {
         self.cache.clear();
         self.text_cache.clear();
+    }
+
+    pub fn invalidate_quad_cache(&mut self) {
+        self.cache.clear();
     }
 
     /// Reupload instances to GPU
@@ -137,7 +149,12 @@ impl KeyboardRenderer {
         let font_system = &mut font_system.borrow_mut();
 
         let range_start = self.layout.range.start() as usize;
-        for key in self.layout.keys.iter().filter(|key| key.note_id() == 0) {
+        for key in self
+            .layout
+            .keys
+            .iter()
+            .filter(|key| self.note_naming != NoteNaming::Octaves || key.note_id() == 0)
+        {
             let x = self.pos.x + key.x();
             let y = self.pos.y;
 
@@ -147,12 +164,18 @@ impl KeyboardRenderer {
             let size = w * 0.7;
 
             let oct_number = (key.id() + range_start) / 12;
+            let name = self.note_naming.note_name(key.note_id());
+            let label = if self.note_naming == NoteNaming::Octaves {
+                format!("{name}{}", oct_number as i8 - 1)
+            } else {
+                name.to_string()
+            };
 
             let mut buffer = glyphon::Buffer::new(font_system, glyphon::Metrics::new(size, size));
             buffer.set_size(Some(w), Some(h));
             buffer.set_wrap(glyphon::Wrap::None);
             buffer.set_text(
-                &format!("C{}", oct_number as i8 - 1),
+                &label,
                 &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                 glyphon::Shaping::Basic,
                 Some(glyphon::cosmic_text::Align::Center),
@@ -170,7 +193,13 @@ impl KeyboardRenderer {
                     right: x.round() as i32 + w.round() as i32,
                     bottom: y.round() as i32 + h.round() as i32,
                 },
-                default_color: glyphon::Color::rgba(0, 0, 0, 150),
+                default_color: if self.note_naming == NoteNaming::Octaves {
+                    glyphon::Color::rgba(0, 0, 0, 150)
+                } else if key.kind().is_sharp() {
+                    glyphon::Color::rgb(255, 255, 255)
+                } else {
+                    glyphon::Color::rgba(0, 0, 0, 255)
+                },
             });
         }
     }

@@ -41,12 +41,14 @@ where
     })
 }
 
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Hash)]
 enum Popup {
     #[default]
     None,
     OutputSelector,
     InputSelector,
+    KeyboardNoteNamingSelector,
+    WaterfallNoteNamingSelector,
 }
 
 impl Popup {

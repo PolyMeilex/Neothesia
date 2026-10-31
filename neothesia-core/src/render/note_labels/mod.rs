@@ -1,4 +1,4 @@
-use crate::utils::Point;
+use crate::{config::NoteNaming, utils::Point};
 
 use super::{KeyboardRenderer, TextRenderer, waterfall::NoteList};
 
@@ -6,6 +6,7 @@ use super::{KeyboardRenderer, TextRenderer, waterfall::NoteList};
 struct LabelsCache {
     labels: Option<[(glyphon::Buffer, f32); 12]>,
     neutral_width: f32,
+    naming: NoteNaming,
 }
 
 impl LabelsCache {
@@ -20,17 +21,14 @@ impl LabelsCache {
         if self.labels.is_none() || self.neutral_width != neutral_width {
             let label_width = sharp_width;
 
-            let labels = [
-                "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
-            ]
-            .map(|label| {
+            let labels = std::array::from_fn(|note_id| {
                 let mut buffer = glyphon::Buffer::new(
                     font_system,
                     glyphon::Metrics::new(label_width, label_width),
                 );
                 buffer.set_wrap(glyphon::Wrap::None);
                 buffer.set_text(
-                    label,
+                    self.naming.note_name(note_id as u8),
                     &glyphon::Attrs::new().family(glyphon::Family::SansSerif),
                     glyphon::Shaping::Basic,
                     None,
@@ -57,11 +55,19 @@ pub struct NoteLabels {
 }
 
 impl NoteLabels {
-    pub fn new(pos: Point<f32>, notes: &NoteList, text_renderer: TextRenderer) -> Self {
+    pub fn new(
+        pos: Point<f32>,
+        notes: &NoteList,
+        naming: NoteNaming,
+        text_renderer: TextRenderer,
+    ) -> Self {
         Self {
             pos,
             notes: notes.clone(),
-            labels_cache: LabelsCache::default(),
+            labels_cache: LabelsCache {
+                naming,
+                ..Default::default()
+            },
             text_renderer,
         }
     }

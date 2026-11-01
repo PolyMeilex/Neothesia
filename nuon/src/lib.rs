@@ -320,6 +320,9 @@ pub struct Ui {
     pub active: Option<Id>,
     pub active_widget_is_still_alive: bool,
 
+    open_popup: Option<Id>,
+    open_popup_is_still_alive: bool,
+
     pointer_pos: Point,
     pointer_pos_delta: Point,
     scroll_delta: f32,
@@ -346,6 +349,8 @@ impl Ui {
             hovered: None,
             active: None,
             active_widget_is_still_alive: false,
+            open_popup: None,
+            open_popup_is_still_alive: false,
             pointer_pos: Point::new(-1.0, -1.0),
             pointer_pos_delta: Point::new(0.0, 0.0),
             scroll_delta: 0.0,
@@ -427,6 +432,10 @@ impl Ui {
         } else {
             // Active widget died
             self.active = None;
+        }
+
+        if !std::mem::take(&mut self.open_popup_is_still_alive) {
+            self.open_popup = None;
         }
     }
 }
@@ -1562,19 +1571,133 @@ impl Label {
     }
 }
 
-pub fn combo_list<'a, ITEM: ToString>(
+pub struct Dropdown<'a, ITEM> {
+    id: Id,
+    pos: Point,
+    size: Size,
+    items: &'a [ITEM],
+    selected: Option<usize>,
+}
+
+pub fn dropdown<'a, ITEM: ToString>(id: impl Into<Id>) -> Dropdown<'a, ITEM> {
+    Dropdown::new(id)
+}
+
+impl<'a, ITEM: ToString> Dropdown<'a, ITEM> {
+    pub fn new(id: impl Into<Id>) -> Self {
+        Self {
+            id: id.into(),
+            pos: Point::zero(),
+            size: Size::new(320.0, 31.0),
+            items: &[],
+            selected: None,
+        }
+    }
+
+    pub fn pos(mut self, x: f32, y: f32) -> Self {
+        self.pos = Point::new(x, y);
+        self
+    }
+
+    pub fn size(mut self, width: f32, height: f32) -> Self {
+        self.size = Size::new(width, height);
+        self
+    }
+
+    pub fn items(mut self, items: &'a [ITEM]) -> Self {
+        self.items = items;
+        self
+    }
+
+    pub fn selected(mut self, selected: impl Into<Option<usize>>) -> Self {
+        self.selected = selected.into();
+        self
+    }
+
+    /// Returns the index of the item clicked this frame
+    pub fn build(self, ui: &mut Ui) -> Option<usize> {
+        let label = self
+            .selected
+            .and_then(|i| self.items.get(i))
+            .map(ToString::to_string)
+            .unwrap_or_default();
+
+        let list_h = self.size.height * self.items.len() as f32;
+        let origin = ui.translation_stack.translate(self.pos);
+        let button_rect = Rect::new(origin, self.size);
+        let list_rect = Rect::new(
+            Point::new(origin.x, origin.y + self.size.height),
+            Size::new(self.size.width, list_h),
+        );
+
+        let clicked = self::button()
+            .id(self.id)
+            .pos(self.pos.x, self.pos.y)
+            .size(self.size.width, self.size.height)
+            .color([74, 68, 88])
+            .preseed_color([74, 68, 88])
+            .hover_color([87, 81, 101])
+            .border_radius([5.0; 4])
+            .label(label)
+            .text_justify(TextAlign::Start)
+            .build(ui);
+
+        self::label()
+            .icon("\u{f229}")
+            .pos(self.pos.x, self.pos.y)
+            .size(self.size.width, self.size.height)
+            .text_justify(TextAlign::End)
+            .build(ui);
+
+        let is_open = ui.open_popup == Some(self.id);
+
+        if clicked {
+            ui.open_popup = (!is_open).then_some(self.id);
+        } else if is_open
+            && ui.mouse_pressed
+            && !button_rect.contains(ui.pointer_pos)
+            && !list_rect.contains(ui.pointer_pos)
+        {
+            ui.open_popup = None;
+        }
+
+        if ui.open_popup != Some(self.id) {
+            return None;
+        }
+
+        ui.open_popup_is_still_alive = true;
+
+        let mut res = None;
+
+        self::layer().overlay(true).build(ui, |ui| {
+            self::translate()
+                .x(self.pos.x)
+                .y(self.pos.y + self.size.height)
+                .build(ui, |ui| {
+                    res =
+                        dropdown_list(ui, self.id, (self.size.width, self.size.height), self.items);
+                });
+        });
+
+        if res.is_some() {
+            ui.open_popup = None;
+        }
+
+        res
+    }
+}
+
+fn dropdown_list<ITEM: ToString>(
     ui: &mut Ui,
-    id: impl Into<Id>,
+    id: Id,
     (item_w, item_h): (f32, f32),
-    list: &'a [ITEM],
-) -> Option<&'a ITEM> {
+    list: &[ITEM],
+) -> Option<usize> {
     self::quad()
         .width(item_w)
         .height(item_h * list.len() as f32)
         .color([27, 25, 32])
         .build(ui);
-
-    let id = id.into();
 
     let mut res = None;
     for (nth, item) in list.iter().enumerate() {
@@ -1594,7 +1717,7 @@ pub fn combo_list<'a, ITEM: ToString>(
             .preseed_color([180, 90, 255])
             .build(ui)
         {
-            res = Some(item);
+            res = Some(nth);
         }
     }
 

@@ -464,3 +464,106 @@ impl<'a> SettingsRowToggler<'a> {
 pub fn settings_row_toggler<'a>() -> SettingsRowToggler<'a> {
     SettingsRowToggler::new()
 }
+
+pub struct SettingsRowDropdown<'a, ITEM> {
+    row: SettingsRow<'a>,
+    id: Id,
+    width: f32,
+    items: &'a [ITEM],
+    selected: Option<usize>,
+}
+
+impl<'a, ITEM: ToString> Default for SettingsRowDropdown<'a, ITEM> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a, ITEM: ToString> SettingsRowDropdown<'a, ITEM> {
+    pub fn new() -> Self {
+        Self {
+            row: settings_row(),
+            id: Id::NULL,
+            width: 320.0,
+            items: &[],
+            selected: None,
+        }
+    }
+
+    pub fn id(mut self, id: impl Into<Id>) -> Self {
+        self.id = id.into();
+        self
+    }
+
+    pub fn title(mut self, label: impl Into<String>) -> Self {
+        self.row = self.row.title(label);
+        self
+    }
+
+    pub fn subtitle(mut self, label: impl Into<String>) -> Self {
+        self.row = self.row.subtitle(label);
+        self
+    }
+
+    pub fn icon(mut self, icon: impl Into<String>) -> Self {
+        self.row = self.row.icon(icon);
+        self
+    }
+
+    pub fn icon_font_family(mut self, font_family: &'static str) -> Self {
+        self.row = self.row.icon_font_family(font_family);
+        self
+    }
+
+    pub fn icon_color(mut self, color: impl Into<Color>) -> Self {
+        self.row = self.row.icon_color(color);
+        self
+    }
+
+    pub fn dropdown_width(mut self, width: f32) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn items(mut self, items: &'a [ITEM]) -> Self {
+        self.items = items;
+        self
+    }
+
+    pub fn selected(mut self, selected: impl Into<Option<usize>>) -> Self {
+        self.selected = selected.into();
+        self
+    }
+
+    pub fn build(self, ui: &mut Ui, add: &dyn Fn(&mut Ui, SettingsRow<'_>)) -> Option<usize> {
+        let mut res = None;
+
+        let id = if self.id == Id::NULL {
+            Id::hash_with(|h| {
+                self.row.title.hash(h);
+                self.row.subtitle.hash(h);
+            })
+        } else {
+            self.id
+        };
+
+        self.row
+            .body(|ui, row_w, row_h| {
+                let h = 31.0;
+
+                res = nuon::dropdown(id)
+                    .pos(row_w - self.width, nuon::center_y(row_h, h))
+                    .size(self.width, h)
+                    .items(self.items)
+                    .selected(self.selected)
+                    .build(ui);
+            })
+            .build(ui, add);
+
+        res
+    }
+}
+
+pub fn settings_row_dropdown<'a, ITEM: ToString>() -> SettingsRowDropdown<'a, ITEM> {
+    SettingsRowDropdown::new()
+}

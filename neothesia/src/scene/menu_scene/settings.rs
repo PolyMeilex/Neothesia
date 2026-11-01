@@ -3,7 +3,7 @@ use std::{ops::RangeInclusive, path::PathBuf};
 use crate::{
     context::Context,
     locals,
-    scene::menu_scene::{MsgFn, Popup, icons, neo_btn_icon, on_async},
+    scene::menu_scene::{MsgFn, icons, neo_btn_icon, on_async},
     utils::BoxFuture,
 };
 use neothesia_core::config::NoteNaming;
@@ -192,6 +192,33 @@ fn render_toggler<'a>() -> nuon::SettingsRowToggler<'a> {
     nuon::settings_row_toggler().icon_font_family("Neothesia Icons")
 }
 
+fn note_naming_row(
+    ui: &mut nuon::Ui,
+    rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
+    row: nuon::SettingsRowDropdown<'_, String>,
+    namings: &[NoteNaming],
+    current: NoteNaming,
+) -> Option<NoteNaming> {
+    let labels: Vec<String> = namings
+        .iter()
+        .map(|naming| match naming {
+            NoteNaming::Octaves => locals::settings::note_naming_octaves(),
+            NoteNaming::Letters => locals::settings::note_naming_letters(),
+            NoteNaming::Solfege => locals::settings::note_naming_solfege(),
+            NoteNaming::Latin => locals::settings::note_naming_latin(),
+        })
+        .collect();
+
+    row.icon(icons::key_names_icon())
+        .icon_font_family("Neothesia Icons")
+        .icon_color([255, 255, 255, 128])
+        .dropdown_width(280.0)
+        .items(&labels)
+        .selected(namings.iter().position(|n| *n == current).unwrap_or(0))
+        .build(ui, rows)
+        .map(|i| namings[i])
+}
+
 fn setting_row_button(
     ui: &mut nuon::Ui,
     row_w: f32,
@@ -332,23 +359,18 @@ impl super::MenuScene {
                             .build(ui, rows)
                         {
                             ctx.config.set_note_labels(!ctx.config.note_labels());
-
-                            if self.popup == Popup::WaterfallNoteNamingSelector {
-                                self.popup.close();
-                            }
                         }
 
                         if ctx.config.note_labels() {
                             spacer(ui);
 
-                            if let Some(naming) = self.settings_note_naming_row(
+                            if let Some(naming) = note_naming_row(
                                 ui,
                                 rows,
-                                nuon::settings_row()
-                                    .icon(icons::key_names_icon())
+                                nuon::settings_row_dropdown()
+                                    .id("select_waterfall_note_naming")
                                     .title(locals::settings::naming_style())
                                     .subtitle(locals::settings::naming_style_waterfall_subtitle()),
-                                Popup::WaterfallNoteNamingSelector,
                                 &[NoteNaming::Letters, NoteNaming::Solfege, NoteNaming::Latin],
                                 ctx.config.waterfall_note_naming(),
                             ) {
@@ -385,14 +407,13 @@ impl super::MenuScene {
 
                         spacer(ui);
 
-                        if let Some(naming) = self.settings_note_naming_row(
+                        if let Some(naming) = note_naming_row(
                             ui,
                             rows,
-                            nuon::settings_row()
-                                .icon(icons::key_names_icon())
+                            nuon::settings_row_dropdown()
+                                .id("select_keyboard_note_naming")
                                 .title(locals::settings::naming_style())
                                 .subtitle(locals::settings::naming_style_keyboard_subtitle()),
-                            Popup::KeyboardNoteNamingSelector,
                             &[
                                 NoteNaming::Octaves,
                                 NoteNaming::Letters,
@@ -413,64 +434,6 @@ impl super::MenuScene {
 }
 
 impl super::MenuScene {
-    fn settings_output_picker(
-        &mut self,
-        ui: &mut nuon::Ui,
-        ctx: &mut Context,
-        row_w: f32,
-        row_h: f32,
-    ) {
-        let btn_w = 320.0;
-        let btn_h = 31.0;
-
-        let btn_x = row_w - btn_w;
-        let btn_y = nuon::center_y(row_h, btn_h);
-
-        if button()
-            .pos(btn_x, btn_y)
-            .size(btn_w, btn_h)
-            .id("select_output")
-            .label(
-                self.state
-                    .selected_output
-                    .as_ref()
-                    .map(|o| o.to_string())
-                    .unwrap_or_default(),
-            )
-            .text_justify(TextAlign::Start)
-            .build(ui)
-        {
-            self.popup.toggle(Popup::OutputSelector);
-        }
-
-        nuon::label()
-            .icon(icons::caret_down())
-            .pos(btn_x, btn_y)
-            .size(btn_w, btn_h)
-            .text_justify(TextAlign::End)
-            .build(ui);
-
-        if self.popup == Popup::OutputSelector {
-            nuon::layer().overlay(true).build(ui, |ui| {
-                nuon::translate()
-                    .x(btn_x)
-                    .y(btn_y + btn_h)
-                    .add_to_current(ui);
-
-                let data = &mut self.state;
-
-                if let Some(output) =
-                    nuon::combo_list(ui, "select_output_", (btn_w, btn_h), &data.outputs)
-                {
-                    ctx.config
-                        .set_output(output.is_not_dummy().then(|| output.to_string()));
-                    data.selected_output = Some(output.clone());
-                    self.popup.close();
-                }
-            });
-        }
-    }
-
     fn settings_output_section(
         &mut self,
         ctx: &mut Context,
@@ -478,10 +441,25 @@ impl super::MenuScene {
         rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
         spacer: &dyn Fn(&mut nuon::Ui),
     ) {
-        nuon::settings_row()
+        let selected_name = self.state.selected_output.as_ref().map(|o| o.to_string());
+        let selected = self
+            .state
+            .outputs
+            .iter()
+            .position(|o| Some(o.to_string()) == selected_name);
+
+        if let Some(i) = nuon::settings_row_dropdown()
+            .id("select_output")
             .title(locals::settings::output())
-            .body(|ui, row_w, row_h| self.settings_output_picker(ui, ctx, row_w, row_h))
-            .build(ui, rows);
+            .items(&self.state.outputs)
+            .selected(selected)
+            .build(ui, rows)
+        {
+            let output = self.state.outputs[i].clone();
+            ctx.config
+                .set_output(output.is_not_dummy().then(|| output.to_string()));
+            self.state.selected_output = Some(output);
+        }
 
         let (is_synth, is_midi) = self
             .state
@@ -540,63 +518,6 @@ impl super::MenuScene {
 }
 
 impl super::MenuScene {
-    fn settings_input_picker(
-        &mut self,
-        ui: &mut nuon::Ui,
-        ctx: &mut Context,
-        row_w: f32,
-        row_h: f32,
-    ) {
-        let btn_w = 320.0;
-        let btn_h = 31.0;
-
-        let btn_x = row_w - btn_w;
-        let btn_y = nuon::center_y(row_h, btn_h);
-
-        if button()
-            .pos(btn_x, btn_y)
-            .size(btn_w, btn_h)
-            .id("select_input")
-            .label(
-                self.state
-                    .selected_input
-                    .as_ref()
-                    .map(|o| o.to_string())
-                    .unwrap_or_default(),
-            )
-            .text_justify(TextAlign::Start)
-            .build(ui)
-        {
-            self.popup.toggle(Popup::InputSelector);
-        }
-
-        nuon::label()
-            .icon(icons::caret_down())
-            .pos(btn_x, btn_y)
-            .size(btn_w, btn_h)
-            .text_justify(TextAlign::End)
-            .build(ui);
-
-        if self.popup == Popup::InputSelector {
-            nuon::layer().overlay(true).build(ui, |ui| {
-                nuon::translate()
-                    .x(btn_x)
-                    .y(btn_y + btn_h)
-                    .add_to_current(ui);
-
-                let data = &mut self.state;
-
-                if let Some(input) =
-                    nuon::combo_list(ui, "select_input_", (btn_w, btn_h), &data.inputs)
-                {
-                    ctx.config.set_input(Some(&input));
-                    data.selected_input = Some(input.clone());
-                    self.popup.close();
-                }
-            });
-        }
-    }
-
     fn settings_input_section(
         &mut self,
         ctx: &mut Context,
@@ -604,79 +525,23 @@ impl super::MenuScene {
         rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
         _spacer: &dyn Fn(&mut nuon::Ui),
     ) {
-        nuon::settings_row()
+        let selected = self
+            .state
+            .inputs
+            .iter()
+            .position(|i| Some(i) == self.state.selected_input.as_ref());
+
+        if let Some(i) = nuon::settings_row_dropdown()
+            .id("select_input")
             .title(locals::settings::input())
-            .body(|ui, row_w, row_h| self.settings_input_picker(ui, ctx, row_w, row_h))
-            .build(ui, rows);
-    }
-
-    fn settings_note_naming_row(
-        &mut self,
-        ui: &mut nuon::Ui,
-        rows: &dyn Fn(&mut nuon::Ui, nuon::SettingsRow<'_>),
-        row: nuon::SettingsRow<'_>,
-        popup: Popup,
-        namings: &[NoteNaming],
-        current: NoteNaming,
-    ) -> Option<NoteNaming> {
-        let mut selected = None;
-
-        row.icon_font_family("Neothesia Icons")
-            .icon_color([255, 255, 255, 128])
-            .body(|ui, row_w, row_h| {
-                let btn_w = 280.0;
-                let btn_h = 31.0;
-
-                let btn_x = row_w - btn_w;
-                let btn_y = nuon::center_y(row_h, btn_h);
-
-                let labels: Vec<String> = namings
-                    .iter()
-                    .map(|naming| match naming {
-                        NoteNaming::Octaves => locals::settings::note_naming_octaves(),
-                        NoteNaming::Letters => locals::settings::note_naming_letters(),
-                        NoteNaming::Solfege => locals::settings::note_naming_solfege(),
-                        NoteNaming::Latin => locals::settings::note_naming_latin(),
-                    })
-                    .collect();
-                let current = namings.iter().position(|n| *n == current).unwrap_or(0);
-
-                if button()
-                    .pos(btn_x, btn_y)
-                    .size(btn_w, btn_h)
-                    .id(popup)
-                    .label(labels[current].clone())
-                    .text_justify(TextAlign::Start)
-                    .build(ui)
-                {
-                    self.popup.toggle(popup);
-                }
-
-                nuon::label()
-                    .icon(icons::caret_down())
-                    .pos(btn_x, btn_y)
-                    .size(btn_w, btn_h)
-                    .text_justify(TextAlign::End)
-                    .build(ui);
-
-                if self.popup == popup {
-                    nuon::layer().overlay(true).build(ui, |ui| {
-                        nuon::translate()
-                            .x(btn_x)
-                            .y(btn_y + btn_h)
-                            .add_to_current(ui);
-
-                        if let Some(label) = nuon::combo_list(ui, popup, (btn_w, btn_h), &labels) {
-                            let i = labels.iter().position(|l| l == label).unwrap_or_default();
-                            selected = Some(namings[i]);
-                            self.popup.close();
-                        }
-                    });
-                }
-            })
-            .build(ui, rows);
-
-        selected
+            .items(&self.state.inputs)
+            .selected(selected)
+            .build(ui, rows)
+        {
+            let input = self.state.inputs[i].clone();
+            ctx.config.set_input(Some(&input));
+            self.state.selected_input = Some(input);
+        }
     }
 
     fn settings_keyboard_size_row(

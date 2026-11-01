@@ -41,26 +41,6 @@ where
     })
 }
 
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Hash)]
-enum Popup {
-    #[default]
-    None,
-    OutputSelector,
-    InputSelector,
-    KeyboardNoteNamingSelector,
-    WaterfallNoteNamingSelector,
-}
-
-impl Popup {
-    fn toggle(&mut self, new: Self) {
-        *self = if *self == new { Self::None } else { new }
-    }
-
-    fn close(&mut self) {
-        *self = Self::None;
-    }
-}
-
 #[derive(Default, Debug)]
 struct MidiInputState {
     input_keys: HashSet<u8>,
@@ -96,7 +76,6 @@ pub struct MenuScene {
     nuon: nuon::Ui,
 
     midi_input_state: MidiInputState,
-    popup: Popup,
 }
 
 impl MenuScene {
@@ -129,7 +108,6 @@ impl MenuScene {
             quad_pipeline,
             nuon: nuon::Ui::new(),
             midi_input_state: MidiInputState::default(),
-            popup: Popup::None,
         }
     }
 

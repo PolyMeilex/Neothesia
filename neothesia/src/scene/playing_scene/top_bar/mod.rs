@@ -326,13 +326,13 @@ impl TopBar {
 
         let (loop_start_ev, loop_end_ev) = if looper_active {
             let loop_start_ev = nuon::click_area("LooperStart")
-                .x(loop_start)
-                .width(5.0)
+                .x(loop_start - 25.0)
+                .width(50.0)
                 .height(loop_h)
                 .build(ui);
             let loop_end_ev = nuon::click_area("LooperEnd")
-                .x(loop_end)
-                .width(5.0)
+                .x(loop_end - 25.0)
+                .width(50.0)
                 .height(loop_h)
                 .build(ui);
             (loop_start_ev, loop_end_ev)

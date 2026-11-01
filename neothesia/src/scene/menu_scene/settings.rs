@@ -377,6 +377,33 @@ impl super::MenuScene {
                                 ctx.config.set_waterfall_note_naming(naming);
                             }
                         }
+
+                        spacer(ui);
+
+                        if render_toggler()
+                            .icon(icons::note_names_icon())
+                            .title(locals::settings::fingering())
+                            .subtitle(locals::settings::fingering_subtitle())
+                            .value(ctx.config.fingering())
+                            .build(ui, rows)
+                        {
+                            ctx.config.set_fingering(!ctx.config.fingering());
+                        }
+
+                        if ctx.config.fingering() {
+                            spacer(ui);
+
+                            if render_toggler()
+                                .icon(icons::note_names_icon())
+                                .title(locals::settings::fingering_on_keys())
+                                .subtitle(locals::settings::fingering_on_keys_subtitle())
+                                .value(ctx.config.fingering_on_keys())
+                                .build(ui, rows)
+                            {
+                                ctx.config
+                                    .set_fingering_on_keys(!ctx.config.fingering_on_keys());
+                            }
+                        }
                     });
 
                 nuon::settings_section(locals::settings::keyboard())

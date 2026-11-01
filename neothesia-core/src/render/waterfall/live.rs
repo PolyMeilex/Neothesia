@@ -51,6 +51,7 @@ impl LiveWaterfallRenderer {
         self.active.insert(
             key,
             MidiNote {
+                id: 0,
                 start: self.time,
                 end: self.time,
                 duration: Duration::ZERO,

@@ -1,19 +1,23 @@
-use midi_file::midly::MidiMessage;
-use neothesia_core::render::{
-    GlowRenderer, GuidelineRenderer, NoteLabels, QuadRenderer, TextRenderer,
+use midi_file::{MidiNote, midly::MidiMessage};
+use neothesia_core::{
+    fingering::{Fingering, NoteKey},
+    render::{
+        FingeringLabels, GlowRenderer, GuidelineRenderer, NoteLabels, QuadInstance, QuadRenderer,
+        TextRenderer,
+    },
 };
 use std::time::Duration;
 use winit::{
-    event::WindowEvent,
-    keyboard::{Key, NamedKey},
+    event::{ElementState, KeyEvent, WindowEvent},
+    keyboard::{Key, KeyCode, NamedKey, PhysicalKey},
 };
 
 use self::top_bar::TopBar;
 
 use super::{NuonRenderer, Scene};
 use crate::{
-    NeothesiaEvent, context::Context, render::WaterfallRenderer, scene::MouseToMidiEventState,
-    song::Song, utils::window::WinitEvent,
+    NeothesiaEvent, context::Context, locals, render::WaterfallRenderer,
+    scene::MouseToMidiEventState, song::Song, utils::window::WinitEvent,
 };
 
 mod keyboard;
@@ -39,6 +43,11 @@ pub struct PlayingScene {
     nuon_renderer: NuonRenderer,
 
     note_labels: Option<NoteLabels>,
+    fingering_labels: Option<FingeringLabels>,
+    /// Note picked for fingering edit
+    selected_note: Option<MidiNote>,
+    /// Time the waterfall was last rendered at
+    waterfall_time: f32,
 
     player: MidiPlayer,
     rewind_controller: RewindController,
@@ -95,6 +104,18 @@ impl PlayingScene {
             ctx.text_renderer_factory.new_renderer(),
         ));
 
+        let fingering_labels = ctx.config.fingering().then(|| {
+            FingeringLabels::new(
+                *keyboard.pos(),
+                waterfall.notes(),
+                Fingering::compute(&song.file.tracks, &song.fingering_parts(), &song.fingering),
+                ctx.config.fingering_on_keys(),
+                ctx.config.note_labels(),
+                ctx.text_renderer_factory.new_renderer(),
+                ctx.text_renderer_factory.new_renderer(),
+            )
+        });
+
         let player = MidiPlayer::new(
             ctx.output_manager.connection().clone(),
             song,
@@ -116,6 +137,9 @@ impl PlayingScene {
             keyboard,
             guidelines,
             note_labels,
+            fingering_labels,
+            selected_note: None,
+            waterfall_time: 0.0,
             text_renderer,
             nuon_renderer: NuonRenderer::new(ctx),
 
@@ -205,9 +229,157 @@ impl PlayingScene {
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.set_pos(*self.keyboard.pos());
         }
+        if let Some(fingering_labels) = self.fingering_labels.as_mut() {
+            fingering_labels.set_pos(*self.keyboard.pos());
+        }
 
         self.waterfall
             .resize(&ctx.config, self.keyboard.layout().clone());
+    }
+}
+
+impl PlayingScene {
+    /// Drops the selection once playback continues and draws the selection outline
+    fn update_fingering_selection(&mut self, ctx: &Context) {
+        if !self.player.is_paused() {
+            self.selected_note = None;
+        }
+
+        let Some(note) = &self.selected_note else {
+            return;
+        };
+
+        let Some(rect) = self.note_rect(ctx, note) else {
+            return;
+        };
+
+        self.quad_renderer_fg.push(QuadInstance {
+            position: [rect.origin.x - 2.0, rect.origin.y - 2.0],
+            size: [rect.width() + 4.0, rect.height() + 4.0],
+            color: [0.0; 4],
+            border_radius: [5.0; 4],
+            border_color: [1.0, 0.8, 0.24, 1.0],
+            border_width: 2.0,
+        });
+    }
+
+    /// Logical rect of a falling note, same math as the waterfall shader
+    fn note_rect(&self, ctx: &Context, note: &MidiNote) -> Option<nuon::Rect> {
+        let layout = self.keyboard.layout();
+        if !layout.range.contains(note.note) {
+            return None;
+        }
+
+        let key = &layout.keys[(note.note - layout.range.start()) as usize];
+        let speed = ctx.config.animation_speed() / ctx.window_state.scale_factor as f32;
+
+        let bottom =
+            self.keyboard.pos().y - (note.start.as_secs_f32() - self.waterfall_time) * speed;
+        let height = note.duration.as_secs_f32() * speed;
+
+        Some(nuon::Rect::new(
+            (key.x(), bottom - height).into(),
+            (key.width(), height).into(),
+        ))
+    }
+
+    fn note_at_cursor(&self, ctx: &Context) -> Option<MidiNote> {
+        let fingering = self.fingering_labels.as_ref()?.fingering();
+        let pos = nuon::Point::new(
+            ctx.window_state.cursor_logical_position.x,
+            ctx.window_state.cursor_logical_position.y,
+        );
+
+        if pos.y >= self.keyboard.pos().y {
+            return None;
+        }
+
+        self.waterfall
+            .notes()
+            .iter()
+            .filter(|note| fingering.get(note).is_some())
+            .filter_map(|note| Some((note, self.note_rect(ctx, note)?)))
+            .filter(|(_, rect)| rect.contains(pos))
+            // Sharp notes are narrower and drawn over neutral ones
+            .min_by(|(_, a), (_, b)| a.width().total_cmp(&b.width()))
+            .map(|(note, _)| note.clone())
+    }
+
+    /// Returns true when the event was consumed
+    fn handle_fingering_input(&mut self, ctx: &mut Context, event: &WindowEvent) -> bool {
+        if self.fingering_labels.is_none() {
+            return false;
+        }
+
+        // Don't steal clicks from the top bar
+        if event.left_mouse_pressed()
+            && self.player.is_paused()
+            && ctx.window_state.cursor_logical_position.y > 75.0
+        {
+            self.selected_note = self.note_at_cursor(ctx);
+            if self.selected_note.is_some() {
+                self.toast_manager.toast(locals::playing::fingering_hint());
+            }
+            return false;
+        }
+
+        let Some(note) = self.selected_note.clone() else {
+            return false;
+        };
+
+        let WindowEvent::KeyboardInput {
+            event:
+                KeyEvent {
+                    state,
+                    physical_key: PhysicalKey::Code(code),
+                    ..
+                },
+            ..
+        } = event
+        else {
+            return false;
+        };
+
+        let finger = match code {
+            KeyCode::Digit1 | KeyCode::Numpad1 => Some(1),
+            KeyCode::Digit2 | KeyCode::Numpad2 => Some(2),
+            KeyCode::Digit3 | KeyCode::Numpad3 => Some(3),
+            KeyCode::Digit4 | KeyCode::Numpad4 => Some(4),
+            KeyCode::Digit5 | KeyCode::Numpad5 => Some(5),
+            KeyCode::Digit0 | KeyCode::Numpad0 | KeyCode::Backspace | KeyCode::Delete => None,
+            KeyCode::Escape => {
+                if *state == ElementState::Released {
+                    self.selected_note = None;
+                }
+                return true;
+            }
+            _ => return false,
+        };
+
+        // Swallow the release as well, so the key does not reach pc-keyboard-to-midi
+        if *state == ElementState::Pressed {
+            self.set_finger(&note, finger);
+        }
+
+        true
+    }
+
+    fn set_finger(&mut self, note: &MidiNote, finger: Option<u8>) {
+        let song = self.player.song_mut();
+        song.fingering.set_override(NoteKey::new(note), finger);
+        song.fingering.save();
+
+        let fingering =
+            Fingering::compute(&song.file.tracks, &song.fingering_parts(), &song.fingering);
+
+        if let Some(labels) = self.fingering_labels.as_mut() {
+            labels.set_fingering(fingering);
+        }
+
+        self.toast_manager.toast(match finger {
+            Some(finger) => locals::playing::finger_set(finger),
+            None => locals::playing::finger_auto(),
+        });
     }
 }
 
@@ -221,6 +393,7 @@ impl Scene for PlayingScene {
         self.toast_manager.update(&mut self.text_renderer);
 
         let time = self.update_midi_player(ctx, delta);
+        self.waterfall_time = time;
         self.waterfall.update(time);
         self.guidelines.update(
             &mut self.quad_renderer_bg,
@@ -241,6 +414,16 @@ impl Scene for PlayingScene {
                 time,
             );
         }
+        if let Some(fingering_labels) = self.fingering_labels.as_mut() {
+            fingering_labels.update(
+                ctx.window_state.physical_size,
+                ctx.window_state.scale_factor as f32,
+                self.keyboard.renderer(),
+                ctx.config.animation_speed(),
+                time,
+            );
+        }
+        self.update_fingering_selection(ctx);
 
         self.update_glow(delta);
 
@@ -291,9 +474,15 @@ impl Scene for PlayingScene {
         if let Some(note_labels) = self.note_labels.as_mut() {
             note_labels.render(rpass);
         }
+        if let Some(fingering_labels) = &self.fingering_labels {
+            fingering_labels.render_notes(rpass);
+        }
         self.quad_renderer_fg.render(rpass);
         if let Some(glow) = &self.glow {
             glow.render(rpass);
+        }
+        if let Some(fingering_labels) = &self.fingering_labels {
+            fingering_labels.render_keys(rpass);
         }
         self.text_renderer.render(rpass);
 
@@ -301,6 +490,10 @@ impl Scene for PlayingScene {
     }
 
     fn window_event(&mut self, ctx: &mut Context, event: &WindowEvent) {
+        if self.handle_fingering_input(ctx, event) {
+            return;
+        }
+
         self.rewind_controller
             .handle_window_event(ctx, event, &mut self.player);
 

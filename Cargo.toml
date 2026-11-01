@@ -19,6 +19,9 @@ resolver = "2"
 [workspace.package]
 edition = "2024"
 
+[profile.dev]
+debug = "line-tables-only"
+
 [workspace.dependencies]
 wgpu-jumpstart = { path = "./wgpu-jumpstart" }
 neothesia-core = { path = "./neothesia-core" }

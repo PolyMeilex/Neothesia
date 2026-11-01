@@ -539,6 +539,10 @@ enum ScrollState {
 
 impl ScrollState {
     fn update(&mut self, line_delta: f32) {
+        if line_delta == 0.0 {
+            return;
+        }
+
         let delta = -line_delta;
 
         match self {
@@ -549,10 +553,26 @@ impl ScrollState {
         }
     }
 
+    /// Eases an offset left past `max` by a shrinking page back into range
+    fn settle(&mut self) {
+        let ScrollState::Ready { value, max, .. } = self else {
+            return;
+        };
+
+        if *value > *max {
+            // The cap keeps large height changes from moving faster than small ones
+            *value -= ((*value - *max) * 0.25).min(6.0);
+
+            if *value - *max < 0.5 {
+                *value = *max;
+            }
+        }
+    }
+
     fn value(&self) -> f32 {
         match self {
             ScrollState::Uninitialized => 0.0,
-            ScrollState::Ready { value, max, .. } => (*value).clamp(0.0, *max),
+            ScrollState::Ready { value, .. } => (*value).max(0.0),
         }
     }
 
@@ -646,6 +666,7 @@ impl Scroll {
 
             let max_scroll = (full_h - visible_h).max(0.0);
             state.set_max(max_scroll);
+            state.settle();
             state.update(self::scroll_area().rect(self.rect).build(ui));
 
             if max_scroll == 0.0 {
@@ -665,7 +686,7 @@ impl Scroll {
                 .border_radius([5.0; 4])
                 .build(ui);
 
-            let y = scroll * mult;
+            let y = scroll.min(max_scroll) * mult;
             let x = self.rect.size.width - w;
 
             let res = self::click_area(self.id).size(w, h).pos(x, y).build(ui);

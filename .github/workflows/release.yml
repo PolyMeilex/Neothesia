@@ -23,6 +23,10 @@ jobs:
 
   build_ubuntu_recorder:
     runs-on: ubuntu-latest
+
+    env:
+      CARGO_FLAGS: --features build-ffmpeg
+
     steps:
       - uses: actions/checkout@v7
       - id: Build
@@ -34,7 +38,6 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_FLAGS: --features build-ffmpeg
         run: gh release upload ${{github.ref_name}} neothesia-cli-ubuntu.zip
 
   build_windows:

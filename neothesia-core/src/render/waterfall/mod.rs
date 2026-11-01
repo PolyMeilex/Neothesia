@@ -32,6 +32,11 @@ impl NoteList {
     fn len(&self) -> usize {
         self.inner.len()
     }
+
+    /// Notes sorted by start time
+    pub fn iter(&self) -> std::slice::Iter<'_, MidiNote> {
+        self.inner.iter()
+    }
 }
 
 pub struct WaterfallRenderer {

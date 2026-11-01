@@ -36,6 +36,12 @@ pub struct WaterfallConfigV1 {
 
     #[serde(default)]
     pub note_naming: NoteNaming,
+
+    #[serde(default = "default_fingering")]
+    pub fingering: bool,
+
+    #[serde(default = "default_fingering_on_keys")]
+    pub fingering_on_keys: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -50,6 +56,8 @@ impl Default for WaterfallConfig {
             animation_offset: default_animation_offset(),
             note_labels: default_note_labels(),
             note_naming: NoteNaming::default(),
+            fingering: default_fingering(),
+            fingering_on_keys: default_fingering_on_keys(),
         })
     }
 }
@@ -268,6 +276,14 @@ fn default_animation_offset() -> f32 {
 
 fn default_note_labels() -> bool {
     false
+}
+
+fn default_fingering() -> bool {
+    false
+}
+
+fn default_fingering_on_keys() -> bool {
+    true
 }
 
 fn default_audio_gain() -> f32 {

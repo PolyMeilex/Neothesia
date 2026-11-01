@@ -21,6 +21,8 @@ pub struct ProgramEvent {
 
 #[derive(Debug, Clone)]
 pub struct MidiNote {
+    /// Index of this note in [`MidiTrack::notes`]
+    pub id: usize,
     pub start: Duration,
     pub end: Duration,
     pub duration: Duration,
@@ -115,6 +117,7 @@ impl EventsBuilder {
             let duration = end - start;
 
             let note = MidiNote {
+                id: self.notes.len(),
                 start,
                 end,
                 duration,

@@ -1,4 +1,5 @@
 mod background_animation;
+mod fingering_labels;
 mod glow;
 mod guidelines;
 mod image;
@@ -9,6 +10,7 @@ mod text;
 mod waterfall;
 
 pub use background_animation::BgPipeline;
+pub use fingering_labels::FingeringLabels;
 pub use glow::GlowRenderer;
 pub use guidelines::GuidelineRenderer;
 pub use image::{Image, ImageIdentifier, ImageRenderer};
@@ -16,4 +18,4 @@ pub use keyboard::{KeyState as KeyboardKeyState, KeyboardRenderer};
 pub use note_labels::NoteLabels;
 pub use quad::{QuadInstance, QuadRenderer, QuadRendererFactory};
 pub use text::{TextAlign, TextRenderer, TextRendererFactory, glyphon};
-pub use waterfall::{LiveWaterfallRenderer, WaterfallRenderer};
+pub use waterfall::{LiveWaterfallRenderer, NoteList, WaterfallRenderer};

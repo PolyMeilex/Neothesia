@@ -261,6 +261,22 @@ impl Config {
         self.waterfall.note_labels
     }
 
+    pub fn fingering(&self) -> bool {
+        self.waterfall.fingering
+    }
+
+    pub fn set_fingering(&mut self, show: bool) {
+        self.waterfall.fingering = show;
+    }
+
+    pub fn fingering_on_keys(&self) -> bool {
+        self.waterfall.fingering_on_keys
+    }
+
+    pub fn set_fingering_on_keys(&mut self, show: bool) {
+        self.waterfall.fingering_on_keys = show;
+    }
+
     pub fn waterfall_note_naming(&self) -> NoteNaming {
         self.waterfall.note_naming
     }

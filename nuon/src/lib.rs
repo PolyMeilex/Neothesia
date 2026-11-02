@@ -415,7 +415,7 @@ impl Ui {
     }
 
     pub fn mouse_up(&mut self) {
-        self.mouse_pressed = false;
+        // `self.mouse_pressed` is left for `done()` to clear, because press and release can arrive within one frame
         self.mouse_down = false;
     }
 

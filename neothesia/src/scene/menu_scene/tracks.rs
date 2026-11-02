@@ -1,9 +1,11 @@
 use midi_file::MidiTrack;
+use neothesia_core::fingering::HandAssignment;
 use nuon::TextAlign;
 use std::hash::Hash;
 
 use crate::{
     context::Context,
+    locals,
     song::{PlayerConfig, TrackConfig},
 };
 
@@ -95,6 +97,11 @@ impl super::MenuScene {
                                         TrackCardEvent::SetVisible(visible) => {
                                             song.config.tracks[track.track_id].visible = visible;
                                         }
+                                        TrackCardEvent::SetHand(hand) => {
+                                            song.config.tracks[track.track_id].hand = hand;
+                                            song.fingering.set_hand(track.track_id, hand);
+                                            song.fingering.save();
+                                        }
                                         TrackCardEvent::Idle => {}
                                     }
 
@@ -151,6 +158,7 @@ impl CardsLayout {
 enum TrackCardEvent {
     PlayerConfig(PlayerConfig),
     SetVisible(bool),
+    SetHand(HandAssignment),
     Idle,
 }
 
@@ -231,10 +239,44 @@ fn track_card(
 
         let btn_w = inner_card_w / 3.0;
 
+        let is_drums = track.has_drums && !track.has_other_than_drums;
+        let show_hand = ctx.config.fingering() && !is_drums;
+        let hand_btn_w = 70.0;
+
+        if show_hand {
+            let (label, next) = match config.hand {
+                HandAssignment::Auto => (locals::menu::hand_auto(), HandAssignment::Left),
+                HandAssignment::Left => (locals::menu::hand_left(), HandAssignment::Right),
+                HandAssignment::Right => (locals::menu::hand_right(), HandAssignment::Auto),
+            };
+
+            if nuon::button()
+                .id(nuon::Id::hash_with(|h| {
+                    id.as_raw().hash(h);
+                    "hand".hash(h);
+                }))
+                .x(inner_card_w - hand_btn_w)
+                .y((icon_size - 30.0) / 2.0)
+                .size(hand_btn_w, 30.0)
+                .color(regular)
+                .hover_color(regular_hover)
+                .preseed_color(regular)
+                .border_radius([255.0; 4])
+                .label(label)
+                .build(ui)
+            {
+                res = TrackCardEvent::SetHand(next);
+            }
+        }
+
         let labels_x = icon_size + 15.0;
         nuon::translate().x(labels_x).build(ui, |ui| {
             let label_h = icon_size / 2.0;
-            let label_w = inner_card_w - labels_x;
+            let label_w = if show_hand {
+                inner_card_w - labels_x - hand_btn_w - 5.0
+            } else {
+                inner_card_w - labels_x
+            };
 
             nuon::label()
                 .size(label_w, label_h)

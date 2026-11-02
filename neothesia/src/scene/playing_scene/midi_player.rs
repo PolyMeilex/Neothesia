@@ -61,6 +61,10 @@ impl MidiPlayer {
         &self.song
     }
 
+    pub fn song_mut(&mut self) -> &mut Song {
+        &mut self.song
+    }
+
     /// When playing: returns midi events
     ///
     /// When paused: returns None

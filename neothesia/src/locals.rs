@@ -82,6 +82,30 @@ pub mod menu {
         }
     }
 
+    pub fn hand_auto() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Auto".into(),
+            "de" => "Auto".into(),
+            _ => "Auto".into(),
+        }
+    }
+
+    pub fn hand_left() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Lewa".into(),
+            "de" => "Links".into(),
+            _ => "Left".into(),
+        }
+    }
+
+    pub fn hand_right() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Prawa".into(),
+            "de" => "Rechts".into(),
+            _ => "Right".into(),
+        }
+    }
+
     pub fn tracks() -> String {
         match LOCAL.as_str() {
             "pl" => "Ścieżki".into(),
@@ -264,6 +288,40 @@ pub mod settings {
             "pl" => "Wyświetlaj nazwę nuty na każdej opadającej nucie".into(),
             "de" => "Notennamen auf jeder fallenden Note anzeigen".into(),
             _ => "Show the note name on each falling note".into(),
+        }
+    }
+
+    pub fn fingering() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Palcowanie".into(),
+            "de" => "Fingersatz".into(),
+            _ => "Fingering".into(),
+        }
+    }
+
+    pub fn fingering_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Numer palca na każdej opadającej nucie, edycja: pauza i kliknięcie".into(),
+            "de" => {
+                "Fingernummer auf jeder fallenden Note, bearbeiten: pausieren und anklicken".into()
+            }
+            _ => "Finger number on each falling note, edit: pause and click a note".into(),
+        }
+    }
+
+    pub fn fingering_on_keys() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Palcowanie na klawiszach".into(),
+            "de" => "Fingersatz auf Tasten".into(),
+            _ => "Fingering On Keys".into(),
+        }
+    }
+
+    pub fn fingering_on_keys_subtitle() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Numer palca na aktualnie granym klawiszu".into(),
+            "de" => "Fingernummer auf der gerade gespielten Taste".into(),
+            _ => "Finger number on the currently played key".into(),
         }
     }
 
@@ -471,6 +529,30 @@ pub mod playing {
             "pl" => format!("Przesunięcie: {offset}"),
             "de" => format!("Offset: {offset}"),
             _ => format!("Offset: {offset}"),
+        }
+    }
+
+    pub fn fingering_hint() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Palec: 1-5, automatycznie: 0".into(),
+            "de" => "Finger: 1-5, automatisch: 0".into(),
+            _ => "Finger: 1-5, automatic: 0".into(),
+        }
+    }
+
+    pub fn finger_set(finger: u8) -> String {
+        match LOCAL.as_str() {
+            "pl" => format!("Palec {finger}"),
+            "de" => format!("Finger {finger}"),
+            _ => format!("Finger {finger}"),
+        }
+    }
+
+    pub fn finger_auto() -> String {
+        match LOCAL.as_str() {
+            "pl" => "Palec: automatycznie".into(),
+            "de" => "Finger: automatisch".into(),
+            _ => "Finger: automatic".into(),
         }
     }
 }

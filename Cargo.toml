@@ -50,7 +50,7 @@ euclid = "0.22"
 lilt = "0.8"
 winit = "0.30"
 dpi = "0.1"
-rfd = "0.17"
+rfd = "0.18"
 cpal = "0.18"
 fluidlite = { version = "0.2", features = ["builtin"] }
 oxisynth = "0.1.0"
@@ -82,7 +82,7 @@ clap = { version = "4.5.41", default-features = false, features = [
 
 # neothesia-ai deps
 ndarray = "0.17"
-rten = "0.27"
-rten-tensor = "0.27"
+rten = "0.28"
+rten-tensor = "0.28"
 symphonia = { version = "0.6", features = ["mp3"] }
 symphonium = { version = "0.13", features = ["mp3"] }

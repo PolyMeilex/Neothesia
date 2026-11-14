@@ -10,7 +10,5 @@ midly.workspace = true
 ndarray.workspace = true
 rten = { workspace = true, features = ["fft"] }
 rten-tensor.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 symphonia.workspace = true
 symphonium.workspace = true

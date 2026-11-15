@@ -3,7 +3,7 @@ use bytes::Bytes;
 use state::{Page, UiState};
 
 mod midi_picker;
-use midi_picker::open_midi_file_picker;
+use midi_picker::{is_midi_file, open_midi_file, open_midi_file_picker};
 
 mod neo_btn;
 use neo_btn::{neo_btn, neo_btn_icon};
@@ -341,6 +341,19 @@ impl Scene for MenuScene {
             };
 
             self.nuon.mouse_wheel(y);
+        }
+
+        if let WindowEvent::DroppedFile(path) = event {
+            if !matches!(self.state.current(), Page::Main) {
+                log::warn!("Ignoring dropped file {path:?}, not on the main menu");
+            } else if self.state.is_loading() {
+                log::warn!("Ignoring dropped file {path:?}, another file is still loading");
+            } else if is_midi_file(path) {
+                self.futures
+                    .push(open_midi_file(&mut self.state, path.clone()));
+            } else {
+                log::warn!("Ignoring dropped file {path:?}, not a MIDI file");
+            }
         }
 
         if event.cursor_moved() {

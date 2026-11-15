@@ -331,9 +331,12 @@ pub(crate) mod chords {
             return None;
         }
 
-        // Try each note as potential root
-        for i in 0..normalized.len() {
-            let root = normalized[i];
+        // Try the bass note as root first, so the voicing disambiguates chords
+        // that share pitch classes (e.g. Am7 vs C6), then fall back to the others.
+        let bass = midi_notes.iter().min().unwrap() % 12;
+        let roots = std::iter::once(bass).chain(normalized.iter().copied().filter(|&n| n != bass));
+
+        for root in roots {
             let intervals = get_intervals(&normalized, root);
 
             if let Some(chord_type) = match_chord_type(intervals) {
@@ -438,6 +441,48 @@ pub(crate) mod chords {
             assert_eq!(deduce_name(&[60]).unwrap(), "C");
             // Multiple octaves should normalize
             assert_eq!(deduce_name(&[48, 64, 67, 72]).unwrap(), "CM");
+        }
+
+        #[test]
+        fn test_bass_note_disambiguates() {
+            assert_eq!(deduce_name(&[57, 60, 64, 67]).unwrap(), "Am7"); // A C E G
+            assert_eq!(deduce_name(&[60, 64, 67, 69]).unwrap(), "C6"); // C E G A
+            assert_eq!(deduce_name(&[57, 61, 64, 66]).unwrap(), "A6"); // A C# E F#
+            assert_eq!(deduce_name(&[54, 57, 61, 64]).unwrap(), "F#m7"); // F# A C# E
+        }
+
+        #[test]
+        fn test_all_seventh_chords() {
+            const ROOTS: [&str; 12] = [
+                "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+            ];
+            const QUALITIES: [(&str, [u8; 4]); 4] = [
+                ("maj7", [0, 4, 7, 11]),
+                ("m7", [0, 3, 7, 10]),
+                ("7", [0, 4, 7, 10]),
+                ("mmaj7", [0, 3, 7, 11]),
+            ];
+
+            let mut failures = Vec::new();
+
+            for (root, root_name) in ROOTS.iter().enumerate() {
+                for (suffix, intervals) in QUALITIES {
+                    let notes = intervals.map(|i| 60 + root as u8 + i);
+                    let expected = format!("{root_name}{suffix}");
+                    let got = deduce_name(&notes);
+
+                    if got.as_deref() != Some(expected.as_str()) {
+                        failures.push(format!("{notes:?}: expected {expected}, got {got:?}"));
+                    }
+                }
+            }
+
+            assert!(
+                failures.is_empty(),
+                "{} chord(s) detected incorrectly:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 }

@@ -122,7 +122,6 @@ pub enum Page {
 pub fn connect_io(data: &UiState, ctx: &mut Context) {
     if let Some(out) = data.selected_output.clone() {
         let out = match out {
-            #[cfg(feature = "synth")]
             OutputDescriptor::Synth(_) => OutputDescriptor::Synth(ctx.config.soundfont_path()),
             o => o,
         };

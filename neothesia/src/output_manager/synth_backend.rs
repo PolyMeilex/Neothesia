@@ -5,7 +5,7 @@ use crate::output_manager::OutputDescriptor;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use midi_file::midly::{self, num::u4};
 
-#[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
+#[cfg(feature = "fluid-synth")]
 const SAMPLES_SIZE: usize = 1410;
 
 pub struct SynthBackend {
@@ -45,10 +45,10 @@ impl SynthBackend {
         rx: Receiver<SynthEvent>,
         path: &Path,
     ) -> cpal::Stream {
-        #[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
+        #[cfg(feature = "fluid-synth")]
         let mut next_value = fluidsynth_adapter(self, rx, path);
 
-        #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+        #[cfg(not(feature = "fluid-synth"))]
         let mut next_value = {
             // We load the path in background for oxisynth
             let _ = path;
@@ -89,7 +89,7 @@ impl SynthBackend {
     pub fn new_output_connection(&mut self, path: &Path) -> SynthOutputConnection {
         let (tx, rx) = std::sync::mpsc::channel::<SynthEvent>();
 
-        #[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+        #[cfg(not(feature = "fluid-synth"))]
         std::thread::spawn({
             let tx = tx.clone();
             let path = path.to_path_buf();
@@ -205,14 +205,14 @@ fn libmidi_to_oxisynth_event(channel: u4, message: midly::MidiMessage) -> oxisyn
     }
 }
 
-#[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+#[cfg(not(feature = "fluid-synth"))]
 fn load_font(path: &Path) -> anyhow::Result<oxisynth::SoundFont> {
     let mut file = std::fs::File::open(path)?;
     let font = oxisynth::SoundFont::load(&mut file)?;
     Ok(font)
 }
 
-#[cfg(all(feature = "oxi-synth", not(feature = "fluid-synth")))]
+#[cfg(not(feature = "fluid-synth"))]
 fn oxisynth_adapter<'a>(
     this: &SynthBackend,
     rx: Receiver<SynthEvent>,
@@ -262,7 +262,7 @@ fn oxisynth_adapter<'a>(
     }
 }
 
-#[cfg(all(feature = "fluid-synth", not(feature = "oxi-synth")))]
+#[cfg(feature = "fluid-synth")]
 fn fluidsynth_adapter<'a>(
     this: &SynthBackend,
     rx: Receiver<SynthEvent>,
@@ -271,7 +271,7 @@ fn fluidsynth_adapter<'a>(
     use fluidlite::{IsSettings, Settings};
 
     let synth = {
-        let sample_rate = this.stream_config.sample_rate.0;
+        let sample_rate = this.stream_config.sample_rate;
 
         let settings = Settings::new().unwrap();
 

@@ -6,12 +6,10 @@ edition.workspace = true
 default-run = "neothesia"
 
 [features]
-default = ["oxi-synth"]
+default = []
 
 profiling-on = ["profiling/profile-with-puffin", "puffin", "puffin_http"]
-synth = []
-fluid-synth = ["synth", "cpal", "fluidlite", "oxisynth"]
-oxi-synth = ["synth", "cpal", "oxisynth"]
+fluid-synth = ["fluidlite"]
 
 [dependencies]
 thiserror.workspace = true
@@ -35,9 +33,9 @@ lilt.workspace = true
 winit.workspace = true
 rfd.workspace = true
 
-cpal = { workspace = true, optional = true }
+cpal.workspace = true
 fluidlite = { workspace = true, optional = true }
-oxisynth = { workspace = true, optional = true }
+oxisynth.workspace = true
 
 profiling.workspace = true
 puffin = { workspace = true, optional = true }

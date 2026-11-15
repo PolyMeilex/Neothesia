@@ -1,10 +1,8 @@
 mod midi_backend;
 use midi_backend::{MidiBackend, MidiPortInfo};
 
-#[cfg(feature = "synth")]
 mod synth_backend;
 
-#[cfg(feature = "synth")]
 use synth_backend::SynthBackend;
 
 use std::{
@@ -16,7 +14,6 @@ use midi_file::midly::{MidiMessage, num::u4};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum OutputDescriptor {
-    #[cfg(feature = "synth")]
     Synth(Option<PathBuf>),
     MidiOut(MidiPortInfo),
     DummyOutput,
@@ -43,7 +40,6 @@ impl OutputDescriptor {
 impl Display for OutputDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(feature = "synth")]
             OutputDescriptor::Synth(_) => write!(f, "Buildin Synth"),
             OutputDescriptor::MidiOut(info) => write!(f, "{info}"),
             OutputDescriptor::DummyOutput => write!(f, "No Output"),
@@ -54,7 +50,6 @@ impl Display for OutputDescriptor {
 #[derive(Clone)]
 pub enum OutputConnection {
     Midi(midi_backend::MidiOutputConnection),
-    #[cfg(feature = "synth")]
     Synth(synth_backend::SynthOutputConnection),
     DummyOutput,
 }
@@ -63,14 +58,12 @@ impl OutputConnection {
     pub fn midi_event(&self, channel: u4, msg: MidiMessage) {
         match self {
             OutputConnection::Midi(b) => b.midi_event(channel, msg),
-            #[cfg(feature = "synth")]
             OutputConnection::Synth(b) => b.midi_event(channel, msg),
             OutputConnection::DummyOutput => {}
         }
     }
     pub fn set_gain(&self, gain: f32) {
         match self {
-            #[cfg(feature = "synth")]
             OutputConnection::Synth(b) => b.set_gain(gain),
             _ => {}
         }
@@ -78,7 +71,6 @@ impl OutputConnection {
     pub fn stop_all(&self) {
         match self {
             OutputConnection::Midi(b) => b.stop_all(),
-            #[cfg(feature = "synth")]
             OutputConnection::Synth(b) => b.stop_all(),
             OutputConnection::DummyOutput => {}
         }
@@ -86,7 +78,6 @@ impl OutputConnection {
 }
 
 pub struct OutputManager {
-    #[cfg(feature = "synth")]
     synth_backend: Option<SynthBackend>,
     midi_backend: Option<MidiBackend>,
 
@@ -101,7 +92,6 @@ impl Default for OutputManager {
 
 impl OutputManager {
     pub fn new() -> Self {
-        #[cfg(feature = "synth")]
         let synth_backend = match SynthBackend::new() {
             Ok(synth_backend) => Some(synth_backend),
             Err(err) => {
@@ -119,7 +109,6 @@ impl OutputManager {
         };
 
         Self {
-            #[cfg(feature = "synth")]
             synth_backend,
             midi_backend,
 
@@ -130,7 +119,6 @@ impl OutputManager {
     pub fn outputs(&self) -> Vec<OutputDescriptor> {
         let mut outs = Vec::new();
 
-        #[cfg(feature = "synth")]
         if let Some(synth) = &self.synth_backend {
             outs.append(&mut synth.get_outputs());
         }
@@ -146,7 +134,6 @@ impl OutputManager {
     pub fn connect(&mut self, desc: OutputDescriptor) {
         if desc != self.output_connection.0 {
             match desc {
-                #[cfg(feature = "synth")]
                 OutputDescriptor::Synth(ref font) => {
                     if let Some(ref mut synth) = self.synth_backend {
                         if let Some(font) = font.clone() {
